@@ -17,8 +17,7 @@ contract LiquidationManager is ExponentialNoError {
      * @param borrowBalance The borrow balance of the borrower
      * @param wtAvg The weighted average of the collateral
      * @param totalCollateral The total collateral available for liquidation
-     * @param healthFactor The health factor of the borrower
-     * @param healthFactorThreshold The threshold for the health factor to determine if liquidation is needed
+     * @param dynamicLiquidationIncentive The dynamic liquidation incentive, scaled by 1e18
      * @param maxLiquidationIncentive The maximum liquidation incentive allowed
      * @return closeFactor The calculated close factor, scaled by 1e18
      */
@@ -26,11 +25,10 @@ contract LiquidationManager is ExponentialNoError {
         uint256 borrowBalance,
         uint256 wtAvg,
         uint256 totalCollateral,
-        uint256 healthFactor,
-        uint256 healthFactorThreshold,
+        uint256 dynamicLiquidationIncentive,
         uint256 maxLiquidationIncentive
     ) external pure returns (uint256 closeFactor) {
-        if (healthFactor >= healthFactorThreshold) {
+        if (dynamicLiquidationIncentive == maxLiquidationIncentive) {
             // Prevent underflow
             require(
                 wtAvg * totalCollateral <= borrowBalance * mantissaOne,
@@ -38,10 +36,9 @@ contract LiquidationManager is ExponentialNoError {
             );
 
             uint256 numerator = borrowBalance * mantissaOne - wtAvg * totalCollateral;
-            uint256 denominator = borrowBalance *
-                (mantissaOne - ((wtAvg * (mantissaOne + maxLiquidationIncentive)) / mantissaOne));
+            uint256 denominator = borrowBalance * (mantissaOne - ((wtAvg * maxLiquidationIncentive) / mantissaOne));
 
-            closeFactor = (numerator * mantissaOne) / denominator;
+            closeFactor = numerator / denominator;
             closeFactor = closeFactor > mantissaOne ? mantissaOne : closeFactor;
         } else {
             closeFactor = mantissaOne; // Liquidate 100% if unhealthy
@@ -51,21 +48,15 @@ contract LiquidationManager is ExponentialNoError {
     /**
      * @notice Calculate the dynamic liquidation incentive based on health factor and average liquidation threshold
      * @param healthFactor The health factor of the borrower
-     * @param healthFactorThreshold The threshold for the health factor to determine if liquidation is needed
      * @param averageLT The average liquidation threshold of the collateral
      * @param maxLiquidationIncentiveMantissa The maximum liquidation incentive allowed, scaled by 1e18
      * @return incentive The calculated dynamic liquidation incentive, scaled by 1e18
      */
     function calculateDynamicLiquidationIncentive(
         uint256 healthFactor,
-        uint256 healthFactorThreshold,
         uint256 averageLT,
         uint256 maxLiquidationIncentiveMantissa
     ) external pure returns (uint256 incentive) {
-        if (healthFactor >= healthFactorThreshold) {
-            return maxLiquidationIncentiveMantissa;
-        }
-
         uint256 value = ((healthFactor * mantissaOne) / averageLT) - mantissaOne;
         return value > maxLiquidationIncentiveMantissa ? maxLiquidationIncentiveMantissa : value;
     }
@@ -97,20 +88,5 @@ contract LiquidationManager is ExponentialNoError {
         seizeTokens = mul_ScalarTruncate(div_(numerator, denominator), actualRepayAmount);
 
         return (seizeTokens);
-    }
-
-    /**
-     * @notice Check if a liquidation is toxic based on average liquidation threshold and health factor
-     * @param averageLT The average liquidation threshold of the collateral
-     * @param liquidationIncentiveAvg The average liquidation incentive, scaled by 1e18
-     * @param healthFactor The health factor of the borrower
-     * @return bool True if the liquidation is toxic, false otherwise
-     */
-    function isToxicLiquidation(
-        uint256 averageLT,
-        uint256 liquidationIncentiveAvg,
-        uint256 healthFactor
-    ) external pure returns (bool) {
-        return ((averageLT * (mantissaOne + liquidationIncentiveAvg)) > healthFactor);
     }
 }

@@ -5,6 +5,7 @@ pragma solidity 0.8.25;
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
+import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 
@@ -257,14 +258,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         /* The borrower must have shortfall in order to be liquidatable */
         (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
 
-        (
-            Error err,
-            uint256 averageLT,
-            uint256 totalCollateral,
-            uint256 healthFactor,
-            uint256 liquidationIncentiveAvg,
-            uint256 healthFactorThreshold
-        ) = getHypotheticalHealthSnapshot(borrower, VToken(address(0)), 0, 0);
+        (Error err, uint256 averageLT, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
+            borrower,
+            VToken(address(0)),
+            0,
+            0
+        );
 
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -273,17 +272,18 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        if (liquidationManager.isToxicLiquidation(averageLT, liquidationIncentiveAvg, healthFactor)) {
-            return uint256(Error.TOXIC_LIQUIDATION);
-        }
+        // Call getDynamicLiquidationIncentive from MarketFacet via diamond proxy
+        uint256 dynamicLiquidationIncentive = IMarketFacet(address(this)).getDynamicLiquidationIncentive(
+            borrower,
+            vTokenCollateral
+        );
 
         Market storage marketCollateral = markets[vTokenCollateral];
         uint256 closeFactor = liquidationManager.calculateCloseFactor(
             borrowBalance,
             averageLT,
             totalCollateral,
-            healthFactor,
-            healthFactorThreshold,
+            dynamicLiquidationIncentive,
             marketCollateral.maxLiquidationIncentiveMantissa
         );
 
