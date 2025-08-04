@@ -445,7 +445,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 seizedAmount
     ) internal view returns (uint256 ours, uint256 theirs) {
         uint256 totalIncentive = comptroller.getDynamicLiquidationIncentive(borrower, vTokenCollateral);
-        ours = (seizedAmount * treasuryPercentMantissa) / totalIncentive;
+        ours =
+            (seizedAmount * (totalIncentive - MANTISSA_ONE) * treasuryPercentMantissa) /
+            (MANTISSA_ONE * MANTISSA_ONE);
         theirs = seizedAmount - ours;
     }
 
