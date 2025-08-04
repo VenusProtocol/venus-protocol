@@ -11,7 +11,6 @@ import {
   ComptrollerMock,
   FaucetToken,
   IAccessControlManagerV8__factory,
-  LiquidationManager,
   VBep20,
 } from "../../../typechain";
 import {
@@ -98,8 +97,8 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
   const liquidationManager = await LiquidationManagerFactory.deploy();
   await liquidationManager.deployed();
 
-  await comptroller._setLiquidationModule(liquidationManager.address);
-  await comptroller._setCollateralFactor(vCollateral.address, parseUnits("0.5", 18), parseUnits("0.5", 18));
+  await comptroller._setLiquidationManager(liquidationManager.address);
+  await comptroller.setCollateralFactor(vCollateral.address, parseUnits("0.5", 18), parseUnits("0.5", 18));
   await comptroller._setMarketSupplyCaps(
     [vBUSD.address, vCollateral.address],
     [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
@@ -108,8 +107,8 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
     [vBUSD.address, vCollateral.address],
     [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
   );
-  await comptroller._setMarketLiquidationIncentive(vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
-  await comptroller._setMarketLiquidationIncentive(vBUSD.address, TOTAL_LIQUIDATION_INCENTIVE);
+  await comptroller._setMarketMaxLiquidationIncentive(vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
+  await comptroller._setMarketMaxLiquidationIncentive(vBUSD.address, TOTAL_LIQUIDATION_INCENTIVE);
 
   const busd = await ethers.getContractAt("FaucetToken", await vBUSD.underlying());
   const collateral = await ethers.getContractAt("FaucetToken", await vCollateral.underlying());

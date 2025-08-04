@@ -60,44 +60,44 @@ describe("Comptroller", () => {
     describe("setCollateralFactor", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user)._setCollateralFactor(ethers.constants.AddressZero, 1, 1),
+          comptroller.connect(user).setCollateralFactor(ethers.constants.AddressZero, 1, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setCollateralFactor(address,uint256,uint256)",
+          "setCollateralFactor(address,uint256,uint256)",
         );
       });
 
       it("Should revert for same values", async () => {
-        await expect(comptroller._setCollateralFactor(ethers.constants.AddressZero, 0, 0)).to.be.revertedWith(
+        await expect(comptroller.setCollateralFactor(ethers.constants.AddressZero, 0, 0)).to.be.revertedWith(
           "old value is same as new value",
         );
       });
     });
 
-    describe("setMarketLiquidaitonIncentive", () => {
+    describe("setMarketMaxLiquidaitonIncentive", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user)._setMarketLiquidationIncentive(ethers.constants.AddressZero, 1),
+          comptroller.connect(user)._setMarketMaxLiquidationIncentive(ethers.constants.AddressZero, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setMarketLiquidationIncentive(address,uint256)",
+          "_setMarketMaxLiquidationIncentive(address,uint256)",
         );
       });
     });
 
-    describe("setLiquidationModule", () => {
+    describe("setLiquidationManager", () => {
       let liquidationModule: FakeContract;
       beforeEach(async () => {
         liquidationModule = await smock.fake("LiquidationManager");
       });
 
       it("Should have AccessControl", async () => {
-        await expect(comptroller.connect(user)._setLiquidationModule(liquidationModule.address)).to.be.revertedWith(
+        await expect(comptroller.connect(user)._setLiquidationManager(liquidationModule.address)).to.be.revertedWith(
           "access denied",
         );
-        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setLiquidationModule(address)");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setLiquidationManager(address)");
       });
     });
 

@@ -139,9 +139,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const half = convertToUnit("0.5", 18);
   await comptroller._supportMarket(vusdt.address);
-  await comptroller._setCollateralFactor(vusdt.address, half, half);
+  await comptroller.setCollateralFactor(vusdt.address, half, half);
   await comptroller._supportMarket(veth.address);
-  await comptroller._setCollateralFactor(veth.address, half, half);
+  await comptroller.setCollateralFactor(veth.address, half, half);
 
   await eth.transfer(user1.address, bigNumber18.mul(100));
   await usdt.transfer(user2.address, bigNumber18.mul(10000));

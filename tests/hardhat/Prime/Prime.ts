@@ -141,9 +141,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const half = convertToUnit("0.5", 18);
   await comptroller._supportMarket(vusdt.address);
-  await comptroller._setCollateralFactor(vusdt.address, half, half);
+  await comptroller.setCollateralFactor(vusdt.address, half, half);
   await comptroller._supportMarket(veth.address);
-  await comptroller._setCollateralFactor(veth.address, half, half);
+  await comptroller.setCollateralFactor(veth.address, half, half);
 
   await eth.transfer(user1.address, bigNumber18.mul(100));
   await usdt.transfer(user2.address, bigNumber18.mul(10000));
@@ -749,7 +749,7 @@ describe("PrimeScenario Token", () => {
 
         const half = convertToUnit("0.5", 8);
         await comptroller._supportMarket(vbnb.address);
-        await comptroller._setCollateralFactor(vbnb.address, half, half);
+        await comptroller.setCollateralFactor(vbnb.address, half, half);
 
         await bnb.transfer(user3.getAddress(), bigNumber18.mul(100));
 
@@ -989,7 +989,7 @@ describe("PrimeScenario Token", () => {
         }
       });
 
-      await comptroller._setCollateralFactor(vmatic.address, half, half);
+      await comptroller.setCollateralFactor(vmatic.address, half, half);
 
       await comptroller._setMarketSupplyCaps([vmatic.address], [bigNumber18.mul(10000)]);
       await comptroller._setMarketBorrowCaps([vmatic.address], [bigNumber18.mul(10000)]);

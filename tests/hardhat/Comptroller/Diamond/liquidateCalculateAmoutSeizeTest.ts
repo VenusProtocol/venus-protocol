@@ -80,7 +80,7 @@ describe("Comptroller", () => {
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
-    await comptroller._setLiquidationModule(liquidationManager.address);
+    await comptroller._setLiquidationManager(liquidationManager.address);
 
     const vTokenBorrowed = await smock.fake<VBep20Immutable>(
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
@@ -98,7 +98,7 @@ describe("Comptroller", () => {
       vToken.comptroller.returns(comptroller.address);
       vToken.isVToken.returns(true);
       await comptroller._supportMarket(vToken.address);
-      await comptroller._setMarketLiquidationIncentive(vToken.address, convertToUnit("1.1", 18));
+      await comptroller._setMarketMaxLiquidationIncentive(vToken.address, convertToUnit("1.1", 18));
     }
 
     vTokenCollateral.exchangeRateStored.returns(5e9);
@@ -179,7 +179,7 @@ describe("Comptroller", () => {
 
         setOraclePrice(vTokenCollateral, collateralPrice);
         setOraclePrice(vTokenBorrowed, borrowedPrice);
-        await comptroller._setMarketLiquidationIncentive(vTokenCollateral.address, liquidationIncentive);
+        await comptroller._setMarketMaxLiquidationIncentive(vTokenCollateral.address, liquidationIncentive);
         vTokenCollateral.exchangeRateStored.returns(exchangeRate);
 
         const seizeAmount = (repayAmount * liquidationIncentive * borrowedPrice) / collateralPrice;

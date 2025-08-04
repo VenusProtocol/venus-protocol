@@ -368,7 +368,7 @@ describe("Comptroller", () => {
     });
   });
 
-  describe("_setCollateralFactor", () => {
+  describe("setCollateralFactor", () => {
     const half = convertToUnit("0.5", 18);
     const liquidationThreshold = convertToUnit("0.6", 18);
     let comptroller: ComptrollerMock;
@@ -391,7 +391,7 @@ describe("Comptroller", () => {
     });
 
     it("fails if asset is not listed", async () => {
-      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold)).to.be.revertedWith(
+      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold)).to.be.revertedWith(
         "market not listed",
       );
     });
@@ -399,7 +399,7 @@ describe("Comptroller", () => {
     it("fails if factor is set without an underlying price", async () => {
       await comptroller._supportMarket(vToken.address);
       oracle.getUnderlyingPrice.returns(0);
-      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold))
+      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold))
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
@@ -410,14 +410,14 @@ describe("Comptroller", () => {
 
     it("succeeds and sets market", async () => {
       await comptroller._supportMarket(vToken.address);
-      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold))
+      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold))
         .emit(comptroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
     });
 
     it("succeeds and sets market using alias", async () => {
       await comptroller.supportMarket(vToken.address);
-      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold))
+      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold))
         .emit(comptroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
 
@@ -426,15 +426,15 @@ describe("Comptroller", () => {
 
     it("should revert on same values", async () => {
       await comptroller._supportMarket(vToken.address);
-      await comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold);
-      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold)).to.be.revertedWith(
+      await comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold);
+      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold)).to.be.revertedWith(
         "old value is same as new value",
       );
       expect(await comptroller.isMarketListed(vToken.address)).to.be.true;
     });
   });
 
-  describe("_setMarketLiquidationIncentive", () => {
+  describe("_setMarketMaxLiquidationIncentive", () => {
     let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
     let oracle: FakeContract<PriceOracle>;
@@ -456,21 +456,21 @@ describe("Comptroller", () => {
 
     it("fails if asset is not listed", async () => {
       await expect(
-        comptroller._setMarketLiquidationIncentive(vToken.address, convertToUnit("1.1", 18)),
+        comptroller._setMarketMaxLiquidationIncentive(vToken.address, convertToUnit("1.1", 18)),
       ).to.be.revertedWith("market not listed");
     });
 
     it("fails if incentive is less than 1e18", async () => {
       await comptroller._supportMarket(vToken.address);
       await expect(
-        comptroller._setMarketLiquidationIncentive(vToken.address, convertToUnit("0.99999", 18)),
+        comptroller._setMarketMaxLiquidationIncentive(vToken.address, convertToUnit("0.99999", 18)),
       ).to.be.revertedWith("incentive < mantissaOne");
     });
 
     it("succeeds and sets market liquidation incentive", async () => {
       await comptroller._supportMarket(vToken.address);
       const newIncentive = convertToUnit("1.1", 18);
-      await expect(comptroller._setMarketLiquidationIncentive(vToken.address, newIncentive))
+      await expect(comptroller._setMarketMaxLiquidationIncentive(vToken.address, newIncentive))
         .to.emit(comptroller, "NewMarketLiquidationIncentive")
         .withArgs(vToken.address, "0", newIncentive);
     });
@@ -478,14 +478,14 @@ describe("Comptroller", () => {
     it("should revert on same values", async () => {
       await comptroller._supportMarket(vToken.address);
       const newIncentive = convertToUnit("1.1", 18);
-      await comptroller._setMarketLiquidationIncentive(vToken.address, newIncentive);
-      await expect(comptroller._setMarketLiquidationIncentive(vToken.address, newIncentive)).to.be.revertedWith(
+      await comptroller._setMarketMaxLiquidationIncentive(vToken.address, newIncentive);
+      await expect(comptroller._setMarketMaxLiquidationIncentive(vToken.address, newIncentive)).to.be.revertedWith(
         "old value is same as new value",
       );
     });
   });
 
-  describe("_setLiquidationModule", () => {
+  describe("_setLiquidationManager", () => {
     let comptroller: ComptrollerMock;
     let liquidationMananger: FakeContract<LiquidationManager>;
 
@@ -493,9 +493,9 @@ describe("Comptroller", () => {
       ({ comptroller } = await loadFixture(deploySimpleComptroller));
     });
 
-    it("succeeds and sets liquidation module", async () => {
+    it("succeeds and sets liquidation manager", async () => {
       liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
-      await expect(comptroller._setLiquidationModule(liquidationMananger.address))
+      await expect(comptroller._setLiquidationManager(liquidationMananger.address))
         .to.emit(comptroller, "NewLiquidationManager")
         .withArgs(constants.AddressZero, liquidationMananger.address);
       expect(await comptroller.liquidationManager()).to.equal(liquidationMananger.address);
@@ -503,11 +503,11 @@ describe("Comptroller", () => {
 
     it("should revert on same values", async () => {
       liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
-      await comptroller._setLiquidationModule(liquidationMananger.address);
-      await expect(comptroller._setLiquidationModule(liquidationMananger.address)).to.be.revertedWith(
+      await comptroller._setLiquidationManager(liquidationMananger.address);
+      await expect(comptroller._setLiquidationManager(liquidationMananger.address)).to.be.revertedWith(
         "old address is same as new address",
       );
-      testZeroAddress("_setLiquidationModule", [constants.AddressZero]);
+      testZeroAddress("_setLiquidationManager", [constants.AddressZero]);
     });
   });
 
@@ -952,7 +952,7 @@ describe("Comptroller", () => {
           liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
           await comptroller._setComptrollerLens(comptrollerLens.address);
           await comptroller._setCloseFactor(convertToUnit("0.5", 18));
-          await comptroller._setLiquidationModule(liquidationMananger.address);
+          await comptroller._setLiquidationManager(liquidationMananger.address);
         });
 
         generalTests();

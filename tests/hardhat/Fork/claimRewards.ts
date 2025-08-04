@@ -79,9 +79,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const half = convertToUnit("0.5", 18);
 
   await comptroller._supportMarket(VUSDT_ADDRESS);
-  await comptroller._setCollateralFactor(VUSDT_ADDRESS, half, half);
+  await comptroller.setCollateralFactor(VUSDT_ADDRESS, half, half);
   await comptroller._supportMarket(VETH_ADDRESS);
-  await comptroller._setCollateralFactor(VETH_ADDRESS, half, half);
+  await comptroller.setCollateralFactor(VETH_ADDRESS, half, half);
 
   await comptroller._setMarketSupplyCaps(
     [VUSDT_ADDRESS, VETH_ADDRESS],

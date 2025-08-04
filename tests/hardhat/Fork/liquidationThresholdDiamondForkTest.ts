@@ -74,7 +74,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
       // Get the selector for the new function
       const addSetCollateralFactorSignature = newSetterFacet.interface.getSighash(
-        newSetterFacet.interface.functions["_setCollateralFactor(address,uint256,uint256)"],
+        newSetterFacet.interface.functions["setCollateralFactor(address,uint256,uint256)"],
       );
 
       // Get all existing selectors for the old SetterFacet (if you want to replace all)
@@ -123,7 +123,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
       await accessControlManager
         .connect(owner)
-        .giveCallPermission(setterFacet.address, "_setCollateralFactor(address,uint256,uint256)", Owner);
+        .giveCallPermission(setterFacet.address, "setCollateralFactor(address,uint256,uint256)", Owner);
     });
 
     it("Should set liquidation threshold and emit event", async () => {
@@ -132,7 +132,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       const newLT = convertToUnit("0.8", 18);
 
       // Call the function through the diamond proxy
-      const tx = await setterFacet.connect(owner)._setCollateralFactor(vUsdt.address, newCF, newLT);
+      const tx = await setterFacet.connect(owner).setCollateralFactor(vUsdt.address, newCF, newLT);
       await expect(tx).to.emit(setterFacet, "NewCollateralFactor").withArgs(vUsdt.address, oldCF, newCF);
       await expect(tx).to.emit(setterFacet, "NewLiquidationThreshold").withArgs(vUsdt.address, 0, newLT);
     });
@@ -140,7 +140,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
     it("Should revert if liquidation threshold < collateral factor", async () => {
       const newCF = convertToUnit("0.9", 18);
       const newLT = convertToUnit("0.6", 18);
-      await expect(setterFacet.connect(timeLockUser)._setCollateralFactor(VUSDT, newCF, newLT))
+      await expect(setterFacet.connect(timeLockUser).setCollateralFactor(VUSDT, newCF, newLT))
         .to.emit(setterFacet, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
@@ -153,7 +153,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       const newCF = convertToUnit("0.9", 18);
       const newLT = convertToUnit("1.1", 18);
 
-      await expect(setterFacet.connect(timeLockUser)._setCollateralFactor(vUsdt.address, newCF, newLT))
+      await expect(setterFacet.connect(timeLockUser).setCollateralFactor(vUsdt.address, newCF, newLT))
         .to.emit(setterFacet, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
@@ -221,7 +221,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
       // Get the selector for the new function
       const addSetCollateralFactorSignature = newSetterFacet.interface.getSighash(
-        newSetterFacet.interface.functions["_setCollateralFactor(address,uint256,uint256)"],
+        newSetterFacet.interface.functions["setCollateralFactor(address,uint256,uint256)"],
       );
 
       const existingSetterFacetFunctions = await unitrollerDiamond.facetFunctionSelectors(OLD_SETTER_FACET);
@@ -289,13 +289,13 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
       await accessControlManager
         .connect(owner)
-        .giveCallPermission(setterFacet.address, "_setCollateralFactor(address,uint256,uint256)", Owner);
+        .giveCallPermission(setterFacet.address, "setCollateralFactor(address,uint256,uint256)", Owner);
     });
 
     it("borrow allowed for user", async () => {
       const newCF = convertToUnit("0.7", 18);
       const newLT = convertToUnit("0.8", 18);
-      await setterFacet.connect(owner)._setCollateralFactor(vEth.address, newCF, newLT);
+      await setterFacet.connect(owner).setCollateralFactor(vEth.address, newCF, newLT);
 
       await eth.connect(ethHolder).approve(vEth.address, parseUnits("2", 18));
       await expect(vEth.connect(ethHolder).mint(parseUnits("2", 18))).to.emit(vEth, "Transfer");
@@ -309,7 +309,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
     it("user in liquidation state", async () => {
       const newCF = convertToUnit("0", 18);
       const newLT = convertToUnit("0", 18);
-      await setterFacet.connect(owner)._setCollateralFactor(vEth.address, newCF, newLT);
+      await setterFacet.connect(owner).setCollateralFactor(vEth.address, newCF, newLT);
 
       await expect(vEth.connect(ethHolder).borrow(parseUnits("1", 18))).to.revertedWith("math error");
     });
@@ -364,7 +364,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
       const newCF = convertToUnit("0.7", 18);
       const newLT = convertToUnit("0.8", 18);
-      await setterFacet.connect(owner)._setCollateralFactor(vEth.address, newCF, newLT);
+      await setterFacet.connect(owner).setCollateralFactor(vEth.address, newCF, newLT);
       // 1. Setup: Get contract instances and user
       const xvs = await ethers.getContractAt("XVS", XVS_ADDRESS);
 

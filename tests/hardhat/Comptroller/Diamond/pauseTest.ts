@@ -33,7 +33,7 @@ async function pauseFixture(): Promise<PauseFixture> {
 
   accessControl.isAllowedToCall.returns(true);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationModule(liquidationManager.address);
+  await comptroller._setLiquidationManager(liquidationManager.address);
   const names = ["OMG", "ZRX", "BAT", "sketch"];
   const [OMG, ZRX, BAT, SKT] = await Promise.all(
     names.map(async name => {
