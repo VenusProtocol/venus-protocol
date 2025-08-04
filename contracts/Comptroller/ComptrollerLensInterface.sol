@@ -32,5 +32,5 @@ interface ComptrollerLensInterface {
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount
-    ) external view returns (uint, uint, uint, uint, uint, uint);
+    ) external view returns (uint, uint, uint, uint);
 }

@@ -47,10 +47,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 liquidationThresholdAvg;
         // Health factor of the account, used to assess liquidation risk (scaled by 1e18)
         uint256 healthFactor;
-        // Threshold value for the health factor below which liquidation may occur (scaled by 1e18)
-        uint256 healthFactorThreshold;
-        // Average liquidation incentive across all assets (scaled by 1e18)
-        uint256 liquidationIncentiveAvg;
     }
 
     /**
@@ -183,8 +179,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @return Returns a tuple of error code, average liquidation threshold, total collateral, health factor,
-     *          health factor threshold, and average liquidation incentive
+     * @return Returns a tuple of error code, average liquidation threshold, total collateral and health factor.
      */
     function getAccountHealthSnapshot(
         address comptroller,
@@ -192,7 +187,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
-    ) external view returns (uint256, uint256, uint256, uint256, uint256, uint256) {
+    ) external view returns (uint256, uint256, uint256, uint256) {
         (uint256 errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
             comptroller,
             account,
@@ -201,14 +196,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             borrowAmount
         );
 
-        return (
-            errorCode,
-            vars.liquidationThresholdAvg,
-            vars.totalCollateral,
-            vars.healthFactor,
-            vars.healthFactorThreshold,
-            vars.liquidationIncentiveAvg
-        );
+        return (errorCode, vars.liquidationThresholdAvg, vars.totalCollateral, vars.healthFactor);
     }
 
     /**
@@ -222,7 +210,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @return vars Returns an AccountLiquidityLocalVars struct containing the calculated values
      * @dev This function processes all assets the account is in, calculates their balances, prices,
      *      and computes the total collateral, borrows, and effects of the hypothetical actions.
-     *      It also calculates the health factor, average liquidation threshold, and liquidation incentive.
+     *      It also calculates the health factor and average liquidation threshold.
      */
     function _calculateAccountPosition(
         address comptroller,
@@ -249,14 +237,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 return (errorCode, vars);
             }
 
-            (
-                ,
-                ,
-                ,
-                uint256 liquidationThresholdMantissa,
-                uint256 maxLiquidationIncentiveMantissa
-            ) = ComptrollerInterface(comptroller).markets(address(asset));
-            vars.liquidationIncentiveAvg = add_(vars.liquidationIncentiveAvg, maxLiquidationIncentiveMantissa);
+            (, , , uint256 liquidationThresholdMantissa, ) = ComptrollerInterface(comptroller).markets(address(asset));
 
             // Get the normalized price of the asset
             vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(asset));
@@ -312,31 +293,20 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vars.effects = add_(vars.effects, vaiController.getVAIRepayAmount(account));
         }
 
-        (
-            vars.healthFactor,
-            vars.healthFactorThreshold,
-            vars.liquidationThresholdAvg,
-            vars.liquidity,
-            vars.shortfall
-        ) = _finalizeSnapshot(vars);
+        (vars.healthFactor, vars.liquidationThresholdAvg, vars.liquidity, vars.shortfall) = _finalizeSnapshot(vars);
 
-        if (assetsCount > 0) {
-            vars.liquidationIncentiveAvg = div_(vars.liquidationIncentiveAvg, assetsCount);
-        }
         errorCode = uint256(Error.NO_ERROR);
     }
 
     /**
      * @notice Finalizes the snapshot of the account's position
      * @param snapshot The AccountLiquidityLocalVars struct containing the calculated values
-     * @return Returns health factor, health factor threshold, average liquidation threshold,
-     *          liquidity, shortfall, and average liquidation incentive
+     * @return Returns health factor, average liquidation threshold, liquidity and shortfall.
      */
     function _finalizeSnapshot(
         AccountLiquidityLocalVars memory snapshot
-    ) internal pure returns (uint256, uint256, uint256, uint256, uint256) {
+    ) internal pure returns (uint256, uint256, uint256, uint256) {
         uint256 healthFactor;
-        uint256 healthFactorThreshold;
         if (snapshot.totalCollateral > 0) {
             snapshot.liquidationThresholdAvg = div_(snapshot.liquidationThresholdAvg, snapshot.totalCollateral);
         }
@@ -345,10 +315,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         if (borrowPlusEffects > 0) {
             healthFactor = div_(snapshot.weightedCollateral, borrowPlusEffects);
         }
-        healthFactorThreshold = div_(
-            snapshot.liquidationThresholdAvg * (1e18 + snapshot.liquidationIncentiveAvg),
-            1e18
-        );
 
         if (snapshot.weightedCollateral > borrowPlusEffects) {
             snapshot.liquidity = snapshot.weightedCollateral - borrowPlusEffects;
@@ -358,12 +324,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             snapshot.shortfall = borrowPlusEffects - snapshot.weightedCollateral;
         }
 
-        return (
-            healthFactor,
-            healthFactorThreshold,
-            snapshot.liquidationThresholdAvg,
-            snapshot.liquidity,
-            snapshot.shortfall
-        );
+        return (healthFactor, snapshot.liquidationThresholdAvg, snapshot.liquidity, snapshot.shortfall);
     }
 }

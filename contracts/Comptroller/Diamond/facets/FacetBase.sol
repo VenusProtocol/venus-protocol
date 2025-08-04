@@ -171,8 +171,6 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @return liquidationThresholdAvg Average liquidation threshold
      * @return totalCollateral Total collateral in excess of borrow requirements
      * @return healthFactor Health factor
-     * @return healthFactorThreshold Health factor threshold
-     * @return liquidationIncentiveAvg Average liquidation incentive
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
      *  without calculating accumulated interest.
      */
@@ -184,24 +182,16 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     )
         internal
         view
-        returns (
-            Error err,
-            uint256 liquidationThresholdAvg,
-            uint256 totalCollateral,
-            uint256 healthFactor,
-            uint256 healthFactorThreshold,
-            uint256 liquidationIncentiveAvg
-        )
+        returns (Error err, uint256 liquidationThresholdAvg, uint256 totalCollateral, uint256 healthFactor)
     {
         uint256 rawErr;
-        (
-            rawErr,
-            liquidationThresholdAvg,
-            totalCollateral,
-            healthFactor,
-            healthFactorThreshold,
-            liquidationIncentiveAvg
-        ) = comptrollerLens.getAccountHealthSnapshot(address(this), account, vTokenModify, redeemTokens, borrowAmount);
+        (rawErr, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens.getAccountHealthSnapshot(
+            address(this),
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount
+        );
 
         err = Error(rawErr);
     }
