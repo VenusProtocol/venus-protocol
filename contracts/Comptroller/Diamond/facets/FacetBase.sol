@@ -161,20 +161,20 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold, 
+     * @notice Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,
      *          and average liquidation incentive
      * @param account The account to get the health snapshot for
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @return (error code,
-                average liquidation threshold,
-                total collateral in excess of borrow requirements,
-                health factor,
-                health factor threshold,
-                average liquidation incentive)
+     * @return err Error code
+     * @return liquidationThresholdAvg Average liquidation threshold
+     * @return totalCollateral Total collateral in excess of borrow requirements
+     * @return healthFactor Health factor
+     * @return healthFactorThreshold Health factor threshold
+     * @return liquidationIncentiveAvg Average liquidation incentive
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
-     *  without calculating accumulated interest. 
+     *  without calculating accumulated interest.
      */
     function getHypotheticalHealthSnapshot(
         address account,
@@ -185,25 +185,25 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         internal
         view
         returns (
-            Error,
-            uint256 averageLT,
+            Error err,
+            uint256 liquidationThresholdAvg,
             uint256 totalCollateral,
             uint256 healthFactor,
             uint256 healthFactorThreshold,
             uint256 liquidationIncentiveAvg
         )
     {
-        uint256 err;
+        uint256 rawErr;
         (
-            err,
-            averageLT,
+            rawErr,
+            liquidationThresholdAvg,
             totalCollateral,
             healthFactor,
             healthFactorThreshold,
             liquidationIncentiveAvg
         ) = comptrollerLens.getAccountHealthSnapshot(address(this), account, vTokenModify, redeemTokens, borrowAmount);
 
-        return (Error(err), averageLT, totalCollateral, healthFactor, healthFactorThreshold, liquidationIncentiveAvg);
+        err = Error(rawErr);
     }
 
     /**
