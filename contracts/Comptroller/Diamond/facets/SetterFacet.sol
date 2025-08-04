@@ -196,33 +196,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Alias to _setCollateralFactor to support the Isolated Lending Comptroller Interface
+     * @notice Sets the collateral factor and liquidation threshold for a vToken
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function setCollateralFactor(
-        VToken vToken,
-        uint256 newCollateralFactorMantissa,
-        uint256 newLiquidationThresholdMantissa
-    ) external returns (uint256) {
-        require(
-            newCollateralFactorMantissa == newLiquidationThresholdMantissa,
-            "collateral factor and liquidation threshold must be the same"
-        );
-        return __setCollateralFactor(vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
-    }
-
-    /**
-     * @notice Sets the collateralFactor for a market
-     * @dev Allows a privileged role to set the collateralFactorMantissa
-     * @param vToken The market to set the factor on
-     * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
-     * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
-     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
-     */
-    function _setCollateralFactor(
         VToken vToken,
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
@@ -239,14 +219,19 @@ contract SetterFacet is ISetterFacet, FacetBase {
         return __setLiquidationIncentive(newLiquidationIncentiveMantissa);
     }
 
-    function _setLiquidationModule(
+    /**
+     * @notice This function is used to set the liquidation manager address which is responsible for managing
+     *         liquidations in the protocol.
+     * @dev Allows the contract admin to set the liquidation manager address used by the Comptroller
+     * @param liquidationManager_ The new liquidation manager address
+     */
+    function _setLiquidationManager(
         address liquidationManager_
     ) external compareAddress(address(liquidationManager), liquidationManager_) {
-        ensureAllowed("_setLiquidationModule(address)");
+        ensureAllowed("_setLiquidationManager(address)");
         ensureNonzeroAddress(liquidationManager_);
-        LiquidationManager oldLiquidationManager = liquidationManager;
+        emit NewLiquidationManager(liquidationManager, LiquidationManager(liquidationManager_));
         liquidationManager = LiquidationManager(liquidationManager_);
-        emit NewLiquidationManager(oldLiquidationManager, liquidationManager);
     }
 
     /**
@@ -615,29 +600,27 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Set the liquidation incentive for a market
      * @param vToken The market to set the liquidation incentive for
-     * @param newLiquidationIncentive The new liquidation incentive, scaled by 1e18
+     * @param newMaxLiquidationIncentive The new liquidation incentive, scaled by 1e18
      * @return uint256 0=success, otherwise reverted
      */
-    function _setMarketLiquidationIncentive(
+    function _setMarketMaxLiquidationIncentive(
         address vToken,
-        uint256 newLiquidationIncentive
+        uint256 newMaxLiquidationIncentive
     )
         external
-        compareValue(markets[address(vToken)].maxLiquidationIncentiveMantissa, newLiquidationIncentive)
+        compareValue(markets[address(vToken)].maxLiquidationIncentiveMantissa, newMaxLiquidationIncentive)
         returns (uint256)
     {
-        ensureAllowed("_setMarketLiquidationIncentive(address,uint256)");
+        ensureAllowed("_setMarketMaxLiquidationIncentive(address,uint256)");
 
         Market storage market = markets[vToken];
         ensureListed(market);
 
-        require(newLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
-        // Save current value for use in log
-        uint256 oldLiquidationIncentive = market.maxLiquidationIncentiveMantissa;
-        // Set liquidation incentive to new incentive
-        market.maxLiquidationIncentiveMantissa = newLiquidationIncentive;
+        require(newMaxLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
         // Emit event with old incentive, new incentive
-        emit NewMarketLiquidationIncentive(vToken, oldLiquidationIncentive, newLiquidationIncentive);
+        emit NewMarketLiquidationIncentive(vToken, market.maxLiquidationIncentiveMantissa, newMaxLiquidationIncentive);
+        // Set liquidation incentive to new incentive
+        market.maxLiquidationIncentiveMantissa = newMaxLiquidationIncentive;
         return uint256(Error.NO_ERROR);
     }
 
@@ -695,7 +678,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @dev Updates the collateral factor. Used by _setCollateralFactor and setCollateralFactor
+     * @dev Updates the collateral factor. Used by setCollateralFactor
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor to be set
      * @param newLiquidationThresholdMantissa The new liquidation threshold to be set
@@ -712,7 +695,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         returns (uint256)
     {
         // Check caller is allowed by access control manager
-        ensureAllowed("_setCollateralFactor(address,uint256,uint256)");
+        ensureAllowed("setCollateralFactor(address,uint256,uint256)");
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
@@ -742,16 +725,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION_LIQUIDATION_THRESHOLD);
         }
 
-        // Set market's collateral factor to new collateral factor, remember old value
-        uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
-        market.collateralFactorMantissa = newCollateralFactorMantissa;
         // Emit event with asset, old collateral factor, and new collateral factor
-        emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
+        emit NewCollateralFactor(vToken, market.collateralFactorMantissa, newCollateralFactorMantissa);
+        market.collateralFactorMantissa = newCollateralFactorMantissa;
 
-        uint256 oldLiquidationThresholdMantissa = market.liquidationThresholdMantissa;
-        market.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
         // Emit event with asset, old liquidation threshold, and new liquidation threshold
-        emit NewLiquidationThreshold(vToken, oldLiquidationThresholdMantissa, newLiquidationThresholdMantissa);
+        emit NewLiquidationThreshold(vToken, market.liquidationThresholdMantissa, newLiquidationThresholdMantissa);
+        market.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
 
         return uint256(Error.NO_ERROR);
     }

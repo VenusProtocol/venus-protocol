@@ -26,12 +26,6 @@ interface ISetterFacet {
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
-    function _setCollateralFactor(
-        VToken vToken,
-        uint256 newCollateralFactorMantissa,
-        uint256 newLiquidationThresholdMantissa
-    ) external returns (uint256);
-
     function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
 
     function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
@@ -86,7 +80,10 @@ interface ISetterFacet {
 
     function _setXVSVToken(address xvsVToken_) external;
 
-    function _setMarketLiquidationIncentive(address vToken, uint256 newLiquidationIncentive) external returns (uint256);
+    function _setMarketMaxLiquidationIncentive(
+        address vToken,
+        uint256 newMaxLiquidationIncentive
+    ) external returns (uint256);
 
-    function _setLiquidationModule(address liquidationManager_) external;
+    function _setLiquidationManager(address liquidationManager_) external;
 }
