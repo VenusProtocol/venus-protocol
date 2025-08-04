@@ -258,7 +258,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         /* The borrower must have shortfall in order to be liquidatable */
         (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
 
-        (Error err, uint256 averageLT, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
+        (Error err, uint256 liquidationThresholdAvg, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
             borrower,
             VToken(address(0)),
             0,
@@ -281,7 +281,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         Market storage marketCollateral = markets[vTokenCollateral];
         uint256 closeFactor = liquidationManager.calculateCloseFactor(
             borrowBalance,
-            averageLT,
+            liquidationThresholdAvg,
             totalCollateral,
             dynamicLiquidationIncentive,
             marketCollateral.maxLiquidationIncentiveMantissa

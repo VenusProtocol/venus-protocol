@@ -78,7 +78,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address vToken
     ) external view returns (uint256 incentive) {
         Market storage market = markets[vToken];
-        (Error err, uint256 averageLT, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
+        (Error err, uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
             borrower,
             VToken(vToken),
             0,
@@ -90,7 +90,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
             healthFactor,
-            averageLT,
+            liquidationThresholdAvg,
             market.maxLiquidationIncentiveMantissa
         );
         return incentive;

@@ -48,16 +48,16 @@ contract LiquidationManager is ExponentialNoError {
     /**
      * @notice Calculate the dynamic liquidation incentive based on health factor and average liquidation threshold
      * @param healthFactor The health factor of the borrower
-     * @param averageLT The average liquidation threshold of the collateral
+     * @param liquidationThresholdAvg The average liquidation threshold of the collateral
      * @param maxLiquidationIncentiveMantissa The maximum liquidation incentive allowed, scaled by 1e18
      * @return incentive The calculated dynamic liquidation incentive, scaled by 1e18
      */
     function calculateDynamicLiquidationIncentive(
         uint256 healthFactor,
-        uint256 averageLT,
+        uint256 liquidationThresholdAvg,
         uint256 maxLiquidationIncentiveMantissa
     ) external pure returns (uint256 incentive) {
-        uint256 value = ((healthFactor * mantissaOne) / averageLT) - mantissaOne;
+        uint256 value = ((healthFactor * mantissaOne) / liquidationThresholdAvg) - mantissaOne;
         return value > maxLiquidationIncentiveMantissa ? maxLiquidationIncentiveMantissa : value;
     }
 }
