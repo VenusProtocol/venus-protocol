@@ -86,7 +86,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenCollateral
         );
 
-        uint256 seizeTokens = ComptrollerInterface(comptroller).liquidationManager().calculateSeizeTokens(
+        uint256 seizeTokens = _calculateSeizeTokens(
             actualRepayAmount,
             liquidationIncentiveMantissa,
             priceBorrowedMantissa,
@@ -132,7 +132,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenCollateral
         );
 
-        uint256 seizeTokens = ComptrollerInterface(comptroller).liquidationManager().calculateSeizeTokens(
+        uint256 seizeTokens = _calculateSeizeTokens(
             actualRepayAmount,
             liquidationIncentiveMantissa,
             priceBorrowedMantissa,
@@ -325,5 +325,33 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         }
 
         return (healthFactor, snapshot.liquidationThresholdAvg, snapshot.liquidity, snapshot.shortfall);
+    }
+
+    /**
+     * @notice Calculate the number of tokens to seize during liquidation
+     * @param actualRepayAmount The amount of debt being repaid in the liquidation
+     * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
+     * @param priceBorrowedMantissa The price of the borrowed asset, scaled by 1e18
+     * @param priceCollateralMantissa The price of the collateral asset, scaled by 1e18
+     * @param exchangeRateMantissa The exchange rate of the collateral asset, scaled by 1e18
+     * @return seizeTokens The number of tokens to seize during liquidation, scaled by 1e18
+     */
+    function _calculateSeizeTokens(
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa,
+        uint256 priceBorrowedMantissa,
+        uint256 priceCollateralMantissa,
+        uint256 exchangeRateMantissa
+    ) internal pure returns (uint256 seizeTokens) {
+        Exp memory numerator = mul_(
+            Exp({ mantissa: liquidationIncentiveMantissa }),
+            Exp({ mantissa: priceBorrowedMantissa })
+        );
+        Exp memory denominator = mul_(
+            Exp({ mantissa: priceCollateralMantissa }),
+            Exp({ mantissa: exchangeRateMantissa })
+        );
+
+        seizeTokens = mul_ScalarTruncate(div_(numerator, denominator), actualRepayAmount);
     }
 }
