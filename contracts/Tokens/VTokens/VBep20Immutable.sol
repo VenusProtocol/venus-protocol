@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VBep20 } from "./VBep20.sol";
 
@@ -23,7 +24,7 @@ contract VBep20Immutable is VBep20 {
      */
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,

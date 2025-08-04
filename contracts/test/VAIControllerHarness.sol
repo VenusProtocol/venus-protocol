@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import "../Tokens/VAI/VAIController.sol";
@@ -32,7 +33,7 @@ contract VAIControllerHarness is VAIController {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;

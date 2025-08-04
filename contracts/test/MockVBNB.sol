@@ -19,7 +19,7 @@ contract MockVBNB is VToken {
      * @param admin_ Address of the administrator of this token
      */
     constructor(
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,

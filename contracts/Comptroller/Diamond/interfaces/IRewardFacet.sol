@@ -2,16 +2,16 @@
 
 pragma solidity 0.8.25;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
 import { IFacetBase } from "./IFacetBase.sol";
 
 interface IRewardFacet is IFacetBase {
     function claimVenus(address holder) external;
 
-    function claimVenus(address holder, VToken[] calldata vTokens) external;
+    function claimVenus(address holder, IVToken[] calldata vTokens) external;
 
-    function claimVenus(address[] calldata holders, VToken[] calldata vTokens, bool borrowers, bool suppliers) external;
+    function claimVenus(address[] calldata holders, IVToken[] calldata vTokens, bool borrowers, bool suppliers) external;
 
     function claimVenusAsCollateral(address holder) external;
 
@@ -21,7 +21,7 @@ interface IRewardFacet is IFacetBase {
 
     function claimVenus(
         address[] calldata holders,
-        VToken[] calldata vTokens,
+        IVToken[] calldata vTokens,
         bool borrowers,
         bool suppliers,
         bool collateral

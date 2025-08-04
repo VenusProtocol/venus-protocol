@@ -3,18 +3,20 @@ pragma solidity 0.8.25;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { InterestRateModelV8 } from "../InterestRateModels/InterestRateModelV8.sol";
-import { VBep20Interface, VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
+import { IVDelegate } from "../Tokens/VTokens/interfaces/IVDelegate.sol";
 
 /**
  * @title Venus's VBep20 Contract
  * @notice VTokens which wrap an EIP-20 underlying
  * @author Venus
  */
-contract VBep20MockDelegate is VToken, VBep20Interface {
+contract VBep20MockDelegate is VToken, IVBep20, IVDelegate {
     using SafeERC20 for IERC20;
 
     uint internal blockNumber = 100000;
@@ -31,7 +33,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      */
     function initialize(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -164,7 +166,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        IVToken vTokenCollateral
     ) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;

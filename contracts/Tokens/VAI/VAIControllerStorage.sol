@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 
 contract VAIUnitrollerAdminStorage {
     /**
@@ -25,7 +26,7 @@ contract VAIUnitrollerAdminStorage {
 }
 
 contract VAIControllerStorageG1 is VAIUnitrollerAdminStorage {
-    ComptrollerInterface public comptroller;
+    IComptroller public comptroller;
 
     struct VenusVAIState {
         /// @notice The last updated venusVAIMintIndex

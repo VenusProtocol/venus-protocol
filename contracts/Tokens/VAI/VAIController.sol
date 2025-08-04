@@ -5,13 +5,12 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
 import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
-import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
-import { VToken } from "../VTokens/VToken.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
 import { VAIControllerInterface } from "./VAIControllerInterface.sol";
 import { IVAI } from "./IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
-import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
+import { IVToken } from "../VTokens/interfaces/IVToken.sol";
 
 /**
  * @title VAI Comptroller
@@ -23,7 +22,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     uint256 public constant INITIAL_VAI_MINT_INDEX = 1e18;
 
     /// @notice Emitted when Comptroller is changed
-    event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
+    event NewComptroller(IComptroller oldComptroller, IComptroller newComptroller);
 
     /// @notice Emitted when mint for prime holder is changed
     event MintOnlyForPrimeHolder(bool previousMintEnabledOnlyForPrimeHolder, bool newMintEnabledOnlyForPrimeHolder);
@@ -250,7 +249,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     function liquidateVAI(
         address borrower,
         uint256 repayAmount,
-        VTokenInterface vTokenCollateral
+        IVToken vTokenCollateral
     ) external nonReentrant returns (uint256, uint256) {
         _ensureNotPaused();
 
@@ -279,7 +278,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         address liquidator,
         address borrower,
         uint256 repayAmount,
-        VTokenInterface vTokenCollateral
+        IVToken vTokenCollateral
     ) internal returns (uint256, uint256) {
         if (address(comptroller) != address(0)) {
             accrueVAIInterest();
@@ -370,13 +369,13 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @dev Admin function to set a new comptroller
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setComptroller(ComptrollerInterface comptroller_) external returns (uint256) {
+    function _setComptroller(IComptroller comptroller_) external returns (uint256) {
         // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
         }
 
-        ComptrollerInterface oldComptroller = comptroller;
+        IComptroller oldComptroller = comptroller;
         comptroller = comptroller_;
         emit NewComptroller(oldComptroller, comptroller_);
 
@@ -452,7 +451,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         }
 
         ResilientOracleInterface oracle = comptroller.oracle();
-        VToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
+        IVToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
 
@@ -491,7 +490,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 return (uint256(Error.MATH_ERROR), 0);
             }
 
-            (, uint256 collateralFactorMantissa) = comptroller.markets(address(enteredMarkets[i]));
+            (, uint256 collateralFactorMantissa,) = comptroller.markets(address(enteredMarkets[i]));
             (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint256(Error.MATH_ERROR), 0);

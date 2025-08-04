@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { IVToken } from "./interfaces/IVToken.sol";
 import { VToken } from "./VToken.sol";
 
 /**
@@ -21,7 +23,7 @@ contract VBNB is VToken {
      * @param admin_ Address of the administrator of this token
      */
     constructor(
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -124,7 +126,7 @@ contract VBNB is VToken {
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      */
     // @custom:event Emit LiquidateBorrow event on success
-    function liquidateBorrow(address borrower, VToken vTokenCollateral) external payable {
+    function liquidateBorrow(address borrower, IVToken vTokenCollateral) external payable {
         (uint err, ) = liquidateBorrowInternal(borrower, msg.value, vTokenCollateral);
         requireNoError(err, "liquidateBorrow failed");
     }

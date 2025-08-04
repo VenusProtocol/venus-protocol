@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.25;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
 import { FacetBase } from "./FacetBase.sol";
 
 /**
@@ -14,7 +14,7 @@ import { FacetBase } from "./FacetBase.sol";
 contract XVSRewardsHelper is FacetBase {
     /// @notice Emitted when XVS is distributed to a borrower
     event DistributedBorrowerVenus(
-        VToken indexed vToken,
+        IVToken indexed vToken,
         address indexed borrower,
         uint256 venusDelta,
         uint256 venusBorrowIndex
@@ -22,7 +22,7 @@ contract XVSRewardsHelper is FacetBase {
 
     /// @notice Emitted when XVS is distributed to a supplier
     event DistributedSupplierVenus(
-        VToken indexed vToken,
+        IVToken indexed vToken,
         address indexed supplier,
         uint256 venusDelta,
         uint256 venusSupplyIndex
@@ -38,7 +38,7 @@ contract XVSRewardsHelper is FacetBase {
         uint32 blockNumber = getBlockNumberAsUint32();
         uint256 deltaBlocks = sub_(blockNumber, borrowState.block);
         if (deltaBlocks != 0 && borrowSpeed != 0) {
-            uint256 borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
+            uint256 borrowAmount = div_(IVToken(vToken).totalBorrows(), marketBorrowIndex);
             uint256 accruedVenus = mul_(deltaBlocks, borrowSpeed);
             Double memory ratio = borrowAmount != 0 ? fraction(accruedVenus, borrowAmount) : Double({ mantissa: 0 });
             borrowState.index = safe224(add_(Double({ mantissa: borrowState.index }), ratio).mantissa, "224");
@@ -59,7 +59,7 @@ contract XVSRewardsHelper is FacetBase {
 
         uint256 deltaBlocks = sub_(blockNumber, supplyState.block);
         if (deltaBlocks != 0 && supplySpeed != 0) {
-            uint256 supplyTokens = VToken(vToken).totalSupply();
+            uint256 supplyTokens = IVToken(vToken).totalSupply();
             uint256 accruedVenus = mul_(deltaBlocks, supplySpeed);
             Double memory ratio = supplyTokens != 0 ? fraction(accruedVenus, supplyTokens) : Double({ mantissa: 0 });
             supplyState.index = safe224(add_(Double({ mantissa: supplyState.index }), ratio).mantissa, "224");
@@ -91,10 +91,10 @@ contract XVSRewardsHelper is FacetBase {
         // Calculate change in the cumulative sum of the XVS per vToken accrued
         Double memory deltaIndex = Double({ mantissa: sub_(supplyIndex, supplierIndex) });
         // Multiply of supplierTokens and supplierDelta
-        uint256 supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
+        uint256 supplierDelta = mul_(IVToken(vToken).balanceOf(supplier), deltaIndex);
         // Addition of supplierAccrued and supplierDelta
         venusAccrued[supplier] = add_(venusAccrued[supplier], supplierDelta);
-        emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
+        emit DistributedSupplierVenus(IVToken(vToken), supplier, supplierDelta, supplyIndex);
     }
 
     /**
@@ -119,8 +119,8 @@ contract XVSRewardsHelper is FacetBase {
         }
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });
-        uint256 borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
+        uint256 borrowerDelta = mul_(div_(IVToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
         venusAccrued[borrower] = add_(venusAccrued[borrower], borrowerDelta);
-        emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
+        emit DistributedBorrowerVenus(IVToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
 }

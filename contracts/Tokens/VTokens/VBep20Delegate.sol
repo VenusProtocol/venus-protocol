@@ -1,14 +1,15 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import { VBep20 } from "./VBep20.sol";
-import { VDelegateInterface } from "./VTokenInterfaces.sol";
+import { IVDelegate } from "./interfaces/IVDelegate.sol";
 
 /**
  * @title Venus's VBep20Delegate Contract
  * @notice VTokens which wrap an EIP-20 underlying and are delegated to
  * @author Venus
  */
-contract VBep20Delegate is VBep20, VDelegateInterface {
+contract VBep20Delegate is IVDelegate, VBep20 {
     /**
      * @notice Construct an empty delegate
      */

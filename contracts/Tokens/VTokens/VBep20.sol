@@ -1,11 +1,13 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
-import { VBep20Interface, VTokenInterface } from "./VTokenInterfaces.sol";
+import { IVBep20 } from "./interfaces/IVBep20.sol";
+import { IVToken } from "./interfaces/IVToken.sol";
 import { VToken } from "./VToken.sol";
 
 /**
@@ -13,7 +15,7 @@ import { VToken } from "./VToken.sol";
  * @notice vTokens which wrap an ERC-20 underlying
  * @author Venus
  */
-contract VBep20 is VToken, VBep20Interface {
+contract VBep20 is VToken, IVBep20 {
     using SafeERC20 for IERC20;
 
     /*** User Interface ***/
@@ -163,7 +165,7 @@ contract VBep20 is VToken, VBep20Interface {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        IVToken vTokenCollateral
     ) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
@@ -191,7 +193,7 @@ contract VBep20 is VToken, VBep20Interface {
      */
     function initialize(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,

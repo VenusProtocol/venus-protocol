@@ -3,10 +3,10 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
-import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
+import { IComptrollerLens } from "../../../Lens/interfaces/IComptrollerLens.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 
 interface ISetterFacet {
@@ -21,12 +21,12 @@ interface ISetterFacet {
     function _setAccessControl(address newAccessControlAddress) external returns (uint256);
 
     function setCollateralFactor(
-        VToken vToken,
+        IVToken vToken,
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
-    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256);
+    function _setCollateralFactor(IVToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256);
 
     function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
 
@@ -36,13 +36,13 @@ interface ISetterFacet {
 
     function _setPauseGuardian(address newPauseGuardian) external returns (uint256);
 
-    function setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
+    function setMarketBorrowCaps(IVToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
 
-    function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
+    function _setMarketBorrowCaps(IVToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
 
-    function setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
+    function setMarketSupplyCaps(IVToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
 
-    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
+    function _setMarketSupplyCaps(IVToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
 
     function _setProtocolPaused(bool state) external returns (bool);
 
@@ -62,7 +62,7 @@ interface ISetterFacet {
         uint256 newTreasuryPercent
     ) external returns (uint256);
 
-    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external returns (uint256);
+    function _setComptrollerLens(IComptrollerLens comptrollerLens_) external returns (uint256);
 
     function _setVenusVAIVaultRate(uint256 venusVAIVaultRate_) external;
 

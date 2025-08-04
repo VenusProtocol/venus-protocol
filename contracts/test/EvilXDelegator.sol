@@ -1,15 +1,21 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import { InterestRateModelV8 } from "../InterestRateModels/InterestRateModelV8.sol";
-import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
-import { VTokenInterface, VBep20Interface, VDelegatorInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { VTokenStorage } from "../Tokens/VTokens/VTokenStorage.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
+import { IVDelegator } from "../Tokens/VTokens/interfaces/IVDelegator.sol";
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
 
 /**
  * @title Venus's VBep20Delegator Contract
  * @notice VTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Venus
  */
-contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
+contract EvilXDelegator is VTokenStorage, IVBep20, IVDelegator {
+    bool public constant isVToken = true;
+
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
@@ -25,7 +31,7 @@ contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface
      */
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint256 initialExchangeRateMantissa_,
         string memory name_,
@@ -177,7 +183,7 @@ contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface
     function liquidateBorrow(
         address borrower,
         uint256 repayAmount,
-        VTokenInterface vTokenCollateral
+        IVToken vTokenCollateral
     ) external returns (uint256) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("liquidateBorrow(address,uint256,address)", borrower, repayAmount, vTokenCollateral)
@@ -395,7 +401,7 @@ contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface
      * @dev Admin function to set a new comptroller
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setComptroller(ComptrollerInterface newComptroller) public override returns (uint256) {
+    function _setComptroller(IComptroller newComptroller) public override returns (uint256) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("_setComptroller(address)", newComptroller)
         );

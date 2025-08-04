@@ -1,15 +1,16 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import "../Tokens/VTokens/VBep20Immutable.sol";
 import "../Tokens/VTokens/VBep20Delegator.sol";
 import "../Tokens/VTokens/VBep20Delegate.sol";
 import "./ComptrollerScenario.sol";
-import "../Comptroller/ComptrollerInterface.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
 
 contract VBep20Scenario is VBep20Immutable {
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -75,7 +76,7 @@ contract EvilXToken is VBep20Delegate {
 
         // Checking the Liquidity of the user after the tranfer.
         // solhint-disable-next-line no-unused-vars
-        (uint errorCode, uint liquidity, uint shortfall) = ComptrollerInterface(comptrollerAddress).getAccountLiquidity(
+        (uint errorCode, uint liquidity, uint shortfall) = IComptroller(comptrollerAddress).getAccountLiquidity(
             msg.sender
         );
         emit LogLiquidity(liquidity);
@@ -181,7 +182,7 @@ contract EvilXToken is VBep20Delegate {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import "./ComptrollerMock.sol";
@@ -44,10 +45,10 @@ contract ComptrollerHarness is ComptrollerMock {
      * @notice Recalculate and update XVS speeds for all XVS markets
      */
     function harnessRefreshVenusSpeeds() public {
-        VToken[] memory allMarkets_ = allMarkets;
+        IVToken[] memory allMarkets_ = allMarkets;
 
         for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets_[i];
+            IVToken vToken = allMarkets_[i];
             Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
             updateVenusSupplyIndex(address(vToken));
             updateVenusBorrowIndex(address(vToken), borrowIndex);
@@ -56,7 +57,7 @@ contract ComptrollerHarness is ComptrollerMock {
         Exp memory totalUtility = Exp({ mantissa: 0 });
         Exp[] memory utilities = new Exp[](allMarkets_.length);
         for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets_[i];
+            IVToken vToken = allMarkets_[i];
             if (venusSpeeds[address(vToken)] > 0) {
                 Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(address(vToken)) });
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
@@ -66,7 +67,7 @@ contract ComptrollerHarness is ComptrollerMock {
         }
 
         for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets[i];
+            IVToken vToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
             setVenusSpeedInternal(vToken, newSpeed, newSpeed);
         }
@@ -120,7 +121,7 @@ contract ComptrollerHarness is ComptrollerMock {
     function harnessAddVenusMarkets(address[] memory vTokens) public {
         for (uint i = 0; i < vTokens.length; i++) {
             // temporarily set venusSpeed to 1 (will be fixed by `harnessRefreshVenusSpeeds`)
-            setVenusSpeedInternal(VToken(vTokens[i]), 1, 1);
+            setVenusSpeedInternal(IVToken(vTokens[i]), 1, 1);
         }
     }
 

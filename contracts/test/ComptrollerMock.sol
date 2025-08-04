@@ -18,7 +18,7 @@ contract ComptrollerMock is MarketFacet, PolicyFacet, RewardFacet, SetterFacet {
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
-    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external override returns (uint) {
+    function _setComptrollerLens(IComptrollerLens comptrollerLens_) external override returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);

@@ -1,8 +1,8 @@
 pragma solidity 0.8.25;
 
-import "../Tokens/VTokens/VToken.sol";
+import { IVToken } from "../../Tokens/VTokens/interfaces/IVToken.sol";
 
-interface ComptrollerLensInterface {
+interface IComptrollerLens {
     function liquidateCalculateSeizeTokens(
         address comptroller,
         address vTokenBorrowed,
@@ -19,7 +19,7 @@ interface ComptrollerLensInterface {
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,
-        VToken vTokenModify,
+        IVToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount
     ) external view returns (uint, uint, uint);

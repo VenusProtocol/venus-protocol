@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import "../Tokens/VTokens/VBep20Immutable.sol";
@@ -14,7 +15,7 @@ contract VBep20Harness is VBep20Immutable {
 
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -141,7 +142,7 @@ contract VBep20Harness is VBep20Immutable {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
@@ -171,7 +172,7 @@ contract VBep20Harness is VBep20Immutable {
 contract VBep20Scenario is VBep20Immutable {
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -208,7 +209,7 @@ contract VBep20Scenario is VBep20Immutable {
 contract VEvil is VBep20Scenario {
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -228,7 +229,7 @@ contract VEvil is VBep20Scenario {
         )
     {}
 
-    function evilSeize(VToken treasure, address liquidator, address borrower, uint seizeTokens) public returns (uint) {
+    function evilSeize(IVToken treasure, address liquidator, address borrower, uint seizeTokens) public returns (uint) {
         return treasure.seize(liquidator, borrower, seizeTokens);
     }
 }
@@ -236,7 +237,7 @@ contract VEvil is VBep20Scenario {
 contract VBep20DelegatorScenario is VBep20Delegator {
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -390,7 +391,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;

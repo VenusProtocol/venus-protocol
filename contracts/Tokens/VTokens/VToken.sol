@@ -1,19 +1,21 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
 import { IProtocolShareReserve } from "../../external/IProtocolShareReserve.sol";
-import { ComptrollerInterface, IComptroller } from "../../Comptroller/ComptrollerInterface.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 import { TokenErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
-import { VTokenInterface } from "./VTokenInterfaces.sol";
+import { IVToken } from "./interfaces/IVToken.sol";
+import { VTokenStorage } from "./VTokenStorage.sol";
 
 /**
  * @title Venus's vToken Contract
  * @notice Abstract base for vTokens
  * @author Venus
  */
-abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
+abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorReporter {
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -49,6 +51,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint totalBorrowsNew;
         uint actualRepayAmount;
     }
+
+    bool public constant isVToken = true;
 
     /*** Reentrancy Guard ***/
 
@@ -359,7 +363,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param decimals_ EIP-20 decimal precision of this token
      */
     function initialize(
-        ComptrollerInterface comptroller_,
+        IComptroller comptroller_,
         InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
@@ -536,11 +540,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewComptroller event
-    function _setComptroller(ComptrollerInterface newComptroller) public override returns (uint) {
+    function _setComptroller(IComptroller newComptroller) public override returns (uint) {
         // Check caller is admin
         ensureAdmin(msg.sender);
 
-        ComptrollerInterface oldComptroller = comptroller;
+        IComptroller oldComptroller = comptroller;
         // Ensure invoke comptroller.isComptroller() returns true
         require(newComptroller.isComptroller(), "marker method returned false");
 
@@ -1241,7 +1245,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function liquidateBorrowInternal(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        IVToken vTokenCollateral
     ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -1273,7 +1277,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        IVToken vTokenCollateral
     ) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
         uint allowed = comptroller.liquidateBorrowAllowed(
