@@ -93,6 +93,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when XVS vToken address is changed
     event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
+    /// @notice Emitted when delegate authorization for flash loans is changed
+    event DelegateAuthorizationFlashloanChanged(
+        address indexed user,
+        address indexed market,
+        address indexed delegate,
+        bool approved
+    );
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -602,5 +610,20 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         emit NewXVSVToken(xvsVToken, xvsVToken_);
         xvsVToken = xvsVToken_;
+    }
+
+    /**
+     * @notice Set or revoke delegate authorization for flash loans
+     * @dev Allows users to authorize delegates to execute flash loans on their behalf
+     * @param delegate The address to authorize or revoke as delegate
+     * @param approved True to authorize, false to revoke
+     */
+    function setDelegateAuthorizationFlashloan(address market, address delegate, bool approved) external {
+        ensureNonzeroAddress(delegate);
+
+        // Only allow users to set authorization for themselves
+        delegateAuthorizationFlashloan[msg.sender][market][delegate] = approved;
+
+        emit DelegateAuthorizationFlashloanChanged(msg.sender, market, delegate, approved);
     }
 }

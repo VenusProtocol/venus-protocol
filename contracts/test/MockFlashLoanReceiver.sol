@@ -28,10 +28,12 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         VToken[] calldata assets,
         uint256[] calldata amount,
         address payable receiver,
+        uint256[] calldata modes,
+        address onBehalfOf,
         bytes calldata param
     ) external {
         // Request the flashLoan from the Comptroller contract
-        COMPTROLLER.executeFlashLoan(receiver, assets, amount, param);
+        COMPTROLLER.executeFlashLoan(receiver, assets, amount, modes, onBehalfOf, param);
     }
 
     /**

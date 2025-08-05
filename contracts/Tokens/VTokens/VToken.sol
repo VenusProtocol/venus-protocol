@@ -401,42 +401,46 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Executes a flashLoan operation.
-     * @dev Transfers the amount to the receiver contract and ensures that the total repayment (amount + fee)
-     *      is returned by the receiver contract after the operation. The function performs checks to ensure the validity
-     *      of parameters, that flashLoan is enabled for the given asset, and that the total repayment is sufficient.
-     *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
-     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
-     * @param amount The amount of asset to be loaned.
-     * @param param Additional encoded parameters passed with the flash loan.
-     * custom:requirements
-     *      - The `receiver` address must not be the zero address.
-     *      - FlashLoans must be enabled for the asset.
-     *      - The `receiver` contract must repay the loan with the appropriate fee.
-     * custom:reverts
-     *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
-     *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
-     *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.
-     * custom:event Emits FlashLoanExecuted event on success
+     * @notice Executes a flashLoan operation with multiple modes and delegation support
+     * @dev Enhanced version supporting debt positions and delegation
+     * @param receiver The address of the contract that will receive the flashLoan
+     * @param amount The amount of asset to be loaned
+     * @param mode How the borrowed asset is handled if not repaid immediately
+     *             0: No debt (classic flash loan) - must be repaid in same transaction
+     *             1: Debt position is opened - creates a borrow position
+     * @param onBehalfOf The address for whom the debt position will be opened (if mode = 1)
+     * @param param Additional encoded parameters passed with the flash loan
+     * @return uint256 Returns 0 on success, otherwise returns a failure code
      */
     function executeFlashLoan(
+        address initiator,
         address payable receiver,
         uint256 amount,
+        uint256 mode,
+        address onBehalfOf,
         bytes calldata param
     ) external nonReentrant returns (uint256) {
         ensureNonZeroAddress(receiver);
+        ensureNonZeroAddress(onBehalfOf);
+
+        // If borrowing on behalf of someone else, check delegation
+        if (onBehalfOf != msg.sender) {
+            require(
+                comptroller.delegateAuthorizationFlashloan(onBehalfOf, address(this), initiator),
+                "Sender not authorized to borrow on behalf"
+            );
+        }
 
         IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
 
         // Tracks the flashLoan amount before transferring amount to the receiver
         flashLoanAmount += amount;
 
-        // Transfer the underlying asset to the receiver.
+        // Transfer the underlying asset to the receiver
         doTransferOut(receiver, amount);
 
         uint256 balanceBefore = getCashPrior();
         (uint256 protocolFee, uint256 supplierFee) = calculateFlashLoanFee(amount);
-
         uint256 fee = protocolFee + supplierFee;
         uint256 repayAmount = amount + fee;
 
@@ -445,12 +449,37 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert("Execute flashLoan failed");
         }
 
-        doTransferIn(receiver, repayAmount);
+        // Handle different modes
+        if (mode == 0) {
+            // Mode 0: Classic flash loan - must repay everything
+            return _handleFlashLoanMode0(receiver, amount, protocolFee, balanceBefore, repayAmount);
+        } else if (mode == 1) {
+            // Mode 1: Open debt position
+            return _handleFlashLoanMode1(receiver, onBehalfOf, amount, protocolFee, balanceBefore, repayAmount);
+        } else {
+            revert("Invalid mode");
+        }
+    }
 
+    /**
+     * @notice Handles classic flash loan mode (mode 0) - must repay within transaction
+     */
+    function _handleFlashLoanMode0(
+        address payable receiver,
+        uint256 amount,
+        uint256 protocolFee,
+        uint256 balanceBefore,
+        uint256 repayAmount
+    ) internal returns (uint256) {
+        // Classic flash loan - require full repayment
+        doTransferIn(receiver, repayAmount);
         flashLoanAmount -= amount;
 
-        if ((getCashPrior() - balanceBefore) < (repayAmount)) revert("Insufficient reypayment balance");
+        if ((getCashPrior() - balanceBefore) < repayAmount) {
+            revert("Insufficient repayment balance");
+        }
 
+        // Transfer protocol fee to protocol share reserve
         doTransferOut(protocolShareReserve, protocolFee);
 
         IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
@@ -460,6 +489,88 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         );
 
         emit FlashLoanExecuted(receiver, underlying, amount);
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Handles debt position mode (mode 1) - can open borrow position
+     */
+    function _handleFlashLoanMode1(
+        address payable receiver,
+        address onBehalfOf,
+        uint256 amount,
+        uint256 protocolFee,
+        uint256 balanceBefore,
+        uint256 repayAmount
+    ) internal returns (uint256) {
+        // Try to get repayment first
+        uint256 actualRepayment = 0;
+        uint256 currentBalance = getCashPrior();
+
+        // Check how much was actually repaid
+        if (currentBalance > balanceBefore) {
+            actualRepayment = currentBalance - balanceBefore;
+        }
+
+        flashLoanAmount -= amount;
+
+        if (actualRepayment >= repayAmount) {
+            // Full repayment received - treat as classic flash loan
+            doTransferOut(protocolShareReserve, protocolFee);
+
+            IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
+                address(comptroller),
+                underlying,
+                IProtocolShareReserveV5.IncomeType.FLASHLOAN
+            );
+
+            emit FlashLoanExecuted(receiver, underlying, amount);
+        } else {
+            // Partial or no repayment - open debt position
+            uint256 remainingDebt = repayAmount - actualRepayment;
+
+            // Check if borrowing is allowed for the remaining amount
+            uint allowed = comptroller.borrowAllowed(address(this), onBehalfOf, remainingDebt);
+            if (allowed != 0) {
+                revert("Borrow not allowed for debt position");
+            }
+
+            // Create borrow position for the unpaid amount
+            BorrowLocalVars memory vars;
+
+            (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(onBehalfOf);
+            ensureNoMathError(vars.mathErr);
+
+            (vars.mathErr, vars.accountBorrowsNew) = addUInt(vars.accountBorrows, remainingDebt);
+            ensureNoMathError(vars.mathErr);
+
+            (vars.mathErr, vars.totalBorrowsNew) = addUInt(totalBorrows, remainingDebt);
+            ensureNoMathError(vars.mathErr);
+
+            // Update borrow balances
+            accountBorrows[onBehalfOf].principal = vars.accountBorrowsNew;
+            accountBorrows[onBehalfOf].interestIndex = borrowIndex;
+            totalBorrows = vars.totalBorrowsNew;
+
+            // Handle fees from actual repayment
+            if (actualRepayment > 0) {
+                uint256 feeFromRepayment = (actualRepayment * protocolFee) / repayAmount;
+                if (feeFromRepayment > 0) {
+                    doTransferOut(protocolShareReserve, feeFromRepayment);
+
+                    IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
+                        address(comptroller),
+                        underlying,
+                        IProtocolShareReserveV5.IncomeType.FLASHLOAN
+                    );
+                }
+            }
+
+            emit FlashLoanWithDebt(receiver, onBehalfOf, underlying, amount, remainingDebt, actualRepayment);
+
+            // Verify borrow position is valid
+            comptroller.borrowVerify(address(this), onBehalfOf, remainingDebt);
+        }
 
         return uint(Error.NO_ERROR);
     }

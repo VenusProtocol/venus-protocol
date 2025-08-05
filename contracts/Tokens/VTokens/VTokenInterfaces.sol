@@ -335,6 +335,15 @@ contract VTokenInterface is VTokenStorage {
         uint256 flashLoanSupplierFeeMantissa
     );
 
+    event FlashLoanWithDebt(
+        address indexed receiver,
+        address indexed onBehalfOf,
+        address indexed asset,
+        uint256 amount,
+        uint256 debtAmount,
+        uint256 repaidAmount
+    );
+
     /*** User Interface ***/
 
     function transfer(address dst, uint amount) external returns (bool);

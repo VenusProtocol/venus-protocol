@@ -33,6 +33,8 @@ contract ComptrollerInterface {
         address payable receiver,
         VToken[] calldata assets,
         uint256[] calldata amounts,
+        uint256[] calldata modes,
+        address onBehalfOf,
         bytes calldata param
     ) external;
 
@@ -146,6 +148,12 @@ contract ComptrollerInterface {
     function mintedVAIs(address user) external view returns (uint);
 
     function vaiMintRate() external view returns (uint);
+
+    function delegateAuthorizationFlashloan(
+        address account,
+        address market,
+        address delegate
+    ) external view returns (bool);
 }
 
 interface IVAIVault {

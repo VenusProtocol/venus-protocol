@@ -4,7 +4,7 @@ pragma solidity 0.5.16;
 
 import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
 import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
@@ -14,7 +14,7 @@ import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErrorReporter {
+contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErrorReporter {
     using SafeBEP20 for IBEP20;
 
     /// @notice The initial Venus index for a market

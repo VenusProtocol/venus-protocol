@@ -280,3 +280,17 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
 }
+
+contract ComptrollerV17Storage is ComptrollerV16Storage {
+    struct FlashLoanData {
+        uint256[] protocolFees;
+        uint256[] supplierFees;
+        uint256[] totalFees;
+        uint256[] balanceAfterTransfer;
+        uint256[] actualRepayments;
+        uint256[] remainingDebts;
+    }
+    /// @notice Mapping to store delegate authorization for flash loans
+    mapping(address /* delegator */ => mapping(address /* market */ => mapping(address /* sender */ => bool)))
+        public delegateAuthorizationFlashloan;
+}

@@ -63,4 +63,6 @@ interface ISetterFacet {
     function _setXVSToken(address xvs_) external;
 
     function _setXVSVToken(address xvsVToken_) external;
+
+    function setDelegateAuthorizationFlashloan(address market, address delegate, bool approved) external;
 }

@@ -93,6 +93,8 @@ interface IPolicyFacet {
         address payable receiver,
         VToken[] calldata assets,
         uint256[] calldata amounts,
+        uint256[] calldata modes,
+        address onBehalfOf,
         bytes calldata param
     ) external;
 }
