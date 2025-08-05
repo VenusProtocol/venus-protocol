@@ -30,7 +30,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         // Total borrowed value by the account (USD, scaled by 1e18)
         uint256 borrows;
         // Additional effects on liquidity (unit depends on context, typically USD)
-        uint256 effects;
+        uint256 redeemEffect;
+        uint256 borrowEffect;
         // Balance of vTokens held by the account (vTokens)
         uint256 vTokenBalance;
         // Outstanding borrow balance for the account (underlying asset units)
@@ -279,13 +280,18 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
             if (asset == vTokenModify) {
                 // redeem effect: weightedVTokenPrice * redeemTokens
-                vars.effects = mul_ScalarTruncateAddUInt(weightedVTokenPrice, redeemTokens, vars.effects);
+                if (redeemTokens > 0) {
+                    vars.redeemEffect = mul_ScalarTruncateAddUInt(weightedVTokenPrice, redeemTokens, vars.redeemEffect);
+                    vars.weightedCollateral = vars.weightedCollateral > vars.redeemEffect
+                        ? vars.weightedCollateral - vars.redeemEffect
+                        : 0;
+                }
 
                 // borrow effect: oraclePrice * borrowAmount
-                vars.effects = mul_ScalarTruncateAddUInt(
+                vars.borrowEffect = mul_ScalarTruncateAddUInt(
                     Exp({ mantissa: vars.oraclePriceMantissa }),
                     borrowAmount,
-                    vars.effects
+                    vars.borrowEffect
                 );
             }
         }
@@ -293,7 +299,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
 
         if (address(vaiController) != address(0)) {
-            vars.effects = add_(vars.effects, vaiController.getVAIRepayAmount(account));
+            vars.borrowEffect = add_(vars.borrowEffect, vaiController.getVAIRepayAmount(account));
         }
 
         (vars.healthFactor, vars.liquidationThresholdAvg, vars.liquidity, vars.shortfall) = _finalizeSnapshot(vars);
@@ -313,7 +319,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         if (snapshot.totalCollateral > 0) {
             snapshot.liquidationThresholdAvg = div_(snapshot.liquidationThresholdAvg, snapshot.totalCollateral);
         }
-        uint256 borrowPlusEffects = snapshot.borrows + snapshot.effects;
+        uint256 borrowPlusEffects = snapshot.borrows + snapshot.borrowEffect;
 
         if (borrowPlusEffects > 0) {
             healthFactor = div_(snapshot.weightedCollateral, borrowPlusEffects);
