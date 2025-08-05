@@ -8,29 +8,31 @@ interface ComptrollerLensInterface {
         address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint);
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256);
 
     function liquidateVAICalculateSeizeTokens(
         address borrower,
         address comptroller,
         address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint);
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256);
 
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,
         VToken vTokenModify,
-        uint redeemTokens,
-        uint borrowAmount
-    ) external view returns (uint, uint, uint);
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
+    ) external view returns (uint256, uint256, uint256);
 
     function getAccountHealthSnapshot(
         address comptroller,
         address account,
         VToken vTokenModify,
-        uint redeemTokens,
-        uint borrowAmount
-    ) external view returns (uint, uint, uint, uint);
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
+    ) external view returns (uint256, uint256, uint256, uint256);
 }

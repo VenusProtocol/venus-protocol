@@ -41,4 +41,8 @@ interface IMarketFacet {
     function updateDelegate(address delegate, bool allowBorrows) external;
 
     function unlistMarket(address market) external returns (uint256);
+
+    function getCollateralFactor(address vToken) external view returns (uint256);
+
+    function getLiquidationThreshold(address vToken) external view returns (uint256);
 }

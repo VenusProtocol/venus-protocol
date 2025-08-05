@@ -139,7 +139,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             borrower,
             VToken(vToken),
             0,
-            borrowAmount
+            borrowAmount,
+            IMarketFacet(address(this)).getCollateralFactor
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -256,13 +257,20 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+        (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            borrower,
+            VToken(address(0)),
+            0,
+            0,
+            IMarketFacet(address(this)).getLiquidationThreshold
+        );
 
         (Error err, uint256 liquidationThresholdAvg, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
             borrower,
             VToken(address(0)),
             0,
-            0
+            0,
+            IMarketFacet(address(this)).getLiquidationThreshold
         );
 
         if (err != Error.NO_ERROR) {
@@ -440,7 +448,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account);
+        return _getAccountLiquidity(account, IMarketFacet(address(this)).getCollateralFactor);
     }
 
     /**
@@ -451,7 +459,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account);
+        return _getAccountLiquidity(account, IMarketFacet(address(this)).getCollateralFactor);
     }
 
     /**
@@ -468,13 +476,15 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address account,
         address vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
     ) external view returns (uint256, uint256, uint256) {
         (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(vTokenModify),
             redeemTokens,
-            borrowAmount
+            borrowAmount,
+            weight
         );
         return (uint256(err), liquidity, shortfall);
     }
@@ -503,12 +513,16 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
     }
 
-    function _getAccountLiquidity(address account) internal view returns (uint256, uint256, uint256) {
+    function _getAccountLiquidity(
+        address account,
+        function(address) external view returns (uint256) weight
+    ) internal view returns (uint256, uint256, uint256) {
         (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(address(0)),
             0,
-            0
+            0,
+            weight
         );
 
         return (uint256(err), liquidity, shortfall);

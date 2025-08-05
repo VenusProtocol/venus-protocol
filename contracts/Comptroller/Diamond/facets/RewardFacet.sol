@@ -7,6 +7,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
+import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
@@ -189,7 +190,13 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
+            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+                holder,
+                VToken(address(0)),
+                0,
+                0,
+                IMarketFacet(address(this)).getCollateralFactor
+            );
 
             uint256 value = venusAccrued[holder];
             delete venusAccrued[holder];

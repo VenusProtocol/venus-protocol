@@ -158,14 +158,16 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
     ) external view returns (uint256, uint256, uint256) {
         (uint256 errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
             comptroller,
             account,
             vTokenModify,
             redeemTokens,
-            borrowAmount
+            borrowAmount,
+            weight
         );
 
         return (errorCode, vars.liquidity, vars.shortfall);
@@ -186,14 +188,16 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
     ) external view returns (uint256, uint256, uint256, uint256) {
         (uint256 errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
             comptroller,
             account,
             vTokenModify,
             redeemTokens,
-            borrowAmount
+            borrowAmount,
+            weight
         );
 
         return (errorCode, vars.liquidationThresholdAvg, vars.totalCollateral, vars.healthFactor);
@@ -217,14 +221,15 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
     ) internal view returns (uint256 errorCode, AccountLiquidityLocalVars memory vars) {
         uint256 oErr;
 
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         uint256 assetsCount = assets.length;
-        ResilientOracleInterface oracle = ComptrollerInterface(comptroller).oracle();
+
         for (uint256 i = 0; i < assetsCount; ++i) {
             VToken asset = assets[i];
 
@@ -237,10 +242,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 return (errorCode, vars);
             }
 
-            (, , , uint256 liquidationThresholdMantissa, ) = ComptrollerInterface(comptroller).markets(address(asset));
-
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(asset));
+            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(address(asset));
             if (vars.oraclePriceMantissa == 0) {
                 errorCode = uint256(Error.PRICE_ERROR);
                 return (errorCode, vars);
@@ -250,12 +253,12 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 Exp({ mantissa: vars.exchangeRateMantissa }),
                 Exp({ mantissa: vars.oraclePriceMantissa })
             );
-            Exp memory weightedVTokenPrice = mul_(Exp({ mantissa: liquidationThresholdMantissa }), vTokenPrice);
+            Exp memory weightedVTokenPrice = mul_(Exp({ mantissa: weight(address(asset)) }), vTokenPrice);
 
             vars.totalCollateral = mul_ScalarTruncateAddUInt(vTokenPrice, vars.vTokenBalance, vars.totalCollateral);
 
             vars.liquidationThresholdAvg = mul_ScalarTruncateAddUInt(
-                Exp({ mantissa: liquidationThresholdMantissa }),
+                Exp({ mantissa: weight(address(asset)) }),
                 mul_(vars.vTokenBalance, vTokenPrice),
                 vars.liquidationThresholdAvg
             );

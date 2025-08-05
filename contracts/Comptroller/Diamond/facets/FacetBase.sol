@@ -12,6 +12,7 @@ import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IFacetBase } from "../interfaces/IFacetBase.sol";
+import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 
 /**
  * @title FacetBase
@@ -148,14 +149,16 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
     ) internal view returns (Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
             vTokenModify,
             redeemTokens,
-            borrowAmount
+            borrowAmount,
+            weight
         );
         return (Error(err), liquidity, shortfall);
     }
@@ -178,7 +181,8 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        function(address) external view returns (uint256) weight
     )
         internal
         view
@@ -190,7 +194,8 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             account,
             vTokenModify,
             redeemTokens,
-            borrowAmount
+            borrowAmount,
+            weight
         );
 
         err = Error(rawErr);
@@ -245,7 +250,8 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             redeemer,
             VToken(vToken),
             redeemTokens,
-            0
+            0,
+            IMarketFacet(address(this)).getCollateralFactor
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
