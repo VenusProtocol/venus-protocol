@@ -289,7 +289,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             this.getLiquidationThreshold
         );
         if (err != Error.NO_ERROR) {
-            return liquidationIncentiveMantissa; // return default value
+            revert("Error getting health snapshot");
         }
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
