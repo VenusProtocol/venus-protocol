@@ -68,56 +68,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the collateral factor for a vToken
-     * @param vToken The address of the vToken to get the collateral factor for
-     * @return The collateral factor for the vToken, scaled by 1e18
-     */
-    function getCollateralFactor(address vToken) external view returns (uint256) {
-        // return Exp({ mantissa: markets[vToken].collateralFactorMantissa });
-        return markets[vToken].collateralFactorMantissa;
-    }
-
-    /**
-     * @notice Get the liquidation threshold for a vToken
-     * @param vToken The address of the vToken to get the liquidation threshold for
-     * @return The liquidation threshold for the vToken, scaled by 1e18
-     */
-    function getLiquidationThreshold(address vToken) external view returns (uint256) {
-        // return Exp({ mantissa: markets[vToken].liquidationThresholdMantissa });
-        return markets[vToken].liquidationThresholdMantissa;
-    }
-
-    /**
-     * @notice Get the liquidation incentive for a borrower
-     * @param borrower The address of the borrower
-     * @param vToken The address of the vToken
-     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
-     */
-    function getDynamicLiquidationIncentive(
-        address borrower,
-        address vToken
-    ) external view returns (uint256 incentive) {
-        Market storage market = markets[vToken];
-        (Error err, uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
-            borrower,
-            VToken(vToken),
-            0,
-            0,
-            this.getLiquidationThreshold
-        );
-        if (err != Error.NO_ERROR) {
-            return liquidationIncentiveMantissa; // return default value
-        }
-
-        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
-            healthFactor,
-            liquidationThresholdAvg,
-            market.maxLiquidationIncentiveMantissa
-        );
-        return incentive;
-    }
-
-    /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
      * @param vTokenBorrowed The address of the borrowed vToken

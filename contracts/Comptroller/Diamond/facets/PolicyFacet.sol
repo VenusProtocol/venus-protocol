@@ -140,7 +140,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(vToken),
             0,
             borrowAmount,
-            IMarketFacet(address(this)).getCollateralFactor
+            this.getCollateralFactor
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -262,7 +262,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(address(0)),
             0,
             0,
-            IMarketFacet(address(this)).getLiquidationThreshold
+            this.getLiquidationThreshold
         );
 
         (Error err, uint256 liquidationThresholdAvg, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
@@ -270,7 +270,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(address(0)),
             0,
             0,
-            IMarketFacet(address(this)).getLiquidationThreshold
+            this.getLiquidationThreshold
         );
 
         if (err != Error.NO_ERROR) {
@@ -281,10 +281,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         // Call getDynamicLiquidationIncentive from MarketFacet via diamond proxy
-        uint256 dynamicLiquidationIncentive = IMarketFacet(address(this)).getDynamicLiquidationIncentive(
-            borrower,
-            vTokenCollateral
-        );
+        uint256 dynamicLiquidationIncentive = this.getDynamicLiquidationIncentive(borrower, vTokenCollateral);
 
         Market storage marketCollateral = markets[vTokenCollateral];
         uint256 closeFactor = liquidationManager.calculateCloseFactor(
@@ -448,7 +445,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, IMarketFacet(address(this)).getCollateralFactor);
+        return _getAccountLiquidity(account, this.getCollateralFactor);
     }
 
     /**
@@ -459,7 +456,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, IMarketFacet(address(this)).getCollateralFactor);
+        return _getAccountLiquidity(account, this.getLiquidationThreshold);
     }
 
     /**

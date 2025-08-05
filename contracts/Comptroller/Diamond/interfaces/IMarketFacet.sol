@@ -34,15 +34,9 @@ interface IMarketFacet {
 
     function getAssetsIn(address account) external view returns (VToken[] memory);
 
-    function getDynamicLiquidationIncentive(address borrower, address vToken) external view returns (uint256);
-
     function getAllMarkets() external view returns (VToken[] memory);
 
     function updateDelegate(address delegate, bool allowBorrows) external;
 
     function unlistMarket(address market) external returns (uint256);
-
-    function getCollateralFactor(address vToken) external view returns (uint256);
-
-    function getLiquidationThreshold(address vToken) external view returns (uint256);
 }

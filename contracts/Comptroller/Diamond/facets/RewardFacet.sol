@@ -195,7 +195,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
                 VToken(address(0)),
                 0,
                 0,
-                IMarketFacet(address(this)).getCollateralFactor
+                this.getCollateralFactor
             );
 
             uint256 value = venusAccrued[holder];
