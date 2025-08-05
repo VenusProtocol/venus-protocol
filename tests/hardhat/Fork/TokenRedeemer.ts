@@ -117,9 +117,9 @@ const setupLocal = async (): Promise<TokenRedeemerFixture> => {
     [ethers.constants.MaxUint256, ethers.constants.MaxUint256, ethers.constants.MaxUint256],
   );
   await comptroller.setCollateralFactor(vToken.address, parseUnits("0.9", 18), parseUnits("0.9", 18));
-  await comptroller._setMarketMaxLiquidationIncentive(vToken.address, parseUnits("1.1", 18));
-  await comptroller._setMarketMaxLiquidationIncentive(vToken2.address, parseUnits("1.1", 18));
-  await comptroller._setMarketMaxLiquidationIncentive(vBNB.address, parseUnits("1.1", 18));
+  await comptroller.setMarketMaxLiquidationIncentive(vToken.address, parseUnits("1.1", 18));
+  await comptroller.setMarketMaxLiquidationIncentive(vToken2.address, parseUnits("1.1", 18));
+  await comptroller.setMarketMaxLiquidationIncentive(vBNB.address, parseUnits("1.1", 18));
   const underlying = await ethers.getContractAt("FaucetToken", await vToken.underlying());
   const underlying2 = await ethers.getContractAt("FaucetToken", await vToken2.underlying());
 

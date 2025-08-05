@@ -67,22 +67,16 @@ describe("Comptroller", () => {
           "setCollateralFactor(address,uint256,uint256)",
         );
       });
-
-      it("Should revert for same values", async () => {
-        await expect(comptroller.setCollateralFactor(ethers.constants.AddressZero, 0, 0)).to.be.revertedWith(
-          "old value is same as new value",
-        );
-      });
     });
 
     describe("setMarketMaxLiquidaitonIncentive", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user)._setMarketMaxLiquidationIncentive(ethers.constants.AddressZero, 1),
+          comptroller.connect(user).setMarketMaxLiquidationIncentive(ethers.constants.AddressZero, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setMarketMaxLiquidationIncentive(address,uint256)",
+          "setMarketMaxLiquidationIncentive(address,uint256)",
         );
       });
     });
@@ -94,10 +88,10 @@ describe("Comptroller", () => {
       });
 
       it("Should have AccessControl", async () => {
-        await expect(comptroller.connect(user)._setLiquidationManager(liquidationModule.address)).to.be.revertedWith(
+        await expect(comptroller.connect(user).setLiquidationManager(liquidationModule.address)).to.be.revertedWith(
           "access denied",
         );
-        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setLiquidationManager(address)");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "setLiquidationManager(address)");
       });
     });
 

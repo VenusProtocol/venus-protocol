@@ -106,7 +106,7 @@ describe("VAIController", async () => {
     await vaiController.setBlocksPerYear(BLOCKS_PER_YEAR);
     await comptroller._setCloseFactor(closeFactor);
     await comptroller._setPriceOracle(priceOracle.address);
-    await comptroller._setLiquidationManager(liquidationManager.address);
+    await comptroller.setLiquidationManager(liquidationManager.address);
     comptroller.getXVSAddress.returns(xvs.address);
     await vaiController.setVAIAddress(vai.address);
     await vai.rely(vaiController.address);
@@ -140,7 +140,7 @@ describe("VAIController", async () => {
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
     await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(5), bigNumber17.mul(6));
-    await comptroller._setMarketMaxLiquidationIncentive(vusdt.address, liquidationIncentive);
+    await comptroller.setMarketMaxLiquidationIncentive(vusdt.address, liquidationIncentive);
     await vusdt.setProtocolShareReserve(protocolShareReserve.address);
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }

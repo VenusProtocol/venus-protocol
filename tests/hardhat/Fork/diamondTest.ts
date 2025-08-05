@@ -369,14 +369,14 @@ forking(31873700, () => {
         it("setting Market liquidation incentive", async () => {
           const tx = await accessControlManager
             .connect(owner)
-            .giveCallPermission(diamondUnitroller.address, "_setMarketMaxLiquidationIncentive(address,uint256)", Owner);
+            .giveCallPermission(diamondUnitroller.address, "setMarketMaxLiquidationIncentive(address,uint256)", Owner);
           await tx.wait();
 
-          await diamondUnitroller.connect(owner)._setMarketMaxLiquidationIncentive(vUSDT.address, parseUnits("13", 17));
+          await diamondUnitroller.connect(owner).setMarketMaxLiquidationIncentive(vUSDT.address, parseUnits("13", 17));
           market = await diamondUnitroller.markets(vUSDT.address);
           expect(market.maxLiquidationIncentiveMantissa).to.equal(parseUnits("13", 17));
 
-          await diamondUnitroller.connect(owner)._setMarketMaxLiquidationIncentive(vUSDT.address, parseUnits("11", 17));
+          await diamondUnitroller.connect(owner).setMarketMaxLiquidationIncentive(vUSDT.address, parseUnits("11", 17));
           market = await diamondUnitroller.markets(vUSDT.address);
           expect(market.maxLiquidationIncentiveMantissa).to.equal(parseUnits("11", 17));
         });

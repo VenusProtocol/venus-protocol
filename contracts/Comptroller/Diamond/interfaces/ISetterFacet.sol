@@ -80,10 +80,10 @@ interface ISetterFacet {
 
     function _setXVSVToken(address xvsVToken_) external;
 
-    function _setMarketMaxLiquidationIncentive(
+    function setMarketMaxLiquidationIncentive(
         address vToken,
         uint256 newMaxLiquidationIncentive
     ) external returns (uint256);
 
-    function _setLiquidationManager(address liquidationManager_) external;
+    function setLiquidationManager(address liquidationManager_) external;
 }
