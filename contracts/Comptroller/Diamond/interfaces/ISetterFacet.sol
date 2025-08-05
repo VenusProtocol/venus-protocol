@@ -14,10 +14,6 @@ interface ISetterFacet {
 
     function _setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256);
 
-    function setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256);
-
-    function _setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256);
-
     function _setAccessControl(address newAccessControlAddress) external returns (uint256);
 
     function setCollateralFactor(
@@ -26,9 +22,15 @@ interface ISetterFacet {
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
-    function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
+    function setLiquidationIncentive(
+        uint256 newLiquidationIncentiveMantissa,
+        address vToken
+    ) external returns (uint256);
 
-    function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
+    function _setLiquidationIncentive(
+        uint256 newLiquidationIncentiveMantissa,
+        address vToken
+    ) external returns (uint256);
 
     function _setLiquidatorContract(address newLiquidatorContract_) external;
 

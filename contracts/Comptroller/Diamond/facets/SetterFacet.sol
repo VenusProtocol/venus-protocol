@@ -156,25 +156,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Alias to _setCloseFactor to support the Isolated Lending Comptroller Interface
-     * @param newCloseFactorMantissa New close factor, scaled by 1e18
-     * @return uint256 0=success, otherwise will revert
-     */
-    function setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256) {
-        return __setCloseFactor(newCloseFactorMantissa);
-    }
-
-    /**
-     * @notice Sets the closeFactor used when liquidating borrows
-     * @dev Allows the contract admin to set the closeFactor used to liquidate borrows
-     * @param newCloseFactorMantissa New close factor, scaled by 1e18
-     * @return uint256 0=success, otherwise will revert
-     */
-    function _setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256) {
-        return __setCloseFactor(newCloseFactorMantissa);
-    }
-
-    /**
      * @notice Sets the address of the access control of this contract
      * @dev Allows the contract admin to set the address of access control of this contract
      * @param newAccessControlAddress New address for the access control
@@ -213,10 +194,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Alias to _setLiquidationIncentive to support the Isolated Lending Comptroller Interface
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
+     * @param vToken The market to set the liquidation incentive for
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256) {
-        return __setLiquidationIncentive(newLiquidationIncentiveMantissa);
+    function setLiquidationIncentive(
+        uint256 newLiquidationIncentiveMantissa,
+        address vToken
+    ) external returns (uint256) {
+        return __setLiquidationIncentive(newLiquidationIncentiveMantissa, vToken);
     }
 
     /**
@@ -243,10 +228,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Sets liquidationIncentive
      * @dev Allows a privileged role to set the liquidationIncentiveMantissa
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
+     * @param vToken The market to set the liquidation incentive for
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256) {
-        return __setLiquidationIncentive(newLiquidationIncentiveMantissa);
+    function _setLiquidationIncentive(
+        uint256 newLiquidationIncentiveMantissa,
+        address vToken
+    ) external returns (uint256) {
+        return __setLiquidationIncentive(newLiquidationIncentiveMantissa, vToken);
     }
 
     /**
@@ -669,35 +658,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @dev Updates the close factor. Used by _setCloseFactor and setCloseFactor
-     * @param newCloseFactorMantissa The new close factor to be set
-     * @return uint256 0=success, otherwise reverted
-     */
-    function __setCloseFactor(
-        uint256 newCloseFactorMantissa
-    ) internal compareValue(closeFactorMantissa, newCloseFactorMantissa) returns (uint256) {
-        // Check caller is admin
-        ensureAdmin();
-
-        Exp memory newCloseFactorExp = Exp({ mantissa: newCloseFactorMantissa });
-
-        //-- Check close factor <= 0.9
-        Exp memory highLimit = Exp({ mantissa: closeFactorMaxMantissa });
-        //-- Check close factor >= 0.05
-        Exp memory lowLimit = Exp({ mantissa: closeFactorMinMantissa });
-
-        if (lessThanExp(highLimit, newCloseFactorExp) || greaterThanExp(lowLimit, newCloseFactorExp)) {
-            return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
-        }
-
-        uint256 oldCloseFactorMantissa = closeFactorMantissa;
-        closeFactorMantissa = newCloseFactorMantissa;
-        emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
-
-        return uint256(Error.NO_ERROR);
-    }
-
-    /**
      * @dev Updates the collateral factor. Used by setCollateralFactor
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor to be set
@@ -758,19 +718,26 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @dev Updates the liquidation incentive. Used by _setLiquidationIncentive and setLiquidationIncentive
      * @param newLiquidationIncentiveMantissa The new liquidation incentive to be set
+     * @param vToken The market to set the liquidation incentive for
      * @return uint256 0=success, otherwise reverted
      */
     function __setLiquidationIncentive(
-        uint256 newLiquidationIncentiveMantissa
-    ) internal compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
+        uint256 newLiquidationIncentiveMantissa,
+        address vToken
+    )
+        internal
+        compareValue(markets[vToken].maxLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa)
+        returns (uint256)
+    {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
+        Market storage market = markets[vToken];
         require(newLiquidationIncentiveMantissa >= mantissaOne, "incentive < mantissaOne");
 
         // Save current value for use in log
-        uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
+        uint256 oldLiquidationIncentiveMantissa = market.maxLiquidationIncentiveMantissa;
         // Set liquidation incentive to new incentive
-        liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
+        market.maxLiquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
 
         // Emit event with old incentive, new incentive
         emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
