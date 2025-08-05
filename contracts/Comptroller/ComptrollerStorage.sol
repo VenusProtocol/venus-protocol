@@ -39,14 +39,14 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     ResilientOracleInterface public oracle;
 
     /**
-     * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow
+     * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow (deprecated)
      */
-    uint256 public closeFactorMantissa;
+    uint256 public __oldCloseFactorMantissaSlot;
 
     /**
-     * @notice Multiplier representing the discount on collateral that a liquidator receives
+     * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
      */
-    uint256 public liquidationIncentiveMantissa;
+    uint256 public __oldLiquidationIncentiveMantissaSlot;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
