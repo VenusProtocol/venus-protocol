@@ -55,7 +55,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       // Get contract instances
       vUsdt = await ethers.getContractAt("VBep20Harness", VUSDT);
 
-      accessControlManager = await ethers.getContractAt("IAccessControlManagerV5", ACM);
+      accessControlManager = await ethers.getContractAt("IAccessControlManagerV8", ACM);
 
       // Get the diamond proxy (Unitroller/Comptroller address)
       const Diamond = await ethers.getContractFactory("Diamond");
@@ -189,7 +189,6 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       eth = await ethers.getContractAt("IERC20Upgradeable", underlyingEth);
       ethHolder = await initMainnetUser(ETH_HOLDER, parseUnits("1000", 18));
 
-      //accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       accessControlManager = await ethers.getContractAt("IAccessControlManagerV5", ACM);
 
       // Get the diamond proxy (Unitroller/Comptroller address)
