@@ -143,6 +143,9 @@ describe("FlashLoan", async () => {
     await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);
     await vTokenB.setProtocolShareReserve(protocolShareReserveMock.address);
 
+    await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissaTokenA, supplierFeeMantissaTokenA);
+    await vTokenB._setFlashLoanFeeMantissa(protocolFeeMantissaTokenB, supplierFeeMantissaTokenB);
+
     return { ...contracts, vTokenA, vTokenB, underlyingA, underlyingB };
   }
 
@@ -168,7 +171,34 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if flashLoan is not enabled", async () => {
-      await vTokenA._toggleFlashLoan();
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.false;
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.be.revertedWith("FlashLoan not enabled");
+    });
+
+    it("Should revert if the user is zero address", async () => {
+      // whitelist alice for flashLoan
+
+      await expect(comptroller.setWhiteListFlashLoanAccount(ethers.constants.AddressZero, true)).to.be.revertedWith(
+        "can't be zero address",
+      );
+    });
+
+    it("Should revert if user is not whitelisted", async () => {
+      //await vTokenA._toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
 
       await expect(
@@ -178,11 +208,17 @@ describe("FlashLoan", async () => {
           mockReceiverContract.address,
           "0x",
         ),
-      ).to.be.revertedWith("FlashLoan not enabled");
+      ).to.be.revertedWith("Flash loan not authorized for this account");
     });
 
     it("FlashLoan for multiple underlying and transfer funds to PSR", async () => {
       // Enable flashLoan for multiple vToken
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
 
