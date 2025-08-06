@@ -29,9 +29,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 weightedCollateral;
         // Total borrowed value by the account (USD, scaled by 1e18)
         uint256 borrows;
-        // Additional effects on liquidity (unit depends on context, typically USD)
-        uint256 redeemEffect;
-        uint256 borrowEffect;
         // Balance of vTokens held by the account (vTokens)
         uint256 vTokenBalance;
         // Outstanding borrow balance for the account (underlying asset units)
@@ -234,6 +231,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         uint256 assetsCount = assets.length;
+        ResilientOracleInterface oracle = ComptrollerInterface(comptroller).oracle();
 
         for (uint256 i = 0; i < assetsCount; ++i) {
             VToken asset = assets[i];
@@ -247,7 +245,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(address(asset));
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(asset));
             if (vars.oraclePriceMantissa == 0) {
                 revert PriceError(address(asset));
             }
@@ -283,17 +281,17 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             if (asset == vTokenModify) {
                 // redeem effect: weightedVTokenPrice * redeemTokens
                 if (redeemTokens > 0) {
-                    vars.redeemEffect = mul_ScalarTruncateAddUInt(weightedVTokenPrice, redeemTokens, vars.redeemEffect);
-                    vars.weightedCollateral = vars.weightedCollateral > vars.redeemEffect
-                        ? vars.weightedCollateral - vars.redeemEffect
+                    uint256 redeemEffect = mul_ScalarTruncate(weightedVTokenPrice, redeemTokens);
+                    vars.weightedCollateral = vars.weightedCollateral > redeemEffect
+                        ? vars.weightedCollateral - redeemEffect
                         : 0;
                 }
 
                 // borrow effect: oraclePrice * borrowAmount
-                vars.borrowEffect = mul_ScalarTruncateAddUInt(
+                vars.borrows = mul_ScalarTruncateAddUInt(
                     Exp({ mantissa: vars.oraclePriceMantissa }),
                     borrowAmount,
-                    vars.borrowEffect
+                    vars.borrows
                 );
             }
         }
@@ -301,7 +299,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
 
         if (address(vaiController) != address(0)) {
-            vars.borrowEffect = add_(vars.borrowEffect, vaiController.getVAIRepayAmount(account));
+            vars.borrows = add_(vars.borrows, vaiController.getVAIRepayAmount(account));
         }
 
         (vars.healthFactor, vars.liquidationThresholdAvg, vars.liquidity, vars.shortfall) = _finalizeSnapshot(vars);
@@ -321,18 +319,17 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         if (snapshot.totalCollateral > 0) {
             snapshot.liquidationThresholdAvg = div_(snapshot.liquidationThresholdAvg, snapshot.totalCollateral);
         }
-        uint256 borrowPlusEffects = snapshot.borrows + snapshot.borrowEffect;
 
-        if (borrowPlusEffects > 0) {
-            healthFactor = div_(snapshot.weightedCollateral, borrowPlusEffects);
+        if (snapshot.borrows > 0) {
+            healthFactor = div_(snapshot.weightedCollateral, snapshot.borrows);
         }
 
-        if (snapshot.weightedCollateral > borrowPlusEffects) {
-            snapshot.liquidity = snapshot.weightedCollateral - borrowPlusEffects;
+        if (snapshot.weightedCollateral > snapshot.borrows) {
+            snapshot.liquidity = snapshot.weightedCollateral - snapshot.borrows;
             snapshot.shortfall = 0;
         } else {
             snapshot.liquidity = 0;
-            snapshot.shortfall = borrowPlusEffects - snapshot.weightedCollateral;
+            snapshot.shortfall = snapshot.borrows - snapshot.weightedCollateral;
         }
 
         return (healthFactor, snapshot.liquidationThresholdAvg, snapshot.liquidity, snapshot.shortfall);

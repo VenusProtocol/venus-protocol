@@ -265,7 +265,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             VToken(vToken),
             redeemTokens,
             0,
-            this.getLiquidationThreshold
+            this.getCollateralFactor
         );
         if (shortfall != 0) {
             revert InsuffficientLiquidity();
