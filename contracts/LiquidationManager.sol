@@ -30,6 +30,7 @@ contract LiquidationManager is ExponentialNoError {
         uint256 borrowBalance,
         uint256 wtAvg,
         uint256 totalCollateral,
+        uint256 baseCloseFactorMantissa,
         uint256 dynamicLiquidationIncentive,
         uint256 maxLiquidationIncentive
     ) external pure returns (uint256 closeFactor) {
@@ -42,7 +43,7 @@ contract LiquidationManager is ExponentialNoError {
             uint256 numerator = borrowBalance * mantissaOne - wtAvg * totalCollateral;
             uint256 denominator = borrowBalance * (mantissaOne - ((wtAvg * maxLiquidationIncentive) / mantissaOne));
 
-            closeFactor = numerator / denominator;
+            closeFactor = add_((numerator / denominator), baseCloseFactorMantissa);
             closeFactor = closeFactor > mantissaOne ? mantissaOne : closeFactor;
         } else {
             closeFactor = mantissaOne; // Liquidate 100% if unhealthy

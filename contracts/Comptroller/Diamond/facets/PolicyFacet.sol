@@ -309,6 +309,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             borrowBalance,
             liquidationThresholdAvg,
             totalCollateral,
+            baseCloseFactorMantissa,
             dynamicLiquidationIncentive,
             marketCollateral.maxLiquidationIncentiveMantissa
         );
