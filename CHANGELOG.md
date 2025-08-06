@@ -1,3 +1,23 @@
+## [9.8.0-dev.20](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.19...v9.8.0-dev.20) (2025-08-06)
+
+
+### Features
+
+* align interface with IL comptroller ([6b6d90f](https://github.com/VenusProtocol/venus-protocol/commit/6b6d90fac4ae83e4c25e70882044d4b1a0fb4aa4))
+* deploy upgraded facets on bscmainnet ([a215535](https://github.com/VenusProtocol/venus-protocol/commit/a2155359517b4baac738c72a20f2002209080f06))
+* deploy upgraded facets on bsctestnet ([09474b2](https://github.com/VenusProtocol/venus-protocol/commit/09474b28ea8fe44518f94a5ac58b4ac54fb3c7c0))
+* updating deployment files ([00d76b2](https://github.com/VenusProtocol/venus-protocol/commit/00d76b26b7b5539846857b319715d899ccff0b14))
+* updating deployment files ([cdf41f7](https://github.com/VenusProtocol/venus-protocol/commit/cdf41f7a090a1eb321481799847010bc47508acf))
+
+
+### Bug Fixes
+
+* mfd-01 | inconsistent grouping of functions ([5fd60ea](https://github.com/VenusProtocol/venus-protocol/commit/5fd60ea17e00621a477d553489886a457f271592))
+* sfd-02 | functions will always return success even when they fail ([bc49c80](https://github.com/VenusProtocol/venus-protocol/commit/bc49c803b7ad086bd3e1f43f6b2edad150b341c4))
+* sfd-03 | aliased function not included in updated interface ([f55d503](https://github.com/VenusProtocol/venus-protocol/commit/f55d503a39eceffc119b601a635ff1724c26e4fa))
+* vpb-01 | missing or incomplete natspec ([aa316c5](https://github.com/VenusProtocol/venus-protocol/commit/aa316c5062597111f58bdf090fa891d1fe923440))
+* vpb-01 | missing or incomplete natspec ([01297a1](https://github.com/VenusProtocol/venus-protocol/commit/01297a13036f0c6c439468d7cfc3e1178763d15c))
+
 ## [9.8.0-dev.19](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.18...v9.8.0-dev.19) (2025-06-27)
 
 
