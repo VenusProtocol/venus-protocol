@@ -280,4 +280,10 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 contract ComptrollerV17Storage is ComptrollerV16Storage {
     /// @notice The LiquidationManager contract address
     LiquidationManager public liquidationManager;
+
+    /// @notice The base close factor, scaled by 1e18 (e.g., 0.05e18 for 5%)
+    uint256 public baseCloseFactorMantissa;
+
+    /// @notice The target health factor, scaled by 1e18 (e.g., 1.5e18 for 1.5)
+    uint256 public targetHealthFactor;
 }

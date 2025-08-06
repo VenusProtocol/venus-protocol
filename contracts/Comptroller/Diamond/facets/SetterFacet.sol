@@ -21,7 +21,7 @@ import { FacetBase } from "./FacetBase.sol";
  */
 contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when close factor is changed by admin
-    event NewCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
+    event NewBaseCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
 
     /// @notice Emitted when a collateral factor is changed by admin
     event NewCollateralFactor(
@@ -115,6 +115,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
         LiquidationManager indexed oldLiquidationManager,
         LiquidationManager indexed newLiquidationManager
     );
+
+    event NewTargetHealthFactor(uint256 oldTargetHealthFactor, uint256 newTargetHealthFactor);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -241,6 +243,44 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newMaxLiquidationIncentive
     ) external returns (uint256) {
         return __setMarketMaxLiquidationIncentive(vToken, newMaxLiquidationIncentive);
+    }
+
+    /**
+     * @notice Sets the base close factor
+     * @param newBaseCloseFactorMantissa The new base close factor, scaled by 1e18 (e.g., 0.05e18 for 5%)
+     * @custom:event Emits NewBaseCloseFactor when base close factor is updated
+     * @custom:error InvalidBaseCloseFactor error is thrown when the new base close factor is greater than 1e18
+     */
+    function setBaseCloseFactor(
+        uint256 newBaseCloseFactorMantissa
+    ) external compareValue(baseCloseFactorMantissa, newBaseCloseFactorMantissa) {
+        // Check caller is admin
+        ensureAdmin();
+        // Ensure new base close factor is valid
+        if (newBaseCloseFactorMantissa > 1e18) {
+            revert InvalidBaseCloseFactor();
+        }
+        emit NewBaseCloseFactor(baseCloseFactorMantissa, newBaseCloseFactorMantissa);
+        baseCloseFactorMantissa = newBaseCloseFactorMantissa;
+    }
+
+    /**
+     * @notice Sets the target health factor
+     * @param newTargetHealthFactor The new target health factor, scaled by 1e18 (e.g., 1.5e18 for 1.5)
+     * @custom:event Emits NewTargetHealthFactor when target health factor is updated
+     * @custom:error InvalidTargetHealthFactor error is thrown when the new target health factor is less than 1e18
+     */
+    function setTargetHealthFactor(
+        uint256 newTargetHealthFactor
+    ) external compareValue(targetHealthFactor, newTargetHealthFactor) {
+        // Check caller is admin
+        ensureAdmin();
+        // Ensure new target health factor is valid
+        if (newTargetHealthFactor < mantissaOne) {
+            revert InvalidTargetHealthFactor();
+        }
+        emit NewTargetHealthFactor(targetHealthFactor, newTargetHealthFactor);
+        targetHealthFactor = newTargetHealthFactor;
     }
 
     /**
