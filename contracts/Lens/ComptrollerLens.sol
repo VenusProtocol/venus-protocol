@@ -57,7 +57,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
-     * @return A tuple of error code, and tokens to seize
+     * @return A tuple of NO_ERROR, and tokens to seize
+     * @custom:error PriceError is thrown if the oracle price for the borrowed or collateral vToken is zero
      */
     function liquidateCalculateSeizeTokens(
         address borrower,
@@ -72,7 +73,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenCollateral
         );
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
-            return (uint256(Error.PRICE_ERROR), 0);
+            revert PriceError(vTokenBorrowed);
         }
 
         /*
@@ -95,7 +96,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             exchangeRateMantissa
         );
 
-        return (uint(Error.NO_ERROR), seizeTokens);
+        return (NO_ERROR, seizeTokens);
     }
 
     /**
@@ -104,7 +105,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param comptroller Address of comptroller
      * @param vTokenCollateral Address of collateral for vToken
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of the total borrowed amount
-     * @return A tuple of error code, and tokens to seize
+     * @return A tuple of NO_ERROR, and tokens to seize
+     * @custom:error PriceError is thrown if the oracle price for the collateral vToken is zero
      */
     function liquidateVAICalculateSeizeTokens(
         address borrower,
@@ -118,7 +120,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenCollateral
         );
         if (priceCollateralMantissa == 0) {
-            return (uint256(Error.PRICE_ERROR), 0);
+            revert PriceError(vTokenCollateral);
         }
 
         /*
@@ -141,7 +143,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             exchangeRateMantissa
         );
 
-        return (uint256(Error.NO_ERROR), seizeTokens);
+        return (NO_ERROR, seizeTokens);
     }
 
     /**
@@ -152,7 +154,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @return Returns a tuple of error code, liquidity, and shortfall
+     * @return Returns a tuple of NO_ERROR, liquidity, and shortfall
+     * @custom:error SnapshotError is thrown if some vToken fails to return the account's supply and borrows
+     * @custom:error PriceError is thrown if the oracle price for any vToken is zero
      */
     function getHypotheticalAccountLiquidity(
         address comptroller,
@@ -182,7 +186,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @return Returns a tuple of error code, average liquidation threshold, total collateral and health factor.
+     * @return Returns a tuple of NO_ERROR, average liquidation threshold, total collateral and health factor.
+     * @custom:error SnapshotError is thrown if some vToken fails to return the account's supply and borrows
+     * @custom:error PriceError is thrown if the oracle price for any vToken is zero
      */
     function getAccountHealthSnapshot(
         address comptroller,
@@ -225,8 +231,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
     ) internal view returns (uint256 errorCode, AccountLiquidityLocalVars memory vars) {
-        uint256 oErr;
-
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         uint256 assetsCount = assets.length;
@@ -235,19 +239,17 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             VToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
+            (errorCode, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
                 account
             );
-            if (oErr != 0) {
-                errorCode = oErr;
-                return (errorCode, vars);
+            if (errorCode != 0) {
+                revert SnapshotError();
             }
 
             // Get the normalized price of the asset
             vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(address(asset));
             if (vars.oraclePriceMantissa == 0) {
-                errorCode = uint256(Error.PRICE_ERROR);
-                return (errorCode, vars);
+                revert PriceError(address(asset));
             }
 
             Exp memory vTokenPrice = mul_(
@@ -304,7 +306,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
         (vars.healthFactor, vars.liquidationThresholdAvg, vars.liquidity, vars.shortfall) = _finalizeSnapshot(vars);
 
-        errorCode = uint256(Error.NO_ERROR);
+        errorCode = NO_ERROR;
     }
 
     /**

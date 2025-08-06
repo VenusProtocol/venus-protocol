@@ -139,7 +139,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Alias to _setPriceOracle to support the Isolated Lending Comptroller Interface
      * @param newOracle The new price oracle to set
-     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise reverts
+     * @custom:error SenderNotAdmin error is thrown if the sender is not the admin
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new access control address is zero
      */
     function setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256) {
         return __setPriceOracle(newOracle);
@@ -149,7 +151,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Sets a new price oracle for the comptroller
      * @dev Allows the contract admin to set a new price oracle used by the Comptroller
      * @param newOracle The new price oracle to set
-     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise reverts
+     * @custom:error SenderNotAdmin error is thrown if the sender is not the admin
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new access control address is zero
      */
     function _setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256) {
         return __setPriceOracle(newOracle);
@@ -160,6 +164,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Allows the contract admin to set the address of access control of this contract
      * @param newAccessControlAddress New address for the access control
      * @return uint256 0=success, otherwise will revert
+     * @custom:error SenderNotAdmin error is thrown if the sender is not the admin
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new access control address is zero
      */
     function _setAccessControl(
         address newAccessControlAddress
@@ -173,7 +179,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         accessControl = newAccessControlAddress;
         emit NewAccessControl(oldAccessControlAddress, newAccessControlAddress);
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
@@ -181,7 +187,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
-     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
+     * @return uint256 0=success, otherwise reverts
+     * @custom:event Emits NewCollateralFactor when collateral factor is updated
+     *    and NewLiquidationThreshold when liquidation threshold is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the vToken address is zero
+     * @custom:error MarketNotListed error is thrown when the market is not listed
+     * @custom:error InvalidCollateralFactor error is thrown when collateral factor is too high
+     * @custom:error InvalidLiquidationThreshold error is thrown when liquidation threshold is lower than collateral factor
+     * @custom:error PriceError is thrown when the oracle returns an invalid price for the asset
      */
     function setCollateralFactor(
         VToken vToken,
@@ -195,7 +208,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Alias to _setLiquidationIncentive to support the Isolated Lending Comptroller Interface
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @param vToken The market to set the liquidation incentive for
-     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
+     * @return uint256 0=success, otherwise reverts
+     * @custom:error InvalidLiquidationIncentive error is thrown when liquidation incentive is too high
      */
     function setLiquidationIncentive(
         uint256 newLiquidationIncentiveMantissa,
@@ -207,6 +221,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Sets the liquidation manager address which is responsible for managing liquidations in the protocol.
      * @param liquidationManager_ The new liquidation manager address
+     * @custom:event Emits NewLiquidationManager when liquidation manager is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the liquidation manager address is zero
      */
     function setLiquidationManager(address liquidationManager_) external {
         return __setLiquidationManager(liquidationManager_);
@@ -216,6 +232,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Sets the liquidation incentive for a particular market
      * @param vToken The market to set the liquidation incentive for
      * @param newMaxLiquidationIncentive The liquidation incentive, scaled by 1e18
+     * @custom:event Emits NewMarketLiquidationIncentive when liquidation incentive is updated
+     * @custom:error MarketNotListed error is thrown when the market is not listed
+     * @custom:error InvalidLiquidationIncentive error is thrown when liquidation incentive is too high
      */
     function setMarketMaxLiquidationIncentive(
         address vToken,
@@ -229,7 +248,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Allows a privileged role to set the liquidationIncentiveMantissa
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @param vToken The market to set the liquidation incentive for
-     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
+     * @return uint256 0=success, otherwise reverts
+     * @custom:event Emits NewLiquidationIncentive when liquidation incentive is updated
+     * @custom:error InvalidLiquidationIncentive error is thrown when liquidation incentive is too high
      */
     function _setLiquidationIncentive(
         uint256 newLiquidationIncentiveMantissa,
@@ -242,6 +263,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Update the address of the liquidator contract
      * @dev Allows the contract admin to update the address of liquidator contract
      * @param newLiquidatorContract_ The new address of the liquidator contract
+     * @custom:event Emits NewLiquidatorContract when liquidator contract is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new liquidator contract address is zero
      */
     function _setLiquidatorContract(
         address newLiquidatorContract_
@@ -258,7 +281,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Admin function to change the Pause Guardian
      * @dev Allows the contract admin to change the Pause Guardian
      * @param newPauseGuardian The address of the new Pause Guardian
-     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
+     * @return uint256 0=success, otherwise reverts
+     * @custom:event Emits NewPauseGuardian when pause guardian is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new pause guardian address is zero
      */
     function _setPauseGuardian(
         address newPauseGuardian
@@ -274,13 +299,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Emit NewPauseGuardian(OldPauseGuardian, NewPauseGuardian)
         emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
      * @notice Alias to _setMarketBorrowCaps to support the Isolated Lending Comptroller Interface
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
+     * @custom:event Emits NewBorrowCap when borrow cap is updated
      */
     function setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
         __setMarketBorrowCaps(vTokens, newBorrowCaps);
@@ -291,6 +317,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Allows a privileged role to set the borrowing cap for a vToken market. A borrow cap of 0 corresponds to Borrow not allowed
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
+     * @custom:event Emits NewBorrowCap when borrow cap is updated
      */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
         __setMarketBorrowCaps(vTokens, newBorrowCaps);
@@ -300,6 +327,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Alias to _setMarketSupplyCaps to support the Isolated Lending Comptroller Interface
      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
+     * @custom:event Emits NewSupplyCap when supply cap is updated
      */
     function setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         __setMarketSupplyCaps(vTokens, newSupplyCaps);
@@ -310,6 +338,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Allows a privileged role to set the supply cap for a vToken. A supply cap of 0 corresponds to Minting NotAllowed
      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
+     * @custom:event Emits NewSupplyCap when supply cap is updated
      */
     function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         __setMarketSupplyCaps(vTokens, newSupplyCaps);
@@ -334,6 +363,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param markets_ Markets to pause/unpause the actions on
      * @param actions_ List of action ids to pause/unpause
      * @param paused_ The new paused state (true=paused, false=unpaused)
+     * @custom:event Emits ActionPausedMarket when action is paused/unpaused
+     * @custom:error MarketNotListed error is thrown if the market is not listed
      */
     function setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external {
         __setActionsPaused(markets_, actions_, paused_);
@@ -345,6 +376,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param markets_ Markets to pause/unpause the actions on
      * @param actions_ List of action ids to pause/unpause
      * @param paused_ The new paused state (true=paused, false=unpaused)
+     * @custom:event Emits ActionPausedMarket when action is paused/unpaused
+     * @custom:error MarketNotListed error is thrown if the market is not listed
      */
     function _setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external {
         __setActionsPaused(markets_, actions_, paused_);
@@ -366,6 +399,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Sets a new VAI controller
      * @dev Admin function to set a new VAI controller
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @custom:event NewVAIController when VAI controller is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new VAI controller address is zero
      */
     function _setVAIController(
         VAIControllerInterface vaiController_
@@ -378,13 +413,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
         vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
      * @notice Set the VAI mint rate
      * @param newVAIMintRate The new VAI mint rate to be set
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @custom:event Emits NewVAIMintRate when VAI mint rate is updated
      */
     function _setVAIMintRate(
         uint256 newVAIMintRate
@@ -395,7 +431,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
@@ -403,6 +439,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param owner The address of the account to set
      * @param amount The amount of VAI to set to the account
      * @return The number of minted VAI by `owner`
+     * @custom:error UnauthorizedVAIControllerCaller error is thrown if the caller is not the VAI controller
      */
     function setMintedVAIOf(address owner, uint256 amount) external returns (uint256) {
         checkProtocolPauseState();
@@ -411,10 +448,10 @@ contract SetterFacet is ISetterFacet, FacetBase {
         require(!mintVAIGuardianPaused && !repayVAIGuardianPaused, "VAI is paused");
         // Check caller is vaiController
         if (msg.sender != address(vaiController)) {
-            return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
+            revert UnauthorizedVAIControllerCaller();
         }
         mintedVAIs[owner] = amount;
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
@@ -422,7 +459,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newTreasuryGuardian The new address of the treasury guardian to be set
      * @param newTreasuryAddress The new address of the treasury to be set
      * @param newTreasuryPercent The new treasury percent to be set
-     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise a failure
+     * @custom:event Emits NewTreasuryGuardian when treasury guardian is updated
+     * @custom:event Emits NewTreasuryAddress when treasury address is updated
+     * @custom:event Emits NewTreasuryPercent when treasury percent is updated
+     * @custom:error PercentTooHigh error is thrown if the new treasury percent is greater than or equal to 1e18
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new treasury guardian or address is zero
      */
     function _setTreasuryData(
         address newTreasuryGuardian,
@@ -432,7 +474,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Check caller is admin
         ensureAdminOr(treasuryGuardian);
 
-        require(newTreasuryPercent < 1e18, "percent >= 100%");
+        if (newTreasuryPercent >= mantissaOne) {
+            revert PercentTooHigh();
+        }
         ensureNonzeroAddress(newTreasuryGuardian);
         ensureNonzeroAddress(newTreasuryAddress);
 
@@ -448,7 +492,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit NewTreasuryAddress(oldTreasuryAddress, newTreasuryAddress);
         emit NewTreasuryPercent(oldTreasuryPercent, newTreasuryPercent);
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /*** Venus Distribution ***/
@@ -457,6 +501,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Set ComptrollerLens contract address
      * @param comptrollerLens_ The new ComptrollerLens contract address to be set
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @custom:event Emits NewComptrollerLens when ComptrollerLens is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new ComptrollerLens address
      */
     function _setComptrollerLens(
         ComptrollerLensInterface comptrollerLens_
@@ -467,12 +513,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
         comptrollerLens = comptrollerLens_;
         emit NewComptrollerLens(oldComptrollerLens, address(comptrollerLens));
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
      * @notice Set the amount of XVS distributed per block to VAI Vault
      * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
+     * @custom:event Emits NewVenusVAIVaultRate when Venus VAI Vault rate is updated
      */
     function _setVenusVAIVaultRate(
         uint256 venusVAIVaultRate_
@@ -491,6 +538,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vault_ The address of the VAI Vault
      * @param releaseStartBlock_ The start block of release to VAI Vault
      * @param minReleaseAmount_ The minimum release amount to VAI Vault
+     * @custom:event Emits NewVAIVaultInfo when VAI Vault info is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the vault address is zero
      */
     function _setVAIVaultInfo(
         address vault_,
@@ -513,6 +562,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Alias to _setPrimeToken to support the Isolated Lending Comptroller Interface
      * @param _prime The new prime token contract to be set
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @custom:event Emits NewPrimeToken when prime token is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new prime token address is zero
      */
     function setPrimeToken(IPrime _prime) external returns (uint256) {
         return __setPrimeToken(_prime);
@@ -522,6 +573,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Sets the prime token contract for the comptroller
      * @param _prime The new prime token contract to be set
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @custom:event Emits NewPrimeToken when prime token is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new prime token address is zero
      */
     function _setPrimeToken(IPrime _prime) external returns (uint256) {
         return __setPrimeToken(_prime);
@@ -531,6 +584,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @notice Alias to _setForcedLiquidation to support the Isolated Lending Comptroller Interface
      * @param vTokenBorrowed Borrowed vToken
      * @param enable Whether to enable forced liquidations
+     * @custom:event Emits IsForcedLiquidationEnabledUpdated when forced liquidation is enabled/disabled
+     * @custom:error MarketNotListed error is thrown if the market is not listed
      */
     function setForcedLiquidation(address vTokenBorrowed, bool enable) external {
         __setForcedLiquidation(vTokenBorrowed, enable);
@@ -541,6 +596,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Allows a privileged role to set enable/disable forced liquidations
      * @param vTokenBorrowed Borrowed vToken
      * @param enable Whether to enable forced liquidations
+     * @custom:event Emits IsForcedLiquidationEnabledUpdated when forced liquidation is enabled/disabled
+     * @custom:error MarketNotListed error is thrown if the market is not listed
      */
     function _setForcedLiquidation(address vTokenBorrowed, bool enable) external {
         __setForcedLiquidation(vTokenBorrowed, enable);
@@ -554,6 +611,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param borrower The address of the borrower
      * @param vTokenBorrowed Borrowed vToken
      * @param enable Whether to enable forced liquidations
+     * @custom:event Emits IsForcedLiquidationEnabledForUserUpdated when forced liquidation is enabled/disabled for a user
+     * @custom:error MarketNotListed error is thrown if the market is not listed
      */
     function _setForcedLiquidationForUser(address borrower, address vTokenBorrowed, bool enable) external {
         ensureAllowed("_setForcedLiquidationForUser(address,address,bool)");
@@ -567,6 +626,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Set the address of the XVS token
      * @param xvs_ The address of the XVS token
+     * @custom:event Emits NewXVSToken when XVS token is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new XVS token address
      */
     function _setXVSToken(address xvs_) external {
         ensureAdmin();
@@ -579,6 +640,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Set the address of the XVS vToken
      * @param xvsVToken_ The address of the XVS vToken
+     * custom:event Emits NewXVSVToken when XVS vToken is updated
+     * @custom:error ZeroAddressNotAllowed error is thrown if the new XVS vToken
      */
     function _setXVSVToken(address xvsVToken_) external {
         ensureAdmin();
@@ -625,12 +688,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
         Market storage market = markets[vToken];
         ensureListed(market);
 
-        require(newMaxLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
+        if (newMaxLiquidationIncentive < mantissaOne) {
+            revert InvalidLiquidationIncentive();
+        }
         // Emit event with old incentive, new incentive
         emit NewMarketLiquidationIncentive(vToken, market.maxLiquidationIncentiveMantissa, newMaxLiquidationIncentive);
         // Set liquidation incentive to new incentive
         market.maxLiquidationIncentiveMantissa = newMaxLiquidationIncentive;
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
@@ -654,7 +719,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Emit NewPriceOracle(oldOracle, newOracle)
         emit NewPriceOracle(oldOracle, newOracle);
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
@@ -682,22 +747,22 @@ contract SetterFacet is ISetterFacet, FacetBase {
         //-- Check collateral factor <= 0.9
         Exp memory highLimit = Exp({ mantissa: collateralFactorMaxMantissa });
         if (lessThanExp(highLimit, newCollateralFactorExp)) {
-            return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
+            revert InvalidCollateralFactor();
         }
 
         // If collateral factor != 0, fail if price == 0
         if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(address(vToken)) == 0) {
-            return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
+            revert PriceError(address(vToken));
         }
 
         // Ensure that liquidation threshold <= 1
         if (newLiquidationThresholdMantissa > mantissaOne) {
-            return fail(Error.PRICE_ERROR, FailureInfo.SET_LIQUIDATION_THRESHOLD_VALIDATION);
+            revert InvalidLiquidationThreshold();
         }
 
         // Ensure that liquidation threshold >= CF
         if (newLiquidationThresholdMantissa < newCollateralFactorMantissa) {
-            return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION_LIQUIDATION_THRESHOLD);
+            revert InvalidLiquidationThreshold();
         }
 
         uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
@@ -712,7 +777,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
             emit NewLiquidationThreshold(vToken, oldLiquidationThresholdMantissa, newLiquidationThresholdMantissa);
         }
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
@@ -732,7 +797,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
         Market storage market = markets[vToken];
-        require(newLiquidationIncentiveMantissa >= mantissaOne, "incentive < mantissaOne");
+        if (newLiquidationIncentiveMantissa < mantissaOne) {
+            revert InvalidLiquidationIncentive();
+        }
 
         // Save current value for use in log
         uint256 oldLiquidationIncentiveMantissa = market.maxLiquidationIncentiveMantissa;
@@ -742,7 +809,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Emit event with old incentive, new incentive
         emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
 
-        return uint256(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**
@@ -796,7 +863,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         prime = _prime;
         emit NewPrimeToken(oldPrime, _prime);
 
-        return uint(Error.NO_ERROR);
+        return NO_ERROR;
     }
 
     /**

@@ -13,6 +13,11 @@ import { ExponentialNoError } from "./Utils/ExponentialNoError.sol";
  */
 contract LiquidationManager is ExponentialNoError {
     /**
+     * @notice Error thrown when collateral exceeds borrow capacity
+     */
+    error CollateralExceedsBorrowCapacity();
+
+    /**
      * @notice Calculate the close factor for a liquidation
      * @param borrowBalance The borrow balance of the borrower
      * @param wtAvg The weighted average of the collateral
@@ -30,10 +35,9 @@ contract LiquidationManager is ExponentialNoError {
     ) external pure returns (uint256 closeFactor) {
         if (dynamicLiquidationIncentive == maxLiquidationIncentive) {
             // Prevent underflow
-            require(
-                wtAvg * totalCollateral <= borrowBalance * mantissaOne,
-                "LiquidationManager: Collateral exceeds borrow capacity"
-            );
+            if (wtAvg * totalCollateral > borrowBalance * mantissaOne) {
+                revert CollateralExceedsBorrowCapacity();
+            }
 
             uint256 numerator = borrowBalance * mantissaOne - wtAvg * totalCollateral;
             uint256 denominator = borrowBalance * (mantissaOne - ((wtAvg * maxLiquidationIncentive) / mantissaOne));

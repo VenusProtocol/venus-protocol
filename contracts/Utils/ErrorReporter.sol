@@ -1,6 +1,88 @@
 pragma solidity 0.8.25;
 
+import { Action } from "../Comptroller/ComptrollerInterface.sol";
+
 contract ComptrollerErrorReporter {
+    uint256 public constant NO_ERROR = 0;
+
+    error UnauthorizedVAIControllerCaller();
+
+    error PercentTooHigh();
+
+    error InvalidCollateralFactor();
+
+    error InvalidLiquidationThreshold();
+
+    error InvalidLiquidationIncentive();
+
+    error PriceError(address vToken);
+
+    error SupplyCapExceeded(address market, uint256 cap);
+
+    error BorrowCapExceeded(address market, uint256 cap);
+
+    error UnexpectedSender(address expected, address actual);
+
+    error InsuffficientLiquidity();
+
+    error UnauthorizedLiquidator(address liquidator, address expected);
+
+    error TooMuchRepay();
+
+    error InsufficientShortfall();
+
+    error MarketNotCollateral(address vToken, address user);
+
+    error ComptrollerMismatch();
+
+    error MarketNotListed();
+
+    error BorrowActionNotPaused();
+
+    error MintActionNotPaused();
+
+    error RedeemActionNotPaused();
+
+    error RepayActionNotPaused();
+
+    error SeizeActionNotPaused();
+
+    error LiquidateActionNotPaused();
+
+    error EnterMarketActionNotPaused();
+
+    error ExitMarketActionNotPaused();
+
+    error TransferActionNotPaused();
+
+    error BorrowCapIsNotZero();
+
+    error SupplyCapIsNotZero();
+
+    error CollateralFactorIsNotZero();
+
+    error NonzeroBorrowBalance();
+
+    error ExitMarketNotAllowed();
+
+    error DelegationStatusUnchanged();
+
+    error MarketAlreadyListed(address market);
+
+    error ActionPaused(address market, Action action);
+
+    error SenderNotAdmin();
+
+    error ZeroAddressNotAllowed();
+
+    error ProtocolPaused();
+
+    error AccessDenied(string functionSig, address sender);
+
+    error SenderNotAdminOrPrivileged(address sender, address privilegedAddress);
+
+    error SnapshotError();
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
