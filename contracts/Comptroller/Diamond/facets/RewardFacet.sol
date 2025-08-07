@@ -133,8 +133,8 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     }
 
     /**
-     * @dev Seize XVS tokens from the specified holders and transfer to recipient
      * @notice Seize XVS rewards allocated to holders
+     * @dev Seize XVS tokens from the specified holders and transfer to recipient
      * @param holders Addresses of the XVS holders
      * @param recipient Address of the XVS token recipient
      * @return The total amount of XVS tokens seized and transferred to recipient

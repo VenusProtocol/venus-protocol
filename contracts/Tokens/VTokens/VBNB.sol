@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { IVBNB } from "./interfaces/IVBNB.sol";
 import { IVToken } from "./interfaces/IVToken.sol";
 import { VToken } from "./VToken.sol";
 
@@ -11,7 +12,7 @@ import { VToken } from "./VToken.sol";
  * @notice vToken which wraps BNB
  * @author Venus
  */
-contract VBNB is VToken {
+contract VBNB is IVBNB, VToken {
     /**
      * @notice Construct a new vBNB money market
      * @param comptroller_ The address of the Comptroller

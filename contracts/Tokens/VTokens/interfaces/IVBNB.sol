@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import { IVToken } from "./IVToken.sol";
 
-interface IVBNB {
+interface IVBNB is IVToken {
     /**
      * @notice Send BNB to VBNB to mint
      */
