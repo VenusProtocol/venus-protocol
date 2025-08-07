@@ -142,8 +142,6 @@ export const deployComptroller = async (
 ): Promise<ComptrollerMock> => {
   const acm = opts.accessControlManager ?? (await deployFakeAccessControlManager());
   const oracle = opts.oracle ?? (await deployFakeOracle());
-  const liquidationIncentiveMantissa = opts.liquidationIncentiveMantissa ?? parseUnits("1.1", 18);
-  const closeFactorMantissa = opts.closeFactorMantissa ?? parseUnits("0.5", 18);
   const comptrollerLens = opts.comptrollerLens ?? (await deployComptrollerLens());
 
   const comptrollerFactory: ComptrollerMock__factory = await ethers.getContractFactory("ComptrollerMock");
@@ -152,8 +150,6 @@ export const deployComptroller = async (
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setAccessControl(acm.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(liquidationIncentiveMantissa);
-  await comptroller._setCloseFactor(closeFactorMantissa);
   return comptroller;
 };
 

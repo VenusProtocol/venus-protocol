@@ -66,7 +66,6 @@ async function deploySimpleComptroller() {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(parseUnits("1", 18));
   return { oracle, comptroller, comptrollerLens, accessControl };
 }
 

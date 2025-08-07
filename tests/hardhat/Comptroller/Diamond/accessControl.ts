@@ -95,13 +95,6 @@ describe("Comptroller", () => {
       });
     });
 
-    describe("setLiquidationIncentive", () => {
-      it("Should have AccessControl", async () => {
-        await expect(comptroller.connect(user)._setLiquidationIncentive(1)).to.be.revertedWith("access denied");
-        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setLiquidationIncentive(uint256)");
-      });
-    });
-
     describe("setMarketBorrowCaps", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setMarketBorrowCaps([], [])).to.be.revertedWith("access denied");

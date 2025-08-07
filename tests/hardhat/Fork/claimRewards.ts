@@ -53,7 +53,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
 
   const vusdt = await ethers.getContractAt("VBep20Harness", VUSDT_ADDRESS);
   const timeLockUser = await initMainnetUser(TIMELOCK_ADDRESS);

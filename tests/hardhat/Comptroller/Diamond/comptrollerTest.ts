@@ -45,7 +45,6 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
   return { oracle, comptroller, unitroller, comptrollerLens, accessControl };
 }
 
@@ -87,42 +86,6 @@ describe("Comptroller", () => {
       const { comptroller } = await loadFixture(deploySimpleComptroller);
       expect(await comptroller.admin()).to.equal(root.address);
       expect(await comptroller.pendingAdmin()).to.equal(constants.AddressZero);
-    });
-  });
-
-  describe("_setLiquidationIncentive", () => {
-    let unitroller: Unitroller;
-    let comptroller: ComptrollerMock;
-    const initialIncentive = convertToUnit("1", 18);
-    const validIncentive = convertToUnit("1.1", 18);
-    const tooSmallIncentive = convertToUnit("0.99999", 18);
-
-    beforeEach(async () => {
-      ({ unitroller } = await loadFixture(deploySimpleComptroller));
-      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
-    });
-
-    it("fails if incentive is less than 1e18", async () => {
-      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith(
-        "incentive < mantissaOne",
-      );
-    });
-
-    it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {
-      expect(await comptroller.callStatic._setLiquidationIncentive(validIncentive)).to.equal(
-        ComptrollerErrorReporter.Error.NO_ERROR,
-      );
-      await expect(comptroller._setLiquidationIncentive(validIncentive))
-        .to.emit(comptroller, "NewLiquidationIncentive")
-        .withArgs(initialIncentive, validIncentive);
-      expect(await comptroller.liquidationIncentiveMantissa()).to.equal(validIncentive);
-    });
-
-    it("should revert on same values", async () => {
-      await comptroller._setLiquidationIncentive(validIncentive);
-      await expect(comptroller._setLiquidationIncentive(validIncentive)).to.be.revertedWith(
-        "old value is same as new value",
-      );
     });
   });
 
@@ -339,32 +302,6 @@ describe("Comptroller", () => {
         "old address is same as new address",
       );
       testZeroAddress("_setComptrollerLens", [constants.AddressZero]);
-    });
-  });
-
-  describe("_setCloseFactor", () => {
-    let comptroller: ComptrollerMock;
-
-    beforeEach(async () => {
-      ({ comptroller } = await loadFixture(deploySimpleComptroller));
-    });
-
-    it("fails if not called by admin", async () => {
-      await expect(comptroller.connect(accounts[0])._setCloseFactor(1)).to.be.revertedWith("only admin can");
-    });
-
-    it("should revert on same values", async () => {
-      await expect(comptroller._setCloseFactor(0)).to.be.revertedWith("old value is same as new value");
-    });
-
-    it("fails if factor is set out of range", async () => {
-      await expect(comptroller._setCloseFactor(convertToUnit(1, 18)))
-        .to.emit(comptroller, "Failure")
-        .withArgs(
-          ComptrollerErrorReporter.Error.INVALID_CLOSE_FACTOR,
-          ComptrollerErrorReporter.FailureInfo.SET_CLOSE_FACTOR_VALIDATION,
-          0,
-        );
     });
   });
 
@@ -942,7 +879,6 @@ describe("Comptroller", () => {
           comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
           liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
           await comptroller._setComptrollerLens(comptrollerLens.address);
-          await comptroller._setCloseFactor(convertToUnit("0.5", 18));
           await comptroller.setLiquidationManager(liquidationMananger.address);
         });
 

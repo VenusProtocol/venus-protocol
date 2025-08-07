@@ -53,8 +53,6 @@ describe("Evil Token test", async () => {
 
     await unitroller._setAccessControl(accessControlMock.address);
 
-    await unitroller._setLiquidationIncentive(convertToUnit(1.1, 18));
-    await unitroller._setCloseFactor(convertToUnit(0.8, 18));
     await unitroller._setPriceOracle(priceOracle.address);
     await unitroller._setComptrollerLens(comptrollerLens.address);
     await unitroller.setXVSAddress(xvs.address); // harness only

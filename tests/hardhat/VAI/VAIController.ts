@@ -81,7 +81,6 @@ describe("VAIController", async () => {
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
     const priceOracle = (await priceOracleFactory.deploy()) as SimplePriceOracle;
 
-    const closeFactor = bigNumber17.mul(6);
     const liquidationIncentive = bigNumber18;
 
     const xvsFactory = await ethers.getContractFactory("XVS");
@@ -104,7 +103,6 @@ describe("VAIController", async () => {
     await vaiController._setComptroller(comptroller.address);
     await vaiController.setAccessControl(accessControl.address);
     await vaiController.setBlocksPerYear(BLOCKS_PER_YEAR);
-    await comptroller._setCloseFactor(closeFactor);
     await comptroller._setPriceOracle(priceOracle.address);
     await comptroller.setLiquidationManager(liquidationManager.address);
     comptroller.getXVSAddress.returns(xvs.address);

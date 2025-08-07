@@ -60,7 +60,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(
