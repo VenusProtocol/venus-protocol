@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IComptroller } from "../../../Comptroller/interfaces/IComptroller.sol";
 import { InterestRateModelV8 } from "../../../InterestRateModels/InterestRateModelV8.sol";
 import { IVTokenStorage } from "./IVTokenStorage.sol";
@@ -11,7 +12,7 @@ import { IVTokenStorage } from "./IVTokenStorage.sol";
  * @notice Interface for interacting with Venus VTokens
  * @dev This interface defines the core functionality of Venus VTokens, which are interest-bearing tokens that represent deposits of underlying assets
  */
-interface IVToken is IVTokenStorage {
+interface IVToken is IVTokenStorage, IERC20 {
     /// @notice Event emitted when interest is accrued
     event AccrueInterest(uint cashPrior, uint interestAccumulated, uint borrowIndex, uint totalBorrows);
 
@@ -66,12 +67,6 @@ interface IVToken is IVTokenStorage {
     /// @notice Event emitted when the reserves are reduced
     event ReservesReduced(address protocolShareReserve, uint reduceAmount, uint newTotalReserves);
 
-    /// @notice EIP20 Transfer event
-    event Transfer(address indexed from, address indexed to, uint amount);
-
-    /// @notice EIP20 Approval event
-    event Approval(address indexed owner, address indexed spender, uint amount);
-
     /// @notice Event emitted when block delta for reduce reserves get updated
     event NewReduceReservesBlockDelta(uint256 oldReduceReservesBlockDelta, uint256 newReduceReservesBlockDelta);
 
@@ -87,33 +82,34 @@ interface IVToken is IVTokenStorage {
     function isVToken() external pure returns (bool);
 
     /**
-     * @notice Transfer `amount` tokens from `msg.sender` to `dst`
-     * @param dst The address of the destination account
-     * @param amount The number of tokens to transfer
-     * @return Whether or not the transfer succeeded
-     * @custom:event Emits Transfer event
+     * @notice Sender redeems vTokens in exchange for the underlying asset
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemTokens The number of vTokens to redeem into underlying
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     * @custom:event Emits Redeem event on success
+     * @custom:event Emits Transfer event on success
+     * @custom:event Emits RedeemFee when fee is charged by the treasury
      */
-    function transfer(address dst, uint amount) external returns (bool);
+    function redeem(uint256 redeemTokens) external returns (uint256);
 
     /**
-     * @notice Transfer `amount` tokens from `src` to `dst`
-     * @param src The address of the source account
-     * @param dst The address of the destination account
-     * @param amount The number of tokens to transfer
-     * @return Whether or not the transfer succeeded
-     * @custom:event Emits Transfer event
+     * @notice Sender redeems vTokens in exchange for a specified amount of underlying asset
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemAmount The amount of underlying to redeem
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     * @custom:event Emits Redeem event on success
+     * @custom:event Emits Transfer event on success
+     * @custom:event Emits RedeemFee when fee is charged by the treasury
      */
-    function transferFrom(address src, address dst, uint amount) external returns (bool);
+    function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
 
     /**
-     * @notice Approve `spender` to transfer up to `amount` from `msg.sender`
-     * @dev This will overwrite the approval amount for `spender`
-     * @param spender The address of the account which may transfer tokens
-     * @param amount The number of tokens that are approved
-     * @return Whether or not the approval succeeded
-     * @custom:event Emits Approval event
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     * @custom:event Emits Borrow event on success
      */
-    function approve(address spender, uint amount) external returns (bool);
+    function borrow(uint256 borrowAmount) external returns (uint256);
 
     /**
      * @notice Get the underlying balance of the `owner`
@@ -221,21 +217,6 @@ interface IVToken is IVTokenStorage {
      * @custom:access Controlled by AccessControlManager
      */
     function _setInterestRateModel(InterestRateModelV8 newInterestRateModel) external returns (uint);
-
-    /**
-     * @notice Get the token balance of the `owner`
-     * @param owner The address of the account to query
-     * @return The number of tokens owned by `owner`
-     */
-    function balanceOf(address owner) external view returns (uint);
-
-    /**
-     * @notice Get the current allowance from `owner` for `spender`
-     * @param owner The address of the account which owns the tokens
-     * @param spender The address of the account which may transfer tokens
-     * @return The number of tokens allowed to be spent
-     */
-    function allowance(address owner, address spender) external view returns (uint);
 
     /**
      * @notice Get various information about an account in this market

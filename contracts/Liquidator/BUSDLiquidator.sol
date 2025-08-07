@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { MANTISSA_ONE } from "@venusprotocol/solidity-utilities/contracts/constants.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 
 import { approveOrRevert } from "../lib/approveOrRevert.sol";
-import { ILiquidator, IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
+import { Action } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
+import { ILiquidator } from "./interfaces/ILiquidator.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
 
 /**
  * @title BUSDLiquidator
@@ -17,8 +21,8 @@ import { ILiquidator, IComptroller, IVToken, IVBep20, IVBNB, IVAIController } fr
  * @notice A custom contract for force-liquidating BUSD debts
  */
 contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
-    using SafeERC20Upgradeable for IVToken;
+    using SafeERC20 for IERC20;
+    using SafeERC20 for IVToken;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVBep20 public immutable vBUSD;
@@ -95,7 +99,7 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Allows to recover token accidentally sent to this contract by sending the entire balance to Governance
     /// @param token The address of the token to recover
     /// @custom:access Only Governance
-    function sweepToken(IERC20Upgradeable token) external onlyOwner {
+    function sweepToken(IERC20 token) external onlyOwner {
         token.safeTransfer(msg.sender, token.balanceOf(address(this)));
     }
 
@@ -107,8 +111,8 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     function _unpauseAndLiquidate(address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
         address[] memory vTokens = new address[](1);
         vTokens[0] = address(vBUSD);
-        IComptroller.Action[] memory actions = new IComptroller.Action[](1);
-        actions[0] = IComptroller.Action.LIQUIDATE;
+        Action[] memory actions = new Action[](1);
+        actions[0] = Action.LIQUIDATE;
 
         comptroller._setActionsPaused(vTokens, actions, false);
         _liquidateBorrow(borrower, repayAmount, vTokenCollateral);
@@ -122,7 +126,7 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @param vTokenCollateral The collateral to seize from the borrower
     function _liquidateBorrow(address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
         ILiquidator liquidatorContract = ILiquidator(comptroller.liquidatorContract());
-        IERC20Upgradeable busd = IERC20Upgradeable(vBUSD.underlying());
+        IERC20 busd = IERC20(vBUSD.underlying());
 
         uint256 actualRepayAmount = _transferIn(busd, msg.sender, repayAmount);
         approveOrRevert(busd, address(liquidatorContract), actualRepayAmount);
@@ -141,7 +145,7 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @param from The account to transfer from
     /// @param amount The amount to transfer
     /// @return The actual amount transferred
-    function _transferIn(IERC20Upgradeable token, address from, uint256 amount) internal returns (uint256) {
+    function _transferIn(IERC20 token, address from, uint256 amount) internal returns (uint256) {
         uint256 prevBalance = token.balanceOf(address(this));
         token.safeTransferFrom(from, address(this), amount);
         return token.balanceOf(address(this)) - prevBalance;

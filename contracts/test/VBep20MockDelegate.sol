@@ -135,6 +135,17 @@ contract VBep20MockDelegate is VToken, IVBep20, IVDelegate {
     }
 
     /**
+     * @notice Sender borrows assets on behalf of some other address. This function is only available
+     *   for senders, explicitly marked as delegates of the borrower using `comptroller.updateDelegate`
+     * @param borrower The borrower, on behalf of whom to borrow.
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    function borrowBehalf(address borrower, uint256 borrowAmount) external returns (uint256) {
+        return borrowInternal(borrower, payable(msg.sender), borrowAmount);
+    }
+
+    /**
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)

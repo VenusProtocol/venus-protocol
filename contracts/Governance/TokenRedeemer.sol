@@ -5,7 +5,10 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 
-import { IVAIController, IVToken, IVBep20, IVBNB } from "../InterfacesV8.sol";
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
+import { IVBNB } from "../Tokens/VTokens/interfaces/IVBNB.sol";
+import { IVAIController } from "../Tokens/VAI/interfaces/IVAIController.sol";
 import { Currency, CurrencyLibrary } from "../lib/Currency.sol";
 
 contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
@@ -162,7 +165,7 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
             return;
         }
         if (_isVBNB(vToken)) {
-            IVBNB(address(vToken)).repayBorrowBehalf{ value: amount }(borrower);
+            IVBNB(payable(address(vToken))).repayBorrowBehalf{ value: amount }(borrower);
         } else {
             uint256 err = IVBep20(address(vToken)).repayBorrowBehalf(borrower, amount);
             if (err != 0) {

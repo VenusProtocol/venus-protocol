@@ -9,7 +9,8 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 
 import { approveOrRevert } from "../lib/approveOrRevert.sol";
-import { IVBep20, IComptroller } from "../InterfacesV8.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
 
 contract MoveDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @dev VToken return value signalling about successful execution

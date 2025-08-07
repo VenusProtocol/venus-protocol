@@ -6,13 +6,25 @@ import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/acc
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { IProtocolShareReserve } from "../external/IProtocolShareReserve.sol";
 import { IWBNB } from "../external/IWBNB.sol";
-import "./LiquidatorStorage.sol";
-import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
+import { Action } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
+import { IVBNB } from "../Tokens/VTokens/interfaces/IVBNB.sol";
+import { IVAIController } from "../Tokens/VAI/interfaces/IVAIController.sol";
+import { ILiquidator } from "./interfaces/ILiquidator.sol";
+import { LiquidatorStorage } from "./LiquidatorStorage.sol";
 
-contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
+contract Liquidator is
+    ILiquidator,
+    Ownable2StepUpgradeable,
+    ReentrancyGuardUpgradeable,
+    LiquidatorStorage,
+    AccessControlledV8
+{
     /// @notice Address of vBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVBNB public immutable vBnb;
@@ -468,7 +480,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @dev Checks liquidation action in comptroller and vaiDebt with minLiquidatableVAI threshold
     function _checkForceVAILiquidate(address vToken_, address borrower_) private view {
         uint256 _vaiDebt = vaiController.getVAIRepayAmount(borrower_);
-        bool _isVAILiquidationPaused = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
+        bool _isVAILiquidationPaused = comptroller.actionPaused(address(vaiController), Action.LIQUIDATE);
         bool _isForcedLiquidationEnabled = comptroller.isForcedLiquidationEnabled(vToken_);
         if (
             _isForcedLiquidationEnabled ||

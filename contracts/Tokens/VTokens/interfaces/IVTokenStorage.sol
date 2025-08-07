@@ -76,11 +76,6 @@ interface IVTokenStorage {
     function totalReserves() external view returns (uint256);
 
     /**
-     * @notice Total number of tokens in circulation
-     */
-    function totalSupply() external view returns (uint256);
-
-    /**
      * @notice Underlying asset for this VToken
      */
     function underlying() external view returns (address);

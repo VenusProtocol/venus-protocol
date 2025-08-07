@@ -108,7 +108,7 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessSetTotalSupply(uint totalSupply_) public {
-        totalSupply = totalSupply_;
+        _totalSupply = totalSupply_;
     }
 
     function harnessSetTotalBorrows(uint totalBorrows_) public {
@@ -124,7 +124,7 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessExchangeRateDetails(uint totalSupply_, uint totalBorrows_, uint totalReserves_) public {
-        totalSupply = totalSupply_;
+        _totalSupply = totalSupply_;
         totalBorrows = totalBorrows_;
         totalReserves = totalReserves_;
     }

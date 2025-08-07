@@ -72,7 +72,7 @@ contract VBep20Harness is VBep20Immutable {
     }
 
     function harnessSetTotalSupply(uint totalSupply_) public {
-        totalSupply = totalSupply_;
+        _totalSupply = totalSupply_;
     }
 
     function harnessSetTotalBorrows(uint totalBorrows_) public {
@@ -84,7 +84,7 @@ contract VBep20Harness is VBep20Immutable {
     }
 
     function harnessExchangeRateDetails(uint totalSupply_, uint totalBorrows_, uint totalReserves_) public {
-        totalSupply = totalSupply_;
+        _totalSupply = totalSupply_;
         totalBorrows = totalBorrows_;
         totalReserves = totalReserves_;
     }
@@ -317,7 +317,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
     }
 
     function harnessSetTotalSupply(uint totalSupply_) public {
-        totalSupply = totalSupply_;
+        _totalSupply = totalSupply_;
     }
 
     function harnessSetTotalBorrows(uint totalBorrows_) public {
@@ -333,7 +333,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
     }
 
     function harnessExchangeRateDetails(uint totalSupply_, uint totalBorrows_, uint totalReserves_) public {
-        totalSupply = totalSupply_;
+        _totalSupply = totalSupply_;
         totalBorrows = totalBorrows_;
         totalReserves = totalReserves_;
     }
