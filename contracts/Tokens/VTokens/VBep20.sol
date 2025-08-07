@@ -162,11 +162,7 @@ contract VBep20 is VToken, IVBep20 {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emit LiquidateBorrow event on success
-    function liquidateBorrow(
-        address borrower,
-        uint repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint) {
+    function liquidateBorrow(address borrower, uint repayAmount, IVToken vTokenCollateral) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
     }

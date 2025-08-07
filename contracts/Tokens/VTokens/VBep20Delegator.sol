@@ -174,11 +174,7 @@ contract VBep20Delegator is IVDelegator, VTokenStorage {
      * @param repayAmount The amount of the underlying borrowed asset to repay
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function liquidateBorrow(
-        address borrower,
-        uint repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint) {
+    function liquidateBorrow(address borrower, uint repayAmount, IVToken vTokenCollateral) external returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("liquidateBorrow(address,uint256,address)", borrower, repayAmount, vTokenCollateral)
         );

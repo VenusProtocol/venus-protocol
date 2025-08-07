@@ -71,11 +71,7 @@ interface IVBep20 is IVToken {
      * @param vTokenCollateral The address of the vToken collateral
      * @return uint Returns the amount successfully liquidated
      */
-    function liquidateBorrow(
-        address borrower,
-        uint repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint);
+    function liquidateBorrow(address borrower, uint repayAmount, IVToken vTokenCollateral) external returns (uint);
 
     /*** Admin Functions ***/
 

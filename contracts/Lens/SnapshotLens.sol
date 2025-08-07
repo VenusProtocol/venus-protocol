@@ -90,9 +90,7 @@ contract SnapshotLens is ExponentialNoError {
         vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
         // Get the normalized price of the asset
-        vars.oraclePriceMantissa = IComptroller(comptrollerAddress).oracle().getUnderlyingPrice(
-            address(vToken)
-        );
+        vars.oraclePriceMantissa = IComptroller(comptrollerAddress).oracle().getUnderlyingPrice(address(vToken));
         vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
         // Pre-compute a conversion factor from tokens -> bnb (normalized price value)

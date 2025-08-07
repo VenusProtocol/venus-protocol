@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import { IComptroller } from "../../../Comptroller/interfaces/IComptroller.sol";
 import { InterestRateModelV8 } from "../../../InterestRateModels/InterestRateModelV8.sol";
 
-
 interface IVTokenStorage {
     /**
      * @notice Container for borrow balance information

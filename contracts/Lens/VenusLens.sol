@@ -117,7 +117,7 @@ contract VenusLens is ExponentialNoError {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
         address comptrollerAddress = address(vToken.comptroller());
         IComptroller comptroller = IComptroller(comptrollerAddress);
-        (bool isListed, uint collateralFactorMantissa,) = comptroller.markets(address(vToken));
+        (bool isListed, uint collateralFactorMantissa, ) = comptroller.markets(address(vToken));
         address underlyingAssetAddress;
         uint underlyingDecimals;
 
@@ -317,10 +317,7 @@ contract VenusLens is ExponentialNoError {
      * @param account Address of the account to query
      * @return Struct with markets user has entered, liquidity, and shortfall of the account
      */
-    function getAccountLimits(
-        IComptroller comptroller,
-        address account
-    ) public view returns (AccountLimits memory) {
+    function getAccountLimits(IComptroller comptroller, address account) public view returns (AccountLimits memory) {
         (uint errorCode, uint liquidity, uint shortfall) = comptroller.getAccountLiquidity(account);
         require(errorCode == 0, "account liquidity error");
 
@@ -504,10 +501,7 @@ contract VenusLens is ExponentialNoError {
      * @param comptroller Address of the comptroller
      * @return Reward object contraining the totalRewards and pending rewards for each market
      */
-    function pendingRewards(
-        address holder,
-        IComptroller comptroller
-    ) external view returns (RewardSummary memory) {
+    function pendingRewards(address holder, IComptroller comptroller) external view returns (RewardSummary memory) {
         IVToken[] memory vTokens = comptroller.getAllMarkets();
         ClaimVenusLocalVariables memory vars;
         RewardSummary memory rewardSummary;

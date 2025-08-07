@@ -163,11 +163,7 @@ contract VBep20MockDelegate is VToken, IVBep20, IVDelegate {
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function liquidateBorrow(
-        address borrower,
-        uint repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint) {
+    function liquidateBorrow(address borrower, uint repayAmount, IVToken vTokenCollateral) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
     }

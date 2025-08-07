@@ -81,7 +81,6 @@ interface IVToken is IVTokenStorage {
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControlManager(address oldAccessControlAddress, address newAccessControlAddress);
 
-
     /**
      * @notice Indicator that this is a vToken contract (for inspection)
      */
