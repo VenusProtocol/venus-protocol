@@ -25,7 +25,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     struct AccountLiquidityLocalVars {
         // Total collateral value supplied by the account (USD, scaled by 1e18)
         uint256 totalCollateral;
-        // Collateral value weighted by each asset's liquidation threshold (USD, scaled by 1e18)
+        // Collateral value weighted by each asset's liquidation threshold or collateral factor (USD, scaled by 1e18)
         uint256 weightedCollateral;
         // Total borrowed value by the account (USD, scaled by 1e18)
         uint256 borrows;
@@ -256,13 +256,21 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             );
             Exp memory weightedVTokenPrice = mul_(Exp({ mantissa: weight(address(asset)) }), vTokenPrice);
 
-            vars.totalCollateral = mul_ScalarTruncateAddUInt(vTokenPrice, vars.vTokenBalance, vars.totalCollateral);
+            if (asset == vTokenModify) {
+                // redeem effect: reduce the vToken balance
+                if (redeemTokens > 0) {
+                    vars.vTokenBalance = vars.vTokenBalance - redeemTokens;
+                }
 
-            vars.liquidationThresholdAvg = mul_ScalarTruncateAddUInt(
-                Exp({ mantissa: weight(address(asset)) }),
-                mul_(vars.vTokenBalance, vTokenPrice),
-                vars.liquidationThresholdAvg
-            );
+                // borrow effect: oraclePrice * borrowAmount
+                vars.borrows = mul_ScalarTruncateAddUInt(
+                    Exp({ mantissa: vars.oraclePriceMantissa }),
+                    borrowAmount,
+                    vars.borrows
+                );
+            }
+
+            vars.totalCollateral = mul_ScalarTruncateAddUInt(vTokenPrice, vars.vTokenBalance, vars.totalCollateral);
 
             // weightedCollateral += weightedVTokenPrice * vTokenBalance
             vars.weightedCollateral = mul_ScalarTruncateAddUInt(
@@ -277,23 +285,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 vars.borrowBalance,
                 vars.borrows
             );
-
-            if (asset == vTokenModify) {
-                // redeem effect: weightedVTokenPrice * redeemTokens
-                if (redeemTokens > 0) {
-                    uint256 redeemEffect = mul_ScalarTruncate(weightedVTokenPrice, redeemTokens);
-                    vars.weightedCollateral = vars.weightedCollateral > redeemEffect
-                        ? vars.weightedCollateral - redeemEffect
-                        : 0;
-                }
-
-                // borrow effect: oraclePrice * borrowAmount
-                vars.borrows = mul_ScalarTruncateAddUInt(
-                    Exp({ mantissa: vars.oraclePriceMantissa }),
-                    borrowAmount,
-                    vars.borrows
-                );
-            }
         }
 
         VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
@@ -317,11 +308,13 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     ) internal pure returns (uint256, uint256, uint256, uint256) {
         uint256 healthFactor;
         if (snapshot.totalCollateral > 0) {
-            snapshot.liquidationThresholdAvg = div_(snapshot.liquidationThresholdAvg, snapshot.totalCollateral);
+            snapshot.liquidationThresholdAvg = div_(snapshot.weightedCollateral, snapshot.totalCollateral);
         }
 
         if (snapshot.borrows > 0) {
             healthFactor = div_(snapshot.weightedCollateral, snapshot.borrows);
+        } else {
+            healthFactor = type(uint256).max;
         }
 
         if (snapshot.weightedCollateral > snapshot.borrows) {
