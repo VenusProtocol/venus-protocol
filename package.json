@@ -28,7 +28,8 @@
     "prettier:check": "prettier --check \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
     "docgen": "hardhat docgen",
     "prepare": "husky install",
-    "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts"
+    "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts",
+    "postinstall": "yarn patch-package"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
@@ -40,7 +41,8 @@
     "@venusprotocol/token-bridge": "^2.6.0",
     "bignumber.js": "^9.1.2",
     "dotenv": "^16.0.1",
-    "module-alias": "^2.2.2"
+    "module-alias": "^2.2.2",
+    "patch-package": "^8.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
