@@ -157,12 +157,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return uint256 Always NO_ERROR
      * @custom:event MarketUnlisted is emitted on success
      * @custom:error MarketNotListed error is thrown when the market is not listed
-     * @custom:error BorrowActionNotPaused error is thrown if borrow action is not paused
-     * @custom:error MintActionNotPaused error is thrown if mint action is not paused
-     * @custom:error RedeemActionNotPaused error is thrown if redeem action is not paused
-     * @custom:error RepayActionNotPaused error is thrown if repay action is not paused
-     * @custom:error EnterMarketActionNotPaused error is thrown if enter market action is not paused
-     * @custom:error LiquidateActionNotPaused error is thrown if liquidate action is not paused
+     * @custom:error ActionNotPaused error is thrown if any of the actions are not paused
      * @custom:error BorrowCapIsNotZero error is thrown if borrow cap is not zero
      * @custom:error SupplyCapIsNotZero error is thrown if supply cap is not zero
      * @custom:error CollateralFactorIsNotZero error is thrown if collateral factor is not zero
@@ -177,39 +172,39 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         if (!actionPaused(market, Action.BORROW)) {
-            revert BorrowActionNotPaused();
+            revert ActionNotPaused(Action.BORROW);
         }
 
         if (!actionPaused(market, Action.MINT)) {
-            revert MintActionNotPaused();
+            revert ActionNotPaused(Action.MINT);
         }
 
         if (!actionPaused(market, Action.REDEEM)) {
-            revert RedeemActionNotPaused();
+            revert ActionNotPaused(Action.REDEEM);
         }
 
         if (!actionPaused(market, Action.REPAY)) {
-            revert RepayActionNotPaused();
+            revert ActionNotPaused(Action.REPAY);
         }
 
         if (!actionPaused(market, Action.ENTER_MARKET)) {
-            revert EnterMarketActionNotPaused();
+            revert ActionNotPaused(Action.ENTER_MARKET);
         }
 
         if (!actionPaused(market, Action.LIQUIDATE)) {
-            revert LiquidateActionNotPaused();
+            revert ActionNotPaused(Action.LIQUIDATE);
         }
 
         if (!actionPaused(market, Action.SEIZE)) {
-            revert SeizeActionNotPaused();
+            revert ActionNotPaused(Action.SEIZE);
         }
 
         if (!actionPaused(market, Action.TRANSFER)) {
-            revert TransferActionNotPaused();
+            revert ActionNotPaused(Action.TRANSFER);
         }
 
         if (!actionPaused(market, Action.EXIT_MARKET)) {
-            revert ExitMarketActionNotPaused();
+            revert ActionNotPaused(Action.EXIT_MARKET);
         }
 
         if (borrowCaps[market] != 0) {
