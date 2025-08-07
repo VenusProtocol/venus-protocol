@@ -183,7 +183,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @return Returns a tuple of NO_ERROR, average liquidation threshold, total collateral and health factor.
+     * @return Returns a tuple of NO_ERROR, shortfall, average liquidation threshold, total collateral and health factor.
      * @custom:error SnapshotError is thrown if some vToken fails to return the account's supply and borrows
      * @custom:error PriceError is thrown if the oracle price for any vToken is zero
      */
@@ -194,7 +194,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 redeemTokens,
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
-    ) external view returns (uint256, uint256, uint256, uint256) {
+    ) external view returns (uint256, uint256, uint256, uint256, uint256) {
         (uint256 errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
             comptroller,
             account,
@@ -204,7 +204,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             weight
         );
 
-        return (errorCode, vars.liquidationThresholdAvg, vars.totalCollateral, vars.healthFactor);
+        return (errorCode, vars.shortfall, vars.liquidationThresholdAvg, vars.totalCollateral, vars.healthFactor);
     }
 
     /**

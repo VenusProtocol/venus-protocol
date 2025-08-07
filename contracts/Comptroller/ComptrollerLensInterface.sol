@@ -34,5 +34,5 @@ interface ComptrollerLensInterface {
         uint256 redeemTokens,
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
-    ) external view returns (uint256, uint256, uint256, uint256);
+    ) external view returns (uint256, uint256, uint256, uint256, uint256);
 }

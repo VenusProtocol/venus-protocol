@@ -187,6 +187,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
      * @return err Error code
+     * @return shortfall Shortfall amount, if any
      * @return liquidationThresholdAvg Average liquidation threshold
      * @return totalCollateral Total collateral in excess of borrow requirements
      * @return healthFactor Health factor
@@ -202,16 +203,16 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     )
         internal
         view
-        returns (uint256 err, uint256 liquidationThresholdAvg, uint256 totalCollateral, uint256 healthFactor)
+        returns (
+            uint256 err,
+            uint256 shortfall,
+            uint256 liquidationThresholdAvg,
+            uint256 totalCollateral,
+            uint256 healthFactor
+        )
     {
-        (err, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens.getAccountHealthSnapshot(
-            address(this),
-            account,
-            vTokenModify,
-            redeemTokens,
-            borrowAmount,
-            weight
-        );
+        (err, shortfall, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens
+            .getAccountHealthSnapshot(address(this), account, vTokenModify, redeemTokens, borrowAmount, weight);
     }
 
     /**
@@ -292,7 +293,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address vToken
     ) external view returns (uint256 incentive) {
         Market storage market = markets[vToken];
-        (, uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
+        (, , uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
             borrower,
             VToken(vToken),
             0,

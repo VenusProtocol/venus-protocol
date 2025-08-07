@@ -282,21 +282,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            borrower,
-            VToken(address(0)),
-            0,
-            0,
-            this.getLiquidationThreshold
-        );
+        (
+            ,
+            uint256 shortfall,
+            uint256 liquidationThresholdAvg,
+            uint256 totalCollateral,
 
-        (, uint256 liquidationThresholdAvg, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
-            borrower,
-            VToken(address(0)),
-            0,
-            0,
-            this.getLiquidationThreshold
-        );
+        ) = getHypotheticalHealthSnapshot(borrower, VToken(address(0)), 0, 0, this.getLiquidationThreshold);
         if (shortfall == 0) {
             revert InsufficientShortfall();
         }
