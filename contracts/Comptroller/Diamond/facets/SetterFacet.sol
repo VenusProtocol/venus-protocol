@@ -392,7 +392,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param paused The new paused state (true=paused, false=unpaused)
      */
     function setActionPausedInternal(address market, Action action, bool paused) internal {
-        ensureListed(markets[market]);
+        ensureListed(_poolMarkets[getCorePoolMarketIndex(market)]);
         _actionPaused[market][uint256(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
@@ -619,7 +619,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function _setForcedLiquidationForUser(address borrower, address vTokenBorrowed, bool enable) external {
         ensureAllowed("_setForcedLiquidationForUser(address,address,bool)");
         if (vTokenBorrowed != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
+            ensureListed(_poolMarkets[getCorePoolMarketIndex(vTokenBorrowed)]);
         }
         isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed] = enable;
         emit IsForcedLiquidationEnabledForUserUpdated(borrower, vTokenBorrowed, enable);
@@ -682,12 +682,15 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newMaxLiquidationIncentive
     )
         internal
-        compareValue(markets[address(vToken)].maxLiquidationIncentiveMantissa, newMaxLiquidationIncentive)
+        compareValue(
+            _poolMarkets[getCorePoolMarketIndex(address(vToken))].maxLiquidationIncentiveMantissa,
+            newMaxLiquidationIncentive
+        )
         returns (uint256)
     {
         ensureAllowed("setMarketMaxLiquidationIncentive(address,uint256)");
 
-        Market storage market = markets[vToken];
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
         ensureListed(market);
 
         if (newMaxLiquidationIncentive < mantissaOne) {
@@ -741,7 +744,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
-        Market storage market = markets[address(vToken)];
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(address(vToken))];
         ensureListed(market);
 
         Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
@@ -793,12 +796,15 @@ contract SetterFacet is ISetterFacet, FacetBase {
         address vToken
     )
         internal
-        compareValue(markets[vToken].maxLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa)
+        compareValue(
+            _poolMarkets[getCorePoolMarketIndex(vToken)].maxLiquidationIncentiveMantissa,
+            newLiquidationIncentiveMantissa
+        )
         returns (uint256)
     {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
-        Market storage market = markets[vToken];
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
         if (newLiquidationIncentiveMantissa < mantissaOne) {
             revert InvalidLiquidationIncentive();
         }
@@ -876,7 +882,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function __setForcedLiquidation(address vTokenBorrowed, bool enable) internal {
         ensureAllowed("_setForcedLiquidation(address,bool)");
         if (vTokenBorrowed != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
+            ensureListed(_poolMarkets[getCorePoolMarketIndex(vTokenBorrowed)]);
         }
         isForcedLiquidationEnabled[vTokenBorrowed] = enable;
         emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);

@@ -61,35 +61,38 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     struct Market {
         /// @notice Whether or not this market is listed
         bool isListed;
-        /**
-         * @notice Multiplier representing the most one can borrow against their collateral in this market.
-         *  For instance, 0.9 to allow borrowing 90% of collateral value.
-         *  Must be between 0 and 1, and stored as a mantissa.
-         */
+        
+        /// @notice Multiplier representing the most one can borrow against their collateral in this market.
+        /// For instance, 0.9 to allow borrowing 90% of collateral value.
+        /// Must be between 0 and 1, and stored as a mantissa.
+         
         uint256 collateralFactorMantissa;
         /// @notice Per-market mapping of "accounts in this asset"
         mapping(address => bool) accountMembership;
         /// @notice Whether or not this market receives XVS
         bool isVenus;
-        /**
-         * @notice Multiplier representing the collateralization after which the borrow is eligible
-         * for liquidation. For instance, 0.8 liquidate when the borrow is 80% of collateral
-         * value. Must be between 0 and collateral factor, stored as a mantissa.
-         */
+        
+        /// @notice Multiplier representing the collateralization after which the borrow is eligible
+        /// for liquidation. For instance, 0.8 liquidate when the borrow is 80% of collateral
+        /// value. Must be between 0 and collateral factor, stored as a mantissa.
         uint256 liquidationThresholdMantissa;
         /// @notice discount on collateral that a liquidator receives when liquidating a borrow in this market
         uint256 maxLiquidationIncentiveMantissa;
+        /// @notice The pool ID this market is associated with, Used to support emodes
+        uint96 poolId;
+        
+        /// @notice Flag to indicate whether borrowing is allowed in this market.
+        /// Used to restrict borrowing in certain pools/emodes
+        bool isBorrowAllowed;
     }
 
-    /**
-     * @notice Official mapping of vTokens -> Market metadata
-     * @dev Used e.g. to determine if a market is supported
-     */
-    mapping(address => Market) public markets;
+    
+    /// @notice Official mapping of bytes32 ( First 12 bytes (96 bits) represent the poolId
+    /// Last 20 bytes represent the vToken address) -> Market metadata
+    /// @dev Used e.g. to determine if a market is supported
+    mapping(bytes32 => Market) internal _poolMarkets;
 
-    /**
-     * @notice The Pause Guardian can pause certain actions as a safety mechanism.
-     */
+    /// @notice The Pause Guardian can pause certain actions as a safety mechanism.
     address public pauseGuardian;
 
     /// @notice Whether minting is paused (deprecated, superseded by actionPaused)
@@ -145,9 +148,8 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /// @notice VAI Mint Rate as a percentage
     uint256 public vaiMintRate;
 
-    /**
-     * @notice The Pause Guardian can pause certain actions as a safety mechanism.
-     */
+    
+    /// @notice The Pause Guardian can pause certain actions as a safety mechanism.
     bool public mintVAIGuardianPaused;
     bool public repayVAIGuardianPaused;
 
@@ -280,4 +282,14 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 contract ComptrollerV17Storage is ComptrollerV16Storage {
     /// @notice The LiquidationManager contract address
     LiquidationManager public liquidationManager;
+}
+
+contract ComptrollerV18Storage is ComptrollerV17Storage {
+    /**
+     * @notice Tracks the selected pool for each user.
+     * @dev
+     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in.
+     * - A value of `0` represents the default core pool (legacy behavior).
+     */
+    mapping(address => uint96) public userPoolId;
 }

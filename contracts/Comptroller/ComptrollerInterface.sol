@@ -158,6 +158,8 @@ interface ComptrollerInterface {
     function vaiMintRate() external view returns (uint);
 
     function getDynamicLiquidationIncentive(address borrower, address market) external view returns (uint256);
+
+    function userPoolId(address account) external view returns (uint96);
 }
 
 interface IVAIVault {

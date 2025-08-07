@@ -33,7 +33,7 @@ interface IFacetBase {
 
     function getDynamicLiquidationIncentive(address borrower, address vToken) external view returns (uint256);
 
-    function getCollateralFactor(address vToken) external view returns (uint256);
+    function getEffectiveCollateralFactor(uint96 poolId, address vToken) external view returns (uint256);
 
-    function getLiquidationThreshold(address vToken) external view returns (uint256);
+    function getEffectiveLiquidationThreshold(uint96 poolId, address vToken) external view returns (uint256);
 }

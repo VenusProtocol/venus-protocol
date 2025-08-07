@@ -195,7 +195,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
                 VToken(address(0)),
                 0,
                 0,
-                this.getCollateralFactor
+                this.getEffectiveCollateralFactor
             );
 
             uint256 value = venusAccrued[holder];
@@ -229,7 +229,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
         for (uint256 i; i < vTokensLength; ++i) {
             VToken vToken = vTokens[i];
-            ensureListed(markets[address(vToken)]);
+            ensureListed(_poolMarkets[getCorePoolMarketIndex(address(vToken))]);
             if (borrowers) {
                 Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
                 updateVenusBorrowIndex(address(vToken), borrowIndex);

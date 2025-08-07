@@ -10,7 +10,7 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerV18Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IFacetBase } from "../interfaces/IFacetBase.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 
@@ -19,7 +19,7 @@ import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, ComptrollerErrorReporter {
+contract FacetBase is IFacetBase, ComptrollerV18Storage, ExponentialNoError, ComptrollerErrorReporter {
     using SafeERC20 for IERC20;
 
     /// @notice The initial Venus index for a market
@@ -30,6 +30,8 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
     // No collateralFactorMantissa may exceed this value
     uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
+    // poolId for core Pool
+    uint96 internal constant corePoolId = 0;
 
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
@@ -166,7 +168,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        function(uint96, address) external view returns (uint256) weight
     ) internal view returns (uint256, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
@@ -199,7 +201,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        function(uint96, address) external view returns (uint256) weight
     )
         internal
         view
@@ -223,7 +225,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      */
     function addToMarketInternal(VToken vToken, address borrower) internal returns (uint256) {
         checkActionPauseState(address(vToken), Action.ENTER_MARKET);
-        Market storage marketToJoin = markets[address(vToken)];
+        Market storage marketToJoin = _poolMarkets[getCorePoolMarketIndex(address(vToken))];
         ensureListed(marketToJoin);
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
@@ -255,9 +257,9 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address redeemer,
         uint256 redeemTokens
     ) internal view returns (uint256) {
-        ensureListed(markets[vToken]);
+        ensureListed(_poolMarkets[getCorePoolMarketIndex(vToken)]);
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
-        if (!markets[vToken].accountMembership[redeemer]) {
+        if (!_poolMarkets[getCorePoolMarketIndex(vToken)].accountMembership[redeemer]) {
             return NO_ERROR;
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
@@ -266,7 +268,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             VToken(vToken),
             redeemTokens,
             0,
-            this.getCollateralFactor
+            this.getEffectiveCollateralFactor
         );
         if (shortfall != 0) {
             revert InsuffficientLiquidity();
@@ -292,13 +294,14 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address borrower,
         address vToken
     ) external view returns (uint256 incentive) {
-        Market storage market = markets[vToken];
+        uint96 poolId = userPoolId[borrower];
+        Market storage market = _poolMarkets[getPoolMarketIndex(poolId, vToken)];
         (, , uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
             borrower,
             VToken(vToken),
             0,
             0,
-            this.getLiquidationThreshold
+            this.getEffectiveLiquidationThreshold
         );
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
@@ -312,21 +315,107 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
 
     /**
      * @notice Get the collateral factor for a vToken
+     * @dev This value should be used when calculating account liquidity and during liquidation checks.
      * @param vToken The address of the vToken to get the collateral factor for
      * @return The collateral factor for the vToken, scaled by 1e18
      */
-    function getCollateralFactor(address vToken) external view returns (uint256) {
-        // return Exp({ mantissa: markets[vToken].collateralFactorMantissa });
-        return markets[vToken].collateralFactorMantissa;
+    function getEffectiveCollateralFactor(uint96 poolId, address vToken) external view returns (uint256) {
+        // return Exp({ mantissa: _poolMarkets[vToken].collateralFactorMantissa });
+        (uint256 cf, , ) = getLiquidationParams(poolId, vToken);
+        return cf;
     }
 
     /**
      * @notice Get the liquidation threshold for a vToken
+     * @dev This value should be used when calculating account liquidity and during liquidation checks.
      * @param vToken The address of the vToken to get the liquidation threshold for
      * @return The liquidation threshold for the vToken, scaled by 1e18
      */
-    function getLiquidationThreshold(address vToken) external view returns (uint256) {
-        // return Exp({ mantissa: markets[vToken].liquidationThresholdMantissa });
-        return markets[vToken].liquidationThresholdMantissa;
+    function getEffectiveLiquidationThreshold(uint96 poolId, address vToken) external view returns (uint256) {
+        // return Exp({ mantissa: _poolMarkets[vToken].liquidationThresholdMantissa });
+        (, uint256 lt, ) = getLiquidationParams(poolId, vToken);
+        return lt;
+    }
+
+    function _getAccountLiquidity(
+        address account,
+        function(uint96, address) external view returns (uint256) weight
+    ) internal view returns (uint256, uint256, uint256) {
+        (uint256 err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            account,
+            VToken(address(0)),
+            0,
+            0,
+            weight
+        );
+
+        return (err, liquidity, shortfall);
+    }
+
+    /**
+     * @notice Returns the market index for a given vToken
+     * @dev Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping.
+     * - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,
+     *   maintaining backward compatibility with legacy mappings.
+     * - For other pools, packs the `poolId` and `market` address into a single `bytes32` key,
+     *   The first 96 bits are used for the `poolId`, and the remaining 160 bits for the `market` address.
+     * @param poolId The ID of the pool.
+     * @param vToken The address of the market (vToken).
+     * @return A `bytes32` key that uniquely represents the (poolId, market) pair.
+     */
+    function getPoolMarketIndex(uint96 poolId, address vToken) public pure returns (bytes32) {
+        return bytes32((uint256(poolId) << 160) | uint160(vToken));
+    }
+
+    /**
+     * @dev Returns the market index for a given vToken in the Core Pool (poolId = 0)
+     * @param vToken The address of the vToken
+     * @return The bytes32 key used to index into the _poolMarkets mapping for the Core Pool
+     */
+    function getCorePoolMarketIndex(address vToken) internal pure returns (bytes32) {
+        return getPoolMarketIndex(corePoolId, vToken);
+    }
+
+    /**
+     * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.
+     * @dev If not configured in the given pool, falls back to core pool (poolId = 0).
+     * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
+     * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
+     * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
+     */
+    function getLiquidationParams(
+        uint96 poolId,
+        address vToken
+    )
+        internal
+        view
+        returns (
+            uint256 collateralFactorMantissa,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa
+        )
+    {
+        bytes32 coreKey = getPoolMarketIndex(corePoolId, vToken);
+        bytes32 poolKey = getPoolMarketIndex(poolId, vToken);
+
+        Market storage market;
+
+        if (poolId == 0) {
+            market = _poolMarkets[coreKey];
+        } else {
+            Market storage poolMarket = _poolMarkets[poolKey];
+
+            if (poolMarket.collateralFactorMantissa == 0) {
+                market = _poolMarkets[coreKey];
+            } else {
+                market = poolMarket;
+            }
+        }
+
+        return (
+            market.collateralFactorMantissa,
+            market.liquidationThresholdMantissa,
+            market.maxLiquidationIncentiveMantissa
+        );
     }
 }

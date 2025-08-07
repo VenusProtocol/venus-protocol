@@ -83,6 +83,30 @@ contract ComptrollerErrorReporter {
 
     error SnapshotError();
 
+    /// @notice You are already in the selected pool.
+    error AlreadyInSelectedPool();
+
+    /// @notice One or more of your assets are not compatible with the selected pool.
+    error IncompatibleAssets();
+
+    /// @notice Switching to this pool would fail the liquidity check or lead to liquidation.
+    error LiquidityCheckFailed(uint256 errorCode, uint256 shortfall);
+
+    /// @notice Thrown when trying to modify the core pool (poolId == 0)
+    error CorePoolModificationNotAllowed();
+
+    /// @notice Thrown when input array lengths do not match
+    error ArrayLengthMismatch();
+
+    /// @notice Thrown when market trying to add in a pool is not listed in the core pool
+    error MarketNotListedInCorePool();
+
+    /// @notice Thrown when market is not set in the _poolMarkets mapping
+    error MarketConfigNotFound();
+
+    /// @notice Thrown when borrowing is not allowed in the selected pool for a given market.
+    error BorrowNotAllowedInPool();
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
