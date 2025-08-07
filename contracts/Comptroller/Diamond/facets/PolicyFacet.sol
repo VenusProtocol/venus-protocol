@@ -297,7 +297,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 dynamicLiquidationIncentive = this.getDynamicLiquidationIncentive(borrower, vTokenCollateral);
 
         Market storage marketCollateral = markets[vTokenCollateral];
-        uint256 closeFactor = liquidationManager.calculateCloseFactor(
+        uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
             vTokenBorrowed,
             borrowBalance,
             liquidationThresholdAvg,

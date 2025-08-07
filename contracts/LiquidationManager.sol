@@ -2,8 +2,6 @@
 pragma solidity ^0.8.25;
 
 import { ExponentialNoError } from "./Utils/ExponentialNoError.sol";
-import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
-import { ComptrollerInterface } from "./Comptroller/ComptrollerInterface.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 
 /**
@@ -15,9 +13,6 @@ import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlle
  * @notice This contract is designed to be used in conjunction with the venus protocol's liquidation process.
  */
 contract LiquidationManager is AccessControlledV8, ExponentialNoError {
-    /// @notice Comptroller address, used to interact with the protocol's core functionalities
-    ComptrollerInterface public immutable comptroller;
-
     /// @notice Base close factor, scaled by 1e18 (e.g., 0.05e18 for 5%)
     uint256 public immutable baseCloseFactorMantissa;
 
@@ -34,6 +29,12 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
     /// @notice Indicates whether the dynamic liquidation incentive is enabled for a given market.
     /// @dev Maps a market address to a boolean flag for dynamic liquidation incentive activation.
     mapping(address => bool) public dynamicLiquidationIncentiveEnabled;
+
+    /// @notice Emitted when the dynamic close factor is enabled or disabled for a market.
+    event DynamicCloseFactorEnabledSet(address indexed market, bool enabled);
+
+    /// @notice Emitted when the dynamic liquidation incentive is enabled or disabled for a market.
+    event DynamicLiquidationIncentiveEnabledSet(address indexed market, bool enabled);
 
     /**
      * @notice Error thrown when collateral exceeds borrow capacity
@@ -63,7 +64,6 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
 
     /**
      * @notice Constructor for the LiquidationManager contract.
-     * @param comptroller_ The address of the Comptroller contract.
      * @param accessControlManager_ The address of the Access Control Manager.
      * @param baseCloseFactorMantissa_ The base close factor, scaled by 1e18.
      * @param defaultCloseFactorMantissa_ The default close factor, scaled by 1e18.
@@ -74,13 +74,11 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
      *      Reverts with `InvalidTargetHealthFactor` if `_targetHealthFactor` is invalid.
      */
     constructor(
-        address comptroller_,
         address accessControlManager_,
         uint256 baseCloseFactorMantissa_,
         uint256 defaultCloseFactorMantissa_,
         uint256 targetHealthFactor_
     ) {
-        ensureNonzeroAddress(comptroller_);
         if (baseCloseFactorMantissa_ > mantissaOne || baseCloseFactorMantissa_ > defaultCloseFactorMantissa_) {
             revert InvalidBaseCloseFactor();
         }
@@ -94,7 +92,6 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
         baseCloseFactorMantissa = baseCloseFactorMantissa_;
         defaultCloseFactorMantissa = defaultCloseFactorMantissa_;
         targetHealthFactor = targetHealthFactor_;
-        comptroller = ComptrollerInterface(comptroller_);
 
         __AccessControlled_init_unchained(accessControlManager_);
     }
@@ -103,30 +100,24 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
      * @notice Enables or disables the dynamic close factor for a specific market.
      * @param market The address of the market to update.
      * @param enabled Boolean indicating whether the dynamic close factor should be enabled or disabled.
+     * @custom:event DynamicCloseFactorEnabledSet
      */
     function setDynamicCloseFactorEnabled(address market, bool enabled) external {
         _checkAccessAllowed("setDynamicCloseFactorEnabled(address,bool)");
-
-        (bool isListed, , , , ) = comptroller.markets(market);
-        if (!isListed) {
-            revert MarketNotListed(market);
-        }
         dynamicCloseFactorEnabled[market] = enabled;
+        emit DynamicCloseFactorEnabledSet(market, enabled);
     }
 
     /**
      * @notice Enables or disables the dynamic liquidation incentive for a specific market.
      * @param market The address of the market to update.
      * @param enabled Boolean indicating whether the dynamic liquidation incentive should be enabled or disabled.
+     * @custom:event DynamicLiquidationIncentiveEnabledSet
      */
     function setDynamicLiquidationIncentiveEnabled(address market, bool enabled) external {
         _checkAccessAllowed("setDynamicLiquidationIncentiveEnabled(address,bool)");
-
-        (bool isListed, , , , ) = comptroller.markets(market);
-        if (!isListed) {
-            revert MarketNotListed(market);
-        }
         dynamicLiquidationIncentiveEnabled[market] = enabled;
+        emit DynamicLiquidationIncentiveEnabledSet(market, enabled);
     }
 
     /**
@@ -138,7 +129,7 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
      * @param maxLiquidationIncentive The maximum liquidation incentive allowed
      * @return closeFactor The calculated close factor, scaled by 1e18
      */
-    function calculateCloseFactor(
+    function calculateDynamicCloseFactor(
         address market,
         uint256 borrowBalance,
         uint256 wtAvg,
