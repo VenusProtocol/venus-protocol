@@ -4,8 +4,8 @@ pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
-import { Action } from "../../ComptrollerInterface.sol";
-import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
+import { IFacetBase, Action } from "./IFacetBase.sol";
+import { IVAIController } from "../../../Tokens/VAI/interfaces/IVAIController.sol";
 import { IComptrollerLens } from "../../../Lens/interfaces/IComptrollerLens.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 
@@ -15,7 +15,7 @@ import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
  * @dev This interface contains all the setters for the states
  * @notice This interface contract contains all the configurational setter functions
  */
-interface ISetterFacet {
+interface ISetterFacet is IFacetBase {
     /**
      * @notice Alias to _setPriceOracle to support the Isolated Lending Comptroller Interface
      * @param newOracle The new price oracle to set
@@ -166,7 +166,7 @@ interface ISetterFacet {
      * @dev Admin function to set a new VAI controller
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setVAIController(VAIControllerInterface vaiController_) external returns (uint256);
+    function _setVAIController(IVAIController vaiController_) external returns (uint256);
 
     /**
      * @notice Set the VAI mint rate

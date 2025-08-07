@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-
 import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
 import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
 import { IComptrollerLens } from "./interfaces/IComptrollerLens.sol";
-import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { IVAIController } from "../Tokens/VAI/interfaces/IVAIController.sol";
 
 /**
  * @title ComptrollerLens Contract
@@ -201,7 +199,7 @@ contract ComptrollerLens is IComptrollerLens, ComptrollerErrorReporter, Exponent
             }
         }
 
-        VAIControllerInterface vaiController = IComptroller(comptroller).vaiController();
+        IVAIController vaiController = IComptroller(comptroller).vaiController();
 
         if (address(vaiController) != address(0)) {
             vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, vaiController.getVAIRepayAmount(account));

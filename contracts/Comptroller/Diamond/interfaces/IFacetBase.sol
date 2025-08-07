@@ -2,7 +2,17 @@
 
 pragma solidity 0.8.25;
 
-import { Action } from "../../ComptrollerInterface.sol";
+enum Action {
+    MINT,
+    REDEEM,
+    BORROW,
+    REPAY,
+    SEIZE,
+    LIQUIDATE,
+    TRANSFER,
+    ENTER_MARKET,
+    EXIT_MARKET
+}
 
 interface IFacetBase {
     /**

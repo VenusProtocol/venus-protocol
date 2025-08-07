@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
+import { IFacetBase } from "./IFacetBase.sol";
 
 /**
  * @title IMarketFacet
@@ -11,7 +12,7 @@ import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
  * @notice This interface defines functions for managing markets, including listing, entering/exiting markets,
  *         liquidation calculations, and delegate management
  */
-interface IMarketFacet {
+interface IMarketFacet is IFacetBase {
     /**
      * @notice Indicator that this is a Comptroller contract (for inspection)
      * @return True indicating this is a Comptroller contract

@@ -5,9 +5,9 @@ pragma solidity 0.8.25;
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
-import { Action } from "../../ComptrollerInterface.sol";
+import { Action } from "../interfaces/IFacetBase.sol";
 import { IComptrollerLens } from "../../../Lens/interfaces/IComptrollerLens.sol";
-import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
+import { IVAIController } from "../../../Tokens/VAI/interfaces/IVAIController.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 import { ISetterFacet } from "../interfaces/ISetterFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
@@ -39,7 +39,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewBorrowCap(IVToken indexed vToken, uint256 newBorrowCap);
 
     /// @notice Emitted when VAIController is changed
-    event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
+    event NewVAIController(IVAIController oldVAIController, IVAIController newVAIController);
 
     /// @notice Emitted when VAI mint rate is changed by admin
     event NewVAIMintRate(uint256 oldVAIMintRate, uint256 newVAIMintRate);
@@ -353,13 +353,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setVAIController(
-        VAIControllerInterface vaiController_
+        IVAIController vaiController_
     ) external compareAddress(address(vaiController), address(vaiController_)) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(vaiController_));
 
-        VAIControllerInterface oldVaiController = vaiController;
+        IVAIController oldVaiController = vaiController;
         vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
 

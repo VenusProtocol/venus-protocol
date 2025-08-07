@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { IVToken } from "../VTokens/interfaces/IVToken.sol";
+import { IVToken } from "../../VTokens/interfaces/IVToken.sol";
 
-interface VAIControllerInterface {
+interface IVAIController {
     function mintVAI(uint256 mintVAIAmount) external returns (uint256);
 
     function repayVAI(uint256 amount) external returns (uint256, uint256);
 
     function repayVAIBehalf(address borrower, uint256 amount) external returns (uint256, uint256);
+
+    /**
+     * @notice Accrue interest on outstanding minted VAI
+     */
+    function accrueVAIInterest() external;
 
     function liquidateVAI(
         address borrower,

@@ -9,9 +9,8 @@ import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
 import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault } from "../../../VAIVault/IVAIVault.sol";
-import { Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerStorage } from "../../../Comptroller/ComptrollerStorage.sol";
-import { IFacetBase } from "../interfaces/IFacetBase.sol";
+import { IFacetBase, Action } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title FacetBase

@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 import { IVToken } from "../../Tokens/VTokens/interfaces/IVToken.sol";
-import { VAIControllerInterface } from "../../Tokens/VAI/VAIControllerInterface.sol";
+import { IVAIController } from "../../Tokens/VAI/interfaces/IVAIController.sol";
 import { IPrime } from "../../Tokens/Prime/IPrime.sol";
 import { IComptrollerLens } from "../../Lens/interfaces/IComptrollerLens.sol";
 
@@ -66,7 +66,7 @@ interface IComptrollerStorage is IUnitrollerAdminStorage {
     function venusAccrued(address) external view returns (uint256);
 
     /// @notice The Address of VAIController
-    function vaiController() external view returns (VAIControllerInterface);
+    function vaiController() external view returns (IVAIController);
 
     /// @notice The minted VAI amount to each user
     function mintedVAIs(address) external view returns (uint256);

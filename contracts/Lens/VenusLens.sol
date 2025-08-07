@@ -6,7 +6,7 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
 import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
-import { Action } from "../Comptroller/ComptrollerInterface.sol";
+import { Action } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
 import { IXVS } from "../Tokens/XVS/IXVS.sol";
 

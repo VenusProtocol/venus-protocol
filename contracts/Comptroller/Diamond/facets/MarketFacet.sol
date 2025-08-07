@@ -3,7 +3,7 @@
 pragma solidity 0.8.25;
 
 import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
-import { Action } from "../../ComptrollerInterface.sol";
+import { Action } from "../interfaces/IFacetBase.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
 

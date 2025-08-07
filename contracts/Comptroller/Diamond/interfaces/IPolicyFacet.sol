@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
+import { IFacetBase } from "./IFacetBase.sol";
 
 /**
  * @title IPolicyFacet
@@ -10,7 +11,7 @@ import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
  * @dev Interface for the PolicyFacet which contains all the hooks used while transferring assets
  * @notice This interface defines all the external pre-hook functions related to vToken operations
  */
-interface IPolicyFacet {
+interface IPolicyFacet is IFacetBase {
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
      * @param vToken The market to verify the mint against
