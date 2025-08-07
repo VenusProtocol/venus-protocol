@@ -8,7 +8,8 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 import { approveOrRevert } from "../lib/approveOrRevert.sol";
-import { IVBep20, IComptroller } from "../InterfacesV8.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
 
 contract SwapDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @dev VToken return value signalling about successful execution

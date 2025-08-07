@@ -150,6 +150,18 @@ contract EvilXDelegator is VTokenStorage, IVBep20, IVDelegator {
     }
 
     /**
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function borrowBehalf(address borrower, uint256 borrowAmount) external returns (uint256) {
+        bytes memory data = delegateToImplementation(
+            abi.encodeWithSignature("borrowBehalf(address,uint256)", borrower, borrowAmount)
+        );
+        return abi.decode(data, (uint256));
+    }
+
+    /**
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
@@ -251,6 +263,15 @@ contract EvilXDelegator is VTokenStorage, IVBep20, IVDelegator {
      */
     function balanceOf(address owner) external view override returns (uint256) {
         bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("balanceOf(address)", owner));
+        return abi.decode(data, (uint256));
+    }
+
+    /**
+     * @notice Get the total supply of the vToken
+     * @return The total supply of the token
+     */
+    function totalSupply() external view override returns (uint256) {
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("totalSupply()"));
         return abi.decode(data, (uint256));
     }
 

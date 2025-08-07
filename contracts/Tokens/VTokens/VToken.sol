@@ -272,6 +272,14 @@ abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorRepor
     }
 
     /**
+     * @notice Get the total supply of the vToken
+     * @return The total supply of the token
+     */
+    function totalSupply() external view returns (uint256) {
+        return _totalSupply;
+    }
+
+    /**
      * @notice Get the token balance of the `owner`
      * @param owner The address of the account to query
      * @return The number of tokens owned by `owner`
@@ -738,13 +746,13 @@ abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorRepor
          *  totalSupplyNew = totalSupply + mintTokens
          *  accountTokensNew = accountTokens[minter] + mintTokens
          */
-        (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
+        (vars.mathErr, vars.totalSupplyNew) = addUInt(_totalSupply, vars.mintTokens);
         ensureNoMathError(vars.mathErr);
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
         ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
-        totalSupply = vars.totalSupplyNew;
+        _totalSupply = vars.totalSupplyNew;
         accountTokens[minter] = vars.accountTokensNew;
 
         /* We emit a Mint event, and a Transfer event */
@@ -832,14 +840,14 @@ abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorRepor
          *  totalSupplyNew = totalSupply + mintTokens
          *  accountTokensNew = accountTokens[receiver] + mintTokens
          */
-        (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
+        (vars.mathErr, vars.totalSupplyNew) = addUInt(_totalSupply, vars.mintTokens);
         ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[receiver], vars.mintTokens);
         ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
-        totalSupply = vars.totalSupplyNew;
+        _totalSupply = vars.totalSupplyNew;
         accountTokens[receiver] = vars.accountTokensNew;
 
         /* We emit a MintBehalf event, and a Transfer event */
@@ -969,7 +977,7 @@ abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorRepor
          *  totalSupplyNew = totalSupply - redeemTokens
          *  accountTokensNew = accountTokens[redeemer] - redeemTokens
          */
-        (vars.mathErr, vars.totalSupplyNew) = subUInt(totalSupply, vars.redeemTokens);
+        (vars.mathErr, vars.totalSupplyNew) = subUInt(_totalSupply, vars.redeemTokens);
         ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountTokensNew) = subUInt(accountTokens[redeemer], vars.redeemTokens);
@@ -985,7 +993,7 @@ abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorRepor
         // (No safe failures beyond this point)
 
         /* We write previously calculated values into storage */
-        totalSupply = vars.totalSupplyNew;
+        _totalSupply = vars.totalSupplyNew;
         accountTokens[redeemer] = vars.accountTokensNew;
 
         /*
@@ -1650,8 +1658,8 @@ abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorRepor
      * @return Tuple of error code and calculated exchange rate scaled by 1e18
      */
     function exchangeRateStoredInternal() internal view virtual returns (MathError, uint) {
-        uint _totalSupply = totalSupply;
-        if (_totalSupply == 0) {
+        uint totalSupply_ = _totalSupply;
+        if (totalSupply_ == 0) {
             /*
              * If there are no tokens minted:
              *  exchangeRate = initialExchangeRate
@@ -1672,7 +1680,7 @@ abstract contract VToken is IVToken, VTokenStorage, Exponential, TokenErrorRepor
                 return (mathErr, 0);
             }
 
-            (mathErr, exchangeRate) = getExp(cashPlusBorrowsMinusReserves, _totalSupply);
+            (mathErr, exchangeRate) = getExp(cashPlusBorrowsMinusReserves, totalSupply_);
             if (mathErr != MathError.NO_ERROR) {
                 return (mathErr, 0);
             }

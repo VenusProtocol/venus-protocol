@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice Thrown if a contract is unable to approve a transfer
 error ApproveFailed();
@@ -24,4 +25,17 @@ function approveOrRevert(IERC20Upgradeable token, address spender, uint256 amoun
     if (!success || (result.length != 0 && !abi.decode(result, (bool)))) {
         revert ApproveFailed();
     }
+}
+
+/// @notice Approves a transfer, ensuring that it is successful. This function supports non-compliant
+/// tokens like the ones that don't return a boolean value on success. Thus, such approve call supports
+/// three different kinds of tokens:
+///   * Compliant tokens that revert on failure
+///   * Compliant tokens that return false on failure
+///   * Non-compliant tokens that don't return a value
+/// @param token The contract address of the token which will be transferred
+/// @param spender The spender contract address
+/// @param amount The value of the transfer
+function approveOrRevert(IERC20 token, address spender, uint256 amount) {
+    approveOrRevert(IERC20Upgradeable(address(token)), spender, amount);
 }

@@ -89,8 +89,9 @@ contract VTokenStorage is IVTokenStorage {
 
     /**
      * @notice Total number of tokens in circulation
+     * @dev internal to avoid conflicts with IERC20.totalSupply()
      */
-    uint public totalSupply;
+    uint internal _totalSupply;
 
     /**
      * @notice Official record of token balances for each account
