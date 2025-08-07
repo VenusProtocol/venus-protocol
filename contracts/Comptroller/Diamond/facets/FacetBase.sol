@@ -12,7 +12,6 @@ import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IFacetBase } from "../interfaces/IFacetBase.sol";
-import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 
 /**
  * @title FacetBase
@@ -285,7 +284,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     /**
      * @notice Get the liquidation incentive for a borrower
      * @param borrower The address of the borrower
-     * @param vToken The address of the vToken
+     * @param vToken The address of the vToken to be seized
      * @return incentive The liquidation incentive for the borrower, scaled by 1e18
      */
     function getDynamicLiquidationIncentive(

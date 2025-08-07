@@ -37,24 +37,6 @@ contract ComptrollerErrorReporter {
 
     error MarketNotListed();
 
-    error BorrowActionNotPaused();
-
-    error MintActionNotPaused();
-
-    error RedeemActionNotPaused();
-
-    error RepayActionNotPaused();
-
-    error SeizeActionNotPaused();
-
-    error LiquidateActionNotPaused();
-
-    error EnterMarketActionNotPaused();
-
-    error ExitMarketActionNotPaused();
-
-    error TransferActionNotPaused();
-
     error BorrowCapIsNotZero();
 
     error SupplyCapIsNotZero();
@@ -82,6 +64,8 @@ contract ComptrollerErrorReporter {
     error SenderNotAdminOrPrivileged(address sender, address privilegedAddress);
 
     error SnapshotError();
+
+    error ActionNotPaused(Action action);
 
     enum Error {
         NO_ERROR,
