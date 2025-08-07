@@ -246,44 +246,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Sets the base close factor
-     * @param newBaseCloseFactorMantissa The new base close factor, scaled by 1e18 (e.g., 0.05e18 for 5%)
-     * @custom:event Emits NewBaseCloseFactor when base close factor is updated
-     * @custom:error InvalidBaseCloseFactor error is thrown when the new base close factor is greater than 1e18
-     */
-    function setBaseCloseFactor(
-        uint256 newBaseCloseFactorMantissa
-    ) external compareValue(baseCloseFactorMantissa, newBaseCloseFactorMantissa) {
-        // Check caller is admin
-        ensureAdmin();
-        // Ensure new base close factor is valid
-        if (newBaseCloseFactorMantissa > 1e18) {
-            revert InvalidBaseCloseFactor();
-        }
-        emit NewBaseCloseFactor(baseCloseFactorMantissa, newBaseCloseFactorMantissa);
-        baseCloseFactorMantissa = newBaseCloseFactorMantissa;
-    }
-
-    /**
-     * @notice Sets the target health factor
-     * @param newTargetHealthFactor The new target health factor, scaled by 1e18 (e.g., 1.5e18 for 1.5)
-     * @custom:event Emits NewTargetHealthFactor when target health factor is updated
-     * @custom:error InvalidTargetHealthFactor error is thrown when the new target health factor is less than 1e18
-     */
-    function setTargetHealthFactor(
-        uint256 newTargetHealthFactor
-    ) external compareValue(targetHealthFactor, newTargetHealthFactor) {
-        // Check caller is admin
-        ensureAdmin();
-        // Ensure new target health factor is valid
-        if (newTargetHealthFactor < mantissaOne) {
-            revert InvalidTargetHealthFactor();
-        }
-        emit NewTargetHealthFactor(targetHealthFactor, newTargetHealthFactor);
-        targetHealthFactor = newTargetHealthFactor;
-    }
-
-    /**
      * @notice Sets liquidationIncentive
      * @dev Allows a privileged role to set the liquidationIncentiveMantissa
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18

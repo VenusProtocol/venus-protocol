@@ -83,10 +83,6 @@ contract ComptrollerErrorReporter {
 
     error SnapshotError();
 
-    error InvalidBaseCloseFactor();
-
-    error InvalidTargetHealthFactor();
-
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
