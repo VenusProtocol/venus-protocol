@@ -2,6 +2,9 @@
 pragma solidity ^0.8.25;
 
 import { ExponentialNoError } from "./Utils/ExponentialNoError.sol";
+import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
+import { ComptrollerInterface } from "./Comptroller/ComptrollerInterface.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 
 /**
  * @title LiquidationManager
@@ -11,11 +14,120 @@ import { ExponentialNoError } from "./Utils/ExponentialNoError.sol";
  * @author Venus
  * @notice This contract is designed to be used in conjunction with the venus protocol's liquidation process.
  */
-contract LiquidationManager is ExponentialNoError {
+contract LiquidationManager is AccessControlledV8, ExponentialNoError {
+    /// @notice Comptroller address, used to interact with the protocol's core functionalities
+    ComptrollerInterface public immutable comptroller;
+
+    /// @notice Base close factor, scaled by 1e18 (e.g., 0.05e18 for 5%)
+    uint256 public immutable baseCloseFactorMantissa;
+
+    /// @notice Default close factor, scaled by 1e18 (e.g., 5e17 for 50%)
+    uint256 public immutable defaultCloseFactorMantissa;
+
+    /// @notice Target health factor, scaled by 1e18 (e.g., 1.5e18 for 1.5)
+    uint256 public immutable targetHealthFactor;
+
+    /// @notice Indicates whether the dynamic close factor is enabled for a given market.
+    /// @dev Maps a market address to a boolean flag for dynamic close factor activation.
+    mapping(address => bool) public dynamicCloseFactorEnabled;
+
+    /// @notice Indicates whether the dynamic liquidation incentive is enabled for a given market.
+    /// @dev Maps a market address to a boolean flag for dynamic liquidation incentive activation.
+    mapping(address => bool) public dynamicLiquidationIncentiveEnabled;
+
     /**
      * @notice Error thrown when collateral exceeds borrow capacity
      */
     error CollateralExceedsBorrowCapacity();
+
+    /**
+     * @notice Error thrown when the provided base close factor is invalid.
+     */
+    error InvalidBaseCloseFactor();
+
+    /**
+     * @notice Error thrown when the provided default close factor is invalid.
+     */
+    error InvalidDefaultCloseFactor();
+
+    /**
+     * @notice Error thrown when the provided target health factor is invalid.
+     */
+    error InvalidTargetHealthFactor();
+
+    /**
+     * @notice Error thrown when the specified market is not listed.
+     * @param market The address of the market that is not listed.
+     */
+    error MarketNotListed(address market);
+
+    /**
+     * @notice Constructor for the LiquidationManager contract.
+     * @param comptroller_ The address of the Comptroller contract.
+     * @param accessControlManager_ The address of the Access Control Manager.
+     * @param baseCloseFactorMantissa_ The base close factor, scaled by 1e18.
+     * @param defaultCloseFactorMantissa_ The default close factor, scaled by 1e18.
+     * @param targetHealthFactor_ The target health factor, scaled by 1e18.
+     * @dev Ensures that the provided addresses are non-zero and that the close factors and health factor are within valid ranges.
+     *      Reverts with `InvalidBaseCloseFactor` if `_baseCloseFactorMantissa` is invalid.
+     *      Reverts with `InvalidDefaultCloseFactor` if `_defaultCloseFactorMantissa` is invalid.
+     *      Reverts with `InvalidTargetHealthFactor` if `_targetHealthFactor` is invalid.
+     */
+    constructor(
+        address comptroller_,
+        address accessControlManager_,
+        uint256 baseCloseFactorMantissa_,
+        uint256 defaultCloseFactorMantissa_,
+        uint256 targetHealthFactor_
+    ) {
+        ensureNonzeroAddress(comptroller_);
+        if (baseCloseFactorMantissa_ > mantissaOne || baseCloseFactorMantissa_ > defaultCloseFactorMantissa_) {
+            revert InvalidBaseCloseFactor();
+        }
+        if (defaultCloseFactorMantissa_ > mantissaOne) {
+            revert InvalidDefaultCloseFactor();
+        }
+        if (targetHealthFactor_ < mantissaOne) {
+            revert InvalidTargetHealthFactor();
+        }
+
+        baseCloseFactorMantissa = baseCloseFactorMantissa_;
+        defaultCloseFactorMantissa = defaultCloseFactorMantissa_;
+        targetHealthFactor = targetHealthFactor_;
+        comptroller = ComptrollerInterface(comptroller_);
+
+        __AccessControlled_init_unchained(accessControlManager_);
+    }
+
+    /**
+     * @notice Enables or disables the dynamic close factor for a specific market.
+     * @param market The address of the market to update.
+     * @param enabled Boolean indicating whether the dynamic close factor should be enabled or disabled.
+     */
+    function setDynamicCloseFactorEnabled(address market, bool enabled) external {
+        _checkAccessAllowed("setDynamicCloseFactorEnabled(address,bool)");
+
+        (bool isListed, , , , ) = comptroller.markets(market);
+        if (!isListed) {
+            revert MarketNotListed(market);
+        }
+        dynamicCloseFactorEnabled[market] = enabled;
+    }
+
+    /**
+     * @notice Enables or disables the dynamic liquidation incentive for a specific market.
+     * @param market The address of the market to update.
+     * @param enabled Boolean indicating whether the dynamic liquidation incentive should be enabled or disabled.
+     */
+    function setDynamicLiquidationIncentiveEnabled(address market, bool enabled) external {
+        _checkAccessAllowed("setDynamicLiquidationIncentiveEnabled(address,bool)");
+
+        (bool isListed, , , , ) = comptroller.markets(market);
+        if (!isListed) {
+            revert MarketNotListed(market);
+        }
+        dynamicLiquidationIncentiveEnabled[market] = enabled;
+    }
 
     /**
      * @notice Calculate the close factor for a liquidation
@@ -27,21 +139,27 @@ contract LiquidationManager is ExponentialNoError {
      * @return closeFactor The calculated close factor, scaled by 1e18
      */
     function calculateCloseFactor(
+        address market,
         uint256 borrowBalance,
         uint256 wtAvg,
         uint256 totalCollateral,
-        uint256 baseCloseFactorMantissa,
         uint256 dynamicLiquidationIncentive,
         uint256 maxLiquidationIncentive
-    ) external pure returns (uint256 closeFactor) {
+    ) external view returns (uint256 closeFactor) {
+        if (!dynamicCloseFactorEnabled[market]) {
+            // Use default close factor if dynamic close factor is not enabled
+            return defaultCloseFactorMantissa;
+        }
+
         if (dynamicLiquidationIncentive == maxLiquidationIncentive) {
             // Prevent underflow
             if (wtAvg * totalCollateral > borrowBalance * mantissaOne) {
                 revert CollateralExceedsBorrowCapacity();
             }
 
-            uint256 numerator = borrowBalance * mantissaOne - wtAvg * totalCollateral;
-            uint256 denominator = borrowBalance * (mantissaOne - ((wtAvg * maxLiquidationIncentive) / mantissaOne));
+            uint256 numerator = (borrowBalance * targetHealthFactor - wtAvg * totalCollateral) / mantissaOne;
+            uint256 denominator = borrowBalance *
+                (targetHealthFactor - ((wtAvg * maxLiquidationIncentive) / mantissaOne));
 
             closeFactor = add_((numerator / denominator), baseCloseFactorMantissa);
             closeFactor = closeFactor > mantissaOne ? mantissaOne : closeFactor;
@@ -58,10 +176,15 @@ contract LiquidationManager is ExponentialNoError {
      * @return incentive The calculated dynamic liquidation incentive, scaled by 1e18
      */
     function calculateDynamicLiquidationIncentive(
+        address market,
         uint256 healthFactor,
         uint256 liquidationThresholdAvg,
         uint256 maxLiquidationIncentiveMantissa
-    ) external pure returns (uint256 incentive) {
+    ) external view returns (uint256 incentive) {
+        if (!dynamicLiquidationIncentiveEnabled[market]) {
+            return maxLiquidationIncentiveMantissa;
+        }
+
         uint256 value = (healthFactor * mantissaOne) / liquidationThresholdAvg;
         return value > maxLiquidationIncentiveMantissa ? maxLiquidationIncentiveMantissa : value;
     }

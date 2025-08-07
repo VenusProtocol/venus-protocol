@@ -302,6 +302,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         );
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
             healthFactor,
             liquidationThresholdAvg,
             market.maxLiquidationIncentiveMantissa
