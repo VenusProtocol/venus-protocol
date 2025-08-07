@@ -32,7 +32,12 @@ interface IRewardFacet is IFacetBase {
      * @param borrowers Whether or not to claim XVS earned by borrowing
      * @param suppliers Whether or not to claim XVS earned by supplying
      */
-    function claimVenus(address[] calldata holders, IVToken[] calldata vTokens, bool borrowers, bool suppliers) external;
+    function claimVenus(
+        address[] calldata holders,
+        IVToken[] calldata vTokens,
+        bool borrowers,
+        bool suppliers
+    ) external;
 
     /**
      * @notice Claim all the xvs accrued by holder in all markets, a shorthand for `claimVenus` with collateral set to `true`

@@ -7,8 +7,8 @@ import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
 import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
-import { VAIControllerInterface } from "./VAIControllerInterface.sol";
-import { IVAI } from "./IVAI.sol";
+import { IVAIController } from "./interfaces/IVAIController.sol";
+import { IVAI } from "./interfaces/IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
 import { IVToken } from "../VTokens/interfaces/IVToken.sol";
 
@@ -17,7 +17,7 @@ import { IVToken } from "../VTokens/interfaces/IVToken.sol";
  * @author Venus
  * @notice This is the implementation contract for the VAIUnitroller proxy
  */
-contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAIControllerErrorReporter, Exponential {
+contract VAIController is IVAIController, VAIControllerStorageG4, VAIControllerErrorReporter, Exponential {
     /// @notice Initial index used in interest computations
     uint256 public constant INITIAL_VAI_MINT_INDEX = 1e18;
 

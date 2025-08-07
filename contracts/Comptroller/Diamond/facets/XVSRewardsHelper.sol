@@ -119,7 +119,10 @@ contract XVSRewardsHelper is FacetBase {
         }
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });
-        uint256 borrowerDelta = mul_(div_(IVToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
+        uint256 borrowerDelta = mul_(
+            div_(IVToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex),
+            deltaIndex
+        );
         venusAccrued[borrower] = add_(venusAccrued[borrower], borrowerDelta);
         emit DistributedBorrowerVenus(IVToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
