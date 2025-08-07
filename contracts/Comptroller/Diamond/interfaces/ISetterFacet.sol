@@ -22,16 +22,6 @@ interface ISetterFacet {
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
-    function setLiquidationIncentive(
-        uint256 newLiquidationIncentiveMantissa,
-        address vToken
-    ) external returns (uint256);
-
-    function _setLiquidationIncentive(
-        uint256 newLiquidationIncentiveMantissa,
-        address vToken
-    ) external returns (uint256);
-
     function _setLiquidatorContract(address newLiquidatorContract_) external;
 
     function _setPauseGuardian(address newPauseGuardian) external returns (uint256);

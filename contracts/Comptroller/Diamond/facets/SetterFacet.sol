@@ -207,20 +207,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Alias to _setLiquidationIncentive to support the Isolated Lending Comptroller Interface
-     * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
-     * @param vToken The market to set the liquidation incentive for
-     * @return uint256 0=success, otherwise reverts
-     * @custom:error InvalidLiquidationIncentive error is thrown when liquidation incentive is too high
-     */
-    function setLiquidationIncentive(
-        uint256 newLiquidationIncentiveMantissa,
-        address vToken
-    ) external returns (uint256) {
-        return __setLiquidationIncentive(newLiquidationIncentiveMantissa, vToken);
-    }
-
-    /**
      * @notice Sets the liquidation manager address which is responsible for managing liquidations in the protocol.
      * @param liquidationManager_ The new liquidation manager address
      * @custom:event Emits NewLiquidationManager when liquidation manager is updated
@@ -243,22 +229,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newMaxLiquidationIncentive
     ) external returns (uint256) {
         return __setMarketMaxLiquidationIncentive(vToken, newMaxLiquidationIncentive);
-    }
-
-    /**
-     * @notice Sets liquidationIncentive
-     * @dev Allows a privileged role to set the liquidationIncentiveMantissa
-     * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
-     * @param vToken The market to set the liquidation incentive for
-     * @return uint256 0=success, otherwise reverts
-     * @custom:event Emits NewLiquidationIncentive when liquidation incentive is updated
-     * @custom:error InvalidLiquidationIncentive error is thrown when liquidation incentive is too high
-     */
-    function _setLiquidationIncentive(
-        uint256 newLiquidationIncentiveMantissa,
-        address vToken
-    ) external returns (uint256) {
-        return __setLiquidationIncentive(newLiquidationIncentiveMantissa, vToken);
     }
 
     /**
@@ -778,38 +748,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
             market.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
             emit NewLiquidationThreshold(vToken, oldLiquidationThresholdMantissa, newLiquidationThresholdMantissa);
         }
-
-        return NO_ERROR;
-    }
-
-    /**
-     * @dev Updates the liquidation incentive. Used by _setLiquidationIncentive and setLiquidationIncentive
-     * @param newLiquidationIncentiveMantissa The new liquidation incentive to be set
-     * @param vToken The market to set the liquidation incentive for
-     * @return uint256 0=success, otherwise reverted
-     */
-    function __setLiquidationIncentive(
-        uint256 newLiquidationIncentiveMantissa,
-        address vToken
-    )
-        internal
-        compareValue(markets[vToken].maxLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa)
-        returns (uint256)
-    {
-        ensureAllowed("_setLiquidationIncentive(uint256)");
-
-        Market storage market = markets[vToken];
-        if (newLiquidationIncentiveMantissa < mantissaOne) {
-            revert InvalidLiquidationIncentive();
-        }
-
-        // Save current value for use in log
-        uint256 oldLiquidationIncentiveMantissa = market.maxLiquidationIncentiveMantissa;
-        // Set liquidation incentive to new incentive
-        market.maxLiquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
-
-        // Emit event with old incentive, new incentive
-        emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
 
         return NO_ERROR;
     }
