@@ -1,5 +1,4 @@
 pragma solidity 0.8.25;
-pragma experimental ABIEncoderV2;
 
 import "../Comptroller/Diamond/Diamond.sol";
 

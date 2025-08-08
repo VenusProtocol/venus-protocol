@@ -1,0 +1,18 @@
+diff --git a/node_modules/@defi-wonderland/smock/dist/src/utils/hardhat.js b/node_modules/@defi-wonderland/smock/dist/src/utils/hardhat.js
+index 15b140c..7a0c157 100644
+--- a/node_modules/@defi-wonderland/smock/dist/src/utils/hardhat.js
++++ b/node_modules/@defi-wonderland/smock/dist/src/utils/hardhat.js
+@@ -6,7 +6,12 @@ const getHardhatBaseProvider = async (runtime) => {
+     const maxLoopIterations = 1024;
+     let currentLoopIterations = 0;
+     let provider = runtime.network.provider;
+-    await provider.init();
++    if ('init' in provider) {
++        // Newer versions of Hardhat initialize the provider lazily, so we need to
++        // call provider.init() explicitly. This is a no-op if the provider is
++        // already initialized.
++        await provider.init();
++    }
+     while (provider._wrapped !== undefined) {
+         provider = provider._wrapped;
+         currentLoopIterations += 1;
