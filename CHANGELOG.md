@@ -1,3 +1,62 @@
+## [9.8.0-dev.20](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.19...v9.8.0-dev.20) (2025-08-06)
+
+
+### Features
+
+* align interface with IL comptroller ([6b6d90f](https://github.com/VenusProtocol/venus-protocol/commit/6b6d90fac4ae83e4c25e70882044d4b1a0fb4aa4))
+* deploy upgraded facets on bscmainnet ([a215535](https://github.com/VenusProtocol/venus-protocol/commit/a2155359517b4baac738c72a20f2002209080f06))
+* deploy upgraded facets on bsctestnet ([09474b2](https://github.com/VenusProtocol/venus-protocol/commit/09474b28ea8fe44518f94a5ac58b4ac54fb3c7c0))
+* updating deployment files ([00d76b2](https://github.com/VenusProtocol/venus-protocol/commit/00d76b26b7b5539846857b319715d899ccff0b14))
+* updating deployment files ([cdf41f7](https://github.com/VenusProtocol/venus-protocol/commit/cdf41f7a090a1eb321481799847010bc47508acf))
+
+
+### Bug Fixes
+
+* mfd-01 | inconsistent grouping of functions ([5fd60ea](https://github.com/VenusProtocol/venus-protocol/commit/5fd60ea17e00621a477d553489886a457f271592))
+* sfd-02 | functions will always return success even when they fail ([bc49c80](https://github.com/VenusProtocol/venus-protocol/commit/bc49c803b7ad086bd3e1f43f6b2edad150b341c4))
+* sfd-03 | aliased function not included in updated interface ([f55d503](https://github.com/VenusProtocol/venus-protocol/commit/f55d503a39eceffc119b601a635ff1724c26e4fa))
+* vpb-01 | missing or incomplete natspec ([aa316c5](https://github.com/VenusProtocol/venus-protocol/commit/aa316c5062597111f58bdf090fa891d1fe923440))
+* vpb-01 | missing or incomplete natspec ([01297a1](https://github.com/VenusProtocol/venus-protocol/commit/01297a13036f0c6c439468d7cfc3e1178763d15c))
+
+## [9.8.0-dev.19](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.18...v9.8.0-dev.19) (2025-06-27)
+
+
+### Features
+
+* add mainnet deployments ([ca604d4](https://github.com/VenusProtocol/venus-protocol/commit/ca604d4639d916448de6b8477b1b9022182f3762))
+* add updates for block rate update phase 2 on BNB ([c4a889d](https://github.com/VenusProtocol/venus-protocol/commit/c4a889d8c81e23868a2a623b45ce0bfbc08ac3cc))
+* fetch block number from getBlockOrTimestampBasedDeploymentInfo ([0172a76](https://github.com/VenusProtocol/venus-protocol/commit/0172a762b3a888cb7d2e23ce0fc0457884eb2869))
+* updating deployment files ([f319a25](https://github.com/VenusProtocol/venus-protocol/commit/f319a25a1fbecc273d95e6308fc8cb0cc5c6e1da))
+* updating deployment files ([0536f25](https://github.com/VenusProtocol/venus-protocol/commit/0536f2535005fd4c17cb2e54ec8add66c3d0f615))
+
+## [9.8.0-dev.18](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.17...v9.8.0-dev.18) (2025-06-24)
+
+
+### Features
+
+* add bscmainnet checkpoint IRMs for Maxwell upgrade ([eaf5f62](https://github.com/VenusProtocol/venus-protocol/commit/eaf5f62cb88499d4dc529208e1609d80d1c48233))
+* add bsctestnet checkpoint IRMs for Maxwell upgrade ([12b8930](https://github.com/VenusProtocol/venus-protocol/commit/12b89306d946d83879479d375c39ebe185bbdea7))
+* update BNB chain blocks per year to 42,048,000 ([8659381](https://github.com/VenusProtocol/venus-protocol/commit/865938170e2ebe2a9a6bd72a20f8dc0c1d15f3a8))
+* updating deployment files ([4ac2351](https://github.com/VenusProtocol/venus-protocol/commit/4ac2351f15d3306473df81c9287c4a7c5acaaa6a))
+
+## [9.8.0-dev.17](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.16...v9.8.0-dev.17) (2025-06-23)
+
+
+### Features
+
+* add markets configuration for BSC ([d8d1546](https://github.com/VenusProtocol/venus-protocol/commit/d8d15466fbc033c3dc6bb03bbf3093d7b3fcfe8a))
+* deploy markets. Set receiver for vUSDF ([6bd65c2](https://github.com/VenusProtocol/venus-protocol/commit/6bd65c26078ef2087fd7b868c2c7e5aadde5a22f))
+* deploy vasBNB on bsctestnet ([dbf87c8](https://github.com/VenusProtocol/venus-protocol/commit/dbf87c8105e49f93127fcb221eaf542e66ae0113))
+* deploy vUSDF on bsctestnet ([2f4e71a](https://github.com/VenusProtocol/venus-protocol/commit/2f4e71a4f7fcf9fbe0ca78dabfb43e6a896aa150))
+* updating deployment files ([3dd4181](https://github.com/VenusProtocol/venus-protocol/commit/3dd4181f060fae10d818a3a40786b7b42e5e03eb))
+* updating deployment files ([4fb096e](https://github.com/VenusProtocol/venus-protocol/commit/4fb096ed0df59ee1fa44e0ebe18975d4cdf0eb9f))
+* updating deployment files ([70d89bc](https://github.com/VenusProtocol/venus-protocol/commit/70d89bc82e3a6ff76c8a09ce38021332afa1d3fd))
+
+
+### Bug Fixes
+
+* remove USDF market ([b754c0e](https://github.com/VenusProtocol/venus-protocol/commit/b754c0e3db5a7ccba5e43691b501745e7fd9c2a0))
+
 ## [9.8.0-dev.16](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.15...v9.8.0-dev.16) (2025-06-06)
 
 

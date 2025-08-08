@@ -118,6 +118,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Check if a market is marked as listed (active)
+     * @param vToken vToken Address for the market to check
+     * @return listed True if listed otherwise false
+     */
+    function isMarketListed(VToken vToken) external view returns (bool) {
+        return markets[address(vToken)].isListed;
+    }
+
+    /**
      * @notice Add assets to be included in account liquidity calculation
      * @param vTokens The list of addresses of the vToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
@@ -227,32 +236,22 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Alias to _supportMarket to support the Isolated Lending Comptroller Interface
+     * @param vToken The address of the market (token) to list
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
+     */
+    function supportMarket(VToken vToken) external returns (uint256) {
+        return __supportMarket(vToken);
+    }
+
+    /**
      * @notice Add the market to the markets mapping and set it as listed
      * @dev Allows a privileged role to add and list markets to the Comptroller
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function _supportMarket(VToken vToken) external returns (uint256) {
-        ensureAllowed("_supportMarket(address)");
-
-        if (markets[address(vToken)].isListed) {
-            return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
-        }
-
-        vToken.isVToken(); // Sanity check to make sure its really a VToken
-
-        // Note that isVenus is not in active use anymore
-        Market storage newMarket = markets[address(vToken)];
-        newMarket.isListed = true;
-        newMarket.isVenus = false;
-        newMarket.collateralFactorMantissa = 0;
-
-        _addMarketInternal(vToken);
-        _initializeMarket(address(vToken));
-
-        emit MarketListed(vToken);
-
-        return uint256(Error.NO_ERROR);
+        return __supportMarket(vToken);
     }
 
     /**
@@ -308,5 +307,28 @@ contract MarketFacet is IMarketFacet, FacetBase {
          * Update market state block numbers
          */
         supplyState.block = borrowState.block = blockNumber;
+    }
+
+    function __supportMarket(VToken vToken) internal returns (uint256) {
+        ensureAllowed("_supportMarket(address)");
+
+        if (markets[address(vToken)].isListed) {
+            return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
+        }
+
+        vToken.isVToken(); // Sanity check to make sure its really a VToken
+
+        // Note that isVenus is not in active use anymore
+        Market storage newMarket = markets[address(vToken)];
+        newMarket.isListed = true;
+        newMarket.isVenus = false;
+        newMarket.collateralFactorMantissa = 0;
+
+        _addMarketInternal(vToken);
+        _initializeMarket(address(vToken));
+
+        emit MarketListed(vToken);
+
+        return uint256(Error.NO_ERROR);
     }
 }

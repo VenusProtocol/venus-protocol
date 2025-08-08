@@ -826,7 +826,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     }
 
     function getBlocksPerYear() public view returns (uint256) {
-        return 21024000; //(24 * 60 * 60 * 365) / 1.5;
+        return 42048000; //(24 * 60 * 60 * 365) / 0.75;
     }
 
     /**

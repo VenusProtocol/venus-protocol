@@ -26,6 +26,10 @@ interface IMarketFacet {
 
     function _supportMarket(VToken vToken) external returns (uint256);
 
+    function supportMarket(VToken vToken) external returns (uint256);
+
+    function isMarketListed(VToken vToken) external view returns (bool);
+
     function getAssetsIn(address account) external view returns (VToken[] memory);
 
     function getAllMarkets() external view returns (VToken[] memory);
