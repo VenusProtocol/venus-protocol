@@ -152,7 +152,9 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
             uint256 denominator = borrowBalance *
                 (targetHealthFactor - ((wtAvg * maxLiquidationIncentive) / mantissaOne));
 
-            closeFactor = add_((numerator / denominator), baseCloseFactorMantissa);
+            uint256 dynamicCloseFactor = numerator / denominator;
+            uint256 dynamicBaseCloseFactor = baseCloseFactorMantissa * (mantissaOne - dynamicCloseFactor);
+            closeFactor = add_(dynamicCloseFactor, dynamicBaseCloseFactor);
             closeFactor = closeFactor > mantissaOne ? mantissaOne : closeFactor;
         } else {
             closeFactor = mantissaOne; // Liquidate 100% if unhealthy
