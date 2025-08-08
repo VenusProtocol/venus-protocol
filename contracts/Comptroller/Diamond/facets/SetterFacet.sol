@@ -596,8 +596,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         emit DelegateAuthorizationFlashloanChanged(msg.sender, market, delegate, approved);
     }
-        
-    /**    
+
+    /**
      * @dev Updates the valid price oracle. Used by _setPriceOracle and setPriceOracle
      * @param newOracle The new price oracle to be set
      * @return uint256 0=success, otherwise reverted

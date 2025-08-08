@@ -13,13 +13,13 @@ import {
   IAccessControlManagerV5,
   IERC20,
   InterestRateModel,
+  MarketFacet,
   MockFlashLoanReceiver,
   MockFlashLoanReceiver__factory,
   PolicyFacet,
-  SetterFacet,
-  MarketFacet,
-  Unitroller__factory,
   PriceOracle,
+  SetterFacet,
+  Unitroller__factory,
   VBep20Delegate,
   VBep20Delegate__factory,
   VBep20Delegator,
@@ -182,7 +182,7 @@ async function deploy(): Promise<SetupProtocolFixture> {
     diamond,
     policyFacet,
     setterFacet,
-    marketFacet
+    marketFacet,
   };
 }
 
@@ -204,7 +204,8 @@ forking(56732787, () => {
       let accessControlManager: FakeContract<IAccessControlManagerV5>;
 
       beforeEach(async () => {
-        ({ marketFacet, setterFacet, policyFacet, vUSDT, vBUSD, USDT, BUSD, timeLockUser, accessControlManager } = await loadFixture(deploy));
+        ({ marketFacet, setterFacet, policyFacet, vUSDT, vBUSD, USDT, BUSD, timeLockUser, accessControlManager } =
+          await loadFixture(deploy));
 
         usdtHolder = await initMainnetUser(USDT_HOLDER, parseUnits("2"));
         busdHolder = await initMainnetUser(BUSD_HOLDER, parseUnits("2"));
@@ -218,7 +219,11 @@ forking(56732787, () => {
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(setterFacet.address, "setDelegateAuthorizationFlashloan(address,address,bool)", timeLockUser.address);
+          .giveCallPermission(
+            setterFacet.address,
+            "setDelegateAuthorizationFlashloan(address,address,bool)",
+            timeLockUser.address,
+          );
 
         await accessControlManager
           .connect(timeLockUser)
@@ -237,20 +242,16 @@ forking(56732787, () => {
           .giveCallPermission(vBUSD.address, "_setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);
 
         // ADDED: Set supply caps to allow minting
-        await setterFacet
-          .connect(timeLockUser)
-          ._setMarketSupplyCaps(
-            [vUSDT.address, vBUSD.address],
-            [ethers.constants.MaxUint256.div(2), ethers.constants.MaxUint256.div(2)] // Large supply caps
-          );
+        await setterFacet.connect(timeLockUser)._setMarketSupplyCaps(
+          [vUSDT.address, vBUSD.address],
+          [ethers.constants.MaxUint256.div(2), ethers.constants.MaxUint256.div(2)], // Large supply caps
+        );
 
         // ADDED: Set borrow caps to allow borrowing in mode 1
-        await setterFacet
-          .connect(timeLockUser)
-          ._setMarketBorrowCaps(
-            [vUSDT.address, vBUSD.address],
-            [ethers.constants.MaxUint256.div(2), ethers.constants.MaxUint256.div(2)] // Large borrow caps
-          );
+        await setterFacet.connect(timeLockUser)._setMarketBorrowCaps(
+          [vUSDT.address, vBUSD.address],
+          [ethers.constants.MaxUint256.div(2), ethers.constants.MaxUint256.div(2)], // Large borrow caps
+        );
 
         // Unpause mint actions
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [0], false); // 0 = mint action
@@ -259,30 +260,23 @@ forking(56732787, () => {
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [2], false); // 2 = borrow action
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [7], false); // 7 = enterMarket action
 
-        await setterFacet
-          .connect(timeLockUser)
-          ._setCollateralFactor(vUSDT.address, parseUnits("0.9", 18)); // 80% collateral factor
+        await setterFacet.connect(timeLockUser)._setCollateralFactor(vUSDT.address, parseUnits("0.9", 18)); // 80% collateral factor
 
-        await setterFacet
-          .connect(timeLockUser)
-          ._setCollateralFactor(vBUSD.address, parseUnits("0.9", 18)); // 80% collateral factor
-
+        await setterFacet.connect(timeLockUser)._setCollateralFactor(vBUSD.address, parseUnits("0.9", 18)); // 80% collateral factor
       });
 
       it("Should revert if flashLoan not enabled", async () => {
         // Attempt to execute a flashLoan when the flashLoan feature is disabled, which should revert
         await expect(
-          policyFacet
-            .connect(user)
-            .executeFlashLoan(
-              user.address,
-              mockFlashLoanReceiver.address,
-              [vUSDT.address, vBUSD.address],
-              [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
-              [0, 0],
-              user.address,
-              ethers.utils.formatBytes32String(""), // Add the missing `param` argument
-            ),
+          policyFacet.connect(user).executeFlashLoan(
+            user.address,
+            mockFlashLoanReceiver.address,
+            [vUSDT.address, vBUSD.address],
+            [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
+            [0, 0],
+            user.address,
+            ethers.utils.formatBytes32String(""), // Add the missing `param` argument
+          ),
         ).to.be.revertedWith("FlashLoan not enabled");
       });
 
@@ -384,17 +378,15 @@ forking(56732787, () => {
         const busdFlashLoanAmount = parseUnits("10", 18); // 10 BUSD
 
         // user initiates a flashLoan of USDT and BUSD through the policyFacet contract
-        await policyFacet
-          .connect(user)
-          .executeFlashLoan(
-            user.address,
-            mockFlashLoanReceiver.address,
-            [vUSDT.address, vBUSD.address],
-            [usdtFlashLoanAmount, busdFlashLoanAmount],
-            [0, 0],
-            user.address,
-            ethers.utils.formatBytes32String(""), // Add the missing `param` argument
-          );
+        await policyFacet.connect(user).executeFlashLoan(
+          user.address,
+          mockFlashLoanReceiver.address,
+          [vUSDT.address, vBUSD.address],
+          [usdtFlashLoanAmount, busdFlashLoanAmount],
+          [0, 0],
+          user.address,
+          ethers.utils.formatBytes32String(""), // Add the missing `param` argument
+        );
 
         // Record USDT and BUSD balances in vUSDT and vBUSD contracts after flashLoan
         const balanceAfterUSDT = await USDT.balanceOf(vUSDT.address);
@@ -429,7 +421,7 @@ forking(56732787, () => {
         await BUSD.connect(user).approve(vBUSD.address, parseUnits("80", 18));
 
         await vUSDT.connect(user).mint(parseUnits("75", 6)); // User supplies USDT as collateral
-        await vBUSD.connect(user).mint(parseUnits("75", 18)); // User supplies BUSD as collateral 
+        await vBUSD.connect(user).mint(parseUnits("75", 18)); // User supplies BUSD as collateral
 
         // Mine blocks as required by the test setup
         await mine(blocksToMine);
@@ -458,17 +450,15 @@ forking(56732787, () => {
         const busdFlashLoanAmount = parseUnits("5", 18); // 5 BUSD
 
         // User initiates a flashLoan with mode = 1 (debt position) for both tokens
-        const tx = await policyFacet
-          .connect(timeLockUser)
-          .executeFlashLoan(
-            timeLockUser.address,                           // initiator
-            mockFlashLoanReceiver.address,          // receiver
-            [vUSDT.address, vBUSD.address],         // vTokens
-            [usdtFlashLoanAmount, busdFlashLoanAmount], // amounts
-            [1, 1],                                 // modes = 1 (debt position for both)
-            user.address,                           // onBehalfOf
-            ethers.utils.formatBytes32String(""),   // param
-          );
+        const tx = await policyFacet.connect(timeLockUser).executeFlashLoan(
+          timeLockUser.address, // initiator
+          mockFlashLoanReceiver.address, // receiver
+          [vUSDT.address, vBUSD.address], // vTokens
+          [usdtFlashLoanAmount, busdFlashLoanAmount], // amounts
+          [1, 1], // modes = 1 (debt position for both)
+          user.address, // onBehalfOf
+          ethers.utils.formatBytes32String(""), // param
+        );
 
         // Record balances after flashLoan
         const balanceAfterUSDT = await USDT.balanceOf(vUSDT.address);
@@ -509,7 +499,7 @@ forking(56732787, () => {
           .withArgs(
             mockFlashLoanReceiver.address,
             [vUSDT.address, vBUSD.address],
-            [usdtFlashLoanAmount, busdFlashLoanAmount]
+            [usdtFlashLoanAmount, busdFlashLoanAmount],
           );
       });
 
@@ -588,18 +578,15 @@ forking(56732787, () => {
         // Record receiver balances after flash loan
         const receiverUSDTBefore = await USDT.balanceOf(mockFlashLoanReceiver.address);
 
-        const tx = await policyFacet
-          .connect(timeLockUser)
-          .executeFlashLoan(
-            timeLockUser.address,                     // initiator
-            mockFlashLoanReceiver.address,            // receiver
-            [vUSDT.address, vBUSD.address],           // vTokens
-            [usdtFlashLoanAmount, busdFlashLoanAmount], // amounts
-            [0, 1],                                   // modes: USDT=0 (classic), BUSD=1 (debt position)
-            user.address,                             // onBehalfOf
-            ethers.utils.formatBytes32String(""),     // param
-          );
-
+        const tx = await policyFacet.connect(timeLockUser).executeFlashLoan(
+          timeLockUser.address, // initiator
+          mockFlashLoanReceiver.address, // receiver
+          [vUSDT.address, vBUSD.address], // vTokens
+          [usdtFlashLoanAmount, busdFlashLoanAmount], // amounts
+          [0, 1], // modes: USDT=0 (classic), BUSD=1 (debt position)
+          user.address, // onBehalfOf
+          ethers.utils.formatBytes32String(""), // param
+        );
 
         // Record balances after flashLoan
         const balanceAfterUSDT = await USDT.balanceOf(vUSDT.address);
@@ -612,11 +599,19 @@ forking(56732787, () => {
         const receiverBUSDAfter = await BUSD.balanceOf(mockFlashLoanReceiver.address);
 
         // USDT: Should have NO debt increase (mode 0)
-        expect(userBorrowBalanceAfterUSDT).to.equal(userBorrowBalanceBeforeUSDT, "USDT should have no debt increase in mode 0");
+        expect(userBorrowBalanceAfterUSDT).to.equal(
+          userBorrowBalanceBeforeUSDT,
+          "USDT should have no debt increase in mode 0",
+        );
 
         // USDT: vToken balance should increase by protocol fee only
-        const expectedUSDTProtocolFee = usdtFlashLoanAmount.mul(USDTFlashLoanProtocolFeeMantissa).div(parseUnits("1", 18));
-        expect(balanceAfterUSDT).to.equal(balanceBeforeUSDT.add(expectedUSDTProtocolFee), "USDT vToken balance should increase by protocol fee");
+        const expectedUSDTProtocolFee = usdtFlashLoanAmount
+          .mul(USDTFlashLoanProtocolFeeMantissa)
+          .div(parseUnits("1", 18));
+        expect(balanceAfterUSDT).to.equal(
+          balanceBeforeUSDT.add(expectedUSDTProtocolFee),
+          "USDT vToken balance should increase by protocol fee",
+        );
 
         // USDT: Receiver should have consumed the loan + total fees
         expect(receiverUSDTAfter).to.be.lt(receiverUSDTBefore, "USDT receiver balance should decrease after repayment");
@@ -625,14 +620,27 @@ forking(56732787, () => {
         const actualBUSDDebtIncrease = userBorrowBalanceAfterBUSD.sub(userBorrowBalanceBeforeBUSD);
         const expectedBUSDDebt = busdFlashLoanAmount.add(busdTotalFee);
 
-        expect(userBorrowBalanceAfterBUSD).to.be.gt(userBorrowBalanceBeforeBUSD, "BUSD should have debt increase in mode 1");
-        expect(actualBUSDDebtIncrease).to.be.closeTo(expectedBUSDDebt, parseUnits("0.1", 18), "BUSD debt should equal loan + fees");
+        expect(userBorrowBalanceAfterBUSD).to.be.gt(
+          userBorrowBalanceBeforeBUSD,
+          "BUSD should have debt increase in mode 1",
+        );
+        expect(actualBUSDDebtIncrease).to.be.closeTo(
+          expectedBUSDDebt,
+          parseUnits("0.1", 18),
+          "BUSD debt should equal loan + fees",
+        );
 
         // BUSD: vToken balance should decrease (tokens were lent out, no repayment)
-        expect(balanceAfterBUSD).to.be.lt(balanceBeforeBUSD, "BUSD vToken balance should decrease (no repayment in mode 1)");
+        expect(balanceAfterBUSD).to.be.lt(
+          balanceBeforeBUSD,
+          "BUSD vToken balance should decrease (no repayment in mode 1)",
+        );
 
         // BUSD: Receiver should still have 0 balance (no repayment made)
-        expect(receiverBUSDAfter).to.equal(busdFlashLoanAmount, "BUSD receiver balance should remain 0 (debt position mode)");
+        expect(receiverBUSDAfter).to.equal(
+          busdFlashLoanAmount,
+          "BUSD receiver balance should remain 0 (debt position mode)",
+        );
 
         // Verify FlashLoanExecuted event was emitted
         await expect(tx)
@@ -640,10 +648,9 @@ forking(56732787, () => {
           .withArgs(
             mockFlashLoanReceiver.address,
             [vUSDT.address, vBUSD.address],
-            [usdtFlashLoanAmount, busdFlashLoanAmount]
+            [usdtFlashLoanAmount, busdFlashLoanAmount],
           );
       });
-
     });
   }
 });

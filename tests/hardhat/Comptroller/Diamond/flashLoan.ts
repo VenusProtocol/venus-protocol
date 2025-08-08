@@ -296,12 +296,18 @@ describe("FlashLoan", async () => {
       await comptroller._setCollateralFactor(vTokenB.address, parseUnits("0.9", 18)); // 80% collateral factor
 
       // Set borrow caps to allow borrowing
-      await comptroller._setMarketBorrowCaps([vTokenA.address, vTokenB.address], [parseUnits("100000", 18), parseUnits("100000", 18)]);
+      await comptroller._setMarketBorrowCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
 
       // Set supply caps to allow supplying
-      await comptroller._setMarketSupplyCaps([vTokenA.address, vTokenB.address], [parseUnits("100000", 18), parseUnits("100000", 18)]);
+      await comptroller._setMarketSupplyCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
 
-      // This is needed because onBehalfOf is alice but the caller is bob 
+      // This is needed because onBehalfOf is alice but the caller is bob
       await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenA.address, bob.address, true);
       await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
 
@@ -329,16 +335,14 @@ describe("FlashLoan", async () => {
       const aliceBorrowBalanceBeforeB = await vTokenB.borrowBalanceStored(alice.address);
 
       // Execute flash loan with mode = 1 (debt position) for both assets
-      const tx = await mockReceiverContract
-        .connect(bob)
-        .requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          mockReceiverContract.address,
-          [1, 1], // Both assets in mode 1
-          alice.address,
-          "0x",
-        );
+      const tx = await mockReceiverContract.connect(bob).requestFlashLoan(
+        [vTokenA.address, vTokenB.address],
+        [flashLoanAmount1, flashLoanAmount2],
+        mockReceiverContract.address,
+        [1, 1], // Both assets in mode 1
+        alice.address,
+        "0x",
+      );
 
       const aliceBorrowBalanceAfterA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceAfterB = await vTokenB.borrowBalanceStored(alice.address);
@@ -357,7 +361,7 @@ describe("FlashLoan", async () => {
       expect(aliceBorrowBalanceAfterB).to.be.gt(aliceBorrowBalanceBeforeB);
 
       // The debt should be approximately the flashloan amount + fees minus minimal repayment
-      const expectedDebtA = flashLoanAmount1.add(totalFeeA); 
+      const expectedDebtA = flashLoanAmount1.add(totalFeeA);
       const expectedDebtB = flashLoanAmount2.add(totalFeeB); // minus what receiver could pay
       const actualDebtA = aliceBorrowBalanceAfterA.sub(aliceBorrowBalanceBeforeA);
       const actualDebtB = aliceBorrowBalanceAfterB.sub(aliceBorrowBalanceBeforeB);
@@ -392,18 +396,24 @@ describe("FlashLoan", async () => {
       // Enable flashLoan for multiple vTokens
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
-    
+
       // Set collateral factors for the markets
       await comptroller._setCollateralFactor(vTokenA.address, parseUnits("0.9", 18));
       await comptroller._setCollateralFactor(vTokenB.address, parseUnits("0.9", 18));
-    
+
       // Set borrow caps to allow borrowing
-      await comptroller._setMarketBorrowCaps([vTokenA.address, vTokenB.address], [parseUnits("100000", 18), parseUnits("100000", 18)]);
-      await comptroller._setMarketSupplyCaps([vTokenA.address, vTokenB.address], [parseUnits("100000", 18), parseUnits("100000", 18)]);
-    
+      await comptroller._setMarketBorrowCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
+      await comptroller._setMarketSupplyCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
+
       // Set delegation authorization (only needed for mode = 1)
       await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
-    
+
       // Alice needs collateral to borrow against in mode 1 (for tokenB only)
       await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
       await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
@@ -411,79 +421,77 @@ describe("FlashLoan", async () => {
       await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("1000", 18));
       await vTokenA.connect(alice).mint(parseUnits("500", 18)); // Alice supplies collateral
       await vTokenB.connect(alice).mint(parseUnits("500", 18)); // Alice supplies collateral
-    
+
       // Enter markets for Alice
       await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
-    
+
       // Make small borrow in tokenB to establish Alice as a borrower (needed for mode = 1)
       await vTokenB.connect(alice).borrow(parseUnits("1", 18));
-    
+
       // Set balances for vTokens to have liquidity
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("100", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("100", 18));
-    
+
       // Set mockReceiver balance to cover mode = 0 repayment for tokenA
       const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
       const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
       const totalFeeA = protocolFeeA.add(supplierFeeA);
       const requiredRepaymentA = flashLoanAmount1.add(totalFeeA);
-      
+
       await underlyingA.harnessSetBalance(mockReceiverContract.address, requiredRepaymentA.add(parseUnits("1", 18)));
-      
+
       // TokenB (mode = 1): receiver has insufficient balance to force debt creation
       await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("0", 18));
-    
+
       // Get balances before flash loan
       const beforeBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
       const beforeBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
       const psrABalanceBefore = await underlyingA.balanceOf(protocolShareReserveMock.address);
       const aliceBorrowBalanceBeforeA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceBeforeB = await vTokenB.borrowBalanceStored(alice.address);
-    
+
       // Execute flash loan with mixed modes
-      const tx = await mockReceiverContract
-        .connect(bob)
-        .requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          mockReceiverContract.address,
-          [0, 1], // TokenA: mode 0 (classic), TokenB: mode 1 (debt position)
-          alice.address,
-          "0x",
-        );
-    
+      const tx = await mockReceiverContract.connect(bob).requestFlashLoan(
+        [vTokenA.address, vTokenB.address],
+        [flashLoanAmount1, flashLoanAmount2],
+        mockReceiverContract.address,
+        [0, 1], // TokenA: mode 0 (classic), TokenB: mode 1 (debt position)
+        alice.address,
+        "0x",
+      );
+
       // Get balances after flash loan
       const afterBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
       const afterBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
       const aliceBorrowBalanceAfterA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceAfterB = await vTokenB.borrowBalanceStored(alice.address);
-    
+
       // Calculate expected fees
       const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
       const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
       const totalFeeB = protocolFeeB.add(supplierFeeB);
-    
+
       // Verify TokenA (mode = 0) behavior - classic flash loan
       expect(aliceBorrowBalanceAfterA).to.equal(aliceBorrowBalanceBeforeA); // No debt created for Alice in tokenA
       expect(afterBalanceVTokenA).to.equal(beforeBalanceVTokenA.add(supplierFeeA)); // vToken keeps supplier fee
       expect(await underlyingA.balanceOf(protocolShareReserveMock.address)).to.equal(
-        psrABalanceBefore.add(protocolFeeA)
+        psrABalanceBefore.add(protocolFeeA),
       ); // PSR receives protocol fee
-    
+
       // Verify TokenB (mode = 1) behavior - debt position created
       expect(aliceBorrowBalanceAfterB).to.be.gt(aliceBorrowBalanceBeforeB); // Debt was created for Alice in tokenB
-      
+
       const expectedDebtIncreaseB = flashLoanAmount2.add(totalFeeB); // Full amount becomes debt since no repayment
       const actualDebtIncreaseB = aliceBorrowBalanceAfterB.sub(aliceBorrowBalanceBeforeB);
       expect(actualDebtIncreaseB).to.be.closeTo(expectedDebtIncreaseB, parseUnits("0.01", 18));
-    
+
       // ADJUSTED: Use a wider tolerance since there might be interest accrual or other factors
       const actualVTokenBDecrease = beforeBalanceVTokenB.sub(afterBalanceVTokenB);
       const expectedVTokenBDecrease = flashLoanAmount2.add(totalFeeB);
-      
+
       // Use a much wider tolerance to accommodate for any interest accrual or rounding
       expect(actualVTokenBDecrease).to.be.closeTo(expectedVTokenBDecrease, parseUnits("10", 18));
-    
+
       // Should emit FlashLoanExecuted event
       await expect(tx)
         .to.emit(comptroller, "FlashLoanExecuted")
@@ -492,7 +500,7 @@ describe("FlashLoan", async () => {
           [vTokenA.address, vTokenB.address],
           [flashLoanAmount1, flashLoanAmount2],
         );
-    
+
       // Protocol share reserve should be updated for tokenA (mode 0)
       expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
         comptroller.address,

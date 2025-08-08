@@ -23,11 +23,7 @@ contract MockFlashLoanSimpleReceiver is FlashLoanSimpleReceiverBase {
      * @param param Additional encoded parameters passed with the flash loan.
      * @dev This function calls the `executeFlashLoan` function of the VToken contract.
      */
-    function requestFlashLoan(
-        uint256 amount,
-        address payable receiver,
-        bytes calldata param
-    ) external {
+    function requestFlashLoan(uint256 amount, address payable receiver, bytes calldata param) external {
         // Request the flashLoan from the VToken contract
         VTOKEN.executeFlashLoan(receiver, amount, param);
     }
