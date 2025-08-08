@@ -27,11 +27,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param vToken The market to verify the mint against
      * @param minter The account which would get the minted tokens
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
-     * @return 0 if the mint is allowed, reverts otherwise
-     * @custom:error ProtocolPaused error is thrown if the protocol is paused
-     * @custom:error ActionPaused error is thrown if supplying to this market is paused
-     * @custom:error MarketNotListed error is thrown when the market is not listed
-     * @custom:error SupplyCapExceeded error is thrown if the total supply exceeds the cap after minting
+     * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function mintAllowed(address vToken, address minter, uint256 mintAmount) external returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
@@ -45,15 +41,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 vTokenSupply = VToken(vToken).totalSupply();
         Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
         uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
-        if (nextTotalSupply > supplyCap) {
-            revert SupplyCapExceeded(vToken, supplyCap);
-        }
+        require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, minter);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -75,14 +69,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param vToken The market to verify the redeem against
      * @param redeemer The account which would redeem the tokens
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
-     * @return 0 if the redeem is allowed
+     * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function redeemAllowed(address vToken, address redeemer, uint256 redeemTokens) external returns (uint256) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REDEEM);
 
         uint256 allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
-        if (allowed != NO_ERROR) {
+        if (allowed != uint256(Error.NO_ERROR)) {
             return allowed;
         }
 
@@ -90,7 +84,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, redeemer);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -112,15 +106,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param vToken The market to verify the borrow against
      * @param borrower The account which would borrow the asset
      * @param borrowAmount The amount of underlying the account would borrow
-     * @return 0 if the borrow is allowed
-     * @custom:error ProtocolPaused error is thrown if the protocol is paused
-     * @custom:error ActionPaused error is thrown if borrowing is paused in this market
-     * @custom:error MarketNotListed error is thrown when the market is not listed
-     * @custom:error UnexpectedSender error is thrown if the sender is not the vToken
-     * @custom:error InsufficientLiquidity error is thrown if there is not enough collateral to borrow
-     * @custom:error BorrowCapExceeded is thrown if the borrow cap will be exceeded should this borrow succeed
-     * @custom:error SnapshotError is thrown if some vToken fails to return the account's supply and borrows
-     * @custom:error PriceError is thrown if the oracle returns an incorrect price for some asset
+     * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function borrowAllowed(address vToken, address borrower, uint256 borrowAmount) external returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
@@ -128,39 +114,39 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkActionPauseState(vToken, Action.BORROW);
         ensureListed(markets[vToken]);
 
-        uint256 err;
         uint256 borrowCap = borrowCaps[vToken];
         require(borrowCap != 0, "market borrow cap is 0");
 
         if (!markets[vToken].accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
-            // require(msg.sender == vToken, "sender must be vToken");
-            if (msg.sender != vToken) {
-                revert UnexpectedSender(vToken, msg.sender);
-            }
+            require(msg.sender == vToken, "sender must be vToken");
 
             // attempt to add borrower to the market
-            err = addToMarketInternal(VToken(vToken), borrower);
+            Error err = addToMarketInternal(VToken(vToken), borrower);
+            if (err != Error.NO_ERROR) {
+                return uint256(err);
+            }
         }
 
         if (oracle.getUnderlyingPrice(vToken) == 0) {
-            revert PriceError(vToken);
+            return uint256(Error.PRICE_ERROR);
         }
 
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
-        if (nextTotalBorrows > borrowCap) {
-            revert BorrowCapExceeded(vToken, borrowCap);
-        }
+        require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
-        (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,
             VToken(vToken),
             0,
             borrowAmount,
             this.getCollateralFactor
         );
+        if (err != Error.NO_ERROR) {
+            return uint256(err);
+        }
         if (shortfall != 0) {
-            revert InsuffficientLiquidity();
+            return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
 
         // Keep the flywheel moving
@@ -168,7 +154,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -190,10 +176,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param payer The account which would repay the asset
      * @param borrower The account which borrowed the asset
      * @param repayAmount The amount of the underlying asset the account would repay
-     * @return 0 if the repay is allowed
-     * @custom:error ProtocolPaused error is thrown if the protocol is paused
-     * @custom:error ActionPaused error is thrown if repayments are paused in this market
-     * @custom:error MarketNotListed error is thrown when the market is not listed
+     * @return 0 if the repay is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function repayBorrowAllowed(
         address vToken,
@@ -210,7 +193,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -239,14 +222,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param repayAmount The amount of underlying being repaid
-     * @custom:error ProtocolPaused error is thrown if the protocol is paused
-     * @custom:error ActionPaused error is thrown if liquidations are paused in this market
-     * @custom:error UnauthorizedLiquidator error is thrown if the liquidator is not the authorized liquidator contract
-     * @custom:error MarketNotListed error is thrown if either collateral or borrowed token is not listed
-     * @custom:error TooMuchRepay error is thrown if the liquidator is trying to repay more than allowed by close factor
-     * @custom:error InsufficientShortfall is thrown when trying to liquidate a healthy account
-     * @custom:error SnapshotError is thrown if some vToken fails to return the account's supply and borrows
-     * @custom:error PriceError is thrown if the oracle returns an incorrect price for some asset
      */
     function liquidateBorrowAllowed(
         address vTokenBorrowed,
@@ -261,7 +236,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
 
         if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
-            revert UnauthorizedLiquidator(liquidator, liquidatorContract);
+            return uint256(Error.UNAUTHORIZED);
         }
 
         ensureListed(markets[vTokenCollateral]);
@@ -276,21 +251,25 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         if (isForcedLiquidationEnabled[vTokenBorrowed] || isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed]) {
             if (repayAmount > borrowBalance) {
-                revert TooMuchRepay();
+                return uint(Error.TOO_MUCH_REPAY);
             }
-            return NO_ERROR;
+            return uint(Error.NO_ERROR);
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (
-            ,
-            uint256 shortfall,
-            uint256 liquidationThresholdAvg,
-            uint256 totalCollateral,
+        (Error err, uint256 shortfall, uint256 liquidationThresholdAvg, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
+            borrower,
+            VToken(address(0)),
+            0,
+            0,
+            this.getLiquidationThreshold
+        );
 
-        ) = getHypotheticalHealthSnapshot(borrower, VToken(address(0)), 0, 0, this.getLiquidationThreshold);
+        if (err != Error.NO_ERROR) {
+            return uint256(err);
+        }
         if (shortfall == 0) {
-            revert InsufficientShortfall();
+            return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
         // Call getDynamicLiquidationIncentive from MarketFacet via diamond proxy
@@ -309,10 +288,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // The liquidator may not repay more than what is allowed by the closeFactor
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance
         if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactor }), borrowBalance)) {
-            revert TooMuchRepay();
+            return uint256(Error.TOO_MUCH_REPAY);
         }
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -345,12 +324,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
-     * @return 0 if the seize is allowed
-     * @custom:error ProtocolPaused error is thrown if the protocol is paused
-     * @custom:error ActionPaused error is thrown if seizing this type of collateral is paused
-     * @custom:error MarketNotListed error is thrown if either collateral or borrowed token is not listed
-     * @custom:error MarketNotCollateral error is thrown if the borrower is not in the collateral market
-     * @custom:error ComptrollerMismatch error is when seizer contract or seized asset belong to different pools
      */
     function seizeAllowed(
         address vTokenCollateral,
@@ -369,7 +342,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         ensureListed(market);
 
         if (!market.accountMembership[borrower]) {
-            revert MarketNotCollateral(vTokenCollateral, borrower);
+            return uint256(Error.MARKET_NOT_COLLATERAL);
         }
 
         if (address(vTokenBorrowed) != address(vaiController)) {
@@ -377,7 +350,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
-            revert ComptrollerMismatch();
+            return uint256(Error.COMPTROLLER_MISMATCH);
         }
 
         // Keep the flywheel moving
@@ -385,7 +358,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         distributeSupplierVenus(vTokenCollateral, borrower);
         distributeSupplierVenus(vTokenCollateral, liquidator);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -415,13 +388,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param src The account which sources the tokens
      * @param dst The account which receives the tokens
      * @param transferTokens The number of vTokens to transfer
-     * @return 0 if the transfer is allowed
-     * @custom:error ProtocolPaused error is thrown if the protocol is paused
-     * @custom:error ActionPaused error is thrown if withdrawals are paused in this market
-     * @custom:error MarketNotListed error is thrown when the market is not listed
-     * @custom:error InsufficientLiquidity error is thrown if the withdrawal would lead to user's insolvency
-     * @custom:error SnapshotError is thrown if some vToken fails to return the account's supply and borrows
-     * @custom:error PriceError is thrown if the oracle returns an incorrect price for some asset
+     * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function transferAllowed(
         address vToken,
@@ -436,7 +403,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
         uint256 allowed = redeemAllowedInternal(vToken, src, transferTokens);
-        if (allowed != NO_ERROR) {
+        if (allowed != uint256(Error.NO_ERROR)) {
             return allowed;
         }
 
@@ -445,7 +412,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         distributeSupplierVenus(vToken, src);
         distributeSupplierVenus(vToken, dst);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -466,7 +433,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /**
      * @notice Alias to getAccountLiquidity to support the Isolated Lending Comptroller Interface
      * @param account The account get liquidity for
-     * @return (Always NO_ERROR,
+     * @return (possible error code (semi-opaque),
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
@@ -477,7 +444,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
      * @param account The account get liquidity for
-     * @return (Always NO_ERROR,
+     * @return (possible error code (semi-opaque),
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
@@ -491,7 +458,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @return (Always NO_ERROR,
+     * @return (possible error code (semi-opaque),
                 hypothetical account liquidity in excess of collateral requirements,
      *          hypothetical account shortfall below collateral requirements)
      */
@@ -502,14 +469,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
     ) external view returns (uint256, uint256, uint256) {
-        (uint256 err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(vTokenModify),
             redeemTokens,
             borrowAmount,
             weight
         );
-        return (err, liquidity, shortfall);
+        return (uint256(err), liquidity, shortfall);
     }
 
     // setter functionality
@@ -540,7 +507,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address account,
         function(address) external view returns (uint256) weight
     ) internal view returns (uint256, uint256, uint256) {
-        (uint256 err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(address(0)),
             0,
@@ -548,7 +515,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             weight
         );
 
-        return (err, liquidity, shortfall);
+        return (uint256(err), liquidity, shortfall);
     }
 
     function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {

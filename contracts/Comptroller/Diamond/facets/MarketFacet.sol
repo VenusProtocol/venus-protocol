@@ -134,10 +134,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Add assets to be included in account liquidity calculation
      * @param vTokens The list of addresses of the vToken markets to be enabled
-     * @return errors An array of NO_ERROR
-     * @custom:event MarketEntered is emitted for each market on success
-     * @custom:error ActionPaused error is thrown if entering any of the markets is paused
-     * @custom:error MarketNotListed error is thrown if any of the markets is not listed
+     * @return Success indicator for whether each corresponding market was entered
      */
     function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory) {
         uint256 len = vTokens.length;
@@ -154,13 +151,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @notice Unlist a market by setting isListed to false
      * @dev Checks if market actions are paused and borrowCap/supplyCap/CF are set to 0
      * @param market The address of the market (vToken) to unlist
-     * @return uint256 Always NO_ERROR
-     * @custom:event MarketUnlisted is emitted on success
-     * @custom:error MarketNotListed error is thrown when the market is not listed
-     * @custom:error ActionNotPaused error is thrown if any of the actions are not paused
-     * @custom:error BorrowCapIsNotZero error is thrown if borrow cap is not zero
-     * @custom:error SupplyCapIsNotZero error is thrown if supply cap is not zero
-     * @custom:error CollateralFactorIsNotZero error is thrown if collateral factor is not zero
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function unlistMarket(address market) external returns (uint256) {
         ensureAllowed("unlistMarket(address)");
@@ -168,61 +159,28 @@ contract MarketFacet is IMarketFacet, FacetBase {
         Market storage _market = markets[market];
 
         if (!_market.isListed) {
-            revert MarketNotListed();
+            return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);
         }
 
-        if (!actionPaused(market, Action.BORROW)) {
-            revert ActionNotPaused(Action.BORROW);
-        }
+        require(actionPaused(market, Action.BORROW), "borrow action is not paused");
+        require(actionPaused(market, Action.MINT), "mint action is not paused");
+        require(actionPaused(market, Action.REDEEM), "redeem action is not paused");
+        require(actionPaused(market, Action.REPAY), "repay action is not paused");
+        require(actionPaused(market, Action.ENTER_MARKET), "enter market action is not paused");
+        require(actionPaused(market, Action.LIQUIDATE), "liquidate action is not paused");
+        require(actionPaused(market, Action.SEIZE), "seize action is not paused");
+        require(actionPaused(market, Action.TRANSFER), "transfer action is not paused");
+        require(actionPaused(market, Action.EXIT_MARKET), "exit market action is not paused");
 
-        if (!actionPaused(market, Action.MINT)) {
-            revert ActionNotPaused(Action.MINT);
-        }
+        require(borrowCaps[market] == 0, "borrow cap is not 0");
+        require(supplyCaps[market] == 0, "supply cap is not 0");
 
-        if (!actionPaused(market, Action.REDEEM)) {
-            revert ActionNotPaused(Action.REDEEM);
-        }
-
-        if (!actionPaused(market, Action.REPAY)) {
-            revert ActionNotPaused(Action.REPAY);
-        }
-
-        if (!actionPaused(market, Action.ENTER_MARKET)) {
-            revert ActionNotPaused(Action.ENTER_MARKET);
-        }
-
-        if (!actionPaused(market, Action.LIQUIDATE)) {
-            revert ActionNotPaused(Action.LIQUIDATE);
-        }
-
-        if (!actionPaused(market, Action.SEIZE)) {
-            revert ActionNotPaused(Action.SEIZE);
-        }
-
-        if (!actionPaused(market, Action.TRANSFER)) {
-            revert ActionNotPaused(Action.TRANSFER);
-        }
-
-        if (!actionPaused(market, Action.EXIT_MARKET)) {
-            revert ActionNotPaused(Action.EXIT_MARKET);
-        }
-
-        if (borrowCaps[market] != 0) {
-            revert BorrowCapIsNotZero();
-        }
-
-        if (supplyCaps[market] != 0) {
-            revert SupplyCapIsNotZero();
-        }
-
-        if (_market.collateralFactorMantissa != 0) {
-            revert CollateralFactorIsNotZero();
-        }
+        require(_market.collateralFactorMantissa == 0, "collateral factor is not 0");
 
         _market.isListed = false;
         emit MarketUnlisted(market);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -230,14 +188,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @dev Sender must not have an outstanding borrow balance in the asset,
      *  or be providing necessary collateral for an outstanding borrow
      * @param vTokenAddress The address of the asset to be removed
-     * @return uint256 Always NO_ERROR
-     * @custom:event MarketExited is emitted on success
-     * @custom:error ActionPaused error is thrown if exiting the market is paused
-     * @custom:error NonzeroBorrowBalance error is thrown if the user has an outstanding borrow in this market
-     * @custom:error MarketNotListed error is thrown when the market is not listed
-     * @custom:error InsufficientLiquidity error is thrown if exiting the market would lead to user's insolvency
-     * @custom:error SnapshotError is thrown if some vToken fails to return the account's supply and borrows
-     * @custom:error PriceError is thrown if the oracle returns an incorrect price for some asset
+     * @return Whether or not the account successfully exited the market
      */
     function exitMarket(address vTokenAddress) external returns (uint256) {
         checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
@@ -245,26 +196,24 @@ contract MarketFacet is IMarketFacet, FacetBase {
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
         (uint256 oErr, uint256 tokensHeld, uint256 amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
-        if (oErr != 0) {
-            revert SnapshotError();
-        }
+        require(oErr == 0, "getAccountSnapshot failed"); // semi-opaque error code
 
         /* Fail if the sender has a borrow balance */
         if (amountOwed != 0) {
-            revert NonzeroBorrowBalance();
+            return fail(Error.NONZERO_BORROW_BALANCE, FailureInfo.EXIT_MARKET_BALANCE_OWED);
         }
 
         /* Fail if the sender is not permitted to redeem all of their tokens */
         uint256 allowed = redeemAllowedInternal(vTokenAddress, msg.sender, tokensHeld);
         if (allowed != 0) {
-            revert ExitMarketNotAllowed();
+            return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
 
         Market storage marketToExit = markets[address(vToken)];
 
         /* Return true if the sender is not already ‘in’ the market */
         if (!marketToExit.accountMembership[msg.sender]) {
-            return NO_ERROR;
+            return uint256(Error.NO_ERROR);
         }
 
         /* Set vToken account membership to false */
@@ -288,14 +237,13 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         emit MarketExited(vToken, msg.sender);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 
     /**
      * @notice Alias to _supportMarket to support the Isolated Lending Comptroller Interface
      * @param vToken The address of the market (token) to list
-     * @return uint256 Alawys NO_ERROR
-     * @custom:error MarketAlreadyListed is thrown if the market is already listed in this pool
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function supportMarket(VToken vToken) external returns (uint256) {
         return __supportMarket(vToken);
@@ -305,8 +253,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @notice Add the market to the markets mapping and set it as listed
      * @dev Allows a privileged role to add and list markets to the Comptroller
      * @param vToken The address of the market (token) to list
-     * @return uint256 Always NO_ERROR
-     * @custom:error MarketAlreadyListed is thrown if the market is already listed in this pool
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function _supportMarket(VToken vToken) external returns (uint256) {
         return __supportMarket(vToken);
@@ -321,15 +268,10 @@ contract MarketFacet is IMarketFacet, FacetBase {
      *  will see a deduction in his vToken balance
      * @param delegate The address to update the rights for
      * @param approved Whether to grant (true) or revoke (false) the borrowing or redeeming rights
-     * @custom:event DelegateUpdated emits on success
-     * @custom:error ZeroAddressNotAllowed is thrown when delegate address is zero
-     * @custom:error DelegationStatusUnchanged is thrown if approval status is already set to the requested value
      */
     function updateDelegate(address delegate, bool approved) external {
         ensureNonzeroAddress(delegate);
-        if (approvedDelegates[msg.sender][delegate] == approved) {
-            revert DelegationStatusUnchanged();
-        }
+        require(approvedDelegates[msg.sender][delegate] != approved, "Delegation status unchanged");
 
         _updateDelegate(msg.sender, delegate, approved);
     }
@@ -342,9 +284,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function _addMarketInternal(VToken vToken) internal {
         uint256 allMarketsLength = allMarkets.length;
         for (uint256 i; i < allMarketsLength; ++i) {
-            if (allMarkets[i] == vToken) {
-                revert MarketAlreadyListed(address(vToken));
-            }
+            require(allMarkets[i] != vToken, "already added");
         }
         allMarkets.push(vToken);
     }
@@ -378,7 +318,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         ensureAllowed("_supportMarket(address)");
 
         if (markets[address(vToken)].isListed) {
-            revert MarketAlreadyListed(address(vToken));
+            return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
         }
 
         vToken.isVToken(); // Sanity check to make sure its really a VToken
@@ -394,6 +334,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         emit MarketListed(vToken);
 
-        return NO_ERROR;
+        return uint256(Error.NO_ERROR);
     }
 }

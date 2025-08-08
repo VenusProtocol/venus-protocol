@@ -38,53 +38,37 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
 
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
-        if (protocolPaused) {
-            revert ProtocolPaused();
-        }
+        require(!protocolPaused, "protocol is paused");
     }
 
     /// @notice Reverts if a certain action is paused on a market
     function checkActionPauseState(address market, Action action) internal view {
-        if (actionPaused(market, action)) {
-            revert ActionPaused(market, action);
-        }
+        require(!actionPaused(market, action), "action is paused");
     }
 
     /// @notice Reverts if the caller is not admin
     function ensureAdmin() internal view {
-        if (msg.sender != admin) {
-            revert SenderNotAdmin();
-        }
+        require(msg.sender == admin, "only admin can");
     }
 
-    /// @notice Checks the passed address is nonzero, reverts if it is zero
-    function ensureNonzeroAddress(address address_) internal pure {
-        if (address_ == address(0)) {
-            revert ZeroAddressNotAllowed();
-        }
+    /// @notice Checks the passed address is nonzero
+    function ensureNonzeroAddress(address someone) internal pure {
+        require(someone != address(0), "can't be zero address");
     }
 
     /// @notice Reverts if the market is not listed
     function ensureListed(Market storage market) internal view {
-        if (!market.isListed) {
-            revert MarketNotListed();
-        }
+        require(market.isListed, "market not listed");
     }
 
     /// @notice Reverts if the caller is neither admin nor the passed address
     function ensureAdminOr(address privilegedAddress) internal view {
-        if (msg.sender != admin && msg.sender != privilegedAddress) {
-            revert SenderNotAdminOrPrivileged(msg.sender, privilegedAddress);
-        }
+        require(msg.sender == admin || msg.sender == privilegedAddress, "access denied");
     }
 
-    /// @notice Checks the caller is allowed to call the specified fuction, reverts if not
+    /// @notice Checks the caller is allowed to call the specified fuction
     function ensureAllowed(string memory functionSig) internal view {
-        bool isAllowedToCall = IAccessControlManagerV8(accessControl).isAllowedToCall(msg.sender, functionSig);
-
-        if (!isAllowedToCall) {
-            revert AccessDenied(functionSig, msg.sender);
-        }
+        require(IAccessControlManagerV8(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /**
@@ -166,7 +150,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         uint256 redeemTokens,
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
-    ) internal view returns (uint256, uint256, uint256) {
+    ) internal view returns (Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
@@ -175,7 +159,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             borrowAmount,
             weight
         );
-        return (err, liquidity, shortfall);
+        return (Error(err), liquidity, shortfall);
     }
 
     /**
@@ -202,16 +186,19 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     )
         internal
         view
-        returns (
-            uint256 err,
-            uint256 shortfall,
-            uint256 liquidationThresholdAvg,
-            uint256 totalCollateral,
-            uint256 healthFactor
-        )
+        returns (Error err, uint256 shortfall, uint256 liquidationThresholdAvg, uint256 totalCollateral, uint256 healthFactor)
     {
-        (err, shortfall, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens
-            .getAccountHealthSnapshot(address(this), account, vTokenModify, redeemTokens, borrowAmount, weight);
+        uint256 rawErr;
+        (rawErr, shortfall, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens.getAccountHealthSnapshot(
+            address(this),
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount,
+            weight
+        );
+
+        err = Error(rawErr);
     }
 
     /**
@@ -220,13 +207,13 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param borrower The address of the account to modify
      * @return Success indicator for whether the market was entered
      */
-    function addToMarketInternal(VToken vToken, address borrower) internal returns (uint256) {
+    function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
         checkActionPauseState(address(vToken), Action.ENTER_MARKET);
         Market storage marketToJoin = markets[address(vToken)];
         ensureListed(marketToJoin);
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
-            return NO_ERROR;
+            return Error.NO_ERROR;
         }
         // survived the gauntlet, add to list
         // NOTE: we store these somewhat redundantly as a significant optimization
@@ -238,7 +225,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
 
         emit MarketEntered(vToken, borrower);
 
-        return NO_ERROR;
+        return Error.NO_ERROR;
     }
 
     /**
@@ -246,8 +233,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param vToken Address of the market
      * @param redeemer Address of the user
      * @param redeemTokens Amount of tokens to redeem
-     * @return NO_ERROR if the user is allowed to redeem, otherwise reverts
-     * @custom:error InsuffficientLiquidity is thrown if the user has insufficient liquidity to redeem
+     * @return Success indicator for redeem is allowed or not
      */
     function redeemAllowedInternal(
         address vToken,
@@ -257,20 +243,23 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         ensureListed(markets[vToken]);
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
-            return NO_ERROR;
+            return uint256(Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
             VToken(vToken),
             redeemTokens,
             0,
             this.getCollateralFactor
         );
-        if (shortfall != 0) {
-            revert InsuffficientLiquidity();
+        if (err != Error.NO_ERROR) {
+            return uint256(err);
         }
-        return NO_ERROR;
+        if (shortfall != 0) {
+            return uint256(Error.INSUFFICIENT_LIQUIDITY);
+        }
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -292,13 +281,16 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address vToken
     ) external view returns (uint256 incentive) {
         Market storage market = markets[vToken];
-        (, , uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
+        (Error err, , uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
             borrower,
             VToken(vToken),
             0,
             0,
             this.getLiquidationThreshold
         );
+        if (err != Error.NO_ERROR) {
+            return uint256(err);
+        }
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
             vToken,
