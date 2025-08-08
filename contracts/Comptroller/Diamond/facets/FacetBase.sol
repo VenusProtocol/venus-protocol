@@ -186,17 +186,17 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     )
         internal
         view
-        returns (Error err, uint256 shortfall, uint256 liquidationThresholdAvg, uint256 totalCollateral, uint256 healthFactor)
+        returns (
+            Error err,
+            uint256 shortfall,
+            uint256 liquidationThresholdAvg,
+            uint256 totalCollateral,
+            uint256 healthFactor
+        )
     {
         uint256 rawErr;
-        (rawErr, shortfall, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens.getAccountHealthSnapshot(
-            address(this),
-            account,
-            vTokenModify,
-            redeemTokens,
-            borrowAmount,
-            weight
-        );
+        (rawErr, shortfall, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens
+            .getAccountHealthSnapshot(address(this), account, vTokenModify, redeemTokens, borrowAmount, weight);
 
         err = Error(rawErr);
     }

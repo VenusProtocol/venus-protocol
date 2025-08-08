@@ -45,6 +45,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 liquidationThresholdAvg;
         // Health factor of the account, used to assess liquidation risk (scaled by 1e18)
         uint256 healthFactor;
+        // Generic error code for operations
+        uint256 err;
     }
 
     /**
@@ -222,8 +224,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
     ) internal view returns (uint256 errorCode, AccountLiquidityLocalVars memory vars) {
-        uint256 oErr;
-
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         uint256 assetsCount = assets.length;
@@ -233,11 +233,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             VToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
+            (vars.err, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
                 account
             );
-            if (oErr != 0) {
-                errorCode = oErr;
+            if (vars.err != 0) {
+                errorCode = vars.err;
                 return (errorCode, vars);
             }
 

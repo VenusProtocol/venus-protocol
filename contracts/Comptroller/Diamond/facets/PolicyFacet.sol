@@ -257,13 +257,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, uint256 shortfall, uint256 liquidationThresholdAvg, uint256 totalCollateral, ) = getHypotheticalHealthSnapshot(
-            borrower,
-            VToken(address(0)),
-            0,
-            0,
-            this.getLiquidationThreshold
-        );
+        (
+            Error err,
+            uint256 shortfall,
+            uint256 liquidationThresholdAvg,
+            uint256 totalCollateral,
+
+        ) = getHypotheticalHealthSnapshot(borrower, VToken(address(0)), 0, 0, this.getLiquidationThreshold);
 
         if (err != Error.NO_ERROR) {
             return uint256(err);
