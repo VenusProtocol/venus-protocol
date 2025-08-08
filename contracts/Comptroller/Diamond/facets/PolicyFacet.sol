@@ -9,7 +9,6 @@ import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanRece
 import { IProtocolShareReserveV5, VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 import { EIP20Interface } from "../../../Tokens/EIP20Interface.sol";
-
 /**
  * @title PolicyFacet
  * @author Venus
@@ -45,6 +44,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 vTokenSupply = VToken(vToken).totalSupply();
         Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
         uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
+
         require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
@@ -120,7 +120,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         uint256 borrowCap = borrowCaps[vToken];
         require(borrowCap != 0, "market borrow cap is 0");
-
         if (!markets[vToken].accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
             require(msg.sender == vToken, "sender must be vToken");
@@ -148,6 +147,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
+
         if (shortfall != 0) {
             return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
@@ -378,6 +378,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param param The bytes passed in the executeOperation call
      */
     function executeFlashLoan(
+        address payable initiator,
         address payable receiver,
         VToken[] calldata vTokens,
         uint256[] calldata underlyingAmounts,
@@ -387,24 +388,15 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) external {
         ensureNonzeroAddress(receiver);
         ensureNonzeroAddress(onBehalfOf);
-
         // All arrays must have the same length and not be zero
         if (vTokens.length != underlyingAmounts.length || vTokens.length != modes.length || vTokens.length == 0) {
             revert("Invalid flashLoan params");
         }
-
         // Validate parameters and delegation
-        _validateFlashLoanParams(vTokens, modes, onBehalfOf);
+        _validateFlashLoanParams(initiator, vTokens, modes, onBehalfOf);
 
         // Execute flash loan phases
-        _executeFlashLoanPhases(
-            receiver,
-            vTokens,
-            underlyingAmounts,
-            modes,
-            onBehalfOf,
-            param
-        );
+        _executeFlashLoanPhases(receiver, vTokens, underlyingAmounts, modes, onBehalfOf, param);
 
         emit FlashLoanExecuted(receiver, vTokens, underlyingAmounts);
     }
@@ -413,18 +405,19 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @notice Validates flash loan parameters and delegation
      */
     function _validateFlashLoanParams(
+        address payable initiator,
         VToken[] memory vTokens,
         uint256[] memory modes,
         address onBehalfOf
     ) internal view {
         // Check delegation if borrowing on behalf of someone else
-        if (onBehalfOf != msg.sender) {
+        if (onBehalfOf != initiator) {
             for (uint256 i = 0; i < vTokens.length; i++) {
                 if (modes[i] == 1) {
                     // Only check delegation for debt-creating modes
                     require(
-                        delegateAuthorizationFlashloan[onBehalfOf][address(vTokens[i])][msg.sender],
-                        "Sender not authorized to borrow on behalf"
+                        delegateAuthorizationFlashloan[onBehalfOf][address(vTokens[i])][initiator],
+                        "Sender not authorized to use flashloan on behalf"
                     );
                 }
             }
@@ -457,10 +450,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         // Phase 1: Calculate fees and transfer assets
         _executePhase1(receiver, vTokens, underlyingAmounts, flashLoanData);
-
         // Phase 2: Execute operation on receiver contract
         _executePhase2(receiver, vTokens, underlyingAmounts, flashLoanData.totalFees, param);
-
         // Phase 3: Handle repayment based on modes
         _executePhase3(receiver, vTokens, underlyingAmounts, modes, onBehalfOf, flashLoanData);
 
@@ -589,46 +580,29 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             actualRepayment = 0;
         }
 
-        if (actualRepayment >= requiredRepayment) {
-            // Full repayment - treat as classic flash loan
-            vToken.transferOutUnderlying(vToken.protocolShareReserve(), protocolFee);
+        // Create debt position by calling VBep20's borrow function
+        // This will handle all the proper borrow logic including state updates
+        uint256 accrueResult = vToken.accrueInterest();
+        require(accrueResult == 0, "Failed to accrue interest");
 
-            IProtocolShareReserveV5(vToken.protocolShareReserve()).updateAssetsState(
-                address(vToken.comptroller()),
-                address(vToken.underlying()),
-                IProtocolShareReserveV5.IncomeType.FLASHLOAN
-            );
+        // If actual repayment is less than required, we create a debt position
+        uint256 debtError = vToken.borrowDebtPosition(onBehalfOf, requiredRepayment);
+        require(debtError == 0, "Failed to create debt position");
 
-            remainingDebt = 0;
-        } else {
-            // Partial or no repayment - create debt position
-            remainingDebt = requiredRepayment - actualRepayment;
-
-            // Check if borrowing is allowed for the remaining amount
-            uint allowed = vToken.comptroller().borrowAllowed(address(vToken), onBehalfOf, remainingDebt);
-            require(allowed == 0, "Cannot create debt position");
-
-            // Create debt position by calling VBep20's borrow function
-            // This will handle all the proper borrow logic including state updates
-            uint256 debtError = VBep20Interface(vTokenAddress).borrow(remainingDebt);
-            require(debtError == 0, "Failed to create debt position");
-
-            // Handle fees from actual repayment proportionally
-            if (actualRepayment > 0) {
-                uint256 feeFromRepayment = (actualRepayment * protocolFee) / requiredRepayment;
-                if (feeFromRepayment > 0) {
-                    vToken.transferOutUnderlying(vToken.protocolShareReserve(), feeFromRepayment);
-
-                    IProtocolShareReserveV5(vToken.protocolShareReserve()).updateAssetsState(
-                        address(vToken.comptroller()),
-                        address(vToken.underlying()),
-                        IProtocolShareReserveV5.IncomeType.FLASHLOAN
-                    );
-                }
+        // Handle fees from actual repayment proportionally
+        if (actualRepayment > 0) {
+            uint256 feeFromRepayment = (actualRepayment * protocolFee) / requiredRepayment;
+            if (feeFromRepayment > 0) {
+                vToken.transferOutUnderlying(vToken.protocolShareReserve(), feeFromRepayment);
+                IProtocolShareReserveV5(vToken.protocolShareReserve()).updateAssetsState(
+                    address(vToken.comptroller()),
+                    address(vToken.underlying()),
+                    IProtocolShareReserveV5.IncomeType.FLASHLOAN
+                );
             }
         }
 
-        return (actualRepayment, remainingDebt);
+        return (actualRepayment, requiredRepayment);
     }
 
     /**

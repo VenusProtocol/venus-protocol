@@ -335,15 +335,6 @@ contract VTokenInterface is VTokenStorage {
         uint256 flashLoanSupplierFeeMantissa
     );
 
-    event FlashLoanWithDebt(
-        address indexed receiver,
-        address indexed onBehalfOf,
-        address indexed asset,
-        uint256 amount,
-        uint256 debtAmount,
-        uint256 repaidAmount
-    );
-
     /*** User Interface ***/
 
     function transfer(address dst, uint amount) external returns (bool);
@@ -397,6 +388,8 @@ contract VTokenInterface is VTokenStorage {
     function borrowBalanceStored(address account) public view returns (uint);
 
     function exchangeRateStored() public view returns (uint);
+
+    function borrowDebtPosition(address borrower, uint borrowAmount) external returns (uint);
 }
 
 contract VBep20Interface {

@@ -87,7 +87,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   };
 }
 
-forking(47432690, async () => {
+forking(56732787, async () => {
   if (FORK_TESTNET) {
     describe("FlashLoan Fork Test", async () => {
       let usdtHolder: SignerWithAddress;
@@ -105,13 +105,14 @@ forking(47432690, async () => {
         // Deploy a mock flashLoan receiver to test flashLoan functionality
         const MockFlashLoanSimpleReceiver =
           await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>("MockFlashLoanSimpleReceiver");
+          
         mockReceiverSimpleFlashLoan = await MockFlashLoanSimpleReceiver.deploy(vUSDT.address);
       });
 
       it("Should revert if flashLoan not enabled", async () => {
         // Attempt to take a flashLoan when the flashLoan feature is disabled should fail
         await expect(
-          vUSDT.connect(user).executeFlashLoan(mockReceiverSimpleFlashLoan.address, flashLoanAmount),
+          vUSDT.connect(user).executeFlashLoan(mockReceiverSimpleFlashLoan.address, flashLoanAmount, ethers.utils.formatBytes32String("")),
         ).to.be.revertedWith("FlashLoan not enabled");
       });
 
@@ -119,7 +120,7 @@ forking(47432690, async () => {
         // Enable flashLoan feature for testing
         await vUSDT.connect(timeLockUser)._toggleFlashLoan();
         // Attempt to take a flashLoan with zero address as receiver should fail
-        await expect(vUSDT.connect(user).executeFlashLoan(AddressZero, flashLoanAmount)).to.be.revertedWith(
+        await expect(vUSDT.connect(user).executeFlashLoan(AddressZero, flashLoanAmount, ethers.utils.formatBytes32String(""))).to.be.revertedWith(
           "zero address",
         );
       });
@@ -141,7 +142,7 @@ forking(47432690, async () => {
           .connect(timeLockUser)
           ._setFlashLoanFeeMantissa(flashLoanProtocolFeeMantissa, flashLoanSupplierFeeMantissa);
 
-        await vUSDT.connect(user).executeFlashLoan(mockReceiverSimpleFlashLoan.address, flashLoanAmount);
+        await vUSDT.connect(user).executeFlashLoan(mockReceiverSimpleFlashLoan.address, flashLoanAmount, ethers.utils.formatBytes32String(""));
 
         // Check if the USDT balance in vUSDT increased, validating flashLoan repayment with fees
         const balanceAfter = await USDT.balanceOf(vUSDT.address);
