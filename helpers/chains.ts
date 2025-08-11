@@ -14,7 +14,6 @@ const knownChains = [
   "basemainnet",
   "unichainsepolia",
   "unichainmainnet",
-  "berachainbepolia",
   "zksyncsepolia",
   "zksyncmainnet",
 ] as const;
@@ -39,7 +38,6 @@ export const blocksPerYear = {
   basemainnet: "time-based",
   unichainsepolia: "time-based",
   unichainmainnet: "time-based",
-  berachainbepolia: "time-based",
   zksyncsepolia: "time-based",
   zksyncmainnet: "time-based",
 } as const satisfies Record<Chain, BlocksPerYear>;
