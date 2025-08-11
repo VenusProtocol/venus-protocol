@@ -20,9 +20,6 @@ import { FacetBase } from "./FacetBase.sol";
  * @notice This facet contract contains all the configurational setter functions
  */
 contract SetterFacet is ISetterFacet, FacetBase {
-    /// @notice Emitted when close factor is changed by admin
-    event NewBaseCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
-
     /// @notice Emitted when a collateral factor is changed by admin
     event NewCollateralFactor(
         VToken indexed vToken,
@@ -115,8 +112,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         LiquidationManager indexed oldLiquidationManager,
         LiquidationManager indexed newLiquidationManager
     );
-
-    event NewTargetHealthFactor(uint256 oldTargetHealthFactor, uint256 newTargetHealthFactor);
 
     /**
      * @notice Compare two addresses to ensure they are different
