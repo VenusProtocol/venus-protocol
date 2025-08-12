@@ -146,7 +146,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkActionPauseState(vToken, Action.BORROW);
         ensureListed(markets[vToken]);
 
-        if (whitelistedExecutors[receiver]) {
+        if (receiver != address(0) && whitelistedExecutors[receiver]) {
             return uint256(Error.NO_ERROR);
         }
 
@@ -356,7 +356,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
 
-        if (whitelistedExecutors[liquidator]) {
+        if (liquidator != address(0) && whitelistedExecutors[liquidator]) {
             return uint256(Error.NO_ERROR);
         }
 
