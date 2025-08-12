@@ -743,6 +743,21 @@ describe("Comptroller", () => {
     });
 
     describe("liquidateBorrowAllowed", async () => {
+      const mockSnapshot = {
+        totalCollateral: 0,
+        weightedCollateral: 0,
+        borrows: 0,
+        vTokenBalance: 0,
+        borrowBalance: 0,
+        exchangeRateMantissa: 0,
+        oraclePriceMantissa: 0,
+        liquidity: 0,
+        shortfall: 0,
+        liquidationThresholdAvg: 0,
+        healthFactor: 0,
+        err: 0,
+      };
+
       const generalTests = () => {
         it("reverts if borrowed market is not listed", async () => {
           const someVToken = await smock.fake<VToken>("VToken");
@@ -753,6 +768,7 @@ describe("Comptroller", () => {
               accounts[0].address,
               root.address,
               convertToUnit("1", 18),
+              mockSnapshot,
             ),
           ).to.be.revertedWith("market not listed");
         });
@@ -766,6 +782,7 @@ describe("Comptroller", () => {
               accounts[0].address,
               root.address,
               convertToUnit("1", 18),
+              mockSnapshot,
             ),
           ).to.be.revertedWith("market not listed");
         });
@@ -780,6 +797,7 @@ describe("Comptroller", () => {
               accounts[0].address,
               root.address,
               convertToUnit("1", 18),
+              mockSnapshot,
             ),
           ).to.not.be.revertedWith("market not listed");
         });
@@ -796,6 +814,7 @@ describe("Comptroller", () => {
             accounts[0].address,
             root.address,
             convertToUnit("1", 18),
+            mockSnapshot,
           );
           expect(errCode).to.equal(0);
         });
@@ -808,6 +827,7 @@ describe("Comptroller", () => {
             accounts[0].address,
             root.address,
             convertToUnit("1", 18),
+            mockSnapshot,
           );
           expect(errCode).to.equal(0);
         });
@@ -820,6 +840,7 @@ describe("Comptroller", () => {
             accounts[0].address,
             root.address,
             convertToUnit("1", 18),
+            mockSnapshot,
           );
           expect(errCode).to.equal(17);
         });
@@ -845,6 +866,7 @@ describe("Comptroller", () => {
             accounts[0].address,
             root.address,
             convertToUnit("1", 18),
+            mockSnapshot,
           );
           expect(errCode).to.equal(3);
         });
@@ -866,6 +888,7 @@ describe("Comptroller", () => {
             accounts[0].address,
             root.address,
             convertToUnit("1", 18),
+            mockSnapshot,
           );
           expect(errCode).to.equal(3);
         });
@@ -874,6 +897,21 @@ describe("Comptroller", () => {
       describe("Forced liquidations disabled", async () => {
         let comptrollerLens: FakeContract<ComptrollerLens>;
         let liquidationMananger: FakeContract<LiquidationManager>;
+
+        const snapshot1 = {
+          totalCollateral: 0,
+          weightedCollateral: 0,
+          borrows: 0,
+          vTokenBalance: 0,
+          borrowBalance: 0,
+          exchangeRateMantissa: 0,
+          oraclePriceMantissa: 0,
+          liquidity: 0,
+          shortfall: 2,
+          liquidationThresholdAvg: 0,
+          healthFactor: 0,
+          err: 0,
+        };
 
         beforeEach(async () => {
           comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
@@ -886,41 +924,41 @@ describe("Comptroller", () => {
 
         it("fails if borrower has 0 shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 1, 0]);
           const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
             vToken.address,
             vToken.address,
             accounts[0].address,
             root.address,
             convertToUnit("1", 18),
+            mockSnapshot,
           );
           expect(errCode).to.equal(3);
         });
 
         it("succeeds if borrower has nonzero shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 1]);
-          liquidationMananger.calculateCloseFactor.returns(convertToUnit("0.5", 18));
+          liquidationMananger.calculateDynamicCloseFactor.returns(convertToUnit("0.5", 18));
           const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
             vToken.address,
             vToken.address,
             accounts[0].address,
             root.address,
             convertToUnit("1", 18),
+            snapshot1,
           );
           expect(errCode).to.equal(0);
         });
 
         it("fails with TOO_MUCH_REPAY if trying to repay > borrowed amount", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 1]);
-          liquidationMananger.calculateCloseFactor.returns(convertToUnit("0.5", 18));
+          liquidationMananger.calculateDynamicCloseFactor.returns(convertToUnit("0.5", 18));
           const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
             vToken.address,
             vToken.address,
             accounts[0].address,
             root.address,
             convertToUnit("60", 18),
+            snapshot1,
           );
           expect(errCode).to.equal(17);
         });
@@ -987,7 +1025,6 @@ describe("Comptroller", () => {
       });
 
       it("getBorrowingPower is an alias for getAccountLiquidity", async () => {
-        console.log(vToken.wallet._address);
         const accountLiquidity = await comptroller.getAccountLiquidity(vToken.wallet._address);
         const borrowingPower = await comptroller.getBorrowingPower(vToken.wallet._address);
 

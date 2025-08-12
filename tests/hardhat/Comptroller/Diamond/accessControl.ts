@@ -105,6 +105,7 @@ describe("Comptroller", () => {
         );
       });
     });
+
     describe("setMarketSupplyCaps", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setMarketSupplyCaps([], [])).to.be.revertedWith("access denied");
@@ -114,12 +115,14 @@ describe("Comptroller", () => {
         );
       });
     });
+
     describe("setProtocolPaused", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setProtocolPaused(true)).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setProtocolPaused(bool)");
       });
     });
+
     describe("setActionsPaused", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setActionsPaused([], [], true)).to.be.revertedWith("access denied");
@@ -129,6 +132,7 @@ describe("Comptroller", () => {
         );
       });
     });
+
     describe("_supportMarket", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._supportMarket(ethers.constants.AddressZero)).to.be.revertedWith(

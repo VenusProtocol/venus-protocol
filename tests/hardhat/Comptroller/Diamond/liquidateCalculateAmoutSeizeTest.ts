@@ -24,17 +24,17 @@ const collateralPrice = convertToUnit(1, 18);
 const repayAmount = convertToUnit(1, 18);
 
 async function calculateSeizeTokens(
-  borrower: string,
   comptroller: ComptrollerMock,
   vTokenBorrowed: FakeContract<VBep20Immutable>,
   vTokenCollateral: FakeContract<VBep20Immutable>,
   repayAmount: BigNumberish,
+  liquidationIncentiveMantissa: BigNumberish,
 ) {
   return comptroller.liquidateCalculateSeizeTokens(
-    borrower,
     vTokenBorrowed.address,
     vTokenCollateral.address,
     repayAmount,
+    liquidationIncentiveMantissa,
   );
 }
 
@@ -47,10 +47,8 @@ describe("Comptroller", () => {
   let oracle: FakeContract<PriceOracle>;
   let vTokenBorrowed: FakeContract<VBep20Immutable>;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
-  let borrower: string;
 
   type LiquidateFixture = {
-    borrower: string;
     comptroller: ComptrollerMock;
     comptrollerLens: MockContract<ComptrollerLens>;
     oracle: FakeContract<PriceOracle>;
@@ -63,8 +61,6 @@ describe("Comptroller", () => {
   }
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
-    const [borrowerSigner] = await ethers.getSigners();
-    const borrower = await borrowerSigner.getAddress();
     const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");
@@ -75,7 +71,19 @@ describe("Comptroller", () => {
     accessControl.isAllowedToCall.returns(true);
 
     const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
-    const liquidationManager = await LiquidationManager.deploy();
+
+    // constructor parameters
+    const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+    const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+    const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+
+    const liquidationManager = await LiquidationManager.deploy(
+      baseCloseFactorMantissa,
+      defaultCloseFactorMantissa,
+      targetHealthFactor,
+    );
+    await liquidationManager.deployed();
+    await liquidationManager.initialize(accessControl.address);
 
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
@@ -89,7 +97,7 @@ describe("Comptroller", () => {
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
 
-    return { borrower, comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
+    return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
 
   async function configure({ comptroller, vTokenCollateral, oracle, vTokenBorrowed }: LiquidateFixture) {
@@ -109,18 +117,20 @@ describe("Comptroller", () => {
   beforeEach(async () => {
     const contracts = await loadFixture(liquidateFixture);
     await configure(contracts);
-    ({ borrower, comptroller, vTokenBorrowed, oracle, vTokenCollateral } = contracts);
+    ({ comptroller, vTokenBorrowed, oracle, vTokenCollateral } = contracts);
   });
 
   describe("liquidateCalculateAmountSeize", () => {
+    const liquidationIncentiveMantissa = convertToUnit("1.1", 18);
+
     it("fails if borrowed asset price is 0", async () => {
       setOraclePrice(vTokenBorrowed, 0);
       const [err, result] = await calculateSeizeTokens(
-        borrower,
         comptroller,
         vTokenBorrowed,
         vTokenCollateral,
         repayAmount,
+        liquidationIncentiveMantissa,
       );
       expect(err).to.equal(ComptrollerErrorReporter.Error.PRICE_ERROR);
       expect(result).to.equal(0);
@@ -129,25 +139,33 @@ describe("Comptroller", () => {
     it("fails if collateral asset price is 0", async () => {
       setOraclePrice(vTokenCollateral, 0);
       const [err, result] = await calculateSeizeTokens(
-        borrower,
         comptroller,
         vTokenBorrowed,
         vTokenCollateral,
         repayAmount,
+        liquidationIncentiveMantissa,
       );
       expect(err).to.equal(ComptrollerErrorReporter.Error.PRICE_ERROR);
       expect(result).to.equal(0);
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      await expect(calculateSeizeTokens(borrower, comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256))
-        .to.be.reverted;
+      await expect(
+        calculateSeizeTokens(
+          comptroller,
+          vTokenBorrowed,
+          vTokenCollateral,
+          constants.MaxUint256,
+          liquidationIncentiveMantissa,
+        ),
+      ).to.be.reverted;
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {
       setOraclePrice(vTokenBorrowed, constants.MaxUint256);
-      await expect(calculateSeizeTokens(borrower, comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be
-        .reverted;
+      await expect(
+        calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount, liquidationIncentiveMantissa),
+      ).to.be.reverted;
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {
@@ -156,10 +174,10 @@ describe("Comptroller", () => {
       /// TODO: Somehow the error message does not get propagated into the resulting tx. Smock bug?
       await expect(
         comptroller.liquidateCalculateSeizeTokens(
-          borrower,
           vTokenBorrowed.address,
           vTokenCollateral.address,
           repayAmount,
+          liquidationIncentiveMantissa,
         ),
       ).to.be.reverted; // revertedWith("exchangeRateStored: exchangeRateStoredInternal failed");
     });
@@ -186,11 +204,11 @@ describe("Comptroller", () => {
         const seizeTokens = seizeAmount / exchangeRate;
 
         const [err, result] = await calculateSeizeTokens(
-          borrower,
           comptroller,
           vTokenBorrowed,
           vTokenCollateral,
           repayAmount,
+          liquidationIncentive,
         );
         expect(err).to.equal(ComptrollerErrorReporter.Error.NO_ERROR);
         expect(Number(result)).to.be.approximately(Number(seizeTokens), 1e7);
