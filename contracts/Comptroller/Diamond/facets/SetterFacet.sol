@@ -581,12 +581,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Set the whitelisted executors
+     * @notice Set the whitelisted executor
      * @param executor The address of the executor to be set
      * @param status The status of the executor (true=whitelisted, false=not whitelisted)
      */
-    function setWhitelistedExecutors(address executor, bool status) external {
-        ensureAllowed("setWhitelistedExecutors(address,bool)");
+    function _setWhitelistedExecutor(address executor, bool status) external {
+        ensureAllowed("_setWhitelistedExecutor(address,bool)");
         ensureNonzeroAddress(executor);
         emit WhitelistedExecutorsUpdated(executor, whitelistedExecutors[executor], status);
         whitelistedExecutors[executor] = status;

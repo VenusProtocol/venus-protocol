@@ -15,6 +15,13 @@ interface IPolicyFacet {
 
     function borrowAllowed(address vToken, address borrower, uint256 borrowAmount) external returns (uint256);
 
+    function borrowAllowed(
+        address vToken,
+        address borrower,
+        address receiver,
+        uint256 borrowAmount
+    ) external returns (uint256);
+
     function borrowVerify(address vToken, address borrower, uint256 borrowAmount) external;
 
     function repayBorrowAllowed(
