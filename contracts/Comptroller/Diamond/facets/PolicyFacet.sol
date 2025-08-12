@@ -146,6 +146,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkActionPauseState(vToken, Action.BORROW);
         ensureListed(markets[vToken]);
 
+        if (whitelistedExecutors[receiver]) {
+            return uint256(Error.NO_ERROR);
+        }
+
         uint256 borrowCap = borrowCaps[vToken];
         require(borrowCap != 0, "market borrow cap is 0");
 
