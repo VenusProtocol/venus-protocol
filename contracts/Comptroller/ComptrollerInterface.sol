@@ -28,6 +28,12 @@ contract ComptrollerInterface {
     function borrowAllowed(
         address vToken,
         address borrower,
+        uint borrowAmount
+    ) external returns (uint);
+
+    function borrowAllowed(
+        address vToken,
+        address borrower,
         address receiver,
         uint borrowAmount
     ) external returns (uint);
