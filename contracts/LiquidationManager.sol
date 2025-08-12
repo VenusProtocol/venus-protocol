@@ -64,7 +64,6 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
 
     /**
      * @notice Constructor for the LiquidationManager contract.
-     * @param accessControlManager_ The address of the Access Control Manager.
      * @param baseCloseFactorMantissa_ The base close factor, scaled by 1e18.
      * @param defaultCloseFactorMantissa_ The default close factor, scaled by 1e18.
      * @param targetHealthFactor_ The target health factor, scaled by 1e18.
@@ -73,12 +72,7 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
      *      Reverts with `InvalidDefaultCloseFactor` if `_defaultCloseFactorMantissa` is invalid.
      *      Reverts with `InvalidTargetHealthFactor` if `_targetHealthFactor` is invalid.
      */
-    constructor(
-        address accessControlManager_,
-        uint256 baseCloseFactorMantissa_,
-        uint256 defaultCloseFactorMantissa_,
-        uint256 targetHealthFactor_
-    ) {
+    constructor(uint256 baseCloseFactorMantissa_, uint256 defaultCloseFactorMantissa_, uint256 targetHealthFactor_) {
         if (baseCloseFactorMantissa_ > mantissaOne || baseCloseFactorMantissa_ > defaultCloseFactorMantissa_) {
             revert InvalidBaseCloseFactor();
         }
@@ -92,8 +86,14 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
         baseCloseFactorMantissa = baseCloseFactorMantissa_;
         defaultCloseFactorMantissa = defaultCloseFactorMantissa_;
         targetHealthFactor = targetHealthFactor_;
+    }
 
-        __AccessControlled_init_unchained(accessControlManager_);
+    /**
+     * @notice Initializes the contract with the access control manager.
+     * @param accessControlManager_ The address of the access control manager contract.
+     */
+    function initialize(address accessControlManager_) external initializer {
+        __AccessControlled_init(accessControlManager_);
     }
 
     /**
