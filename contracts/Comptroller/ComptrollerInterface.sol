@@ -166,6 +166,10 @@ interface ComptrollerInterface {
         uint256 liquidationThresholdAvg,
         uint256 healthFactor
     ) external view returns (uint256);
+
+    function getCollateralFactor(address vToken) external view returns (uint256);
+
+    function getLiquidationThreshold(address vToken) external view returns (uint256);
 }
 
 interface IVAIVault {

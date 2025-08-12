@@ -500,14 +500,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 repayAmount
     ) internal view returns (ComptrollerLensInterface.AccountSnapshot memory) {
         (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = comptrollerLens
-            .getAccountHealthSnapshot(
-                address(comptroller),
-                borrower,
-                VToken(vTokenCollateral),
-                0,
-                repayAmount,
-                comptroller.getLiquidationThreshold
-            );
+            .getAccountHealthSnapshot(address(comptroller), borrower, VToken(vTokenCollateral), 0, repayAmount);
         if (err != 0) revert SnapshotError(err);
         return snapshot;
     }

@@ -145,16 +145,14 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        uint256 borrowAmount
     ) internal view returns (Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
             vTokenModify,
             redeemTokens,
-            borrowAmount,
-            weight
+            borrowAmount
         );
         return (Error(err), liquidity, shortfall);
     }
@@ -166,7 +164,6 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
      * @return err Error code
      * @return shortfall Shortfall amount, if any
      * @return liquidationThresholdAvg Average liquidation threshold
@@ -179,8 +176,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        uint256 borrowAmount
     )
         internal
         view
@@ -199,8 +195,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             account,
             vTokenModify,
             redeemTokens,
-            borrowAmount,
-            weight
+            borrowAmount
         );
 
         shortfall = snapshot.shortfall;
@@ -260,8 +255,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             redeemer,
             VToken(vToken),
             redeemTokens,
-            0,
-            this.getCollateralFactor
+            0
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -317,8 +311,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             borrower,
             VToken(vToken),
             0,
-            0,
-            this.getLiquidationThreshold
+            0
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);

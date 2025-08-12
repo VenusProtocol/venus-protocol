@@ -50,8 +50,7 @@ interface ComptrollerLensInterface {
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        uint256 borrowAmount
     ) external view returns (uint256, uint256, uint256);
 
     function getAccountHealthSnapshot(
@@ -59,7 +58,6 @@ interface ComptrollerLensInterface {
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        uint256 borrowAmount
     ) external view returns (uint256, AccountSnapshot memory);
 }

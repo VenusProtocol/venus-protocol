@@ -111,7 +111,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
      * @return Returns a tuple of error code, liquidity, and shortfall
      */
     function getHypotheticalAccountLiquidity(
@@ -119,8 +118,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        uint256 borrowAmount
     ) external view returns (uint256, uint256, uint256) {
         (uint256 errorCode, AccountSnapshot memory vars) = _calculateAccountPosition(
             comptroller,
@@ -128,7 +126,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            weight
+            ComptrollerInterface(comptroller).getCollateralFactor
         );
 
         return (errorCode, vars.liquidity, vars.shortfall);
@@ -142,7 +140,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
      * @return Returns AccountSnapshot struct containing the account's position
      */
     function getAccountHealthSnapshot(
@@ -150,8 +147,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        uint256 borrowAmount
     ) external view returns (uint256, AccountSnapshot memory) {
         (uint256 errorCode, AccountSnapshot memory vars) = _calculateAccountPosition(
             comptroller,
@@ -159,7 +155,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            weight
+            ComptrollerInterface(comptroller).getLiquidationThreshold
         );
 
         return (errorCode, vars);
