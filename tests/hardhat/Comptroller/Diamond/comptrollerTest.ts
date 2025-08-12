@@ -897,7 +897,9 @@ describe("Comptroller", () => {
         expect(
           await comptroller
             .connect(vToken.wallet)
-            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+            .callStatic[
+              "borrowAllowed(address,address,uint256)"
+            ](vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.equal(0); // 0 means "no error"
       });
 
@@ -913,7 +915,9 @@ describe("Comptroller", () => {
         await expect(
           comptroller
             .connect(vToken.wallet)
-            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+            .callStatic[
+              "borrowAllowed(address,address,uint256)"
+            ](vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.be.revertedWith("market borrow cap reached");
       });
 
@@ -929,7 +933,9 @@ describe("Comptroller", () => {
         await expect(
           comptroller
             .connect(vToken.wallet)
-            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+            .callStatic[
+              "borrowAllowed(address,address,uint256)"
+            ](vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.be.revertedWith("market borrow cap is 0");
       });
     });

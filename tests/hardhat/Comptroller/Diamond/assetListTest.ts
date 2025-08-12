@@ -271,7 +271,9 @@ describe("Comptroller: assetListTest", () => {
 
     it("enters when called by a vtoken", async () => {
       await setBalance(await BAT.wallet.getAddress(), 10n ** 18n);
-      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
+      await comptroller
+        .connect(BAT.wallet)
+        ["borrowAllowed(address,address,uint256)"](BAT.address, await customer.getAddress(), 1);
 
       const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
 
@@ -282,7 +284,9 @@ describe("Comptroller: assetListTest", () => {
 
     it("reverts when called by not a vtoken", async () => {
       await expect(
-        comptroller.connect(customer).borrowAllowed(BAT.address, await customer.getAddress(), 1),
+        comptroller
+          .connect(customer)
+          ["borrowAllowed(address,address,uint256)"](BAT.address, await customer.getAddress(), 1),
       ).to.be.revertedWith("sender must be vToken");
 
       const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
@@ -294,9 +298,13 @@ describe("Comptroller: assetListTest", () => {
 
     it("adds to the asset list only once", async () => {
       await setBalance(await BAT.wallet.getAddress(), 10n ** 18n);
-      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
+      await comptroller
+        .connect(BAT.wallet)
+        ["borrowAllowed(address,address,uint256)"](BAT.address, await customer.getAddress(), 1);
 
-      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
+      await comptroller
+        .connect(BAT.wallet)
+        ["borrowAllowed(address,address,uint256)"](BAT.address, await customer.getAddress(), 1);
       const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
       expect(assetsIn).to.deep.equal([BAT.address]);
     });
