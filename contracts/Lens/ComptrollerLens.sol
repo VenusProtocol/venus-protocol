@@ -18,52 +18,20 @@ import "../Tokens/VAI/VAIControllerInterface.sol";
  */
 contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {
     /**
-     * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
-     *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
-     *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
-     */
-    struct AccountLiquidityLocalVars {
-        // Total collateral value supplied by the account (USD, scaled by 1e18)
-        uint256 totalCollateral;
-        // Collateral value weighted by each asset's liquidation threshold or collateral factor (USD, scaled by 1e18)
-        uint256 weightedCollateral;
-        // Total borrowed value by the account (USD, scaled by 1e18)
-        uint256 borrows;
-        // Balance of vTokens held by the account (vTokens)
-        uint256 vTokenBalance;
-        // Outstanding borrow balance for the account (underlying asset units)
-        uint256 borrowBalance;
-        // Exchange rate between vToken and underlying asset (scaled by 1e18)
-        uint256 exchangeRateMantissa;
-        // Price of the underlying asset from the oracle (USD, scaled by 1e18)
-        uint256 oraclePriceMantissa;
-        // Amount of excess collateral available for borrowing (USD, scaled by 1e18)
-        uint256 liquidity;
-        // Amount by which the account is undercollateralized (USD, scaled by 1e18)
-        uint256 shortfall;
-        // Average liquidation threshold across all supplied assets (scaled by 1e18)
-        uint256 liquidationThresholdAvg;
-        // Health factor of the account, used to assess liquidation risk (scaled by 1e18)
-        uint256 healthFactor;
-        // Generic error code for operations
-        uint256 err;
-    }
-
-    /**
      * @notice Computes the number of collateral tokens to be seized in a liquidation event
-     * @param borrower Address of the borrower
      * @param comptroller Address of comptroller
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
+     * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
      * @return A tuple of error code, and tokens to seize
      */
     function liquidateCalculateSeizeTokens(
-        address borrower,
         address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256) {
         /* Read oracle prices for borrowed and collateral markets */
         uint256 priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
@@ -81,10 +49,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
         uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored();
-        uint256 liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getDynamicLiquidationIncentive(
-            borrower,
-            vTokenCollateral
-        );
 
         uint256 seizeTokens = _calculateSeizeTokens(
             actualRepayAmount,
@@ -99,17 +63,17 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
     /**
      * @notice Computes the number of VAI tokens to be seized in a liquidation event
-     * @param borrower Address of the borrower
      * @param comptroller Address of comptroller
      * @param vTokenCollateral Address of collateral for vToken
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of the total borrowed amount
+     * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
      * @return A tuple of error code, and tokens to seize
      */
     function liquidateVAICalculateSeizeTokens(
-        address borrower,
         address comptroller,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256) {
         /* Read oracle prices for borrowed and collateral markets */
         uint256 priceBorrowedMantissa = 1e18; // Note: this is VAI
@@ -127,10 +91,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
         uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
-        uint256 liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getDynamicLiquidationIncentive(
-            borrower,
-            vTokenCollateral
-        );
 
         uint256 seizeTokens = _calculateSeizeTokens(
             actualRepayAmount,
@@ -151,6 +111,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
+     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
      * @return Returns a tuple of error code, liquidity, and shortfall
      */
     function getHypotheticalAccountLiquidity(
@@ -161,7 +122,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
     ) external view returns (uint256, uint256, uint256) {
-        (uint256 errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
+        (uint256 errorCode, AccountSnapshot memory vars) = _calculateAccountPosition(
             comptroller,
             account,
             vTokenModify,
@@ -181,7 +142,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @return Returns a tuple of error code, average liquidation threshold, total collateral and health factor.
+     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
+     * @return Returns AccountSnapshot struct containing the account's position
      */
     function getAccountHealthSnapshot(
         address comptroller,
@@ -190,8 +152,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 redeemTokens,
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
-    ) external view returns (uint256, uint256, uint256, uint256, uint256) {
-        (uint256 errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
+    ) external view returns (uint256, AccountSnapshot memory) {
+        (uint256 errorCode, AccountSnapshot memory vars) = _calculateAccountPosition(
             comptroller,
             account,
             vTokenModify,
@@ -200,7 +162,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             weight
         );
 
-        return (errorCode, vars.shortfall, vars.liquidationThresholdAvg, vars.totalCollateral, vars.healthFactor);
+        return (errorCode, vars);
     }
 
     /**
@@ -210,8 +172,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
+     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
      * @return errorCode Returns an error code indicating success or failure
-     * @return vars Returns an AccountLiquidityLocalVars struct containing the calculated values
+     * @return vars Returns an AccountSnapshot struct containing the calculated values
      * @dev This function processes all assets the account is in, calculates their balances, prices,
      *      and computes the total collateral, borrows, and effects of the hypothetical actions.
      *      It also calculates the health factor and average liquidation threshold.
@@ -223,7 +186,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 redeemTokens,
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
-    ) internal view returns (uint256 errorCode, AccountLiquidityLocalVars memory vars) {
+    ) internal view returns (uint256 errorCode, AccountSnapshot memory vars) {
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         uint256 assetsCount = assets.length;
@@ -298,11 +261,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
     /**
      * @notice Finalizes the snapshot of the account's position
-     * @param snapshot The AccountLiquidityLocalVars struct containing the calculated values
+     * @param snapshot The AccountSnapshot struct containing the calculated values
      * @return Returns health factor, average liquidation threshold, liquidity and shortfall.
      */
     function _finalizeSnapshot(
-        AccountLiquidityLocalVars memory snapshot
+        AccountSnapshot memory snapshot
     ) internal pure returns (uint256, uint256, uint256, uint256) {
         uint256 healthFactor;
         if (snapshot.totalCollateral > 0) {

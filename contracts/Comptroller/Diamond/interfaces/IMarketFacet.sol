@@ -8,16 +8,16 @@ interface IMarketFacet {
     function isComptroller() external pure returns (bool);
 
     function liquidateCalculateSeizeTokens(
-        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
     function liquidateVAICalculateSeizeTokens(
-        address borrower,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
     function checkMembership(address account, VToken vToken) external view returns (bool);

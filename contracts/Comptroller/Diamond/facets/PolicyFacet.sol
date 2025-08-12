@@ -8,6 +8,7 @@ import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
+import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
 
 /**
  * @title PolicyFacet
@@ -222,13 +223,15 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param repayAmount The amount of underlying being repaid
+     * @param snapshot The account snapshot of the borrower
      */
     function liquidateBorrowAllowed(
         address vTokenBorrowed,
         address vTokenCollateral,
         address liquidator,
         address borrower,
-        uint256 repayAmount
+        uint256 repayAmount,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external view returns (uint256) {
         checkProtocolPauseState();
 
@@ -256,31 +259,23 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint(Error.NO_ERROR);
         }
 
-        /* The borrower must have shortfall in order to be liquidatable */
-        (
-            Error err,
-            uint256 shortfall,
-            uint256 liquidationThresholdAvg,
-            uint256 totalCollateral,
-
-        ) = getHypotheticalHealthSnapshot(borrower, VToken(address(0)), 0, 0, this.getLiquidationThreshold);
-
-        if (err != Error.NO_ERROR) {
-            return uint256(err);
-        }
-        if (shortfall == 0) {
+        if (snapshot.shortfall == 0) {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
         // Call getDynamicLiquidationIncentive from MarketFacet via diamond proxy
-        uint256 dynamicLiquidationIncentive = this.getDynamicLiquidationIncentive(borrower, vTokenCollateral);
+        uint256 dynamicLiquidationIncentive = this.getDynamicLiquidationIncentive(
+            vTokenCollateral,
+            snapshot.liquidationThresholdAvg,
+            snapshot.healthFactor
+        );
 
         Market storage marketCollateral = markets[vTokenCollateral];
         uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
             vTokenBorrowed,
             borrowBalance,
-            liquidationThresholdAvg,
-            totalCollateral,
+            snapshot.liquidationThresholdAvg,
+            snapshot.totalCollateral,
             dynamicLiquidationIncentive,
             marketCollateral.maxLiquidationIncentiveMantissa
         );

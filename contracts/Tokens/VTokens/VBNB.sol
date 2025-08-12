@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VToken } from "./VToken.sol";
+import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title Venus's vBNB Contract
@@ -124,8 +125,12 @@ contract VBNB is VToken {
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      */
     // @custom:event Emit LiquidateBorrow event on success
-    function liquidateBorrow(address borrower, VToken vTokenCollateral) external payable {
-        (uint err, ) = liquidateBorrowInternal(borrower, msg.value, vTokenCollateral);
+    function liquidateBorrow(
+        address borrower,
+        VToken vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) external payable {
+        (uint err, ) = liquidateBorrowInternal(borrower, msg.value, vTokenCollateral, snapshot);
         requireNoError(err, "liquidateBorrow failed");
     }
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { ComptrollerLensInterface } from "./Comptroller/ComptrollerLensInterface.sol";
 
 interface IVToken is IERC20Upgradeable {
     function accrueInterest() external returns (uint256);
@@ -28,7 +29,8 @@ interface IVBep20 is IVToken {
     function liquidateBorrow(
         address borrower,
         uint256 repayAmount,
-        IVToken vTokenCollateral
+        IVToken vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external returns (uint256);
 
     function underlying() external view returns (address);
@@ -46,7 +48,8 @@ interface IVAIController {
     function liquidateVAI(
         address borrower,
         uint256 repayAmount,
-        IVToken vTokenCollateral
+        IVToken vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external returns (uint256, uint256);
 
     function repayVAIBehalf(address borrower, uint256 amount) external returns (uint256, uint256);
@@ -74,6 +77,16 @@ interface IComptroller {
     function liquidationIncentiveMantissa() external view returns (uint256);
 
     function getDynamicLiquidationIncentive(address borrower, address vToken) external view returns (uint256);
+
+    function getDynamicLiquidationIncentive(
+        address vToken,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256);
+
+    function getCollateralFactor(address vToken) external view returns (uint256);
+
+    function getLiquidationThreshold(address vToken) external view returns (uint256);
 
     function vaiController() external view returns (IVAIController);
 

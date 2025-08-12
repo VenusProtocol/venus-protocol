@@ -12,6 +12,7 @@ import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IFacetBase } from "../interfaces/IFacetBase.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title FacetBase
@@ -165,6 +166,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
      * @return err Error code
      * @return shortfall Shortfall amount, if any
      * @return liquidationThresholdAvg Average liquidation threshold
@@ -191,8 +193,20 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         )
     {
         uint256 rawErr;
-        (rawErr, shortfall, liquidationThresholdAvg, totalCollateral, healthFactor) = comptrollerLens
-            .getAccountHealthSnapshot(address(this), account, vTokenModify, redeemTokens, borrowAmount, weight);
+        ComptrollerLensInterface.AccountSnapshot memory snapshot;
+        (rawErr, snapshot) = comptrollerLens.getAccountHealthSnapshot(
+            address(this),
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount,
+            weight
+        );
+
+        shortfall = snapshot.shortfall;
+        liquidationThresholdAvg = snapshot.liquidationThresholdAvg;
+        totalCollateral = snapshot.totalCollateral;
+        healthFactor = snapshot.healthFactor;
 
         err = Error(rawErr);
     }
@@ -268,6 +282,28 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
 
     /**
      * @notice Get the liquidation incentive for a borrower
+     * @param vToken The address of the vToken to be seized
+     * @param liquidationThresholdAvg The average liquidation threshold for the borrower
+     * @param healthFactor The health factor of the borrower
+     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address vToken,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256 incentive) {
+        Market storage market = markets[vToken];
+
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
+            healthFactor,
+            liquidationThresholdAvg,
+            market.maxLiquidationIncentiveMantissa
+        );
+    }
+
+    /**
+     * @notice Get the liquidation incentive for a borrower
      * @param borrower The address of the borrower
      * @param vToken The address of the vToken to be seized
      * @return incentive The liquidation incentive for the borrower, scaled by 1e18
@@ -294,7 +330,6 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             liquidationThresholdAvg,
             market.maxLiquidationIncentiveMantissa
         );
-        return incentive;
     }
 
     /**

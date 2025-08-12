@@ -73,20 +73,21 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param vTokenBorrowed The address of the borrowed vToken
      * @param vTokenCollateral The address of the collateral vToken
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @param liquidationIncentiveMantissa The liquidation incentive to apply
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateCalculateSeizeTokens(
-        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256) {
         (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            borrower,
             address(this),
             vTokenBorrowed,
             vTokenCollateral,
-            actualRepayAmount
+            actualRepayAmount,
+            liquidationIncentiveMantissa
         );
         return (err, seizeTokens);
     }
@@ -96,18 +97,19 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
      * @param vTokenCollateral The address of the collateral vToken
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @param liquidationIncentiveMantissa The liquidation incentive to apply
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateVAICalculateSeizeTokens(
-        address borrower,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256) {
         (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
-            borrower,
             address(this),
             vTokenCollateral,
-            actualRepayAmount
+            actualRepayAmount,
+            liquidationIncentiveMantissa
         );
         return (err, seizeTokens);
     }

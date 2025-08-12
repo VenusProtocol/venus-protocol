@@ -7,6 +7,7 @@ import { TokenErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VTokenInterface } from "./VTokenInterfaces.sol";
+import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -1236,12 +1237,14 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param borrower The borrower of this vToken to be liquidated
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @param repayAmount The amount of the underlying borrowed asset to repay
+     * @param snapshot The account snapshot of the borrower
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function liquidateBorrowInternal(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -1256,16 +1259,17 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         // liquidateBorrowFresh emits borrow-specific logs on errors, so we don't need to
-        return liquidateBorrowFresh(msg.sender, borrower, repayAmount, vTokenCollateral);
+        return liquidateBorrowFresh(msg.sender, borrower, repayAmount, vTokenCollateral, snapshot);
     }
 
     /**
      * @notice The liquidator liquidates the borrowers collateral.
      *  The collateral seized is transferred to the liquidator.
-     * @param borrower The borrower of this vToken to be liquidated
      * @param liquidator The address repaying the borrow and seizing collateral
-     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param borrower The borrower of this vToken to be liquidated
      * @param repayAmount The amount of the underlying borrowed asset to repay
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param snapshot The account snapshot of the borrower
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     // solhint-disable-next-line code-complexity
@@ -1273,15 +1277,18 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
+        uint errorCode;
         uint allowed = comptroller.liquidateBorrowAllowed(
             address(this),
             address(vTokenCollateral),
             liquidator,
             borrower,
-            repayAmount
+            repayAmount,
+            snapshot
         );
         if (allowed != 0) {
             return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
@@ -1313,9 +1320,10 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Fail if repayBorrow fails */
-        (uint repayBorrowError, uint actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
-        if (repayBorrowError != uint(Error.NO_ERROR)) {
-            return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
+        uint actualRepayAmount;
+        (errorCode, actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
+        if (errorCode != uint(Error.NO_ERROR)) {
+            return (fail(Error(errorCode), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
         }
 
         /////////////////////////
@@ -1323,27 +1331,32 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We calculate the number of collateral tokens that will be seized */
-        (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
-            borrower,
+        uint256 liquidationIncentiveMantissa = comptroller.getDynamicLiquidationIncentive(
+            address(vTokenCollateral),
+            snapshot.liquidationThresholdAvg,
+            snapshot.healthFactor
+        );
+        uint seizeTokens;
+        (errorCode, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
             address(this),
             address(vTokenCollateral),
-            actualRepayAmount
+            actualRepayAmount,
+            liquidationIncentiveMantissa
         );
-        require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
+        require(errorCode == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
         /* Revert if borrower collateral token balance < seizeTokens */
         require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
 
         // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
-        uint seizeError;
         if (address(vTokenCollateral) == address(this)) {
-            seizeError = seizeInternal(address(this), liquidator, borrower, seizeTokens);
+            errorCode = seizeInternal(address(this), liquidator, borrower, seizeTokens);
         } else {
-            seizeError = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
+            errorCode = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
         }
 
         /* Revert if seize tokens fails (since we cannot be sure of side effects) */
-        require(seizeError == uint(Error.NO_ERROR), "token seizure failed");
+        require(errorCode == uint(Error.NO_ERROR), "token seizure failed");
 
         /* We emit a LiquidateBorrow event */
         emit LiquidateBorrow(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
