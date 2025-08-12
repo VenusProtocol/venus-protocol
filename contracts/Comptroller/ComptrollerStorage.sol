@@ -280,3 +280,8 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
 }
+
+contract ComptrollerV17Storage is ComptrollerV16Storage {
+    /// @notice Accounts that are whitelisted to execute certain actions (seize, borrow etc) without restrictions
+    mapping(address => bool) public whitelistedExecutors;
+}

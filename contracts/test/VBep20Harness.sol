@@ -165,7 +165,7 @@ contract VBep20Harness is VBep20Immutable {
     }
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {
-        return comptroller.borrowAllowed(address(this), msg.sender, amount);
+        return comptroller.borrowAllowed(address(this), msg.sender, msg.sender, amount);
     }
 }
 
@@ -417,7 +417,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
     }
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {
-        return comptroller.borrowAllowed(address(this), msg.sender, amount);
+        return comptroller.borrowAllowed(address(this), msg.sender, msg.sender, amount);
     }
 }
 

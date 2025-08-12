@@ -107,6 +107,40 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function borrowAllowed(address vToken, address borrower, uint256 borrowAmount) external returns (uint256) {
+        return _borrowAllowed(vToken, borrower, address(0), borrowAmount);
+    }
+
+    /**
+     * @notice Checks if the account should be allowed to borrow the underlying asset of the given market
+     * @param vToken The market to verify the borrow against
+     * @param borrower The account which would borrow the asset
+     * @param receiver The account which would receive the borrowed asset
+     * @param borrowAmount The amount of underlying the account would borrow
+     * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
+     */
+    function borrowAllowed(
+        address vToken,
+        address borrower,
+        address receiver,
+        uint256 borrowAmount
+    ) external returns (uint256) {
+        return _borrowAllowed(vToken, borrower, receiver, borrowAmount);
+    }
+
+    /**
+     * @notice Checks if the account should be allowed to borrow the underlying asset of the given market
+     * @param vToken The market to verify the borrow against
+     * @param borrower The account which would borrow the asset
+     * @param receiver The account which would receive the borrowed asset
+     * @param borrowAmount The amount of underlying the account would borrow
+     * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
+     */
+    function _borrowAllowed(
+        address vToken,
+        address borrower,
+        address receiver,
+        uint256 borrowAmount
+    ) internal returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
@@ -309,12 +343,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external returns (uint256) {
-        address VBNB_ADDRESS = 0xA07c5b74C9B40447a954e1466938b865b6BBea36;
-        address COLLATERAL_SWAPPER_ADDRESS = 0x1234567890123456789012345678901234567890; // not deployed yet
-        if (vTokenCollateral == VBNB_ADDRESS && vTokenBorrowed == COLLATERAL_SWAPPER_ADDRESS) {
-            return uint256(Error.NO_ERROR);
-        }
-
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
@@ -323,6 +351,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
+
+        if (whitelistedExecutors[liquidator]) {
+            return uint256(Error.NO_ERROR);
+        }
 
         if (!market.accountMembership[borrower]) {
             return uint256(Error.MARKET_NOT_COLLATERAL);

@@ -205,6 +205,6 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {
-        return comptroller.borrowAllowed(address(this), msg.sender, amount);
+        return comptroller.borrowAllowed(address(this), msg.sender, msg.sender, amount);
     }
 }

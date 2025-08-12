@@ -1053,7 +1053,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function borrowFresh(address borrower, address payable receiver, uint borrowAmount) internal returns (uint) {
         /* Revert if borrow not allowed */
-        uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
+        uint allowed = comptroller.borrowAllowed(address(this), borrower, receiver, borrowAmount);
         if (allowed != 0) {
             revert("math error");
         }
