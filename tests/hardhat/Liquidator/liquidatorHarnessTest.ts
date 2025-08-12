@@ -45,9 +45,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   underlying.transfer.returns(true);
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
   vTokenCollateral.underlying.returns(underlying.address);
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-    "contracts/InterfacesV8.sol:IProtocolShareReserve",
-  );
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
 
   const Liquidator = await smock.mock<LiquidatorHarness__factory>("LiquidatorHarness");
   const liquidator = await upgrades.deployProxy(

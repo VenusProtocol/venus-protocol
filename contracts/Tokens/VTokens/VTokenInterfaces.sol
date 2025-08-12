@@ -1,17 +1,7 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
-import "../../Comptroller/ComptrollerInterface.sol";
-import "../../InterestRateModels/InterestRateModel.sol";
-
-interface IProtocolShareReserveV5 {
-    enum IncomeType {
-        SPREAD,
-        LIQUIDATION,
-        FLASHLOAN
-    }
-
-    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
-}
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 
 contract VTokenStorageBase {
     /**
@@ -73,7 +63,7 @@ contract VTokenStorageBase {
     /**
      * @notice Model which tells what the current interest rate should be
      */
-    InterestRateModel public interestRateModel;
+    InterestRateModelV8 public interestRateModel;
 
     /**
      * @notice Initial exchange rate used when minting the first VTokens (used when totalSupply = 0)
@@ -186,7 +176,7 @@ contract VTokenStorage is VTokenStorageBase {
     uint256[46] private __gap;
 }
 
-contract VTokenInterface is VTokenStorage {
+abstract contract VTokenInterface is VTokenStorage {
     /**
      * @notice Indicator that this is a vToken contract (for inspection)
      */
@@ -260,7 +250,10 @@ contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when interestRateModel is changed
      */
-    event NewMarketInterestRateModel(InterestRateModel oldInterestRateModel, InterestRateModel newInterestRateModel);
+    event NewMarketInterestRateModel(
+        InterestRateModelV8 oldInterestRateModel,
+        InterestRateModelV8 newInterestRateModel
+    );
 
     /**
      * @notice Event emitted when the reserve factor is changed
@@ -297,11 +290,6 @@ contract VTokenInterface is VTokenStorage {
      */
     event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserve);
 
-    /**
-     * @notice Failure event
-     */
-    event Failure(uint error, uint info, uint detail);
-
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControlManager(address oldAccessControlAddress, address newAccessControlAddress);
 
@@ -337,62 +325,62 @@ contract VTokenInterface is VTokenStorage {
 
     /*** User Interface ***/
 
-    function transfer(address dst, uint amount) external returns (bool);
+    function transfer(address dst, uint amount) external virtual returns (bool);
 
-    function transferFrom(address src, address dst, uint amount) external returns (bool);
+    function transferFrom(address src, address dst, uint amount) external virtual returns (bool);
 
-    function approve(address spender, uint amount) external returns (bool);
+    function approve(address spender, uint amount) external virtual returns (bool);
 
-    function balanceOfUnderlying(address owner) external returns (uint);
+    function balanceOfUnderlying(address owner) external virtual returns (uint);
 
-    function totalBorrowsCurrent() external returns (uint);
+    function totalBorrowsCurrent() external virtual returns (uint);
 
-    function borrowBalanceCurrent(address account) external returns (uint);
+    function borrowBalanceCurrent(address account) external virtual returns (uint);
 
-    function seize(address liquidator, address borrower, uint seizeTokens) external returns (uint);
-
-    /*** Admin Function ***/
-    function _setPendingAdmin(address payable newPendingAdmin) external returns (uint);
+    function seize(address liquidator, address borrower, uint seizeTokens) external virtual returns (uint);
 
     /*** Admin Function ***/
-    function _acceptAdmin() external returns (uint);
+    function _setPendingAdmin(address payable newPendingAdmin) external virtual returns (uint);
 
     /*** Admin Function ***/
-    function _setReserveFactor(uint newReserveFactorMantissa) external returns (uint);
+    function _acceptAdmin() external virtual returns (uint);
 
     /*** Admin Function ***/
-    function _reduceReserves(uint reduceAmount) external returns (uint);
-
-    function balanceOf(address owner) external view returns (uint);
-
-    function allowance(address owner, address spender) external view returns (uint);
-
-    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint);
-
-    function borrowRatePerBlock() external view returns (uint);
-
-    function supplyRatePerBlock() external view returns (uint);
-
-    function getCash() external view returns (uint);
-
-    function exchangeRateCurrent() public returns (uint);
-
-    function accrueInterest() public returns (uint);
+    function _setReserveFactor(uint newReserveFactorMantissa) external virtual returns (uint);
 
     /*** Admin Function ***/
-    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint);
+    function _reduceReserves(uint reduceAmount) external virtual returns (uint);
+
+    function balanceOf(address owner) external view virtual returns (uint);
+
+    function allowance(address owner, address spender) external view virtual returns (uint);
+
+    function getAccountSnapshot(address account) external view virtual returns (uint, uint, uint, uint);
+
+    function borrowRatePerBlock() external view virtual returns (uint);
+
+    function supplyRatePerBlock() external view virtual returns (uint);
+
+    function getCash() external view virtual returns (uint);
+
+    function exchangeRateCurrent() public virtual returns (uint);
+
+    function accrueInterest() public virtual returns (uint);
 
     /*** Admin Function ***/
-    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint);
+    function _setComptroller(ComptrollerInterface newComptroller) public virtual returns (uint);
 
-    function borrowBalanceStored(address account) public view returns (uint);
+    /*** Admin Function ***/
+    function _setInterestRateModel(InterestRateModelV8 newInterestRateModel) public virtual returns (uint);
 
-    function exchangeRateStored() public view returns (uint);
+    function borrowBalanceStored(address account) public view virtual returns (uint);
 
-    function borrowDebtPosition(address borrower, uint borrowAmount) external returns (uint);
+    function exchangeRateStored() public view virtual returns (uint);
+
+    function borrowDebtPosition(address borrower, uint borrowAmount) external virtual returns (uint);
 }
 
-contract VBep20Interface {
+interface VBep20Interface {
     /*** User Interface ***/
 
     function mint(uint mintAmount) external returns (uint);
@@ -420,7 +408,7 @@ contract VBep20Interface {
     function _addReserves(uint addAmount) external returns (uint);
 }
 
-contract VDelegatorInterface {
+interface VDelegatorInterface {
     /**
      * @notice Emitted when implementation is changed
      */
@@ -436,19 +424,19 @@ contract VDelegatorInterface {
         address implementation_,
         bool allowResign,
         bytes memory becomeImplementationData
-    ) public;
+    ) external;
 }
 
-contract VDelegateInterface {
+interface VDelegateInterface {
     /**
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @dev Should revert if any issues arise which make it unfit for delegation
      * @param data The encoded bytes data for any initialization
      */
-    function _becomeImplementation(bytes memory data) public;
+    function _becomeImplementation(bytes memory data) external;
 
     /**
      * @notice Called by the delegator on a delegate to forfeit its responsibility
      */
-    function _resignImplementation() public;
+    function _resignImplementation() external;
 }

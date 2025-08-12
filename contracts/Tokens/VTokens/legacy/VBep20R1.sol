@@ -1,6 +1,9 @@
 pragma solidity ^0.5.16;
 
-import { VTokenR1, VBep20Interface, ComptrollerInterface, InterestRateModel, VTokenInterface } from "./VTokenR1.sol";
+import { InterestRateModel } from "../../../InterestRateModels/InterestRateModel.sol";
+import { ComptrollerInterface } from "./ComptrollerInterface.sol";
+import { VBep20InterfaceR1, VTokenInterfaceR1 } from "./VTokenInterfaceR1.sol";
+import { VTokenR1 } from "./VTokenR1.sol";
 import { EIP20Interface } from "../../EIP20Interface.sol";
 import { EIP20NonStandardInterface } from "../../EIP20NonStandardInterface.sol";
 
@@ -9,7 +12,7 @@ import { EIP20NonStandardInterface } from "../../EIP20NonStandardInterface.sol";
  * @notice vTokens which wrap an EIP-20 underlying
  * @author Venus
  */
-contract VBep20R1 is VTokenR1, VBep20Interface {
+contract VBep20R1 is VTokenR1, VBep20InterfaceR1 {
     /*** User Interface ***/
 
     /**
@@ -157,7 +160,7 @@ contract VBep20R1 is VTokenR1, VBep20Interface {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceR1 vTokenCollateral
     ) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;

@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.5.16;
+
+pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
-import { IProtocolShareReserveV5, VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
+import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
-import { EIP20Interface } from "../../../Tokens/EIP20Interface.sol";
+import { IProtocolShareReserve } from "../../../external/IProtocolShareReserve.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @title PolicyFacet
  * @author Venus
@@ -131,7 +134,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             }
         }
 
-        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (oracle.getUnderlyingPrice(vToken) == 0) {
             return uint256(Error.PRICE_ERROR);
         }
 
@@ -549,10 +552,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         vToken.transferOutUnderlying(vToken.protocolShareReserve(), protocolFee);
 
         // Update protocol share reserve state
-        IProtocolShareReserveV5(vToken.protocolShareReserve()).updateAssetsState(
+        IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
             address(vToken.comptroller()),
             address(vToken.underlying()),
-            IProtocolShareReserveV5.IncomeType.FLASHLOAN
+            IProtocolShareReserve.IncomeType.FLASHLOAN
         );
     }
 
@@ -571,7 +574,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) internal returns (uint256 actualRepayment, uint256 remainingDebt) {
         VToken vToken = VToken(vTokenAddress);
         uint256 requiredRepayment = amount + totalFee;
-        uint256 currentBalance = EIP20Interface(vToken.underlying()).balanceOf(onBehalfOf);
+        uint256 currentBalance = IERC20(vToken.underlying()).balanceOf(onBehalfOf);
 
         // Calculate actual repayment received
         if (currentBalance > balanceAfterTransfer) {
@@ -594,10 +597,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             uint256 feeFromRepayment = (actualRepayment * protocolFee) / requiredRepayment;
             if (feeFromRepayment > 0) {
                 vToken.transferOutUnderlying(vToken.protocolShareReserve(), feeFromRepayment);
-                IProtocolShareReserveV5(vToken.protocolShareReserve()).updateAssetsState(
+                IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
                     address(vToken.comptroller()),
                     address(vToken.underlying()),
-                    IProtocolShareReserveV5.IncomeType.FLASHLOAN
+                    IProtocolShareReserve.IncomeType.FLASHLOAN
                 );
             }
         }

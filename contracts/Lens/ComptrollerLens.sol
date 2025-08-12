@@ -1,11 +1,10 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.25;
+
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 import "../Tokens/VTokens/VBep20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
-import "../Tokens/EIP20Interface.sol";
-import "../Oracle/PriceOracle.sol";
 import "../Utils/ErrorReporter.sol";
 import "../Comptroller/ComptrollerInterface.sol";
 import "../Comptroller/ComptrollerLensInterface.sol";
@@ -51,12 +50,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint actualRepayAmount
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenBorrowed)
-        );
-        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenCollateral)
-        );
+        uint priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
+        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -99,9 +94,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = 1e18; // Note: this is VAI
-        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenCollateral)
-        );
+        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
         if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -169,7 +162,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(asset);
+            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(address(asset));
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0, 0);
             }

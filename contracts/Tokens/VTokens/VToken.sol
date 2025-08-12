@@ -1,20 +1,20 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
-import "../../Comptroller/ComptrollerInterface.sol";
-import "../../Utils/ErrorReporter.sol";
-import "../../Utils/Exponential.sol";
-import "../../Tokens/EIP20Interface.sol";
-import "../../Tokens/EIP20NonStandardInterface.sol";
-import "../../InterestRateModels/InterestRateModel.sol";
-import "./VTokenInterfaces.sol";
-import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
+import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
+import { IProtocolShareReserve } from "../../external/IProtocolShareReserve.sol";
+import { ComptrollerInterface, IComptroller } from "../../Comptroller/ComptrollerInterface.sol";
+import { TokenErrorReporter } from "../../Utils/ErrorReporter.sol";
+import { Exponential } from "../../Utils/Exponential.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { VTokenInterface } from "./VTokenInterfaces.sol";
 import { IFlashLoanSimpleReceiver } from "../../FlashLoan/interfaces/IFlashLoanSimpleReceiver.sol";
+
 /**
  * @title Venus's vToken Contract
  * @notice Abstract base for vTokens
  * @author Venus
  */
-contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
+abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -70,7 +70,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return Whether or not the transfer succeeded
      */
     // @custom:event Emits Transfer event
-    function transfer(address dst, uint256 amount) external nonReentrant returns (bool) {
+    function transfer(address dst, uint256 amount) external override nonReentrant returns (bool) {
         return transferTokens(msg.sender, msg.sender, dst, amount) == uint(Error.NO_ERROR);
     }
 
@@ -82,7 +82,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return Whether or not the transfer succeeded
      */
     // @custom:event Emits Transfer event
-    function transferFrom(address src, address dst, uint256 amount) external nonReentrant returns (bool) {
+    function transferFrom(address src, address dst, uint256 amount) external override nonReentrant returns (bool) {
         return transferTokens(msg.sender, src, dst, amount) == uint(Error.NO_ERROR);
     }
 
@@ -95,7 +95,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return Whether or not the approval succeeded
      */
     // @custom:event Emits Approval event on successful approve
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(address spender, uint256 amount) external override returns (bool) {
         transferAllowances[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
@@ -107,7 +107,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param owner The address of the account to query
      * @return The amount of underlying owned by `owner`
      */
-    function balanceOfUnderlying(address owner) external returns (uint) {
+    function balanceOfUnderlying(address owner) external override returns (uint) {
         Exp memory exchangeRate = Exp({ mantissa: exchangeRateCurrent() });
         (MathError mErr, uint balance) = mulScalarTruncate(exchangeRate, accountTokens[owner]);
         ensureNoMathError(mErr);
@@ -118,8 +118,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Returns the current total borrows plus accrued interest
      * @return The total borrows with interest
      */
-    function totalBorrowsCurrent() external nonReentrant returns (uint) {
-        ensureAccrueInterest();
+    function totalBorrowsCurrent() external override nonReentrant returns (uint) {
+        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
         return totalBorrows;
     }
 
@@ -128,8 +128,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param account The address whose balance should be calculated after updating borrowIndex
      * @return The calculated balance
      */
-    function borrowBalanceCurrent(address account) external nonReentrant returns (uint) {
-        ensureAccrueInterest();
+    function borrowBalanceCurrent(address account) external override nonReentrant returns (uint) {
+        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
         return borrowBalanceStored(account);
     }
 
@@ -143,7 +143,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits Transfer event
-    function seize(address liquidator, address borrower, uint seizeTokens) external nonReentrant returns (uint) {
+    function seize(
+        address liquidator,
+        address borrower,
+        uint seizeTokens
+    ) external override nonReentrant returns (uint) {
         return seizeInternal(msg.sender, liquidator, borrower, seizeTokens);
     }
 
@@ -154,7 +158,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewPendingAdmin event with old and new admin addresses
-    function _setPendingAdmin(address payable newPendingAdmin) external returns (uint) {
+    function _setPendingAdmin(address payable newPendingAdmin) external override returns (uint) {
         // Check caller = admin
         ensureAdmin(msg.sender);
 
@@ -177,7 +181,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     // @custom:event Emits NewAdmin event on successful acceptance
     // @custom:event Emits NewPendingAdmin event with null new pending admin
-    function _acceptAdmin() external returns (uint) {
+    function _acceptAdmin() external override returns (uint) {
         // Check caller is pendingAdmin
         if (msg.sender != pendingAdmin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_ADMIN_PENDING_ADMIN_CHECK);
@@ -191,7 +195,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         admin = pendingAdmin;
 
         // Clear the pending value
-        pendingAdmin = address(0);
+        pendingAdmin = payable(address(0));
 
         emit NewAdmin(oldAdmin, admin);
         emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
@@ -205,7 +209,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewReserveFactor event
-    function _setReserveFactor(uint newReserveFactorMantissa_) external nonReentrant returns (uint) {
+    function _setReserveFactor(uint newReserveFactorMantissa_) external override nonReentrant returns (uint) {
         ensureAllowed("_setReserveFactor(uint256)");
         checkAccrueInterest(FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
 
@@ -237,7 +241,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesReduced event
-    function _reduceReserves(uint reduceAmount_) external nonReentrant returns (uint) {
+    function _reduceReserves(uint reduceAmount_) external virtual override nonReentrant returns (uint) {
         ensureAllowed("_reduceReserves(uint256)");
         checkAccrueInterest(FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
 
@@ -253,7 +257,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param spender The address of the account which may transfer tokens
      * @return The number of tokens allowed to be spent (-1 means infinite)
      */
-    function allowance(address owner, address spender) external view returns (uint256) {
+    function allowance(address owner, address spender) external view override returns (uint256) {
         return transferAllowances[owner][spender];
     }
 
@@ -262,7 +266,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param owner The address of the account to query
      * @return The number of tokens owned by `owner`
      */
-    function balanceOf(address owner) external view returns (uint256) {
+    function balanceOf(address owner) external view override returns (uint256) {
         return accountTokens[owner];
     }
 
@@ -272,7 +276,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param account Address of the account to snapshot
      * @return (possible error, token balance, borrow balance, exchange rate mantissa)
      */
-    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint) {
+    function getAccountSnapshot(address account) external view override returns (uint, uint, uint, uint) {
         uint vTokenBalance = accountTokens[account];
         uint borrowBalance;
         uint exchangeRateMantissa;
@@ -296,7 +300,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Returns the current per-block supply interest rate for this vToken
      * @return The supply interest rate per block, scaled by 1e18
      */
-    function supplyRatePerBlock() external view returns (uint) {
+    function supplyRatePerBlock() external view override returns (uint) {
         return interestRateModel.getSupplyRate(getCashPrior(), totalBorrows, totalReserves, reserveFactorMantissa);
     }
 
@@ -304,7 +308,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Returns the current per-block borrow interest rate for this vToken
      * @return The borrow interest rate per block, scaled by 1e18
      */
-    function borrowRatePerBlock() external view returns (uint) {
+    function borrowRatePerBlock() external view override returns (uint) {
         return interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
     }
 
@@ -312,7 +316,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Get cash balance of this vToken in the underlying asset
      * @return The quantity of underlying asset owned by this contract
      */
-    function getCash() external view returns (uint) {
+    function getCash() external view override returns (uint) {
         return getCashPrior();
     }
 
@@ -453,10 +457,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // Transfer protocol fee to protocol share reserve
         doTransferOut(protocolShareReserve, protocolFee);
 
-        IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
             underlying,
-            IProtocolShareReserveV5.IncomeType.FLASHLOAN
+            IProtocolShareReserve.IncomeType.FLASHLOAN
         );
 
         emit FlashLoanExecuted(receiver, underlying, amount);
@@ -515,7 +519,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function initialize(
         ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
@@ -556,8 +560,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Accrue interest then return the up-to-date exchange rate
      * @return Calculated exchange rate scaled by 1e18
      */
-    function exchangeRateCurrent() public nonReentrant returns (uint) {
-        ensureAccrueInterest();
+    function exchangeRateCurrent() public override nonReentrant returns (uint) {
+        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
         return exchangeRateStored();
     }
 
@@ -569,7 +573,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * if currentBlock - reduceReservesBlockNumber >= blockDelta
      */
     // @custom:event Emits AccrueInterest event
-    function accrueInterest() public returns (uint) {
+    function accrueInterest() public virtual override returns (uint) {
         /* Remember the initial block number */
         uint currentBlockNumber = block.number;
         uint accrualBlockNumberPrior = accrualBlockNumber;
@@ -695,7 +699,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewComptroller event
-    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
+    function _setComptroller(ComptrollerInterface newComptroller) public override returns (uint) {
         // Check caller is admin
         ensureAdmin(msg.sender);
 
@@ -717,7 +721,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param newInterestRateModel_ The new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setInterestRateModel(InterestRateModel newInterestRateModel_) public returns (uint) {
+    function _setInterestRateModel(InterestRateModelV8 newInterestRateModel_) public override returns (uint) {
         ensureAllowed("_setInterestRateModel(address)");
         checkAccrueInterest(FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
 
@@ -730,7 +734,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev This function does not accrue interest before calculating the exchange rate
      * @return Calculated exchange rate scaled by 1e18
      */
-    function exchangeRateStored() public view returns (uint) {
+    function exchangeRateStored() public view override returns (uint) {
         (MathError err, uint result) = exchangeRateStoredInternal();
         ensureNoMathError(err);
         return result;
@@ -741,7 +745,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param account The address whose balance should be calculated
      * @return The calculated balance
      */
-    function borrowBalanceStored(address account) public view returns (uint) {
+    function borrowBalanceStored(address account) public view override returns (uint) {
         (MathError err, uint result) = borrowBalanceStoredInternal(account);
         ensureNoMathError(err);
         return result;
@@ -756,7 +760,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      It also emits a Borrow event and calls the comptroller's borrowVerify function.
      *      It reverts if the borrow is not allowed, if the market's block number is not current, or if the protocol has insufficient cash.
      */
-    function borrowDebtPosition(address borrower, uint borrowAmount) external returns (uint256) {
+    function borrowDebtPosition(address borrower, uint borrowAmount) external override returns (uint256) {
         /* Revert if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
@@ -866,7 +870,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Get the allowance, infinite for the account owner */
         uint startingAllowance = 0;
         if (spender == src) {
-            startingAllowance = uint(-1);
+            startingAllowance = type(uint256).max;
         } else {
             startingAllowance = transferAllowances[src][spender];
         }
@@ -900,7 +904,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountTokens[dst] = dstTokensNew;
 
         /* Eat some of the allowance (if necessary) */
-        if (startingAllowance != uint(-1)) {
+        if (startingAllowance != type(uint256).max) {
             transferAllowances[src][spender] = allowanceNew;
         }
 
@@ -1244,7 +1248,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             (vars.mathErr, remainedAmount) = subUInt(vars.redeemAmount, feeAmount);
             ensureNoMathError(vars.mathErr);
 
-            doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
+            address payable treasuryAddress = payable(IComptroller(address(comptroller)).treasuryAddress());
+            doTransferOut(treasuryAddress, feeAmount);
 
             emit RedeemFee(redeemer, feeAmount, vars.redeemTokens);
         } else {
@@ -1415,7 +1420,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* If repayAmount == -1, repayAmount = accountBorrows */
-        if (repayAmount == uint(-1)) {
+        if (repayAmount == type(uint256).max) {
             vars.repayAmount = vars.accountBorrows;
         } else {
             vars.repayAmount = repayAmount;
@@ -1533,7 +1538,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Fail if repayAmount = -1 */
-        if (repayAmount == uint(-1)) {
+        if (repayAmount == type(uint256).max) {
             return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
         }
 
@@ -1738,7 +1743,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _reduceReservesFresh(uint reduceAmount) internal returns (uint) {
+    function _reduceReservesFresh(uint reduceAmount) internal virtual returns (uint) {
         if (reduceAmount == 0) {
             return uint(Error.NO_ERROR);
         }
@@ -1771,10 +1776,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
         doTransferOut(protocolShareReserve, reduceAmount);
 
-        IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
             underlying,
-            IProtocolShareReserveV5.IncomeType.SPREAD
+            IProtocolShareReserve.IncomeType.SPREAD
         );
 
         emit ReservesReduced(protocolShareReserve, reduceAmount, totalReservesNew);
@@ -1788,7 +1793,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param newInterestRateModel the new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setInterestRateModelFresh(InterestRateModel newInterestRateModel) internal returns (uint) {
+    function _setInterestRateModelFresh(InterestRateModelV8 newInterestRateModel) internal returns (uint) {
+        // Used to store old model for use in the event that is emitted on success
+        InterestRateModelV8 oldInterestRateModel;
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_INTEREST_RATE_MODEL_FRESH_CHECK);
@@ -1812,14 +1819,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev Performs a transfer in, reverting upon failure. Returns the amount actually transferred to the protocol, in case of a fee.
      *  This may revert due to insufficient balance or insufficient allowance.
      */
-    function doTransferIn(address from, uint amount) internal returns (uint);
+    function doTransferIn(address from, uint amount) internal virtual returns (uint);
 
     /**
      * @dev Performs a transfer out, ideally returning an explanatory error code upon failure rather than reverting.
      *  If caller has not called checked protocol's balance, may revert due to insufficient cash held in the contract.
      *  If caller has checked protocol's balance, and verified it is >= amount, this should not revert in normal conditions.
      */
-    function doTransferOut(address payable to, uint amount) internal;
+    function doTransferOut(address payable to, uint amount) internal virtual;
 
     /**
      * @notice Return the borrow balance of account based on stored data
@@ -1863,7 +1870,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev This function does not accrue interest before calculating the exchange rate
      * @return Tuple of error code and calculated exchange rate scaled by 1e18
      */
-    function exchangeRateStoredInternal() internal view returns (MathError, uint) {
+    function exchangeRateStoredInternal() internal view virtual returns (MathError, uint) {
         uint _totalSupply = totalSupply;
         if (_totalSupply == 0) {
             /*
@@ -1901,7 +1908,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function ensureAllowed(string memory functionSig) private view {
         require(
-            IAccessControlManagerV5(accessControlManager).isAllowedToCall(msg.sender, functionSig),
+            IAccessControlManagerV8(accessControlManager).isAllowedToCall(msg.sender, functionSig),
             "access denied"
         );
     }
@@ -1937,5 +1944,5 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying owned by this contract
      */
-    function getCashPrior() internal view returns (uint);
+    function getCashPrior() internal view virtual returns (uint);
 }

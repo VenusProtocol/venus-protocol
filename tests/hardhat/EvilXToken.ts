@@ -3,7 +3,7 @@ import chai from "chai";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../helpers/utils";
-import { ComptrollerHarness__factory, IAccessControlManagerV5, IProtocolShareReserve } from "../../typechain";
+import { ComptrollerHarness__factory, IAccessControlManagerV8, IProtocolShareReserve } from "../../typechain";
 
 const { expect } = chai;
 
@@ -13,7 +13,7 @@ describe("Evil Token test", async () => {
   beforeEach(async () => {
     const [root, account1] = await ethers.getSigners();
 
-    const accessControlMock = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+    const accessControlMock = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
     accessControlMock.isAllowedToCall.returns(true);
 
     user = account1;
@@ -178,9 +178,7 @@ describe("Evil Token test", async () => {
     await vToken1.connect(user).mint(convertToUnit(1, 4));
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
 
-    const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserveV5",
-    );
+    const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
     protocolShareReserve.updateAssetsState.returns(true);
     await vToken1.setProtocolShareReserve(protocolShareReserve.address);
     await vToken2.setProtocolShareReserve(protocolShareReserve.address);
