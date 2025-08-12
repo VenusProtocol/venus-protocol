@@ -94,7 +94,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
     /// @notice Emitted when whitelisted executors are updated
-    event WhitelistedExecutorsUpdated(address indexed executor, bool status);
+    event WhitelistedExecutorsUpdated(address indexed executor, bool oldStatus, bool newStatus);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -587,9 +587,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
      */
     function setWhitelistedExecutors(address executor, bool status) external {
         ensureAllowed("setWhitelistedExecutors(address,bool)");
-        require(executor != address(0), "executor is zero address");
+        ensureNonzeroAddress(executor);
+        emit WhitelistedExecutorsUpdated(executor, whitelistedExecutors[executor], status);
         whitelistedExecutors[executor] = status;
-        emit WhitelistedExecutorsUpdated(executor, status);
     }
 
     /**
