@@ -10,14 +10,6 @@ interface ComptrollerLensInterface {
         uint256 weightedCollateral;
         // Total borrowed value by the account (USD, scaled by 1e18)
         uint256 borrows;
-        // Balance of vTokens held by the account (vTokens)
-        uint256 vTokenBalance;
-        // Outstanding borrow balance for the account (underlying asset units)
-        uint256 borrowBalance;
-        // Exchange rate between vToken and underlying asset (scaled by 1e18)
-        uint256 exchangeRateMantissa;
-        // Price of the underlying asset from the oracle (USD, scaled by 1e18)
-        uint256 oraclePriceMantissa;
         // Amount of excess collateral available for borrowing (USD, scaled by 1e18)
         uint256 liquidity;
         // Amount by which the account is undercollateralized (USD, scaled by 1e18)
@@ -28,8 +20,6 @@ interface ComptrollerLensInterface {
         uint256 healthFactor;
         // Dynamic liquidation incentive factor applied during liquidations (scaled by 1e18)
         uint256 dynamicLiquidationIncentiveMantissa;
-        // Generic error code for operations
-        uint256 err;
     }
 
     function liquidateCalculateSeizeTokens(
