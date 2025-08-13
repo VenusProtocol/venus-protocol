@@ -170,6 +170,13 @@ interface ComptrollerInterface {
     function getCollateralFactor(address vToken) external view returns (uint256);
 
     function getLiquidationThreshold(address vToken) external view returns (uint256);
+
+    function getHypotheticalHealthSnapshot(
+        address account,
+        VToken vTokenModify,
+        uint redeemTokens,
+        uint borrowAmount
+    ) external view returns (uint256, ComptrollerLensInterface.AccountSnapshot memory);
 }
 
 interface IVAIVault {

@@ -165,10 +165,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
      * @return err Error code
-     * @return shortfall Shortfall amount, if any
-     * @return liquidationThresholdAvg Average liquidation threshold
-     * @return totalCollateral Total collateral in excess of borrow requirements
-     * @return healthFactor Health factor
+     * @return snapshot Snapshot of the account's health and collateral status
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
      *  without calculating accumulated interest.
      */
@@ -177,33 +174,35 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
-    )
-        internal
-        view
-        returns (
-            Error err,
-            uint256 shortfall,
-            uint256 liquidationThresholdAvg,
-            uint256 totalCollateral,
-            uint256 healthFactor
-        )
-    {
-        uint256 rawErr;
-        ComptrollerLensInterface.AccountSnapshot memory snapshot;
-        (rawErr, snapshot) = comptrollerLens.getAccountHealthSnapshot(
+    ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
+        return getHypotheticalHealthSnapshotInternal(account, vTokenModify, redeemTokens, borrowAmount);
+    }
+
+    /**
+     * @notice Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,
+     *          and average liquidation incentive
+     * @param account The account to get the health snapshot for
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param redeemTokens The number of tokens to hypothetically redeem
+     * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @return err Error code
+     * @return snapshot Snapshot of the account's health and collateral status
+     * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
+     *  without calculating accumulated interest.
+     */
+    function getHypotheticalHealthSnapshotInternal(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount
+    ) internal view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
+        (err, snapshot) = comptrollerLens.getAccountHealthSnapshot(
             address(this),
             account,
             vTokenModify,
             redeemTokens,
             borrowAmount
         );
-
-        shortfall = snapshot.shortfall;
-        liquidationThresholdAvg = snapshot.liquidationThresholdAvg;
-        totalCollateral = snapshot.totalCollateral;
-        healthFactor = snapshot.healthFactor;
-
-        err = Error(rawErr);
     }
 
     /**
@@ -307,20 +306,20 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address vToken
     ) external view returns (uint256 incentive) {
         Market storage market = markets[vToken];
-        (Error err, , uint256 liquidationThresholdAvg, , uint256 healthFactor) = getHypotheticalHealthSnapshot(
+        (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = getHypotheticalHealthSnapshotInternal(
             borrower,
             VToken(vToken),
             0,
             0
         );
-        if (err != Error.NO_ERROR) {
-            return uint256(err);
+        if (err != uint256(Error.NO_ERROR)) {
+            return err;
         }
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
             vToken,
-            healthFactor,
-            liquidationThresholdAvg,
+            snapshot.healthFactor,
+            snapshot.liquidationThresholdAvg,
             market.maxLiquidationIncentiveMantissa
         );
     }

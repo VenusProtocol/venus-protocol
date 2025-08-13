@@ -278,7 +278,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             if (repayAmount != msg.value) {
                 revert WrongTransactionAmount(repayAmount, msg.value);
             }
-            vBnb.liquidateBorrow{ value: msg.value }(borrower, vTokenCollateral, snapshot);
+            vBnb.liquidateBorrow{ value: msg.value }(borrower, vTokenCollateral);
         } else {
             if (msg.value != 0) {
                 revert WrongTransactionAmount(0, msg.value);
