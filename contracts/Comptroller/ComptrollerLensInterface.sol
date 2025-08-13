@@ -26,6 +26,8 @@ interface ComptrollerLensInterface {
         uint256 liquidationThresholdAvg;
         // Health factor of the account, used to assess liquidation risk (scaled by 1e18)
         uint256 healthFactor;
+        // Dynamic liquidation incentive factor applied during liquidations (scaled by 1e18)
+        uint256 dynamicLiquidationIncentiveMantissa;
         // Generic error code for operations
         uint256 err;
     }

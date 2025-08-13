@@ -39,7 +39,11 @@ interface IVBep20 is IVToken {
 interface IVBNB is IVToken {
     function repayBorrowBehalf(address borrower) external payable;
 
-    function liquidateBorrow(address borrower, IVToken vTokenCollateral) external payable;
+    function liquidateBorrow(
+        address borrower,
+        IVToken vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) external payable;
 }
 
 interface IVAIController {

@@ -262,20 +262,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        // Call getDynamicLiquidationIncentive from MarketFacet via diamond proxy
-        uint256 dynamicLiquidationIncentive = this.getDynamicLiquidationIncentive(
-            vTokenCollateral,
-            snapshot.liquidationThresholdAvg,
-            snapshot.healthFactor
-        );
-
         Market storage marketCollateral = markets[vTokenCollateral];
         uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
             vTokenBorrowed,
             borrowBalance,
             snapshot.liquidationThresholdAvg,
             snapshot.totalCollateral,
-            dynamicLiquidationIncentive,
+            snapshot.dynamicLiquidationIncentiveMantissa,
             marketCollateral.maxLiquidationIncentiveMantissa
         );
 

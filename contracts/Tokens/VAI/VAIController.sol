@@ -335,17 +335,12 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             // EFFECTS & INTERACTIONS
             // (No safe failures beyond this point)
 
-            uint256 liquidationIncentive = comptroller.getDynamicLiquidationIncentive(
-                address(vTokenCollateral),
-                snapshot.liquidationThresholdAvg,
-                snapshot.healthFactor
-            );
             /* We calculate the number of collateral tokens that will be seized */
             uint256 seizeTokens;
             (errorCode, seizeTokens) = comptroller.liquidateVAICalculateSeizeTokens(
                 address(vTokenCollateral),
                 actualRepayAmount,
-                liquidationIncentive
+                snapshot.dynamicLiquidationIncentiveMantissa
             );
             require(errorCode == uint256(Error.NO_ERROR), "VAI_LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 

@@ -265,6 +265,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             address(vTokenCollateral),
             repayAmount
         );
+        uint256 totalIncentive = comptroller.getDynamicLiquidationIncentive(
+            address(vTokenCollateral),
+            snapshot.liquidationThresholdAvg,
+            snapshot.healthFactor
+        );
+        snapshot.dynamicLiquidationIncentiveMantissa = totalIncentive;
 
         _checkForceVAILiquidate(vToken, borrower);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
@@ -272,7 +278,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             if (repayAmount != msg.value) {
                 revert WrongTransactionAmount(repayAmount, msg.value);
             }
-            vBnb.liquidateBorrow{ value: msg.value }(borrower, vTokenCollateral);
+            vBnb.liquidateBorrow{ value: msg.value }(borrower, vTokenCollateral, snapshot);
         } else {
             if (msg.value != 0) {
                 revert WrongTransactionAmount(0, msg.value);
@@ -284,11 +290,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             }
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
-        uint256 totalIncentive = comptroller.getDynamicLiquidationIncentive(
-            address(vTokenCollateral),
-            snapshot.liquidationThresholdAvg,
-            snapshot.healthFactor
-        );
         (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(
             vTokenCollateral,
             (ourBalanceAfter - ourBalanceBefore),

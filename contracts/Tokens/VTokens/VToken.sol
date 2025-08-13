@@ -1331,17 +1331,12 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We calculate the number of collateral tokens that will be seized */
-        uint256 liquidationIncentiveMantissa = comptroller.getDynamicLiquidationIncentive(
-            address(vTokenCollateral),
-            snapshot.liquidationThresholdAvg,
-            snapshot.healthFactor
-        );
         uint seizeTokens;
         (errorCode, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
             address(this),
             address(vTokenCollateral),
             actualRepayAmount,
-            liquidationIncentiveMantissa
+            snapshot.dynamicLiquidationIncentiveMantissa
         );
         require(errorCode == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
