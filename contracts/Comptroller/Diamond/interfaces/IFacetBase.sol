@@ -30,4 +30,18 @@ interface IFacetBase {
      * @return The address of XVS token
      */
     function getXVSAddress() external view returns (address);
+
+    function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (bytes32);
+
+    function getCollateralFactor(address vToken) external view returns (uint256);
+
+    function getLiquidationThreshold(address vToken) external view returns (uint256);
+
+    function getEffectiveCollateralFactor(address account, address vToken) external view returns (uint256);
+
+    function getEffectiveLiquidationThreshold(address account, address vToken) external view returns (uint256);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
 }

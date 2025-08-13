@@ -1,6 +1,48 @@
 pragma solidity 0.8.25;
 
 contract ComptrollerErrorReporter {
+    /// @notice Thrown when the collateral factor is invalid
+    error InvalidCollateralFactor();
+
+    /// @notice Thrown when the liquidation threshold is invalid
+    error InvalidLiquidationThreshold();
+
+    /// @notice Thrown when the liquidation incentive is invalid
+    error InvalidLiquidationIncentive();
+
+    /// @notice You are already in the selected pool.
+    error AlreadyInSelectedPool();
+
+    /// @notice One or more of your assets are not compatible with the selected pool.
+    error IncompatibleAssets();
+
+    /// @notice Switching to this pool would fail the liquidity check or lead to liquidation.
+    error LiquidityCheckFailed(uint256 errorCode, uint256 shortfall);
+
+    /// @notice Thrown when trying to modify the core pool (poolId == 0)
+    error CorePoolModificationNotAllowed();
+
+    /// @notice Thrown when input array lengths do not match
+    error ArrayLengthMismatch();
+
+    /// @notice Thrown when market trying to add in a pool is not listed in the core pool
+    error MarketNotListedInCorePool();
+
+    /// @notice Thrown when market is not set in the _poolMarkets mapping
+    error MarketConfigNotFound();
+
+    /// @notice Thrown when borrowing is not allowed in the selected pool for a given market.
+    error BorrowNotAllowedInPool();
+
+    /// @notice Thrown when trying to remove a market that is not listed in the given pool.
+    error PoolMarketNotFound(uint96 poolId, address vToken);
+
+    /// @notice Thrown when a given pool ID does not exist
+    error PoolDoesNotExist(uint96 poolId);
+
+    /// @notice Thrown when the pool label is empty
+    error EmptyPoolLabel();
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
@@ -49,7 +91,9 @@ contract ComptrollerErrorReporter {
         SET_VAICONTROLLER_OWNER_CHECK,
         SET_MINTED_VAI_REJECTION,
         SET_TREASURY_OWNER_CHECK,
-        UNLIST_MARKET_NOT_LISTED
+        UNLIST_MARKET_NOT_LISTED,
+        SET_LIQUIDATION_THRESHOLD_VALIDATION,
+        COLLATERAL_FACTOR_GREATER_THAN_LIQUIDATION_THRESHOLD
     }
 
     /**

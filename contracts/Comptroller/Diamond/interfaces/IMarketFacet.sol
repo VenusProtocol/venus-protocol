@@ -8,6 +8,7 @@ interface IMarketFacet {
     function isComptroller() external pure returns (bool);
 
     function liquidateCalculateSeizeTokens(
+        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint256 actualRepayAmount
@@ -37,4 +38,55 @@ interface IMarketFacet {
     function updateDelegate(address delegate, bool allowBorrows) external;
 
     function unlistMarket(address market) external returns (uint256);
+
+    function createPool(string memory label) external returns (uint96);
+
+    function enterPool(uint96 poolId) external;
+
+    function addPoolMarkets(uint96[] calldata poolIds, address[] calldata vTokens) external;
+
+    function removePoolMarket(uint96 poolId, address vToken) external;
+
+    function updatePoolMarketBorrow(uint96 poolId, address vToken, bool borrowAllowed) external;
+
+    function updatePoolMarketRiskParams(
+        uint96 poolId,
+        address vToken,
+        uint256 collateralFactorMantissa,
+        uint256 liquidationThresholdMantissa,
+        uint256 maxLiquidationIncentiveMantissa
+    ) external;
+
+    function markets(
+        address vToken
+    )
+        external
+        view
+        returns (
+            bool isListed,
+            uint256 collateralFactorMantissa,
+            bool isVenus,
+            uint256 liquidationThresholdMantissa,
+            uint256 liquidationIncentiveMantissa,
+            uint96 marketPoolId,
+            bool isBorrowAllowed
+        );
+
+    function poolMarkets(
+        uint96 poolId,
+        address vToken
+    )
+        external
+        view
+        returns (
+            bool isListed,
+            uint256 collateralFactorMantissa,
+            bool isVenus,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
+            uint96 marketPoolId,
+            bool isBorrowAllowed
+        );
+
+    function hasValidPoolBorrows(address user, uint96 targetPoolId) external view returns (bool);
 }

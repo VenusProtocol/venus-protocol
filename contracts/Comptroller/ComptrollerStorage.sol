@@ -43,9 +43,9 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     uint256 public closeFactorMantissa;
 
     /**
-     * @notice Multiplier representing the discount on collateral that a liquidator receives
+     * @notice Multiplier representing the discount on collateral that a liquidator receives (depricated)
      */
-    uint256 public liquidationIncentiveMantissa;
+    uint256 public oldLiquidationIncentiveMantissa;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
@@ -70,13 +70,32 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
         mapping(address => bool) accountMembership;
         /// @notice Whether or not this market receives XVS
         bool isVenus;
+        /**
+         * @notice Multiplier representing the collateralization after which the borrow is eligible
+         * for liquidation. For instance, 0.8 liquidate when the borrow is 80% of collateral
+         * value. Must be between 0 and collateral factor, stored as a mantissa.
+         */
+        uint256 liquidationThresholdMantissa;
+        /// @notice discount on collateral that a liquidator receives when liquidating a borrow in this market
+        uint256 liquidationIncentiveMantissa;
+        /// @notice The pool ID this market is associated with, Used to support pools/emodes
+        uint96 poolId;
+        /// @notice Flag  to restrict borrowing in certain pools/emodes.
+        bool isBorrowAllowed;
+    }
+
+    struct PoolData {
+        /// @notice label for the pool
+        string label;
+        /// @notice List of vToken addresses associated with this pool
+        address[] vTokens;
     }
 
     /**
-     * @notice Official mapping of vTokens -> Market metadata
-     * @dev Used e.g. to determine if a market is supported
+     *@notice Mapping of bytes32 ( First 12 bytes (96 bits) represent the poolId
+     * Last 20 bytes represent the vToken address) -> Market metadata
      */
-    mapping(address => Market) public markets;
+    mapping(bytes32 => Market) internal _poolMarkets;
 
     /**
      * @notice The Pause Guardian can pause certain actions as a safety mechanism.
@@ -266,4 +285,26 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
+}
+
+contract ComptrollerV17Storage is ComptrollerV16Storage {
+    /**
+     * @notice Tracks the selected pool for each user.
+     * @dev
+     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in.
+     * - A value of `0` represents the default core pool (legacy behavior).
+     */
+    mapping(address => uint96) public userPoolId;
+
+    /**
+     * @notice Mapping of pool ID to its corresponding metadata and configuration
+     * @dev Pool IDs are unique and incremented via `nextPoolId` when a new pool is created
+     */
+    mapping(uint96 => PoolData) public pools;
+
+    /**
+     * @notice Counter used to generate unique pool IDs
+     * @dev Increments each time a pool is created; `poolId = 0` is reserved for the core pool
+     */
+    uint96 public lastPoolId;
 }

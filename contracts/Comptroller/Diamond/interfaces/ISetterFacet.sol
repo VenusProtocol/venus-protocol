@@ -26,11 +26,10 @@ interface ISetterFacet {
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
-    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256);
-
-    function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
-
-    function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
+    function setLiquidationIncentive(
+        address vToken,
+        uint256 newLiquidationIncentiveMantissa
+    ) external returns (uint256);
 
     function _setLiquidatorContract(address newLiquidatorContract_) external;
 

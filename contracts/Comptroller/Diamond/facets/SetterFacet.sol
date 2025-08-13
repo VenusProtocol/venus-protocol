@@ -95,6 +95,20 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when XVS vToken address is changed
     event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
+    /// @notice Emitted when liquidation threshold is changed by admin
+    event NewLiquidationThreshold(
+        VToken vToken,
+        uint256 oldLiquidationThresholdMantissa,
+        uint256 newLiquidationThresholdMantissa
+    );
+
+    /// @notice Emitted when market's liquidation incentive is changed by admin
+    event NewMarketLiquidationIncentive(
+        address vToken,
+        uint256 oldLiquidationIncentiveMantissa,
+        uint256 newLiquidationIncentiveMantissa
+    );
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -186,22 +200,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256) {
-        require(
-            newCollateralFactorMantissa == newLiquidationThresholdMantissa,
-            "collateral factor and liquidation threshold must be the same"
-        );
-        return __setCollateralFactor(vToken, newCollateralFactorMantissa);
-    }
-
-    /**
-     * @notice Sets the collateralFactor for a market
-     * @dev Allows a privileged role to set the collateralFactorMantissa
-     * @param vToken The market to set the factor on
-     * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
-     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
-     */
-    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256) {
-        return __setCollateralFactor(vToken, newCollateralFactorMantissa);
+        return __setCollateralFactor(vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
     }
 
     /**
@@ -209,18 +208,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256) {
-        return __setLiquidationIncentive(newLiquidationIncentiveMantissa);
-    }
-
-    /**
-     * @notice Sets liquidationIncentive
-     * @dev Allows a privileged role to set the liquidationIncentiveMantissa
-     * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
-     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
-     */
-    function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256) {
-        return __setLiquidationIncentive(newLiquidationIncentiveMantissa);
+    function setLiquidationIncentive(
+        address vToken,
+        uint256 newLiquidationIncentiveMantissa
+    ) external returns (uint256) {
+        return __setLiquidationIncentive(vToken, newLiquidationIncentiveMantissa);
     }
 
     /**
@@ -342,7 +334,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param paused The new paused state (true=paused, false=unpaused)
      */
     function setActionPausedInternal(address market, Action action, bool paused) internal {
-        ensureListed(markets[market]);
+        ensureListed(_poolMarkets[getCorePoolMarketIndex(market)]);
         _actionPaused[market][uint256(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
@@ -543,7 +535,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function _setForcedLiquidationForUser(address borrower, address vTokenBorrowed, bool enable) external {
         ensureAllowed("_setForcedLiquidationForUser(address,address,bool)");
         if (vTokenBorrowed != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
+            ensureListed(_poolMarkets[getCorePoolMarketIndex(vTokenBorrowed)]);
         }
         isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed] = enable;
         emit IsForcedLiquidationEnabledForUserUpdated(borrower, vTokenBorrowed, enable);
@@ -637,25 +629,19 @@ contract SetterFacet is ISetterFacet, FacetBase {
      */
     function __setCollateralFactor(
         VToken vToken,
-        uint256 newCollateralFactorMantissa
-    )
-        internal
-        compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
-        returns (uint256)
-    {
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
+    ) internal returns (uint256) {
         // Check caller is allowed by access control manager
-        ensureAllowed("_setCollateralFactor(address,uint256)");
+        ensureAllowed("setCollateralFactor(address,uint256,uint256)");
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
-        Market storage market = markets[address(vToken)];
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(address(vToken))];
         ensureListed(market);
 
-        Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
-
-        //-- Check collateral factor <= 0.9
-        Exp memory highLimit = Exp({ mantissa: collateralFactorMaxMantissa });
-        if (lessThanExp(highLimit, newCollateralFactorExp)) {
+        //-- Check collateral factor <= 1
+        if (newCollateralFactorMantissa > mantissaOne) {
             return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
         }
 
@@ -664,35 +650,66 @@ contract SetterFacet is ISetterFacet, FacetBase {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 
+        // Ensure that liquidation threshold <= 1
+        if (newLiquidationThresholdMantissa > mantissaOne) {
+            return fail(Error.PRICE_ERROR, FailureInfo.SET_LIQUIDATION_THRESHOLD_VALIDATION);
+        }
+
+        // Ensure that liquidation threshold >= CF
+        if (newLiquidationThresholdMantissa < newCollateralFactorMantissa) {
+            return fail(Error.PRICE_ERROR, FailureInfo.COLLATERAL_FACTOR_GREATER_THAN_LIQUIDATION_THRESHOLD);
+        }
+
         // Set market's collateral factor to new collateral factor, remember old value
         uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
-        market.collateralFactorMantissa = newCollateralFactorMantissa;
+        if (newCollateralFactorMantissa != oldCollateralFactorMantissa) {
+            market.collateralFactorMantissa = newCollateralFactorMantissa;
+            market.collateralFactorMantissa = newCollateralFactorMantissa;
 
-        // Emit event with asset, old collateral factor, and new collateral factor
-        emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
+            // Emit event with asset, old collateral factor, and new collateral factor
+            market.collateralFactorMantissa = newCollateralFactorMantissa;
+
+            // Emit event with asset, old collateral factor, and new collateral factor
+            emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
+        }
+
+        uint256 oldLiquidationThresholdMantissa = market.liquidationThresholdMantissa;
+        if (newLiquidationThresholdMantissa != oldLiquidationThresholdMantissa) {
+            market.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
+            emit NewLiquidationThreshold(vToken, oldLiquidationThresholdMantissa, newLiquidationThresholdMantissa);
+        }
 
         return uint256(Error.NO_ERROR);
     }
 
     /**
-     * @dev Updates the liquidation incentive. Used by _setLiquidationIncentive and setLiquidationIncentive
+     * @dev Updates the liquidation incentive. Used by setLiquidationIncentive
+     * @param vToken The market to set the Incentive for
      * @param newLiquidationIncentiveMantissa The new liquidation incentive to be set
      * @return uint256 0=success, otherwise reverted
      */
     function __setLiquidationIncentive(
+        address vToken,
         uint256 newLiquidationIncentiveMantissa
-    ) internal compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
-        ensureAllowed("_setLiquidationIncentive(uint256)");
+    )
+        internal
+        compareValue(
+            _poolMarkets[getCorePoolMarketIndex(vToken)].liquidationIncentiveMantissa,
+            newLiquidationIncentiveMantissa
+        )
+        returns (uint256)
+    {
+        ensureAllowed("setLiquidationIncentive(address,uint256)");
 
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive < 1e18");
 
-        // Save current value for use in log
-        uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
-        // Set liquidation incentive to new incentive
-        liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
 
         // Emit event with old incentive, new incentive
-        emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
+        emit NewLiquidationIncentive(market.liquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
+
+        // Set liquidation incentive to new incentive
+        market.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
 
         return uint256(Error.NO_ERROR);
     }
@@ -759,7 +776,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function __setForcedLiquidation(address vTokenBorrowed, bool enable) internal {
         ensureAllowed("_setForcedLiquidation(address,bool)");
         if (vTokenBorrowed != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
+            ensureListed(_poolMarkets[getCorePoolMarketIndex(vTokenBorrowed)]);
         }
         isForcedLiquidationEnabled[vTokenBorrowed] = enable;
         emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);

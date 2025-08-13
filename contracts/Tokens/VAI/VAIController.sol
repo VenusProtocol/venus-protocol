@@ -104,6 +104,10 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         if (address(comptroller) == address(0)) {
             return uint256(Error.NO_ERROR);
         }
+        // VAI mint only allowed in the core Pool
+        if (comptroller.userPoolId(msg.sender) != 0) {
+            return uint256(Error.REJECTION);
+        }
 
         _ensureNonzeroAmount(mintVAIAmount);
         _ensureNotPaused();

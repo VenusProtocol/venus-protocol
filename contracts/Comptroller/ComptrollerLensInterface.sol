@@ -4,6 +4,7 @@ import "../Tokens/VTokens/VToken.sol";
 
 interface ComptrollerLensInterface {
     function liquidateCalculateSeizeTokens(
+        address borrower,
         address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
@@ -21,6 +22,7 @@ interface ComptrollerLensInterface {
         address account,
         VToken vTokenModify,
         uint redeemTokens,
-        uint borrowAmount
+        uint borrowAmount,
+        function(address, address) external view returns (uint256) weight
     ) external view returns (uint, uint, uint);
 }

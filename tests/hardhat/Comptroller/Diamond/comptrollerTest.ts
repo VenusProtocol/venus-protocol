@@ -3,6 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { constants } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
@@ -44,7 +45,6 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
   return { oracle, comptroller, unitroller, comptrollerLens, accessControl };
 }
 
@@ -966,6 +966,189 @@ describe("Comptroller", () => {
         expect(borrowingPower[0]).to.eq(accountLiquidity[0]);
         expect(borrowingPower[1]).to.eq(accountLiquidity[1]);
         expect(borrowingPower[2]).to.eq(accountLiquidity[2]);
+      });
+    });
+  });
+
+  describe.only("E-Mode Pool", async () => {
+    let comptroller: ComptrollerMock;
+    let vToken: FakeContract<VToken>;
+    let accessControl: FakeContract<IAccessControlManagerV5>;
+    let oracle: FakeContract<PriceOracle>;
+
+    const poolId = 1;
+    const corePoolId = 0;
+
+    const defaultCF = parseUnits("0.5", 18);
+    const defaultLT = parseUnits("0.6", 18);
+    const defaultLI = parseUnits("1.1", 18);
+
+    const coreCF = parseUnits("0.3", 18);
+    const coreLT = parseUnits("0.4", 18);
+    const coreLI = parseUnits("1.1", 18);
+
+    async function deploy(): Promise<SimpleComptrollerFixture & { vToken: FakeContract<VToken> }> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      configureVToken(vToken, contracts.comptroller);
+      await contracts.comptroller._supportMarket(vToken.address);
+      const comptrollerLensFactory = await ethers.getContractFactory("ComptrollerLens");
+      const comptrollerLens = await comptrollerLensFactory.deploy();
+      await contracts.comptroller._setComptrollerLens(comptrollerLens.address);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, vToken, accessControl, oracle } = await loadFixture(deploy));
+      accessControl.isAllowedToCall.returns(true);
+      configureOracle(oracle);
+      await comptroller.setCollateralFactor(vToken.address, coreCF, coreLT);
+      await comptroller.setLiquidationIncentive(vToken.address, coreLI);
+      await comptroller.createPool("e-mode");
+      await comptroller.addPoolMarkets([poolId], [vToken.address]);
+    });
+
+    describe("poolMarkets", () => {
+      it("initializes with default values", async () => {
+        const [isListed, cf, isVenus, lt, li, marketPoolId, isBorrowAllowed] = await comptroller.poolMarkets(
+          poolId,
+          vToken.address,
+        );
+
+        expect(isListed).to.be.true;
+        expect(cf).to.equal(0);
+        expect(lt).to.equal(0);
+        expect(li).to.equal(0);
+        expect(marketPoolId).to.equal(poolId);
+        expect(isBorrowAllowed).to.be.false;
+        expect(isVenus).to.be.false;
+      });
+
+      it("updates risk parameters correctly", async () => {
+        await comptroller.updatePoolMarketRiskParams(poolId, vToken.address, defaultCF, defaultLT, defaultLI);
+
+        const [, cf, , lt, li] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(cf).to.equal(defaultCF);
+        expect(lt).to.equal(defaultLT);
+        expect(li).to.equal(defaultLI);
+      });
+
+      it("toggles borrowAllowed correctly", async () => {
+        let [, , , , , , isBorrowAllowed] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(isBorrowAllowed).to.be.false;
+
+        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, true);
+        [, , , , , , isBorrowAllowed] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(isBorrowAllowed).to.be.true;
+
+        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, false);
+        [, , , , , , isBorrowAllowed] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(isBorrowAllowed).to.be.false;
+      });
+    });
+
+    describe("effective risk params", () => {
+      it("returns emode params if market included in the emode category, else falls back to core", async () => {
+        await comptroller.updatePoolMarketRiskParams(poolId, vToken.address, defaultCF, defaultLT, defaultLI);
+
+        // Core pool params should be used initially (userPool 0)
+        let cf = await comptroller.getEffectiveCollateralFactor(root.getAddress(), vToken.address);
+        let lt = await comptroller.getEffectiveLiquidationThreshold(root.getAddress(), vToken.address);
+        expect(cf).to.equal(coreCF);
+        expect(lt).to.equal(coreLT);
+
+        // Enter e-mode pool → effective params should update to pool defaults
+        await comptroller.enterPool(poolId);
+        cf = await comptroller.getEffectiveCollateralFactor(root.getAddress(), vToken.address);
+        lt = await comptroller.getEffectiveLiquidationThreshold(root.getAddress(), vToken.address);
+        expect(cf).to.equal(defaultCF);
+        expect(lt).to.equal(defaultLT);
+
+        // Remove market from pool → fallback to core pool params
+        await comptroller.removePoolMarket(poolId, vToken.address);
+        cf = await comptroller.getEffectiveCollateralFactor(root.getAddress(), vToken.address);
+        lt = await comptroller.getEffectiveLiquidationThreshold(root.getAddress(), vToken.address);
+        expect(cf).to.equal(coreCF);
+        expect(lt).to.equal(coreLT);
+      });
+    });
+
+    describe("Market Getters", () => {
+      it("returns correct key for core pool", async () => {
+        const key = await comptroller.getPoolMarketIndex(corePoolId, vToken.address);
+        const expected = ethers.utils.hexZeroPad(vToken.address, 32);
+        expect(key.toLowerCase()).to.equal(expected.toLowerCase());
+      });
+
+      it("returns correct core pool market info using markets()", async () => {
+        await comptroller.setCollateralFactor(vToken.address, coreCF, coreLT);
+        comptroller.setLiquidationIncentive(vToken.address, coreLI);
+
+        const [isListed, cf, isVenus, lt, li, marketPoolId, isBorrowAllowed] = await comptroller.markets(
+          vToken.address,
+        );
+
+        expect(isListed).to.be.true;
+        expect(cf).to.equal(coreCF);
+        expect(isVenus).to.be.false;
+        expect(lt).to.equal(coreLT);
+        expect(li).to.equal(coreLI);
+        expect(marketPoolId).to.equal(corePoolId);
+        expect(isBorrowAllowed).to.be.false;
+      });
+
+      it("returns correct pool market info using poolMarkets()", async () => {
+        await comptroller.updatePoolMarketRiskParams(poolId, vToken.address, defaultCF, defaultLT, defaultLI);
+        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, true);
+
+        const [isListed, cf, isVenus, lt, li, marketPoolId, isBorrowAllowed] = await comptroller.poolMarkets(
+          poolId,
+          vToken.address,
+        );
+
+        expect(isListed).to.be.true;
+        expect(cf).to.equal(defaultCF);
+        expect(isVenus).to.be.false;
+        expect(lt).to.equal(defaultLT);
+        expect(li).to.equal(defaultLI);
+        expect(marketPoolId).to.equal(poolId);
+        expect(isBorrowAllowed).to.be.true;
+      });
+
+      it("returns all the markets of the specific pool", async () => {
+        const vToken1 = await smock.fake<VToken>("VToken");
+        const vToken2 = await smock.fake<VToken>("VToken");
+        await comptroller._supportMarket(vToken1.address);
+        await comptroller._supportMarket(vToken2.address);
+
+        const poolId = await comptroller.callStatic.createPool("vToken-emode");
+        await comptroller.createPool("vToken-emode");
+        await comptroller.addPoolMarkets([poolId, poolId], [vToken1.address, vToken2.address]);
+
+        const vTokens = await comptroller.getPoolVTokens(poolId);
+        expect(vTokens).to.include(vToken1.address);
+        expect(vTokens).to.include(vToken2.address);
+      });
+    });
+
+    describe("poolEnter", () => {
+      it("reverts if entering the same pool", async () => {
+        await comptroller.enterPool(poolId); // success
+        await expect(comptroller.enterPool(poolId)).to.be.revertedWithCustomError(comptroller, "AlreadyInSelectedPool");
+      });
+
+      it("reverts if user has invalid pool borrows", async () => {
+        await comptroller.updatePoolMarketRiskParams(poolId, vToken.address, defaultCF, defaultLT, defaultLI);
+        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, false);
+        vToken.borrowBalanceStored.returns(parseUnits("10", 18));
+        await comptroller.enterMarkets([vToken.address]);
+
+        await expect(comptroller.enterPool(poolId)).to.be.revertedWithCustomError(comptroller, "IncompatibleAssets");
+      });
+
+      it("emits PoolSelected on successful pool switch", async () => {
+        await comptroller.updatePoolMarketRiskParams(poolId, vToken.address, defaultCF, defaultLT, defaultLI);
+        await expect(comptroller.enterPool(poolId)).to.emit(comptroller, "PoolSelected").withArgs(root.address, poolId);
       });
     });
   });

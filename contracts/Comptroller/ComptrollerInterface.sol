@@ -96,6 +96,7 @@ interface ComptrollerInterface {
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
+        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint repayAmount
@@ -151,6 +152,32 @@ interface ComptrollerInterface {
     function mintedVAIs(address user) external view returns (uint);
 
     function vaiMintRate() external view returns (uint);
+
+    function userPoolId(address account) external view returns (uint96);
+
+    function getLiquidationIncentive(address vToken) external view returns (uint256);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function pools(uint96 poolId) external view returns (string memory label);
+
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
+
+    function poolMarkets(
+        uint96 poolId,
+        address vToken
+    )
+        external
+        view
+        returns (
+            bool isListed,
+            uint256 collateralFactorMantissa,
+            bool isVenus,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
+            uint96 marketPoolId,
+            bool isBorrowAllowed
+        );
 }
 
 interface IVAIVault {

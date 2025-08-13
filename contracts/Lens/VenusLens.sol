@@ -107,6 +107,19 @@ contract VenusLens is ExponentialNoError {
         PendingReward[] pendingRewards;
     }
 
+    /// @notice Holds full market information for a single vToken within a specific pool
+    struct MarketData {
+        uint96 poolId;
+        string poolLabel;
+        address vToken;
+        bool isListed;
+        uint256 collateralFactor;
+        bool isVenus;
+        uint256 liquidationThreshold;
+        uint256 liquidationIncentive;
+        bool isBorrowAllowed;
+    }
+
     /**
      * @notice Query the metadata of a vToken by its address
      * @param vToken The address of the vToken to fetch VTokenMetadata
@@ -548,6 +561,47 @@ contract VenusLens is ExponentialNoError {
             rewardSummary.pendingRewards[i] = marketReward;
         }
         return rewardSummary;
+    }
+
+    /**
+     * @notice Retrieves full market data for all vTokens in a specific pool
+     * @param comptroller The address of the Comptroller contract
+     * @param poolId The pool ID to fetch data for
+     * @return result An array of MarketData structs containing detailed market info
+     */
+    function getMarketsDataByPool(
+        uint96 poolId,
+        ComptrollerInterface comptroller
+    ) external view returns (MarketData[] memory result) {
+        address[] memory vTokens = comptroller.getPoolVTokens(poolId);
+        uint256 length = vTokens.length;
+        result = new MarketData[](length);
+
+        string memory label = comptroller.pools(poolId);
+
+        for (uint256 i; i < length; i++) {
+            (
+                bool isListed,
+                uint256 collateralFactor,
+                bool isVenus,
+                uint256 liquidationThreshold,
+                uint256 liquidationIncentive,
+                uint96 marketPoolId,
+                bool isBorrowAllowed
+            ) = comptroller.poolMarkets(poolId, vTokens[i]);
+
+            result[i] = MarketData({
+                poolId: marketPoolId,
+                poolLabel: label,
+                vToken: vTokens[i],
+                isListed: isListed,
+                collateralFactor: collateralFactor,
+                isVenus: isVenus,
+                liquidationThreshold: liquidationThreshold,
+                liquidationIncentive: liquidationIncentive,
+                isBorrowAllowed: isBorrowAllowed
+            });
+        }
     }
 
     // utilities
