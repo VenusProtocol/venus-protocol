@@ -80,8 +80,7 @@ interface IPolicyFacet {
         address account,
         address vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address, address) external view returns (uint256) weight
+        uint256 borrowAmount
     ) external view returns (uint256, uint256, uint256);
 
     function _setVenusSpeeds(

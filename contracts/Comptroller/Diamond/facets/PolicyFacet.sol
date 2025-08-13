@@ -452,15 +452,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address account,
         address vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount,
-        function(address, address) external view returns (uint256) weight
+        uint256 borrowAmount
     ) external view returns (uint256, uint256, uint256) {
         (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(vTokenModify),
             redeemTokens,
             borrowAmount,
-            weight
+            this.getEffectiveCollateralFactor
         );
         return (uint256(err), liquidity, shortfall);
     }

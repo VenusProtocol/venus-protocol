@@ -120,6 +120,11 @@ contract VenusLens is ExponentialNoError {
         bool isBorrowAllowed;
     }
 
+    struct PoolInfo {
+        uint96 poolId;
+        string label;
+    }
+
     /**
      * @notice Query the metadata of a vToken by its address
      * @param vToken The address of the vToken to fetch VTokenMetadata
@@ -561,6 +566,19 @@ contract VenusLens is ExponentialNoError {
             rewardSummary.pendingRewards[i] = marketReward;
         }
         return rewardSummary;
+    }
+
+    /**
+     * @notice Returns all existing pool IDs and labels.
+     * @return poolsInfo An array of structs containing poolId and label.
+     */
+    function getAllPools(ComptrollerInterface comptroller) external view returns (PoolInfo[] memory poolsInfo) {
+        uint96 lastPoolId = comptroller.lastPoolId();
+        poolsInfo = new PoolInfo[](lastPoolId);
+
+        for (uint96 i = 1; i <= lastPoolId; i++) {
+            poolsInfo[i - 1] = PoolInfo({ poolId: i, label: comptroller.pools(i) });
+        }
     }
 
     /**

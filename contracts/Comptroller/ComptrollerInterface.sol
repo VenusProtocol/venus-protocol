@@ -96,6 +96,12 @@ interface ComptrollerInterface {
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint repayAmount
+    ) external view returns (uint, uint);
+
+    function liquidateCalculateSeizeTokens(
         address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
@@ -158,6 +164,8 @@ interface ComptrollerInterface {
     function getLiquidationIncentive(address vToken) external view returns (uint256);
 
     function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function lastPoolId() external view returns (uint96);
 
     function pools(uint96 poolId) external view returns (string memory label);
 

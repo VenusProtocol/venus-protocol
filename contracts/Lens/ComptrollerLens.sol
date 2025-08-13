@@ -37,6 +37,49 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
     /**
      * @notice Computes the number of collateral tokens to be seized in a liquidation event
+     * @dev This will be used only in vBNB
+     * @param comptroller Address of comptroller
+     * @param vTokenBorrowed Address of the borrowed vToken
+     * @param vTokenCollateral Address of collateral for the borrow
+     * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
+     * @return A tuple of error code, and tokens to seize
+     */
+    function liquidateCalculateSeizeTokens(
+        address comptroller,
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint actualRepayAmount
+    ) external view returns (uint, uint) {
+        /* Read oracle prices for borrowed and collateral markets */
+        uint priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
+        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
+        if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
+            return (uint(Error.PRICE_ERROR), 0);
+        }
+
+        /*
+         * Get the exchange rate and calculate the number of collateral tokens to seize:
+         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
+         *  seizeTokens = seizeAmount / exchangeRate
+         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
+         */
+        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getLiquidationIncentive(vTokenCollateral);
+
+        uint seizeTokens = _calculateSeizeTokens(
+            actualRepayAmount,
+            liquidationIncentiveMantissa,
+            priceBorrowedMantissa,
+            priceCollateralMantissa,
+            exchangeRateMantissa
+        );
+
+        return (uint(Error.NO_ERROR), seizeTokens);
+    }
+
+    /**
+     * @notice Computes the number of collateral tokens to be seized in a liquidation event
+     * @param borrower Address of borrower whose collateral is being seized
      * @param comptroller Address of comptroller
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow

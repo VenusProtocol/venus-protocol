@@ -547,18 +547,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Returns all existing pool ID labels.
-     * @return labels An array of corresponding pool labels.
-     */
-    function getAllPools() external view returns (string[] memory labels) {
-        labels = new string[](lastPoolId);
-
-        for (uint96 i = 1; i <= lastPoolId; i++) {
-            labels[i - 1] = pools[i].label;
-        }
-    }
-
-    /**
      * @notice Returns true if the user can switch to the given target pool, i.e.,
      * all markets they have borrowed from are also borrowable in the target pool.
      * @param account The address of the user attempting to switch pools.
