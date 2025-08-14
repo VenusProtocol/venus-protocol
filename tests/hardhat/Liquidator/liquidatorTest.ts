@@ -7,6 +7,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt, convertToUnit } from "../../../helpers/utils";
 import {
+  ComptrollerLens,
   ComptrollerMock,
   FaucetToken,
   FaucetToken__factory,
@@ -29,7 +30,10 @@ const minLiquidatableVAI = convertToBigInt("500", 0);
 const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
 
-const treasuryShare = 181n; // seizeTokens * treasuryPercent / announcedIncentive
+const MANTISSA_ONE = convertToBigInt("1", 18);
+
+const treasuryShare =
+  (seizeTokens * (announcedIncentive - MANTISSA_ONE) * treasuryPercent) / (MANTISSA_ONE * MANTISSA_ONE);
 const liquidatorShare = seizeTokens - treasuryShare;
 
 type LiquidatorFixture = {
@@ -43,11 +47,9 @@ type LiquidatorFixture = {
   vBnb: FakeContract<MockVBNB>;
   accessControlManager: FakeContract<IAccessControlManagerV5>;
   collateralUnderlying: FakeContract<FaucetToken>;
-  borrower: SignerWithAddress;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const [borrower] = await ethers.getSigners();
   const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
@@ -58,12 +60,16 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const wBnb = await smock.fake<WBNB>("WBNB");
+  const comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
+
   const collateralUnderlying = await smock.fake<FaucetToken>("FaucetToken");
   collateralUnderlying.balanceOf.returns(convertToUnit(1, 10));
   collateralUnderlying.transfer.returns(true);
   vTokenCollateral.underlying.returns(collateralUnderlying.address);
+
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   comptroller.vaiController.returns(vaiController.address);
+  comptroller.comptrollerLens.returns(comptrollerLens.address);
   comptroller.markets.returns({
     isListed: true,
     collateralFactorMantissa: convertToUnit(5, 17),
@@ -72,6 +78,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     liquidationThresholdMantissa: convertToUnit(5, 17),
     maxLiquidationIncentiveMantissa: convertToUnit(1.1, 18),
   });
+
   vaiController.getVAIAddress.returns(vai.address);
 
   const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
@@ -82,9 +89,10 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     Liquidator,
     [treasuryPercent, accessControlManager.address, protocolShareReserve.address],
     {
-      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address, comptrollerLens.address],
     },
   );
+
   await borrowedUnderlying.approve(liquidator.address, repayAmount);
   await vai.approve(liquidator.address, repayAmount);
 
@@ -99,19 +107,27 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     liquidator,
     accessControlManager,
     collateralUnderlying,
-    borrower,
   };
 }
 
 function configure(fixture: LiquidatorFixture) {
-  const { comptroller, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, vBnb, borrower } =
-    fixture;
-  comptroller.getDynamicLiquidationIncentive
-    .whenCalledWith(borrower.address, vTokenBorrowed.address)
+  const {
+    comptroller,
+    borrowedUnderlying,
+    vai,
+    vaiController,
+    vTokenBorrowed,
+    vTokenCollateral,
+    vBnb
+  } = fixture;
+
+  comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
+    .whenCalledWith(vTokenBorrowed.address, 0, 0)
     .returns(announcedIncentive);
-  comptroller.getDynamicLiquidationIncentive
-    .whenCalledWith(borrower.address, vTokenCollateral.address)
+  comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
+    .whenCalledWith(vTokenCollateral.address, 0, 0)
     .returns(announcedIncentive);
+
   vTokenBorrowed.underlying.returns(borrowedUnderlying.address);
   for (const vToken of [vTokenBorrowed, vTokenCollateral]) {
     vToken.transfer.reset();
@@ -157,7 +173,6 @@ describe("Liquidator", () => {
       liquidator: liquidatorContract,
       accessControlManager,
       collateralUnderlying,
-      borrower,
     } = contracts);
   });
 
@@ -219,6 +234,16 @@ describe("Liquidator", () => {
           borrower.address,
           repayAmount,
           vTokenCollateral.address,
+          {
+            totalCollateral: ethers.BigNumber.from(0),
+            weightedCollateral: ethers.BigNumber.from(0),
+            borrows: ethers.BigNumber.from(0),
+            liquidity: ethers.BigNumber.from(0),
+            shortfall: ethers.BigNumber.from(0),
+            liquidationThresholdAvg: ethers.BigNumber.from(0),
+            healthFactor: ethers.BigNumber.from(0),
+            dynamicLiquidationIncentiveMantissa: ethers.BigNumber.from("0x0f43fc2c04ee0000"),
+          },
         );
       });
 
@@ -267,6 +292,16 @@ describe("Liquidator", () => {
           borrower.address,
           repayAmount,
           vTokenCollateral.address,
+          {
+            totalCollateral: ethers.BigNumber.from(0),
+            weightedCollateral: ethers.BigNumber.from(0),
+            borrows: ethers.BigNumber.from(0),
+            liquidity: ethers.BigNumber.from(0),
+            shortfall: ethers.BigNumber.from(0),
+            liquidationThresholdAvg: ethers.BigNumber.from(0),
+            healthFactor: ethers.BigNumber.from(0),
+            dynamicLiquidationIncentiveMantissa: ethers.BigNumber.from("0x0f43fc2c04ee0000"),
+          },
         );
       });
     });
@@ -310,6 +345,7 @@ describe("Liquidator", () => {
 
     it("calls liquidateBorrow on VBNB", async () => {
       await liquidate();
+      console.log("VBNB address: ", vBnb.address);
       expect(vBnb.liquidateBorrow).to.have.been.calledOnce;
       expect(vBnb.liquidateBorrow).to.have.been.calledWithValue(repayAmount);
       expect(vBnb.liquidateBorrow).to.have.been.calledWith(borrower.address, vTokenCollateral.address);
@@ -359,7 +395,9 @@ describe("Liquidator", () => {
         vTokenCollateral.address,
       );
 
-      const treasuryDelta = (seizeTokens * convertToBigInt("0.08", 18)) / announcedIncentive;
+      const treasuryDelta =
+        (seizeTokens * (announcedIncentive - MANTISSA_ONE) * convertToBigInt("0.08", 18)) /
+        (MANTISSA_ONE * MANTISSA_ONE);
       const liquidatorDelta = seizeTokens - treasuryDelta;
 
       await expect(tx)

@@ -122,12 +122,8 @@ contract MockVBNB is VToken {
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      */
     // @custom:event Emit LiquidateBorrow event on success
-    function liquidateBorrow(
-        address borrower,
-        VToken vTokenCollateral,
-        ComptrollerLensInterface.AccountSnapshot memory snapshot
-    ) external payable {
-        (uint err, ) = liquidateBorrowInternal(borrower, msg.value, vTokenCollateral, snapshot);
+    function liquidateBorrow(address borrower, VToken vTokenCollateral) external payable {
+        (uint err, ) = liquidateBorrowInternal(borrower, msg.value, vTokenCollateral);
         requireNoError(err, "liquidateBorrow failed");
     }
 

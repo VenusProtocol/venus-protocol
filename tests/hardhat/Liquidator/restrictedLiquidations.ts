@@ -6,6 +6,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt } from "../../../helpers/utils";
 import {
+  ComptrollerLens,
   ComptrollerMock,
   IAccessControlManagerV5,
   IProtocolShareReserve,
@@ -34,6 +35,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   comptroller.liquidationIncentiveMantissa.returns(convertToBigInt("1.1", 18));
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
+  const comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
 
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const wBnb = await smock.fake<WBNB>("WBNB");
@@ -45,7 +47,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     Liquidator,
     [treasuryPercentMantissa, accessControlManager.address, protocolShareReserve.address],
     {
-      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address, comptrollerLens.address],
     },
   );
 

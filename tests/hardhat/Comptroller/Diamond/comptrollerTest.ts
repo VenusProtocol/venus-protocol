@@ -747,15 +747,11 @@ describe("Comptroller", () => {
         totalCollateral: 0,
         weightedCollateral: 0,
         borrows: 0,
-        vTokenBalance: 0,
-        borrowBalance: 0,
-        exchangeRateMantissa: 0,
-        oraclePriceMantissa: 0,
         liquidity: 0,
         shortfall: 0,
         liquidationThresholdAvg: 0,
         healthFactor: 0,
-        err: 0,
+        dynamicLiquidationIncentiveMantissa: 0,
       };
 
       const generalTests = () => {
@@ -902,15 +898,11 @@ describe("Comptroller", () => {
           totalCollateral: 0,
           weightedCollateral: 0,
           borrows: 0,
-          vTokenBalance: 0,
-          borrowBalance: 0,
-          exchangeRateMantissa: 0,
-          oraclePriceMantissa: 0,
           liquidity: 0,
           shortfall: 2,
           liquidationThresholdAvg: 0,
           healthFactor: 0,
-          err: 0,
+          dynamicLiquidationIncentiveMantissa: 0,
         };
 
         beforeEach(async () => {
