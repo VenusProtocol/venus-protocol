@@ -10,10 +10,10 @@ interface IVAI {
     function deny(address guy) external;
 
     // --- BEP20 Data ---
-    function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
-    function version() external view returns (string memory);
-    function decimals() external view returns (uint8);
+    function name() external pure returns (string memory);
+    function symbol() external pure returns (string memory);
+    function version() external pure returns (string memory);
+    function decimals() external pure returns (uint8);
     function totalSupply() external view returns (uint256);
 
     function balanceOf(address) external view returns (uint256);
@@ -26,7 +26,7 @@ interface IVAI {
     // --- EIP712 niceties ---
     function DOMAIN_SEPARATOR() external view returns (bytes32);
     // bytes32 public constant PERMIT_TYPEHASH = keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)");
-    function PERMIT_TYPEHASH() external view returns (bytes32);
+    function PERMIT_TYPEHASH() external pure returns (bytes32);
 
     // --- Token ---
     function transfer(address dst, uint256 wad) external returns (bool);
