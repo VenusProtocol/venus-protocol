@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 
 interface IVAI {
     // --- Auth ---
-    function wards(address) external view returns (bool);
+    function wards(address) external view returns (uint256);
     function rely(address guy) external;
     function deny(address guy) external;
 
