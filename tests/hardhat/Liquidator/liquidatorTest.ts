@@ -111,15 +111,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
 }
 
 function configure(fixture: LiquidatorFixture) {
-  const {
-    comptroller,
-    borrowedUnderlying,
-    vai,
-    vaiController,
-    vTokenBorrowed,
-    vTokenCollateral,
-    vBnb
-  } = fixture;
+  const { comptroller, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, vBnb } = fixture;
 
   comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
     .whenCalledWith(vTokenBorrowed.address, 0, 0)

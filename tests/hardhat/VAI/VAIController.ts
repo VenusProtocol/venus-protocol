@@ -81,8 +81,6 @@ describe("VAIController", async () => {
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
     const priceOracle = (await priceOracleFactory.deploy()) as SimplePriceOracle;
 
-    const liquidationIncentive = bigNumber18;
-
     const xvsFactory = await ethers.getContractFactory("XVS");
     const xvs = (await xvsFactory.deploy(wallet.address)) as XVS;
 
@@ -93,7 +91,18 @@ describe("VAIController", async () => {
     const vaiController = await vaiControllerFactory.deploy();
 
     const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
-    const liquidationManager = await LiquidationManager.deploy();
+    // constructor parameters
+    const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+    const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+    const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+
+    const liquidationManager = await LiquidationManager.deploy(
+      baseCloseFactorMantissa,
+      defaultCloseFactorMantissa,
+      targetHealthFactor,
+    );
+    await liquidationManager.deployed();
+    await liquidationManager.initialize(accessControl.address);
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptrollerLens = await ComptrollerLensFactory.deploy();
@@ -138,7 +147,7 @@ describe("VAIController", async () => {
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
     await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(5), bigNumber17.mul(6));
-    await comptroller.setMarketMaxLiquidationIncentive(vusdt.address, liquidationIncentive);
+    await comptroller.setMarketMaxLiquidationIncentive(vusdt.address, parseUnits("1.1", 18));
     await vusdt.setProtocolShareReserve(protocolShareReserve.address);
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
@@ -371,6 +380,17 @@ describe("VAIController", async () => {
   });
 
   describe("#liquidateVAI", async () => {
+    const mockSnapshot = {
+      totalCollateral: 0,
+      weightedCollateral: 0,
+      borrows: 0,
+      liquidity: 0,
+      shortfall: 0,
+      liquidationThresholdAvg: 0,
+      healthFactor: 0,
+      dynamicLiquidationIncentiveMantissa: 0,
+    };
+
     beforeEach("user1 borrow", async () => {
       await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
       await vai.allocateTo(user2.address, bigNumber18.mul(100));
@@ -382,21 +402,69 @@ describe("VAIController", async () => {
     it("reverts if the protocol is paused", async () => {
       comptroller.protocolPaused.returns(true);
       try {
-        const tx = vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
+        const tx = vaiController
+          .connect(user2)
+          .liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address, mockSnapshot);
         await expect(tx).to.be.revertedWith("protocol is paused");
       } finally {
         comptroller.protocolPaused.reset();
       }
     });
 
-    it("success for zero rate 0.2 vusdt collateralFactor", async () => {
+    it("should fail if the liquidation amount exceeds the allowed close factor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
       await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(3), bigNumber17.mul(4));
       await mineUpTo(99999999);
-      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
-      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
+
+      const [, snapshotRaw] = await comptroller.getHypotheticalHealthSnapshot(
+        user1.address,
+        ethers.constants.AddressZero,
+        0,
+        0,
+      );
+      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
+        vusdt.address,
+        snapshotRaw.liquidationThresholdAvg,
+        snapshotRaw.healthFactor,
+      );
+
+      const snapshot = { ...snapshotRaw };
+      snapshot.dynamicLiquidationIncentiveMantissa = totalIncentive;
+
+      const result = await vaiController
+        .connect(user2)
+        .callStatic.liquidateVAI(user1.address, bigNumber18.mul(70), vusdt.address, snapshot);
+
+      const errorCode = result[0]; // First value in the tuple
+      expect(errorCode).to.equal(2);
+    });
+
+    it("success for zero rate 0.2 vusdt collateralFactor", async () => {
+      await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
+      await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
+      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(3), bigNumber17.mul(3));
+      await mineUpTo(99999999);
+
+      const [, snapshotRaw] = await comptroller.getHypotheticalHealthSnapshot(
+        user1.address,
+        ethers.constants.AddressZero,
+        0,
+        0,
+      );
+      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
+        vusdt.address,
+        snapshotRaw.liquidationThresholdAvg,
+        snapshotRaw.healthFactor,
+      );
+
+      const snapshot = { ...snapshotRaw };
+      snapshot.dynamicLiquidationIncentiveMantissa = totalIncentive;
+
+      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(50), vusdt.address, snapshot);
+      console.log("Liquidation successful");
+      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(55));
     });
 
     it("success for 1.2 rate 0.3 vusdt collateralFactor", async () => {
@@ -408,11 +476,26 @@ describe("VAIController", async () => {
       await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
-      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(3), bigNumber17.mul(4));
+      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(3), bigNumber17.mul(3));
       await mineUpTo(99999999);
-      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
+
+      const [, snapshotRaw] = await comptroller.getHypotheticalHealthSnapshot(
+        user1.address,
+        ethers.constants.AddressZero,
+        0,
+        0,
+      );
+      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
+        vusdt.address,
+        snapshotRaw.liquidationThresholdAvg,
+        snapshotRaw.healthFactor,
+      );
+      const snapshot = { ...snapshotRaw };
+      snapshot.dynamicLiquidationIncentiveMantissa = totalIncentive;
+
+      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address, snapshot);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(66));
       expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(10));
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(50));
     });
