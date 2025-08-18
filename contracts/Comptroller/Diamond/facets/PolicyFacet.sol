@@ -146,10 +146,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkActionPauseState(vToken, Action.BORROW);
         ensureListed(markets[vToken]);
 
-        if (receiver != address(0) && whitelistedExecutors[receiver]) {
-            return uint256(Error.NO_ERROR);
-        }
-
         uint256 borrowCap = borrowCaps[vToken];
         require(borrowCap != 0, "market borrow cap is 0");
 
@@ -171,17 +167,19 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            borrower,
-            VToken(vToken),
-            0,
-            borrowAmount
-        );
-        if (err != Error.NO_ERROR) {
-            return uint256(err);
-        }
-        if (shortfall != 0) {
-            return uint256(Error.INSUFFICIENT_LIQUIDITY);
+        if (receiver == address(0) && !whitelistedExecutors[receiver]) {
+            (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+                borrower,
+                VToken(vToken),
+                0,
+                borrowAmount
+            );
+            if (err != Error.NO_ERROR) {
+                return uint256(err);
+            }
+            if (shortfall != 0) {
+                return uint256(Error.INSUFFICIENT_LIQUIDITY);
+            }
         }
 
         // Keep the flywheel moving
@@ -356,20 +354,18 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
 
-        if (liquidator != address(0) && whitelistedExecutors[liquidator]) {
-            return uint256(Error.NO_ERROR);
-        }
-
         if (!market.accountMembership[borrower]) {
             return uint256(Error.MARKET_NOT_COLLATERAL);
         }
 
-        if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
-        }
+        if (!whitelistedExecutors[vTokenBorrowed]) {
+            if (address(vTokenBorrowed) != address(vaiController)) {
+                ensureListed(markets[vTokenBorrowed]);
+            }
 
-        if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
-            return uint256(Error.COMPTROLLER_MISMATCH);
+            if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
+                return uint256(Error.COMPTROLLER_MISMATCH);
+            }
         }
 
         // Keep the flywheel moving
