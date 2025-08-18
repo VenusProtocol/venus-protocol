@@ -313,7 +313,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
             }
 
-            /* Fail if repayAmount = -1 */
+            /* Fail if repayAmount = type(uint256).max */
             if (repayAmount == type(uint256).max) {
                 return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
             }

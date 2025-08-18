@@ -92,7 +92,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev This will overwrite the approval amount for `spender`
      *  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)
      * @param spender The address of the account which may transfer tokens
-     * @param amount The number of tokens that are approved (-1 means infinite)
+     * @param amount The number of tokens that are approved (type(uint256).max means infinite)
      * @return Whether or not the approval succeeded
      */
     // @custom:event Emits Approval event on successful approve
@@ -263,7 +263,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Get the current allowance from `owner` for `spender`
      * @param owner The address of the account which owns the tokens to be spent
      * @param spender The address of the account which may transfer tokens
-     * @return The number of tokens allowed to be spent (-1 means infinite)
+     * @return The number of tokens allowed to be spent (type(uint256).max means infinite)
      */
     function allowance(address owner, address spender) external view override returns (uint256) {
         return transferAllowances[owner][spender];
@@ -1187,7 +1187,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             );
         }
 
-        /* If repayAmount == -1, repayAmount = accountBorrows */
+        /* If repayAmount == type(uint256).max, repayAmount = accountBorrows */
         if (repayAmount == type(uint256).max) {
             vars.repayAmount = vars.accountBorrows;
         } else {
@@ -1309,7 +1309,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
         }
 
-        /* Fail if repayAmount = -1 */
+        /* Fail if repayAmount = type(uint256).max */
         if (repayAmount == type(uint256).max) {
             return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
         }
