@@ -167,6 +167,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
+        // Skipped for debt swapping, the receiver is the PositionSwapper contract
         if (receiver == address(0) || !whitelistedExecutors[receiver]) {
             (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
                 borrower,
@@ -358,6 +359,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.MARKET_NOT_COLLATERAL);
         }
 
+        // Skipped for collateral swapping, the vTokenBorrowed is the PositionSwapper contract
         if (!whitelistedExecutors[vTokenBorrowed]) {
             if (address(vTokenBorrowed) != address(vaiController)) {
                 ensureListed(markets[vTokenBorrowed]);
