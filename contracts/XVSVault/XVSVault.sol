@@ -7,7 +7,7 @@ import { ECDSA } from "../Utils/ECDSA.sol";
 import { SafeBEP20 } from "../Utils/SafeBEP20.sol";
 import { IBEP20 } from "../Utils/IBEP20.sol";
 import { XVSVaultStorage } from "./XVSVaultStorage.sol";
-import { IPrime } from "../Tokens/Prime/IPrimeV5.sol";
+import { IPrimeV5 } from "../Tokens/Prime/IPrimeV5.sol";
 import { SafeCast } from "../Utils/SafeCast.sol";
 import { SafeMath } from "../Utils/SafeMath.sol";
 
@@ -86,8 +86,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
     /// @notice Emitted when prime token contract address is changed
     event NewPrimeToken(
-        IPrime indexed oldPrimeToken,
-        IPrime indexed newPrimeToken,
+        IPrimeV5 indexed oldPrimeToken,
+        IPrimeV5 indexed newPrimeToken,
         address oldPrimeRewardToken,
         address newPrimeRewardToken,
         uint256 oldPrimePoolId,
@@ -890,7 +890,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
      * @param _primeRewardToken address of reward token
      * @param _primePoolId pool id for reward
      */
-    function setPrimeToken(IPrime _primeToken, address _primeRewardToken, uint256 _primePoolId) external onlyAdmin {
+    function setPrimeToken(IPrimeV5 _primeToken, address _primeRewardToken, uint256 _primePoolId) external onlyAdmin {
         require(address(_primeToken) != address(0), "prime token cannot be zero address");
         require(_primeRewardToken != address(0), "reward cannot be zero address");
 
