@@ -3,14 +3,16 @@
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../Utils/ECDSA.sol";
-import "../Utils/SafeBEP20.sol";
-import "../Utils/IBEP20.sol";
-import "./XVSVaultStorage.sol";
-import "../Tokens/Prime/IPrimeV5.sol";
-import "../Utils/SafeCast.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
-import "@venusprotocol/solidity-utilities/contracts/TimeManagerV5.sol";
+import { ECDSA } from "../Utils/ECDSA.sol";
+import { SafeBEP20 } from "../Utils/SafeBEP20.sol";
+import { IBEP20 } from "../Utils/IBEP20.sol";
+import { XVSVaultStorage } from "./XVSVaultStorage.sol";
+import { IPrime } from "../Tokens/Prime/IPrimeV5.sol";
+import { SafeCast } from "../Utils/SafeCast.sol";
+import { SafeMath } from "../Utils/SafeMath.sol";
+
+import { AccessControlledV5 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import { TimeManagerV5 } from "@venusprotocol/solidity-utilities/contracts/TimeManagerV5.sol";
 
 import { XVSStore } from "./XVSStore.sol";
 import { XVSVaultProxy } from "./XVSVaultProxy.sol";

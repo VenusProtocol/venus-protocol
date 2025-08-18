@@ -3,7 +3,8 @@
 pragma solidity 0.8.25;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import { Unitroller, ComptrollerStorage } from "../Unitroller.sol";
+import { Unitroller } from "../Unitroller.sol";
+import { ComptrollerStorage } from "../ComptrollerStorage.sol";
 
 /**
  * @title Diamond

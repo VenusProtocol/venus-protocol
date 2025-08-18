@@ -6,7 +6,9 @@ import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/con
 import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
-import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
+import { VAIUnitroller } from "./VAIUnitroller.sol";
+import { VAIControllerStorageG4 } from "./VAIControllerStorage.sol";
+
 import { IVAIController } from "./interfaces/IVAIController.sol";
 import { IVAI } from "./interfaces/IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
