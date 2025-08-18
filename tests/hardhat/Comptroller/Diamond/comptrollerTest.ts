@@ -939,7 +939,7 @@ describe("Comptroller", () => {
         ).to.be.revertedWith("market borrow cap is 0");
       });
 
-      it.only("allows borrowing for error if borrower is whitelisted", async () => {
+      it("allows borrowing for error if borrower is whitelisted", async () => {
         const cap = convertToUnit("1000", 18);
         const currentVTokenBorrows = convertToUnit("500", 18);
 
