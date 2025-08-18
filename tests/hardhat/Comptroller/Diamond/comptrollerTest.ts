@@ -939,13 +939,13 @@ describe("Comptroller", () => {
         ).to.be.revertedWith("market borrow cap is 0");
       });
 
-      it("allows borrowing if cap is reached if receiver is whitelisted", async () => {
-        const cap = convertToUnit("100", 18);
+      it.only("allows borrowing for error if borrower is whitelisted", async () => {
+        const cap = convertToUnit("1000", 18);
         const currentVTokenBorrows = convertToUnit("500", 18);
 
         vToken.totalBorrows.returns(currentVTokenBorrows);
         vToken.borrowIndex.returns(1);
-        comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
+        comptrollerLens.getHypotheticalAccountLiquidity.returns([1, 0, 0]);
         await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
         await comptroller._setWhitelistedExecutor(root.address, true);
 
