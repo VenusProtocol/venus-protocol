@@ -167,7 +167,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
-        if (receiver == address(0) && !whitelistedExecutors[receiver]) {
+        if (receiver == address(0) || !whitelistedExecutors[receiver]) {
             (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
                 borrower,
                 VToken(vToken),
