@@ -29,6 +29,10 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
     // poolId for core Pool
     uint96 internal constant corePoolId = 0;
+    /// @notice Flag to indicate collateral factors should be used for weighting
+    bool internal constant useCollateralFactor = true;
+    /// @notice Flag to indicate liquidation thresholds should be used for weighting
+    bool internal constant useLiquidationThreshold = false;
 
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
@@ -138,6 +142,8 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @param useCollateralFactor If true, uses collateral factors for asset weighting;
+     *                            if false, uses liquidation thresholds instead.
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
      *  without calculating accumulated interest.
      * @return (possible error code,
@@ -149,7 +155,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount,
-        function(address, address) external view returns (uint256) weight
+        bool useCollateralFactor
     ) internal view returns (Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
@@ -157,7 +163,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            weight
+            useCollateralFactor
         );
         return (Error(err), liquidity, shortfall);
     }
@@ -212,7 +218,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             VToken(vToken),
             redeemTokens,
             0,
-            this.getEffectiveCollateralFactor
+            useCollateralFactor
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -252,31 +258,35 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Get the Effective collateral factor for a vToken
-     * @dev This value should be used when calculating account liquidity and during liquidation checks.
-     * @param account The address of the account for which to fetch the collateral factor.
-     * @param vToken The address of the vToken whose collateral factor is being queried.
-     * @return The collateral factor for the vToken, scaled by 1e18
-     */
-    function getEffectiveCollateralFactor(address account, address vToken) external view returns (uint256) {
-        (uint256 cf, , ) = getLiquidationParams(userPoolId[account], vToken);
-        return cf;
-    }
-
-    /**
-     * @notice Get the liquidation threshold for a vToken
-     * @dev This value should be used when calculating account liquidity and during liquidation checks.
-     * @param account The address of the account for which to fetch the liquidation threshold.
-     * @param vToken The address of the vToken whose liquidation threshold is being queried.
-     * @return The liquidation threshold for the vToken, scaled by 1e18
-     */
-    function getEffectiveLiquidationThreshold(address account, address vToken) external view returns (uint256) {
-        (, uint256 lt, ) = getLiquidationParams(userPoolId[account], vToken);
-        return lt;
-    }
-
-    /**
      * @notice Get the liquidation Incentive for a vToken
+     * @param vToken The address of the vToken whose liquidation Incentive is being queried.
+     * @return The liquidation Incentive for the vToken, scaled by 1e18
+     */
+    function getLiquidationIncentive(address vToken) external view returns (uint256) {
+        (, , uint256 li) = getLiquidationParams(corePoolId, vToken);
+        return li;
+    }
+
+    /**
+     * @notice Returns the effective loan-to-value factor (collateral factor or liquidation threshold) for a given account and market.
+     * @dev This value should be used when calculating account liquidity and during liquidation checks.
+     * @param account The account whose pool is used to determine the market's risk parameters.
+     * @param vToken The address of the vToken market.
+     * @param useCollateralFactor If true, returns the collateral factor; if false, returns the liquidation threshold.
+     * @return factor The effective loan-to-value factor, scaled by 1e18.
+     */
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        bool useCollateralFactor
+    ) external view returns (uint256) {
+        (uint256 cf, uint256 lt, ) = getLiquidationParams(userPoolId[account], vToken);
+        if (useCollateralFactor) return cf;
+        else return lt;
+    }
+
+    /**
+     * @notice Get the Effective liquidation Incentive for a vToken
      * @dev This value should be used when calculating account liquidity and during liquidation checks.
      * @param account The address of the account for which to fetch the liquidation Incentive.
      * @param vToken The address of the vToken whose liquidation Incentive is being queried.
@@ -323,22 +333,22 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
      * @param account The account get liquidity for
-     * @param weight A function that takes a pool ID (`uint96`) and market address (`address`) and returns
-     * the corresponding risk weighting as mantissa (e.g., collateral factor or liquidation threshold).
+     * @param useCollateralFactor If true, uses collateral factors for weighting assets;
+     *                            if false, uses liquidation thresholds instead.
      * @return (possible error code (semi-opaque),
      * account liquidity in excess of collateral requirements,
      * account shortfall below collateral requirements)
      */
     function _getAccountLiquidity(
         address account,
-        function(address, address) external view returns (uint256) weight
+        bool useCollateralFactor
     ) internal view returns (uint256, uint256, uint256) {
         (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(address(0)),
             0,
             0,
-            weight
+            useCollateralFactor
         );
 
         return (uint256(err), liquidity, shortfall);

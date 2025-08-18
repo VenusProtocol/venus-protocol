@@ -10,13 +10,13 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when the liquidation incentive is invalid
     error InvalidLiquidationIncentive();
 
-    /// @notice You are already in the selected pool.
+    /// @notice Thrown when You are already in the selected pool.
     error AlreadyInSelectedPool();
 
-    /// @notice One or more of your assets are not compatible with the selected pool.
-    error IncompatibleAssets();
+    /// @notice Thrown when One or more of your assets are not compatible with the selected pool.
+    error IncompatibleBorrowedAssets();
 
-    /// @notice Switching to this pool would fail the liquidity check or lead to liquidation.
+    /// @notice Thrown when Switching to this pool would fail the liquidity check or lead to liquidation.
     error LiquidityCheckFailed(uint256 errorCode, uint256 shortfall);
 
     /// @notice Thrown when trying to modify the core pool (poolId == 0)

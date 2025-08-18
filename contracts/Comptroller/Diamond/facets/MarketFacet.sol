@@ -100,6 +100,29 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
+            address(this),
+            vTokenBorrowed,
+            vTokenCollateral,
+            actualRepayAmount
+        );
+        return (err, seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param borrower Address of borrower whose collateral is being seized
+     * @param vTokenBorrowed The address of the borrowed vToken
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateCalculateSeizeTokens(
         address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
@@ -310,12 +333,12 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         if (!hasValidPoolBorrows(msg.sender, poolId)) {
-            revert IncompatibleAssets();
+            revert IncompatibleBorrowedAssets();
         }
 
         userPoolId[msg.sender] = poolId;
 
-        (uint256 error, , uint256 shortfall) = _getAccountLiquidity(msg.sender, this.getEffectiveCollateralFactor);
+        (uint256 error, , uint256 shortfall) = _getAccountLiquidity(msg.sender, useCollateralFactor);
 
         if (error != 0 || shortfall > 0) {
             revert LiquidityCheckFailed(error, shortfall);

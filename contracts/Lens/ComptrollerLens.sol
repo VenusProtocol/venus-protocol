@@ -169,6 +169,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify Address of collateral for vToken
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
+     * @param useCollateralFactor If true, uses collateral factors for asset weighting;
+     *                            if false, uses liquidation thresholds instead.
      * @return Returns a tuple of error code, liquidity, and shortfall
      */
     function getHypotheticalAccountLiquidity(
@@ -177,7 +179,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount,
-        function(address, address) external view returns (uint) weight
+        bool useCollateralFactor
     ) external view returns (uint, uint, uint) {
         (uint errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
             comptroller,
@@ -185,7 +187,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            weight
+            useCollateralFactor
         );
         if (errorCode != 0) {
             return (errorCode, 0, 0);
@@ -206,6 +208,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify Address of collateral for vToken
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
+     * @param useCollateralFactor If true, uses collateral factors for asset weighting;
+     *                            if false, uses liquidation thresholds instead.
      * @return oErr Returns an error code indicating success or failure
      * @return vars Returns an AccountLiquidityLocalVars struct containing the calculated values
      */
@@ -215,7 +219,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount,
-        function(address, address) external view returns (uint) weight
+        bool useCollateralFactor
     ) internal view returns (uint oErr, AccountLiquidityLocalVars memory vars) {
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
@@ -231,7 +235,13 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), vars);
             }
-            vars.weightedFactor = Exp({ mantissa: weight(account, address(asset)) });
+            vars.weightedFactor = Exp({
+                mantissa: ComptrollerInterface(comptroller).getEffectiveLtvFactor(
+                    account,
+                    address(asset),
+                    useCollateralFactor
+                )
+            });
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
             // Get the normalized price of the asset

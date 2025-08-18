@@ -43,7 +43,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     uint256 public closeFactorMantissa;
 
     /**
-     * @notice Multiplier representing the discount on collateral that a liquidator receives (depricated)
+     * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
      */
     uint256 public oldLiquidationIncentiveMantissa;
 

@@ -755,7 +755,8 @@ describe("PrimeScenario Token", () => {
 
         const half = convertToUnit("0.5", 8);
         await comptroller._supportMarket(vbnb.address);
-        await comptroller._setCollateralFactor(vbnb.address, half);
+        await comptroller.updatePoolMarketBorrow(0, vbnb.address, true);
+        await comptroller.setCollateralFactor(vbnb.address, half, half);
 
         await bnb.transfer(user3.getAddress(), bigNumber18.mul(100));
 

@@ -120,9 +120,11 @@ contract VenusLens is ExponentialNoError {
         bool isBorrowAllowed;
     }
 
-    struct PoolInfo {
+    /// @notice Struct representing a pool and its associated markets
+    struct PoolWithMarkets {
         uint96 poolId;
         string label;
+        MarketData[] markets;
     }
 
     /**
@@ -569,15 +571,22 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
-     * @notice Returns all existing pool IDs and labels.
-     * @return poolsInfo An array of structs containing poolId and label.
+     * @notice Returns all pools along with their associated market data
+     * @param comptroller The Comptroller contract to query
+     * @return poolsData An array of PoolWithMarkets structs, each containing pool info and its markets
      */
-    function getAllPools(ComptrollerInterface comptroller) external view returns (PoolInfo[] memory poolsInfo) {
+    function getAllPoolsData(
+        ComptrollerInterface comptroller
+    ) external view returns (PoolWithMarkets[] memory poolsData) {
         uint96 lastPoolId = comptroller.lastPoolId();
-        poolsInfo = new PoolInfo[](lastPoolId);
+        poolsData = new PoolWithMarkets[](lastPoolId);
 
         for (uint96 i = 1; i <= lastPoolId; i++) {
-            poolsInfo[i - 1] = PoolInfo({ poolId: i, label: comptroller.pools(i) });
+            poolsData[i - 1] = PoolWithMarkets({
+                poolId: i,
+                label: comptroller.pools(i),
+                markets: getMarketsDataByPool(i, comptroller)
+            });
         }
     }
 
@@ -590,7 +599,7 @@ contract VenusLens is ExponentialNoError {
     function getMarketsDataByPool(
         uint96 poolId,
         ComptrollerInterface comptroller
-    ) external view returns (MarketData[] memory result) {
+    ) public view returns (MarketData[] memory result) {
         address[] memory vTokens = comptroller.getPoolVTokens(poolId);
         uint256 length = vTokens.length;
         result = new MarketData[](length);

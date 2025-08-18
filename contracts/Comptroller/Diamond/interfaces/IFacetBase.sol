@@ -37,9 +37,13 @@ interface IFacetBase {
 
     function getLiquidationThreshold(address vToken) external view returns (uint256);
 
-    function getEffectiveCollateralFactor(address account, address vToken) external view returns (uint256);
+    function getLiquidationIncentive(address vToken) external view returns (uint256);
 
-    function getEffectiveLiquidationThreshold(address account, address vToken) external view returns (uint256);
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        bool useCollateralFactor
+    ) external view returns (uint256);
 
     function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
 

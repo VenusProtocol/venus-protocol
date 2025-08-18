@@ -140,7 +140,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(vToken),
             0,
             borrowAmount,
-            this.getEffectiveCollateralFactor
+            useCollateralFactor
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -261,7 +261,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(address(0)),
             0,
             0,
-            this.getEffectiveLiquidationThreshold
+            useLiquidationThreshold
         );
 
         if (err != Error.NO_ERROR) {
@@ -424,7 +424,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, this.getEffectiveCollateralFactor);
+        return _getAccountLiquidity(account, useCollateralFactor);
     }
 
     /**
@@ -435,7 +435,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, this.getEffectiveLiquidationThreshold);
+        return _getAccountLiquidity(account, useCollateralFactor);
     }
 
     /**
@@ -459,7 +459,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(vTokenModify),
             redeemTokens,
             borrowAmount,
-            this.getEffectiveCollateralFactor
+            useCollateralFactor
         );
         return (uint256(err), liquidity, shortfall);
     }

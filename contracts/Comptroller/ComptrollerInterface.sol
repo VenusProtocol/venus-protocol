@@ -165,6 +165,12 @@ interface ComptrollerInterface {
 
     function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
 
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        bool useCollateralFactor
+    ) external view returns (uint256);
+
     function lastPoolId() external view returns (uint96);
 
     function pools(uint96 poolId) external view returns (string memory label);
