@@ -1,7 +1,7 @@
 pragma solidity 0.8.25;
 
-import "./ComptrollerStorage.sol";
-import "../Utils/ErrorReporter.sol";
+import { UnitrollerAdminStorage } from "./ComptrollerStorage.sol";
+import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
 
 /**
  * @title ComptrollerCore
