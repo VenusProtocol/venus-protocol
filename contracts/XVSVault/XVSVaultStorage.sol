@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 
 import { SafeMath } from "../Utils/SafeMath.sol";
 import { IBEP20 } from "../Utils/IBEP20.sol";
-import { IPrime } from "../Tokens/Prime/IPrimeV5.sol";
+import { IPrimeV5 } from "../Tokens/Prime/IPrimeV5.sol";
 
 contract XVSVaultAdminStorage {
     /**
@@ -125,7 +125,7 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     mapping(address => mapping(address => uint256)) public pendingRewardTransfers;
 
     /// @notice Prime token contract address
-    IPrime public primeToken;
+    IPrimeV5 public primeToken;
 
     /// @notice Reward token for which prime token is issued for staking
     address public primeRewardToken;

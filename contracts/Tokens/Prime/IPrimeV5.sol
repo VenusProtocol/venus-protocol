@@ -3,11 +3,11 @@ pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 /**
- * @title IPrime
+ * @title IPrimeV5
  * @author Venus
  * @notice Interface for Prime Token
  */
-interface IPrime {
+interface IPrimeV5 {
     /**
      * @notice Executed by XVSVault whenever user's XVSVault balance changes
      * @param user the account address whose balance was updated
