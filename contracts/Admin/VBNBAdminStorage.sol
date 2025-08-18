@@ -14,10 +14,6 @@ interface VTokenInterface {
     function _setInterestRateModel(address newInterestRateModel) external returns (uint);
 }
 
-interface IWBNB is IERC20Upgradeable {
-    function deposit() external payable;
-}
-
 contract VBNBAdminStorage {
     /// @notice address of protocol share reserve contract
     IProtocolShareReserve public protocolShareReserve;
