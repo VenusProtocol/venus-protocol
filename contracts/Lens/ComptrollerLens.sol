@@ -5,10 +5,10 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 import "../Tokens/VTokens/VBep20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
-import "../Utils/ErrorReporter.sol";
-import "../Comptroller/ComptrollerInterface.sol";
-import "../Comptroller/ComptrollerLensInterface.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
+import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
+import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
+import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 
 /**
  * @title ComptrollerLens Contract

@@ -7,11 +7,12 @@ import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { VToken } from "../VTokens/VToken.sol";
-import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
+import { VAIUnitroller } from "./VAIUnitroller.sol";
 import { VAIControllerInterface } from "./VAIControllerInterface.sol";
 import { IVAI } from "./IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
 import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
+import { VAIControllerStorageG4 } from "./VAIControllerStorage.sol";
 
 /**
  * @title VAI Comptroller
