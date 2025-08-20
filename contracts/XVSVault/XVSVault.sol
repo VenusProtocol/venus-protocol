@@ -3,14 +3,16 @@
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../Utils/ECDSA.sol";
-import "../Utils/SafeBEP20.sol";
-import "../Utils/IBEP20.sol";
-import "./XVSVaultStorage.sol";
-import "../Tokens/Prime/IPrimeV5.sol";
-import "../Utils/SafeCast.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
-import "@venusprotocol/solidity-utilities/contracts/TimeManagerV5.sol";
+import { ECDSA } from "../Utils/ECDSA.sol";
+import { SafeBEP20 } from "../Utils/SafeBEP20.sol";
+import { IBEP20 } from "../Utils/IBEP20.sol";
+import { XVSVaultStorage } from "./XVSVaultStorage.sol";
+import { IPrimeV5 } from "../Tokens/Prime/IPrimeV5.sol";
+import { SafeCast } from "../Utils/SafeCast.sol";
+import { SafeMath } from "../Utils/SafeMath.sol";
+
+import { AccessControlledV5 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import { TimeManagerV5 } from "@venusprotocol/solidity-utilities/contracts/TimeManagerV5.sol";
 
 import { XVSStore } from "./XVSStore.sol";
 import { XVSVaultProxy } from "./XVSVaultProxy.sol";
@@ -84,8 +86,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
     /// @notice Emitted when prime token contract address is changed
     event NewPrimeToken(
-        IPrime indexed oldPrimeToken,
-        IPrime indexed newPrimeToken,
+        IPrimeV5 indexed oldPrimeToken,
+        IPrimeV5 indexed newPrimeToken,
         address oldPrimeRewardToken,
         address newPrimeRewardToken,
         uint256 oldPrimePoolId,
@@ -888,7 +890,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
      * @param _primeRewardToken address of reward token
      * @param _primePoolId pool id for reward
      */
-    function setPrimeToken(IPrime _primeToken, address _primeRewardToken, uint256 _primePoolId) external onlyAdmin {
+    function setPrimeToken(IPrimeV5 _primeToken, address _primeRewardToken, uint256 _primePoolId) external onlyAdmin {
         require(address(_primeToken) != address(0), "prime token cannot be zero address");
         require(_primeRewardToken != address(0), "reward cannot be zero address");
 

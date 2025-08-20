@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
-import "../Tokens/VTokens/VToken.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
 
 interface ComptrollerLensInterface {
     function liquidateCalculateSeizeTokens(

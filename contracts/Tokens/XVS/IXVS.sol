@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
 interface IXVS {
@@ -26,13 +28,13 @@ interface IXVS {
     function checkpoints(address, uint32) external view returns (Checkpoint memory);
 
     /// @notice The number of checkpoints for each account
-    function numCheckpoints(address) external view returns (uint256);
+    function numCheckpoints(address) external view returns (uint32);
 
     /// @notice The EIP-712 typehash for the contract's domain
-    function DOMAIN_TYPEHASH() external pure returns (string memory);
+    function DOMAIN_TYPEHASH() external pure returns (bytes32);
 
     /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    function DELEGATION_TYPEHASH() external pure returns (string memory);
+    function DELEGATION_TYPEHASH() external pure returns (bytes32);
 
     /// @notice A record of states for signing / validating signatures
     function nonces(address) external view returns (uint256);

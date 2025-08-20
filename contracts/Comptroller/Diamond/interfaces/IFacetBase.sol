@@ -2,15 +2,7 @@
 
 pragma solidity 0.8.25;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
-
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
-import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
-import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { Action } from "../../../Comptroller/ComptrollerInterface.sol";
 
 interface IFacetBase {
     /**
