@@ -228,7 +228,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
         for (uint256 i; i < vTokensLength; ++i) {
             VToken vToken = vTokens[i];
-            ensureListed(_poolMarkets[getCorePoolMarketIndex(address(vToken))]);
+            ensureListed(getCorePoolMarket(address(vToken)));
             if (borrowers) {
                 Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
                 updateVenusBorrowIndex(address(vToken), borrowIndex);

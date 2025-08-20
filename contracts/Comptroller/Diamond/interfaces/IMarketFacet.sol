@@ -53,16 +53,6 @@ interface IMarketFacet {
 
     function removePoolMarket(uint96 poolId, address vToken) external;
 
-    function updatePoolMarketBorrow(uint96 poolId, address vToken, bool borrowAllowed) external;
-
-    function updatePoolMarketRiskParams(
-        uint96 poolId,
-        address vToken,
-        uint256 collateralFactorMantissa,
-        uint256 liquidationThresholdMantissa,
-        uint256 maxLiquidationIncentiveMantissa
-    ) external;
-
     function markets(
         address vToken
     )
@@ -95,4 +85,20 @@ interface IMarketFacet {
         );
 
     function hasValidPoolBorrows(address user, uint96 targetPoolId) external view returns (bool);
+
+    function getCollateralFactor(address vToken) external view returns (uint256);
+
+    function getLiquidationThreshold(address vToken) external view returns (uint256);
+
+    function getLiquidationIncentive(address vToken) external view returns (uint256);
+
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        bool applyCollateralFactor
+    ) external view returns (uint256);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
 }

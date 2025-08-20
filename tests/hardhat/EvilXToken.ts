@@ -98,7 +98,11 @@ describe("Evil Token test", async () => {
     await vToken1.setAccessControlManager(accessControlMock.address);
 
     await unitroller._supportMarket(vToken1.address);
-    await unitroller.setCollateralFactor(vToken1.address, convertToUnit(cf1, 18), convertToUnit(cf1, 18));
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken1.address,
+      convertToUnit(cf1, 18),
+      convertToUnit(cf1, 18),
+    );
     await priceOracle.setUnderlyingPrice(vToken1.address, convertToUnit(up1, 18));
 
     const underlying2Factory = await ethers.getContractFactory("BEP20Harness");
@@ -127,7 +131,11 @@ describe("Evil Token test", async () => {
     vToken2 = await ethers.getContractAt("VBep20MockDelegate", vDelegator2.address);
 
     await unitroller._supportMarket(vToken2.address);
-    await unitroller.setCollateralFactor(vToken2.address, convertToUnit(cf2, 18), convertToUnit(cf2, 18));
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken2.address,
+      convertToUnit(cf2, 18),
+      convertToUnit(cf2, 18),
+    );
     await priceOracle.setUnderlyingPrice(vToken2.address, convertToUnit(up2, 18));
 
     const underlying3Factory = await ethers.getContractFactory("BEP20Harness");
@@ -156,8 +164,16 @@ describe("Evil Token test", async () => {
     vToken3 = await ethers.getContractAt("EvilXToken", vDelegator3.address);
     await unitroller._supportMarket(vToken3.address);
 
-    await unitroller.setCollateralFactor(vToken3.address, convertToUnit(cf2, 18), convertToUnit(cf2, 18));
-    await unitroller.setCollateralFactor(vToken3.address, convertToUnit(cf3, 18), convertToUnit(cf3, 18));
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken3.address,
+      convertToUnit(cf2, 18),
+      convertToUnit(cf2, 18),
+    );
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken3.address,
+      convertToUnit(cf3, 18),
+      convertToUnit(cf3, 18),
+    );
     await priceOracle.setUnderlyingPrice(vToken2.address, convertToUnit(up3, 18));
 
     await unitroller._setMarketSupplyCaps(
@@ -182,9 +198,9 @@ describe("Evil Token test", async () => {
     await vToken1.setProtocolShareReserve(protocolShareReserve.address);
     await vToken2.setProtocolShareReserve(protocolShareReserve.address);
     await vToken3.setProtocolShareReserve(protocolShareReserve.address);
-    await unitroller.setLiquidationIncentive(vToken1.address, convertToUnit(1.1, 18));
-    await unitroller.setLiquidationIncentive(vToken2.address, convertToUnit(1.1, 18));
-    await unitroller.setLiquidationIncentive(vToken3.address, convertToUnit(1.1, 18));
+    await unitroller["setLiquidationIncentive(address,uint256)"](vToken1.address, convertToUnit(1.1, 18));
+    await unitroller["setLiquidationIncentive(address,uint256)"](vToken2.address, convertToUnit(1.1, 18));
+    await unitroller["setLiquidationIncentive(address,uint256)"](vToken3.address, convertToUnit(1.1, 18));
     await unitroller.updatePoolMarketBorrow(0, vToken3.address, true);
   });
 

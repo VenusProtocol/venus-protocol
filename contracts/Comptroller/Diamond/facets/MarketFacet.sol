@@ -6,6 +6,7 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
+import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 
 /**
  * @title MarketFacet
@@ -29,20 +30,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when a market is initialized in a pool
     event PoolMarketInitialized(uint96 indexed poolId, address indexed market, bool isVenus);
 
-    /// @notice Emitted when the borrowAllowed flag is updated for a market
-    event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool isAllowed);
-
     /// @notice Emitted when a user enters or exits a pool (poolId = 0 means exit)
-    event PoolSelected(address indexed account, uint96 indexed poolId);
-
-    /// @notice Emitted when risk parameters (CF, LT, LI) are updated for a market
-    event RiskParamsUpdated(
-        uint96 indexed poolId,
-        address indexed market,
-        uint256 collateralFactorMantissa,
-        uint256 liquidationThresholdMantissa,
-        uint256 maxLiquidationIncentiveMantissa
-    );
+    event PoolSelected(address indexed account, uint96 previousPoolId, uint96 indexed newPoolId);
 
     /// @notice Emitted when a vToken market is removed from a pool
     event PoolMarketRemoved(uint96 indexed poolId, address indexed vToken);
@@ -68,7 +57,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         VToken[] memory assetsIn = new VToken[](_accountAssetsLength);
 
         for (uint256 i; i < _accountAssetsLength; ++i) {
-            Market storage market = _poolMarkets[getCorePoolMarketIndex(address(_accountAssets[i]))];
+            Market storage market = getCorePoolMarket(address(_accountAssets[i]));
             if (market.isListed) {
                 assetsIn[len] = _accountAssets[i];
                 ++len;
@@ -324,6 +313,11 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Allows a user to switch to a new pool (e.g., e-mode ).
      * @param poolId The ID of the pool the user wants to enter.
+     * @custom:error PoolDoesNotExist The specified pool ID does not exist.
+     * @custom:error AlreadyInSelectedPool The user is already in the target pool.
+     * @custom:error IncompatibleBorrowedAssets The user's current borrows are incompatible with the new pool.
+     * @custom:error LiquidityCheckFailed The user's liquidity is insufficient after switching pools.
+     * @custom:event PoolSelected Emitted after a successful pool switch.
      */
     function enterPool(uint96 poolId) external {
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
@@ -336,6 +330,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
             revert IncompatibleBorrowedAssets();
         }
 
+        emit PoolSelected(msg.sender, userPoolId[msg.sender], poolId);
+
         userPoolId[msg.sender] = poolId;
 
         (uint256 error, , uint256 shortfall) = _getAccountLiquidity(msg.sender, useCollateralFactor);
@@ -343,16 +339,18 @@ contract MarketFacet is IMarketFacet, FacetBase {
         if (error != 0 || shortfall > 0) {
             revert LiquidityCheckFailed(error, shortfall);
         }
-
-        emit PoolSelected(msg.sender, poolId);
     }
 
     /**
      * @notice Creates a new pool with the given label.
      * @param label name for the pool (must be non-empty).
      * @return poolId The incremental unique identifier of the newly created pool.
+     * @custom:error EmptyPoolLabel Reverts if the provided label is an empty string.
+     * @custom:event PoolCreated Emitted after successfully creating a new pool.
      */
     function createPool(string memory label) external returns (uint96) {
+        ensureAllowed("createPool(string)");
+
         if (bytes(label).length == 0) {
             revert EmptyPoolLabel();
         }
@@ -368,6 +366,11 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @notice Batch initializes market entries with basic config.
      * @param poolIds Array of pool IDs.
      * @param vTokens Array of market (vToken) addresses.
+     * @custom:error ArrayLengthMismatch Reverts if `poolIds` and `vTokens` arrays have different lengths.
+     * @custom:error CorePoolModificationNotAllowed Reverts if attempting to modify the core pool.
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
+     * @custom:error MarketNotListedInCorePool Reverts if the market is not listed in the core pool.
+     * @custom:event PoolMarketInitialized Emitted after successfully initializing a market in a pool.
      */
     function addPoolMarkets(uint96[] calldata poolIds, address[] calldata vTokens) external {
         uint256 len = poolIds.length;
@@ -381,97 +384,16 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Updates the `isBorrowAllowed` flag for a market in a pool.
-     * @param poolId The ID of the pool.
-     * @param vToken The address of the market (vToken).
-     * @param borrowAllowed The new borrow allowed status.
-     */
-    function updatePoolMarketBorrow(uint96 poolId, address vToken, bool borrowAllowed) external {
-        ensureAllowed("updatePoolMarketBorrow(uint96,address,bool)");
-
-        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
-
-        bytes32 index = getPoolMarketIndex(poolId, vToken);
-        Market storage m = _poolMarkets[index];
-
-        if (!m.isListed) {
-            revert MarketConfigNotFound();
-        }
-
-        if (m.isBorrowAllowed == borrowAllowed) {
-            return;
-        }
-
-        m.isBorrowAllowed = borrowAllowed;
-
-        emit BorrowAllowedUpdated(poolId, vToken, borrowAllowed);
-    }
-
-    /**
-     * @notice Updates the risk parameters (CF, LT, LI) for a market in a pool.
-     * @param poolId The ID of the pool.
-     * @param vToken The address of the market (vToken).
-     * @param newCollateralFactorMantissa The new collateral factor mantissa (must be < 1e18).
-     * @param newLiquidationThresholdMantissa The new liquidation threshold mantissa (must be < 1e18).
-     * @param newLiquidationIncentiveMantissa The new liquidation incentive mantissa (must be ≥ 1e18).
-     */
-    function updatePoolMarketRiskParams(
-        uint96 poolId,
-        address vToken,
-        uint256 newCollateralFactorMantissa,
-        uint256 newLiquidationThresholdMantissa,
-        uint256 newLiquidationIncentiveMantissa
-    ) external {
-        ensureAllowed("updatePoolMarketRiskParams(uint96,address,uint256,uint256,uint256)");
-
-        if (poolId == 0) revert CorePoolModificationNotAllowed();
-        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
-
-        bytes32 index = getPoolMarketIndex(poolId, vToken);
-        Market storage m = _poolMarkets[index];
-
-        if (!m.isListed) {
-            revert MarketConfigNotFound();
-        }
-
-        if (newCollateralFactorMantissa > mantissaOne) {
-            revert InvalidCollateralFactor();
-        }
-
-        if (newLiquidationThresholdMantissa > mantissaOne) {
-            revert InvalidLiquidationThreshold();
-        }
-
-        if (newLiquidationThresholdMantissa < newCollateralFactorMantissa) {
-            revert InvalidLiquidationThreshold();
-        }
-
-        if (newLiquidationIncentiveMantissa < mantissaOne) {
-            revert InvalidLiquidationIncentive();
-        }
-
-        m.collateralFactorMantissa = newCollateralFactorMantissa;
-        m.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
-        m.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
-
-        emit RiskParamsUpdated(
-            poolId,
-            vToken,
-            newCollateralFactorMantissa,
-            newLiquidationThresholdMantissa,
-            newLiquidationIncentiveMantissa
-        );
-    }
-
-    /**
      * @notice Removes a market (vToken) from the specified pool.
      * @param poolId The ID of the pool from which the market should be removed.
      * @param vToken The address of the market token to remove.
+     * @custom:error PoolMarketNotFound Reverts if the market is not listed in the pool.
+     * @custom:event PoolMarketRemoved Emitted after a market is successfully removed from a pool.
      */
     function removePoolMarket(uint96 poolId, address vToken) external {
         ensureAllowed("removePoolMarket(uint96,address)");
 
-        bytes32 index = getPoolMarketIndex(poolId, vToken);
+        PoolMarketId index = getPoolMarketIndex(poolId, vToken);
         if (!_poolMarkets[index].isListed) {
             revert PoolMarketNotFound(poolId, vToken);
         }
@@ -494,6 +416,75 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         emit PoolMarketRemoved(poolId, vToken);
+    }
+
+    /**
+     * @notice Get the core pool collateral factor for a vToken
+     * @param vToken The address of the vToken to get the collateral factor for
+     * @return The collateral factor for the vToken, scaled by 1e18
+     */
+    function getCollateralFactor(address vToken) external view returns (uint256) {
+        (uint256 cf, , ) = getLiquidationParams(corePoolId, vToken);
+        return cf;
+    }
+
+    /**
+     * @notice Get the core pool liquidation threshold for a vToken
+     * @param vToken The address of the vToken to get the liquidation threshold for
+     * @return The liquidation threshold for the vToken, scaled by 1e18
+     */
+    function getLiquidationThreshold(address vToken) external view returns (uint256) {
+        (, uint256 lt, ) = getLiquidationParams(corePoolId, vToken);
+        return lt;
+    }
+
+    /**
+     * @notice Get the liquidation Incentive for a vToken
+     * @param vToken The address of the vToken whose liquidation Incentive is being queried.
+     * @return The liquidation Incentive for the vToken, scaled by 1e18
+     */
+    function getLiquidationIncentive(address vToken) external view returns (uint256) {
+        (, , uint256 li) = getLiquidationParams(corePoolId, vToken);
+        return li;
+    }
+
+    /**
+     * @notice Returns the effective loan-to-value factor (collateral factor or liquidation threshold) for a given account and market.
+     * @dev This value should be used when calculating account liquidity and during liquidation checks.
+     * @param account The account whose pool is used to determine the market's risk parameters.
+     * @param vToken The address of the vToken market.
+     * @param applyCollateralFactor If true, returns the collateral factor; if false, returns the liquidation threshold.
+     * @return factor The effective loan-to-value factor, scaled by 1e18.
+     */
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        bool applyCollateralFactor
+    ) external view returns (uint256) {
+        (uint256 cf, uint256 lt, ) = getLiquidationParams(userPoolId[account], vToken);
+        if (applyCollateralFactor) return cf;
+        else return lt;
+    }
+
+    /**
+     * @notice Get the Effective liquidation Incentive for a vToken
+     * @dev This value should be used when calculating account liquidity and during liquidation checks.
+     * @param account The address of the account for which to fetch the liquidation Incentive.
+     * @param vToken The address of the vToken whose liquidation Incentive is being queried.
+     * @return The liquidation Incentive for the vToken, scaled by 1e18
+     */
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256) {
+        (, , uint256 li) = getLiquidationParams(userPoolId[account], vToken);
+        return li;
+    }
+
+    /**
+     * @notice Returns the full list of vTokens for a given pool ID.
+     * @param poolId The ID of the pool whose vTokens are being queried.
+     * @return An array of vToken addresses associated with the pool.
+     */
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory) {
+        return pools[poolId].vTokens;
     }
 
     /**
@@ -555,7 +546,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             bool isBorrowAllowed
         )
     {
-        bytes32 key = getPoolMarketIndex(poolId, vToken);
+        PoolMarketId key = getPoolMarketIndex(poolId, vToken);
         Market storage m = _poolMarkets[key];
 
         return (
@@ -578,13 +569,13 @@ contract MarketFacet is IMarketFacet, FacetBase {
      */
     function hasValidPoolBorrows(address account, uint96 targetPoolId) public view returns (bool) {
         VToken[] memory assets = accountAssets[account];
-        if (targetPoolId > 0 && mintedVAIs[account] > 0) {
+        if (targetPoolId != corePoolId && mintedVAIs[account] > 0) {
             return false;
         }
 
         for (uint256 i; i < assets.length; i++) {
             VToken vToken = assets[i];
-            bytes32 index = getPoolMarketIndex(targetPoolId, address(vToken));
+            PoolMarketId index = getPoolMarketIndex(targetPoolId, address(vToken));
 
             if (!_poolMarkets[index].isBorrowAllowed) {
                 if (vToken.borrowBalanceStored(account) > 0) {
@@ -636,7 +627,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function __supportMarket(VToken vToken) internal returns (uint256) {
         ensureAllowed("_supportMarket(address)");
 
-        if (_poolMarkets[getCorePoolMarketIndex(address(vToken))].isListed) {
+        if (getCorePoolMarket(address(vToken)).isListed) {
             return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
         }
 
@@ -659,10 +650,10 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function addPoolMarket(uint96 poolId, address vToken) internal {
         ensureAllowed("addPoolMarket(uint96,address)");
 
-        if (poolId == 0) revert CorePoolModificationNotAllowed();
+        if (poolId == corePoolId) revert CorePoolModificationNotAllowed();
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
 
-        bytes32 index = getPoolMarketIndex(corePoolId, vToken);
+        PoolMarketId index = getPoolMarketIndex(corePoolId, vToken);
         if (!_poolMarkets[index].isListed) revert MarketNotListedInCorePool();
         index = getPoolMarketIndex(poolId, vToken);
 
@@ -673,5 +664,48 @@ contract MarketFacet is IMarketFacet, FacetBase {
         pools[poolId].vTokens.push(vToken);
 
         emit PoolMarketInitialized(poolId, vToken, false);
+    }
+
+    /**
+     * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.
+     * @dev If not configured in the given pool, falls back to core pool (poolId = 0).
+     * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
+     * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
+     * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
+     */
+    function getLiquidationParams(
+        uint96 poolId,
+        address vToken
+    )
+        internal
+        view
+        returns (
+            uint256 collateralFactorMantissa,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa
+        )
+    {
+        PoolMarketId coreKey = getPoolMarketIndex(corePoolId, vToken);
+        PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
+
+        Market storage market;
+
+        if (poolId == corePoolId) {
+            market = _poolMarkets[coreKey];
+        } else {
+            Market storage poolMarket = _poolMarkets[poolKey];
+
+            if (poolMarket.isListed) {
+                market = poolMarket;
+            } else {
+                market = _poolMarkets[coreKey];
+            }
+        }
+
+        return (
+            market.collateralFactorMantissa,
+            market.liquidationThresholdMantissa,
+            market.liquidationIncentiveMantissa
+        );
     }
 }

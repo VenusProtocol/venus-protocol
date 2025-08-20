@@ -149,7 +149,7 @@ interface ComptrollerInterface {
 
     function vaiController() external view returns (VAIControllerInterface);
 
-    function liquidationIncentiveMantissa() external view returns (uint);
+    function oldLiquidationIncentiveMantissa() external view returns (uint);
 
     function protocolPaused() external view returns (bool);
 
@@ -168,7 +168,7 @@ interface ComptrollerInterface {
     function getEffectiveLtvFactor(
         address account,
         address vToken,
-        bool useCollateralFactor
+        bool applyCollateralFactor
     ) external view returns (uint256);
 
     function lastPoolId() external view returns (uint96);

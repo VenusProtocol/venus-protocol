@@ -1,15 +1,6 @@
 pragma solidity 0.8.25;
 
 contract ComptrollerErrorReporter {
-    /// @notice Thrown when the collateral factor is invalid
-    error InvalidCollateralFactor();
-
-    /// @notice Thrown when the liquidation threshold is invalid
-    error InvalidLiquidationThreshold();
-
-    /// @notice Thrown when the liquidation incentive is invalid
-    error InvalidLiquidationIncentive();
-
     /// @notice Thrown when You are already in the selected pool.
     error AlreadyInSelectedPool();
 

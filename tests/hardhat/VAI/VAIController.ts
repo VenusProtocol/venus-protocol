@@ -135,9 +135,13 @@ describe("VAIController", async () => {
     await priceOracle.setUnderlyingPrice(vusdt.address, bigNumber18);
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
-    await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(5), bigNumber17.mul(5));
+    await comptroller["setCollateralFactor(address,uint256,uint256)"](
+      vusdt.address,
+      bigNumber17.mul(5),
+      bigNumber17.mul(5),
+    );
     await vusdt.setProtocolShareReserve(protocolShareReserve.address);
-    await comptroller.setLiquidationIncentive(vusdt.address, liquidationIncentive);
+    await comptroller["setLiquidationIncentive(address,uint256)"](vusdt.address, liquidationIncentive);
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
 
@@ -340,7 +344,11 @@ describe("VAIController", async () => {
     });
 
     it("success for zero rate 0.9 vusdt collateralFactor", async () => {
-      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(9), bigNumber17.mul(9));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(9),
+        bigNumber17.mul(9),
+      );
       const res = await comptroller.getHypotheticalAccountLiquidity(
         user1.address,
         ethers.constants.AddressZero,
@@ -356,7 +364,11 @@ describe("VAIController", async () => {
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
       await vaiController.accrueVAIInterest();
 
-      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(9), bigNumber17.mul(9));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(9),
+        bigNumber17.mul(9),
+      );
       const res = await comptroller.getHypotheticalAccountLiquidity(
         user1.address,
         ethers.constants.AddressZero,
@@ -395,7 +407,11 @@ describe("VAIController", async () => {
     it("success for zero rate 0.2 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
-      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(3), bigNumber17.mul(3));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(3),
+        bigNumber17.mul(3),
+      );
       await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
@@ -411,7 +427,11 @@ describe("VAIController", async () => {
       await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
-      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(3), bigNumber17.mul(3));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(3),
+        bigNumber17.mul(3),
+      );
       await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));

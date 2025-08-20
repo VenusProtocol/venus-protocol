@@ -60,11 +60,11 @@ describe("Comptroller", () => {
     describe("setCollateralFactor", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user).setCollateralFactor(ethers.constants.AddressZero, 1, 1),
+          comptroller.connect(user)["setCollateralFactor(address,uint256,uint256)"](ethers.constants.AddressZero, 1, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "setCollateralFactor(address,uint256,uint256)",
+          "setCollateralFactor(uint96,address,uint256,uint256)",
         );
       });
     });
@@ -72,11 +72,11 @@ describe("Comptroller", () => {
     describe("setLiquidationIncentive", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user).setLiquidationIncentive(ethers.constants.AddressZero, 1),
+          comptroller.connect(user)["setLiquidationIncentive(address,uint256)"](ethers.constants.AddressZero, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "setLiquidationIncentive(address,uint256)",
+          "setLiquidationIncentive(uint96,address,uint256)",
         );
       });
     });

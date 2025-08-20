@@ -26,7 +26,20 @@ interface ISetterFacet {
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
+    function setCollateralFactor(
+        uint96 poolId,
+        VToken vToken,
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
+    ) external returns (uint256);
+
     function setLiquidationIncentive(
+        address vToken,
+        uint256 newLiquidationIncentiveMantissa
+    ) external returns (uint256);
+
+    function setLiquidationIncentive(
+        uint96 poolId,
         address vToken,
         uint256 newLiquidationIncentiveMantissa
     ) external returns (uint256);
@@ -80,4 +93,6 @@ interface ISetterFacet {
     function _setXVSToken(address xvs_) external;
 
     function _setXVSVToken(address xvsVToken_) external;
+
+    function updatePoolMarketBorrow(uint96 poolId, address vToken, bool borrowAllowed) external;
 }

@@ -30,6 +30,6 @@ interface ComptrollerLensInterface {
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount,
-        bool useCollateralFactor
+        bool applyCollateralFactor
     ) external view returns (uint, uint, uint);
 }

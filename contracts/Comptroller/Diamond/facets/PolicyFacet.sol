@@ -7,6 +7,7 @@ import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
+import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 
 /**
  * @title PolicyFacet
@@ -32,7 +33,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.MINT);
-        ensureListed(_poolMarkets[getCorePoolMarketIndex(vToken)]);
+        ensureListed(getCorePoolMarket(vToken));
 
         uint256 supplyCap = supplyCaps[vToken];
         require(supplyCap != 0, "market supply cap is 0");
@@ -111,13 +112,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
-        ensureListed(_poolMarkets[getCorePoolMarketIndex(vToken)]);
+        ensureListed(getCorePoolMarket(vToken));
         poolBorrowAllowed(borrower, vToken);
 
         uint256 borrowCap = borrowCaps[vToken];
         require(borrowCap != 0, "market borrow cap is 0");
 
-        if (!_poolMarkets[getCorePoolMarketIndex(vToken)].accountMembership[borrower]) {
+        if (!getCorePoolMarket(vToken).accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
             require(msg.sender == vToken, "sender must be vToken");
 
@@ -186,7 +187,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) external returns (uint256) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
-        ensureListed(_poolMarkets[getCorePoolMarketIndex(vToken)]);
+        ensureListed(getCorePoolMarket(vToken));
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
@@ -239,10 +240,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.UNAUTHORIZED);
         }
 
-        ensureListed(_poolMarkets[getCorePoolMarketIndex(vTokenCollateral)]);
+        ensureListed(getCorePoolMarket(vTokenCollateral));
         uint256 borrowBalance;
         if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(_poolMarkets[getCorePoolMarketIndex(vTokenBorrowed)]);
+            ensureListed(getCorePoolMarket(vTokenBorrowed));
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
             borrowBalance = vaiController.getVAIRepayAmount(borrower);
@@ -332,7 +333,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(_poolMarkets[getCorePoolMarketIndex(vTokenBorrowed)]);
+            ensureListed(getCorePoolMarket(vTokenBorrowed));
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
@@ -489,7 +490,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {
-        ensureListed(_poolMarkets[getCorePoolMarketIndex(address(vToken))]);
+        ensureListed(getCorePoolMarket(address(vToken)));
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
@@ -516,7 +517,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     function poolBorrowAllowed(address account, address vToken) internal view {
-        bytes32 index = getPoolMarketIndex(userPoolId[account], vToken);
+        PoolMarketId index = getPoolMarketIndex(userPoolId[account], vToken);
         if (!_poolMarkets[index].isBorrowAllowed) {
             revert BorrowNotAllowedInPool();
         }

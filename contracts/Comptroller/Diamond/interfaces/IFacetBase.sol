@@ -11,6 +11,7 @@ import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 
 interface IFacetBase {
     /**
@@ -31,21 +32,7 @@ interface IFacetBase {
      */
     function getXVSAddress() external view returns (address);
 
-    function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (bytes32);
+    function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (PoolMarketId);
 
-    function getCollateralFactor(address vToken) external view returns (uint256);
-
-    function getLiquidationThreshold(address vToken) external view returns (uint256);
-
-    function getLiquidationIncentive(address vToken) external view returns (uint256);
-
-    function getEffectiveLtvFactor(
-        address account,
-        address vToken,
-        bool useCollateralFactor
-    ) external view returns (uint256);
-
-    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
-
-    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
+    function corePoolId() external pure returns (uint96);
 }

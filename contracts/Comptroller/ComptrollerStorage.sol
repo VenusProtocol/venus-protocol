@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { PoolMarketId } from "./Types/PoolMarketId.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
@@ -92,10 +93,10 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     }
 
     /**
-     *@notice Mapping of bytes32 ( First 12 bytes (96 bits) represent the poolId
-     * Last 20 bytes represent the vToken address) -> Market metadata
+     * @notice Mapping of PoolMarketId -> Market metadata
+     * Underlying key layout: First 12 bytes (96 bits) represent the poolId, last 20 bytes the vToken address
      */
-    mapping(bytes32 => Market) internal _poolMarkets;
+    mapping(PoolMarketId => Market) internal _poolMarkets;
 
     /**
      * @notice The Pause Guardian can pause certain actions as a safety mechanism.
