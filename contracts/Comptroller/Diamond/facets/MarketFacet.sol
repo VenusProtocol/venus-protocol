@@ -371,6 +371,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @custom:error CorePoolModificationNotAllowed Reverts if attempting to modify the core pool.
      * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
      * @custom:error MarketNotListedInCorePool Reverts if the market is not listed in the core pool.
+     * @custom:error MarketAlreadyListed Reverts if the given market is already listed in the specified pool.
      * @custom:event PoolMarketInitialized Emitted after successfully initializing a market in a pool.
      */
     function addPoolMarkets(uint96[] calldata poolIds, address[] calldata vTokens) external {
@@ -482,8 +483,10 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @notice Returns the full list of vTokens for a given pool ID.
      * @param poolId The ID of the pool whose vTokens are being queried.
      * @return An array of vToken addresses associated with the pool.
+     * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
      */
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory) {
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
         return pools[poolId].vTokens;
     }
 

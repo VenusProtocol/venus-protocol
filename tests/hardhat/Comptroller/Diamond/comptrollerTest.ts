@@ -1334,22 +1334,22 @@ describe("Comptroller", () => {
         await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
 
         // Core pool params should be used initially (userPool 0)
-        let cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, true);
-        let lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, false);
+        let cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        let lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
         expect(cf).to.equal(coreCF);
         expect(lt).to.equal(coreLT);
 
         // Enter e-mode pool → effective params should update to pool defaults
         await comptroller.enterPool(poolId);
-        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, true);
-        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, false);
+        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
         expect(cf).to.equal(defaultCF);
         expect(lt).to.equal(defaultLT);
 
         // Remove market from pool → fallback to core pool params
         await comptroller.removePoolMarket(poolId, vToken.address);
-        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, true);
-        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, false);
+        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
         expect(cf).to.equal(coreCF);
         expect(lt).to.equal(coreLT);
       });
