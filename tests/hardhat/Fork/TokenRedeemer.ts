@@ -106,9 +106,9 @@ const setupLocal = async (): Promise<TokenRedeemerFixture> => {
     numBep20Tokens: 2,
   });
   const [vToken, vToken2] = vTokens;
-  await comptroller.updatePoolMarketBorrow(0, vBNB.address, true);
-  await comptroller.updatePoolMarketBorrow(0, vToken.address, true);
-  await comptroller.updatePoolMarketBorrow(0, vToken2.address, true);
+  await comptroller.setIsBorrowAllowed(0, vBNB.address, true);
+  await comptroller.setIsBorrowAllowed(0, vToken.address, true);
+  await comptroller.setIsBorrowAllowed(0, vToken2.address, true);
 
   const redeemer = await deployTokenRedeemer(owner, vBNB);
   await comptroller._setMarketSupplyCaps(

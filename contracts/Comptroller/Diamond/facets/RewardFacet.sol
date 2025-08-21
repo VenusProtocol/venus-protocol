@@ -9,6 +9,7 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
+import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title RewardFacet
@@ -194,7 +195,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
                 VToken(address(0)),
                 0,
                 0,
-                useCollateralFactor
+                WeightFunction.USE_COLLATERAL_FACTOR
             );
 
             uint256 value = venusAccrued[holder];

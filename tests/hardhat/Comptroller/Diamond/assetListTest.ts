@@ -267,7 +267,7 @@ describe("Comptroller: assetListTest", () => {
     beforeEach(async () => {
       await BAT.borrowIndex.returns(convertToUnit(1, 18));
       await comptroller._setMarketBorrowCaps([BAT.address], [convertToUnit(100, 18)]);
-      await comptroller.updatePoolMarketBorrow(0, BAT.address, true);
+      await comptroller.setIsBorrowAllowed(0, BAT.address, true);
     });
 
     it("enters when called by a vtoken", async () => {

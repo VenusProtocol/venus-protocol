@@ -94,5 +94,5 @@ interface ISetterFacet {
 
     function _setXVSVToken(address xvsVToken_) external;
 
-    function updatePoolMarketBorrow(uint96 poolId, address vToken, bool borrowAllowed) external;
+    function setIsBorrowAllowed(uint96 poolId, address vToken, bool borrowAllowed) external;
 }

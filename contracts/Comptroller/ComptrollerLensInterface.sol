@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
 
 interface ComptrollerLensInterface {
     function liquidateCalculateSeizeTokens(
@@ -32,6 +33,6 @@ interface ComptrollerLensInterface {
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) external view returns (uint, uint, uint);
 }

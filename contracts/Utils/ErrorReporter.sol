@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
+import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
+
 contract ComptrollerErrorReporter {
     /// @notice Thrown when You are already in the selected pool.
     error AlreadyInSelectedPool();
@@ -35,6 +37,12 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when the pool label is empty
     error EmptyPoolLabel();
 
+    /// @notice Thrown when a vToken is already listed in the specified pool
+    error MarketAlreadyListed(uint96 poolId, address vToken);
+
+    /// @notice Thrown when an invalid weighting strategy is provided
+    error InvalidWeightingStrategy(WeightFunction strategy);
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
@@ -55,7 +63,8 @@ contract ComptrollerErrorReporter {
         TOO_MANY_ASSETS,
         TOO_MUCH_REPAY,
         INSUFFICIENT_BALANCE_FOR_VAI,
-        MARKET_NOT_COLLATERAL
+        MARKET_NOT_COLLATERAL,
+        INVALID_LIQUIDATION_THRESHOLD
     }
 
     enum FailureInfo {

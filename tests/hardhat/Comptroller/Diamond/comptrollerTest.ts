@@ -923,7 +923,7 @@ describe("Comptroller", () => {
         vToken.borrowIndex.returns(1);
         comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
         await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
-        await comptroller.updatePoolMarketBorrow(0, vToken.address, true);
+        await comptroller.setIsBorrowAllowed(0, vToken.address, true);
         expect(
           await comptroller
             .connect(vToken.wallet)
@@ -939,7 +939,7 @@ describe("Comptroller", () => {
         vToken.borrowIndex.returns(1);
         comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
         await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
-        await comptroller.updatePoolMarketBorrow(0, vToken.address, true);
+        await comptroller.setIsBorrowAllowed(0, vToken.address, true);
 
         await expect(
           comptroller
@@ -956,7 +956,7 @@ describe("Comptroller", () => {
         vToken.borrowIndex.returns(1);
         comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
         await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
-        await comptroller.updatePoolMarketBorrow(0, vToken.address, true);
+        await comptroller.setIsBorrowAllowed(0, vToken.address, true);
 
         await expect(
           comptroller
@@ -1062,6 +1062,12 @@ describe("Comptroller", () => {
           .withArgs(poolId + 1);
       });
 
+      it("reverts if market Already exist in the pool", async () => {
+        await expect(comptroller.addPoolMarkets([poolId], [vToken.address]))
+          .to.be.revertedWithCustomError(comptroller, "MarketAlreadyListed")
+          .withArgs(poolId, vToken.address);
+      });
+
       it("reverts if market not listed in core pool", async () => {
         const fakeVToken = await smock.fake<VToken>("VToken");
         await expect(comptroller.addPoolMarkets([poolId], [fakeVToken.address])).to.be.revertedWithCustomError(
@@ -1085,30 +1091,31 @@ describe("Comptroller", () => {
       });
     });
 
-    describe("updatePoolMarketBorrow", () => {
+    describe("setIsBorrowAllowed", () => {
       it("reverts if pool does not exist", async () => {
-        await expect(comptroller.updatePoolMarketBorrow(poolId + 1, vToken.address, true))
+        await expect(comptroller.setIsBorrowAllowed(poolId + 1, vToken.address, true))
           .to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist")
           .withArgs(poolId + 1);
       });
 
       it("reverts if market is not listed in the pool", async () => {
         const fakeVToken = await smock.fake<VToken>("VToken");
-        await expect(
-          comptroller.updatePoolMarketBorrow(poolId, fakeVToken.address, true),
-        ).to.be.revertedWithCustomError(comptroller, "MarketConfigNotFound");
+        await expect(comptroller.setIsBorrowAllowed(poolId, fakeVToken.address, true)).to.be.revertedWithCustomError(
+          comptroller,
+          "MarketConfigNotFound",
+        );
       });
 
       it("should return silenty if borrowAllowed is already set to desired value", async () => {
-        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, true);
-        await expect(comptroller.updatePoolMarketBorrow(poolId, vToken.address, true)).to.not.emit(
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, true);
+        await expect(comptroller.setIsBorrowAllowed(poolId, vToken.address, true)).to.not.emit(
           comptroller,
           "BorrowAllowedUpdated",
         );
       });
 
       it("should update borrowAllowed and emits event", async () => {
-        await expect(comptroller.updatePoolMarketBorrow(poolId, vToken.address, true))
+        await expect(comptroller.setIsBorrowAllowed(poolId, vToken.address, true))
           .to.emit(comptroller, "BorrowAllowedUpdated")
           .withArgs(poolId, vToken.address, true);
 
@@ -1116,7 +1123,7 @@ describe("Comptroller", () => {
         expect(isBorrowAllowed).to.be.true;
 
         // swtitch to false
-        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, false);
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, false);
         [, , , , , , isBorrowAllowed] = await comptroller.poolMarkets(poolId, vToken.address);
         expect(isBorrowAllowed).to.be.false;
       });
@@ -1292,7 +1299,7 @@ describe("Comptroller", () => {
           defaultLT,
         );
         await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
-        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, false);
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, false);
         vToken.borrowBalanceStored.returns(parseUnits("10", 18));
         await comptroller.enterMarkets([vToken.address]);
 
@@ -1377,7 +1384,7 @@ describe("Comptroller", () => {
           defaultLT,
         );
         await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
-        await comptroller.updatePoolMarketBorrow(poolId, vToken.address, true);
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, true);
 
         const [isListed, cf, isVenus, lt, li, marketPoolId, isBorrowAllowed] = await comptroller.poolMarkets(
           poolId,

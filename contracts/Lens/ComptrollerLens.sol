@@ -9,6 +9,7 @@ import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 /**
  * @title ComptrollerLens Contract
@@ -169,8 +170,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify Address of collateral for vToken
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @param applyCollateralFactor If true, uses collateral factors for asset weighting;
-     *                            if false, uses liquidation thresholds instead.
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return Returns a tuple of error code, liquidity, and shortfall
      */
     function getHypotheticalAccountLiquidity(
@@ -179,7 +181,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) external view returns (uint, uint, uint) {
         (uint errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
             comptroller,
@@ -187,7 +189,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            applyCollateralFactor
+            weightingStrategy
         );
         if (errorCode != 0) {
             return (errorCode, 0, 0);
@@ -204,12 +206,13 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     /**
      * @notice Internal function to calculate account position
      * @param comptroller Address of comptroller
-     * @param account Address of the borrowed vToken
-     * @param vTokenModify Address of collateral for vToken
+     * @param account Address of the account whose liquidity is being calculated
+     * @param vTokenModify The vToken being modified (redeemed or borrowed)
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @param applyCollateralFactor If true, uses collateral factors for asset weighting;
-     *                            if false, uses liquidation thresholds instead.
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return oErr Returns an error code indicating success or failure
      * @return vars Returns an AccountLiquidityLocalVars struct containing the calculated values
      */
@@ -219,7 +222,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) internal view returns (uint oErr, AccountLiquidityLocalVars memory vars) {
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
@@ -239,7 +242,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 mantissa: ComptrollerInterface(comptroller).getEffectiveLtvFactor(
                     account,
                     address(asset),
-                    applyCollateralFactor
+                    weightingStrategy
                 )
             });
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });

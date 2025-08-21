@@ -8,6 +8,7 @@ import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
+import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title PolicyFacet
@@ -141,7 +142,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(vToken),
             0,
             borrowAmount,
-            useCollateralFactor
+            WeightFunction.USE_COLLATERAL_FACTOR
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -262,7 +263,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(address(0)),
             0,
             0,
-            useLiquidationThreshold
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
         );
 
         if (err != Error.NO_ERROR) {
@@ -425,7 +426,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, useCollateralFactor);
+        return _getAccountLiquidity(account, WeightFunction.USE_COLLATERAL_FACTOR);
     }
 
     /**
@@ -436,7 +437,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, useCollateralFactor);
+        return _getAccountLiquidity(account, WeightFunction.USE_COLLATERAL_FACTOR);
     }
 
     /**
@@ -460,7 +461,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             VToken(vTokenModify),
             redeemTokens,
             borrowAmount,
-            useCollateralFactor
+            WeightFunction.USE_COLLATERAL_FACTOR
         );
         return (uint256(err), liquidity, shortfall);
     }

@@ -64,7 +64,7 @@ describe("Comptroller", () => {
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "setCollateralFactor(uint96,address,uint256,uint256)",
+          "setCollateralFactor(address,uint256,uint256)",
         );
       });
     });

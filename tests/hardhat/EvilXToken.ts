@@ -201,7 +201,7 @@ describe("Evil Token test", async () => {
     await unitroller["setLiquidationIncentive(address,uint256)"](vToken1.address, convertToUnit(1.1, 18));
     await unitroller["setLiquidationIncentive(address,uint256)"](vToken2.address, convertToUnit(1.1, 18));
     await unitroller["setLiquidationIncentive(address,uint256)"](vToken3.address, convertToUnit(1.1, 18));
-    await unitroller.updatePoolMarketBorrow(0, vToken3.address, true);
+    await unitroller.setIsBorrowAllowed(0, vToken3.address, true);
   });
 
   it("Check the updated vToken states after transfer out", async () => {

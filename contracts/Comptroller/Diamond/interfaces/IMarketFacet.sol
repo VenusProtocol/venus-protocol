@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { WeightFunction } from "./IFacetBase.sol";
 
 interface IMarketFacet {
     function isComptroller() external pure returns (bool);
@@ -95,7 +96,7 @@ interface IMarketFacet {
     function getEffectiveLtvFactor(
         address account,
         address vToken,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) external view returns (uint256);
 
     function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);

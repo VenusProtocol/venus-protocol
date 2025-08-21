@@ -334,8 +334,8 @@ describe("PrimeScenario Token", () => {
 
       await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
       await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
-      await comptroller.updatePoolMarketBorrow(0, vusdt.address, true);
-      await comptroller.updatePoolMarketBorrow(0, veth.address, true);
+      await comptroller.setIsBorrowAllowed(0, vusdt.address, true);
+      await comptroller.setIsBorrowAllowed(0, veth.address, true);
       await vusdt.connect(user1).borrow(bigNumber18.mul(5));
       await veth.connect(user2).borrow(bigNumber18.mul(1));
     });
@@ -620,8 +620,8 @@ describe("PrimeScenario Token", () => {
       await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
 
       await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
-      await comptroller.updatePoolMarketBorrow(0, vusdt.address, true);
-      await comptroller.updatePoolMarketBorrow(0, veth.address, true);
+      await comptroller.setIsBorrowAllowed(0, vusdt.address, true);
+      await comptroller.setIsBorrowAllowed(0, veth.address, true);
 
       await vusdt.connect(user1).borrow(bigNumber18.mul(5));
       await veth.connect(user2).borrow(bigNumber18.mul(1));
@@ -758,7 +758,7 @@ describe("PrimeScenario Token", () => {
 
         const half = convertToUnit("0.5", 8);
         await comptroller._supportMarket(vbnb.address);
-        await comptroller.updatePoolMarketBorrow(0, vbnb.address, true);
+        await comptroller.setIsBorrowAllowed(0, vbnb.address, true);
         await comptroller["setCollateralFactor(address,uint256,uint256)"](vbnb.address, half, half);
 
         await bnb.transfer(user3.getAddress(), bigNumber18.mul(100));

@@ -5,6 +5,13 @@ pragma solidity 0.8.25;
 import { Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 
+enum WeightFunction {
+    /// @notice Use the collateral factor of the asset for weighting
+    USE_COLLATERAL_FACTOR,
+    /// @notice Use the liquidation threshold of the asset for weighting
+    USE_LIQUIDATION_THRESHOLD
+}
+
 interface IFacetBase {
     /**
      * @notice The initial XVS rewards index for a market

@@ -417,8 +417,8 @@ describe("Prime Token", () => {
       await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
 
       await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
-      await comptroller.updatePoolMarketBorrow(0, vusdt.address, true);
-      await comptroller.updatePoolMarketBorrow(0, veth.address, true);
+      await comptroller.setIsBorrowAllowed(0, vusdt.address, true);
+      await comptroller.setIsBorrowAllowed(0, veth.address, true);
 
       await vusdt.connect(user1).borrow(bigNumber18.mul(5));
       await veth.connect(user2).borrow(bigNumber18.mul(1));

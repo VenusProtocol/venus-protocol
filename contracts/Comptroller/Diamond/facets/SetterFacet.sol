@@ -204,6 +204,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256) {
+        ensureAllowed("setCollateralFactor(address,uint256,uint256)");
         return __setCollateralFactor(corePoolId, vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
     }
 
@@ -217,6 +218,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         address vToken,
         uint256 newLiquidationIncentiveMantissa
     ) external returns (uint256) {
+        ensureAllowed("setLiquidationIncentive(address,uint256)");
         return __setLiquidationIncentive(corePoolId, vToken, newLiquidationIncentiveMantissa);
     }
 
@@ -234,6 +236,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256) {
+        ensureAllowed("setCollateralFactor(uint96,address,uint256,uint256)");
         return __setCollateralFactor(poolId, vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
     }
 
@@ -248,6 +251,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         address vToken,
         uint256 newLiquidationIncentiveMantissa
     ) external returns (uint256) {
+        ensureAllowed("setLiquidationIncentive(uint96,address,uint256)");
         return __setLiquidationIncentive(poolId, vToken, newLiquidationIncentiveMantissa);
     }
 
@@ -613,8 +617,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @custom:error MarketConfigNotFound Reverts if the market is not listed in the pool.
      * @custom:event BorrowAllowedUpdated Emitted after the borrow permission for a market is updated.
      */
-    function updatePoolMarketBorrow(uint96 poolId, address vToken, bool borrowAllowed) external {
-        ensureAllowed("updatePoolMarketBorrow(uint96,address,bool)");
+    function setIsBorrowAllowed(uint96 poolId, address vToken, bool borrowAllowed) external {
+        ensureAllowed("setIsBorrowAllowed(uint96,address,bool)");
 
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
 
@@ -700,8 +704,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) internal returns (uint256) {
-        // Check caller is allowed by access control manager
-        ensureAllowed("setCollateralFactor(uint96,address,uint256,uint256)");
         ensureNonzeroAddress(address(vToken));
 
         // Check if pool exists
@@ -723,30 +725,31 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         // Ensure that liquidation threshold <= 1
         if (newLiquidationThresholdMantissa > mantissaOne) {
-            return fail(Error.PRICE_ERROR, FailureInfo.SET_LIQUIDATION_THRESHOLD_VALIDATION);
+            return fail(Error.INVALID_LIQUIDATION_THRESHOLD, FailureInfo.SET_LIQUIDATION_THRESHOLD_VALIDATION);
         }
 
         // Ensure that liquidation threshold >= CF
         if (newLiquidationThresholdMantissa < newCollateralFactorMantissa) {
-            return fail(Error.PRICE_ERROR, FailureInfo.COLLATERAL_FACTOR_GREATER_THAN_LIQUIDATION_THRESHOLD);
+            return
+                fail(
+                    Error.INVALID_LIQUIDATION_THRESHOLD,
+                    FailureInfo.COLLATERAL_FACTOR_GREATER_THAN_LIQUIDATION_THRESHOLD
+                );
         }
 
         // Set market's collateral factor to new collateral factor, remember old value
         uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
         if (newCollateralFactorMantissa != oldCollateralFactorMantissa) {
             market.collateralFactorMantissa = newCollateralFactorMantissa;
-            market.collateralFactorMantissa = newCollateralFactorMantissa;
 
-            // Emit event with asset, old collateral factor, and new collateral factor
-            market.collateralFactorMantissa = newCollateralFactorMantissa;
-
-            // Emit event with asset, old collateral factor, and new collateral factor
+            // Emit event with poolId, asset, old collateral factor, and new collateral factor
             emit NewCollateralFactor(poolId, vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
         }
 
         uint256 oldLiquidationThresholdMantissa = market.liquidationThresholdMantissa;
         if (newLiquidationThresholdMantissa != oldLiquidationThresholdMantissa) {
             market.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
+
             emit NewLiquidationThreshold(
                 poolId,
                 vToken,
@@ -777,8 +780,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         )
         returns (uint256)
     {
-        ensureAllowed("setLiquidationIncentive(uint96,address,uint256)");
-
         // Check if pool exists
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
 

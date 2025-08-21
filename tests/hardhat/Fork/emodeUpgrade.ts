@@ -122,7 +122,7 @@ async function setAccessControls(acm: IAccessControlManagerV8) {
     "setLiquidationIncentive(uint96,address,uint256)",
     "createPool(string)",
     "addPoolMarket(uint96,address)",
-    "updatePoolMarketBorrow(uint96,address,bool)",
+    "setIsBorrowAllowed(uint96,address,bool)",
   ];
   for (const sig of fnSigs) {
     await acm.giveCallPermission(COMPTROLLER_ADDRESS, sig, NORMAL_TIMELOCK);
@@ -191,6 +191,15 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
           const market = await oldComptroller.markets(vUSDC_ADDRESS);
           expect(market.length).to.be.equal(3);
         });
+
+        it("new PoolId index should not collide with existing core Pool", async () => {
+          for (let i = 1; i < 5; i++) {
+            for (const market of assets) {
+              const poolMarket = await comptroller.poolMarkets(i, market);
+              expect(poolMarket[0]).to.be.equal(false);
+            }
+          }
+        });
       });
 
       describe("Risk Parameter Setters", () => {
@@ -215,7 +224,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
         it("enables borrow in the core pool", async () => {
           for (const market of assets) {
-            await comptroller.updatePoolMarketBorrow(0, market, true);
+            await comptroller.setIsBorrowAllowed(0, market, true);
             const usdcPoolMarket = await comptroller.poolMarkets(corePoolId, market);
             expect(usdcPoolMarket.isBorrowAllowed).to.be.true;
           }
@@ -230,7 +239,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
           poolId = (await comptroller.lastPoolId()).toNumber();
 
           await comptroller.addPoolMarkets([poolId, poolId], [vBTC_ADDRESS, vUSDT_ADDRESS]);
-          await comptroller.updatePoolMarketBorrow(poolId, vUSDT_ADDRESS, true);
+          await comptroller.setIsBorrowAllowed(poolId, vUSDT_ADDRESS, true);
 
           await comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
             poolId,
@@ -278,9 +287,9 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
         it("should revert pool switch to corePool if account becomes unsafe", async () => {
           await comptroller.addPoolMarkets([poolId], [vUSDC_ADDRESS]);
-          await comptroller.updatePoolMarketBorrow(poolId, vUSDC_ADDRESS, true);
+          await comptroller.setIsBorrowAllowed(poolId, vUSDC_ADDRESS, true);
           await vUSDC.connect(user).borrow(parseUnits("569140", 18));
-          await comptroller.updatePoolMarketBorrow(corePoolId, vUSDC_ADDRESS, true);
+          await comptroller.setIsBorrowAllowed(corePoolId, vUSDC_ADDRESS, true);
           await expect(comptroller.connect(user).enterPool(corePoolId)).to.be.revertedWithCustomError(
             comptroller,
             "LiquidityCheckFailed",

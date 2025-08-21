@@ -12,7 +12,7 @@ import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
-import { IFacetBase } from "../interfaces/IFacetBase.sol";
+import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title FacetBase
@@ -30,10 +30,6 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     uint256 internal constant closeFactorMinMantissa = 0.05e18; // 0.05
     // closeFactorMantissa must not exceed this value
     uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
-    /// @notice Flag to indicate collateral factors should be used for weighting
-    bool internal constant useCollateralFactor = true;
-    /// @notice Flag to indicate liquidation thresholds should be used for weighting
-    bool internal constant useLiquidationThreshold = false;
 
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
@@ -143,8 +139,9 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @param applyCollateralFactor If true, uses collateral factors for asset weighting;
-     *                            if false, uses liquidation thresholds instead.
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
      *  without calculating accumulated interest.
      * @return (possible error code,
@@ -156,7 +153,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) internal view returns (Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
@@ -164,7 +161,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            applyCollateralFactor
+            weightingStrategy
         );
         return (Error(err), liquidity, shortfall);
     }
@@ -219,7 +216,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             VToken(vToken),
             redeemTokens,
             0,
-            useCollateralFactor
+            WeightFunction.USE_COLLATERAL_FACTOR
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -273,23 +270,24 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
-     * @param account The account get liquidity for
-     * @param applyCollateralFactor If true, uses collateral factors for weighting assets;
-     *                            if false, uses liquidation thresholds instead.
+     * @param account The account to get liquidity for
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return (possible error code (semi-opaque),
      * account liquidity in excess of collateral requirements,
      * account shortfall below collateral requirements)
      */
     function _getAccountLiquidity(
         address account,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) internal view returns (uint256, uint256, uint256) {
         (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(address(0)),
             0,
             0,
-            applyCollateralFactor
+            weightingStrategy
         );
 
         return (uint256(err), liquidity, shortfall);

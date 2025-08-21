@@ -7,6 +7,7 @@ import { Action } from "../../ComptrollerInterface.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
+import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title MarketFacet
@@ -28,7 +29,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     event MarketUnlisted(address indexed vToken);
 
     /// @notice Emitted when a market is initialized in a pool
-    event PoolMarketInitialized(uint96 indexed poolId, address indexed market, bool isVenus);
+    event PoolMarketInitialized(uint96 indexed poolId, address indexed market);
 
     /// @notice Emitted when a user enters or exits a pool (poolId = 0 means exit)
     event PoolSelected(address indexed account, uint96 previousPoolId, uint96 indexed newPoolId);
@@ -334,7 +335,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         userPoolId[msg.sender] = poolId;
 
-        (uint256 error, , uint256 shortfall) = _getAccountLiquidity(msg.sender, useCollateralFactor);
+        (uint256 error, , uint256 shortfall) = _getAccountLiquidity(msg.sender, WeightFunction.USE_COLLATERAL_FACTOR);
 
         if (error != 0 || shortfall > 0) {
             revert LiquidityCheckFailed(error, shortfall);
@@ -379,7 +380,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         for (uint256 i; i < len; i++) {
-            addPoolMarket(poolIds[i], vTokens[i]);
+            _addPoolMarket(poolIds[i], vTokens[i]);
         }
     }
 
@@ -410,10 +411,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         delete _poolMarkets[index];
-
-        if (assets.length == 0) {
-            delete pools[poolId].vTokens;
-        }
 
         emit PoolMarketRemoved(poolId, vToken);
     }
@@ -453,17 +450,20 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @dev This value should be used when calculating account liquidity and during liquidation checks.
      * @param account The account whose pool is used to determine the market's risk parameters.
      * @param vToken The address of the vToken market.
-     * @param applyCollateralFactor If true, returns the collateral factor; if false, returns the liquidation threshold.
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return factor The effective loan-to-value factor, scaled by 1e18.
      */
     function getEffectiveLtvFactor(
         address account,
         address vToken,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) external view returns (uint256) {
         (uint256 cf, uint256 lt, ) = getLiquidationParams(userPoolId[account], vToken);
-        if (applyCollateralFactor) return cf;
-        else return lt;
+        if (weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR) return cf;
+        else if (weightingStrategy == WeightFunction.USE_LIQUIDATION_THRESHOLD) return lt;
+        else revert InvalidWeightingStrategy(weightingStrategy);
     }
 
     /**
@@ -647,15 +647,19 @@ contract MarketFacet is IMarketFacet, FacetBase {
         return uint256(Error.NO_ERROR);
     }
 
-    function addPoolMarket(uint96 poolId, address vToken) internal {
+    function _addPoolMarket(uint96 poolId, address vToken) internal {
         ensureAllowed("addPoolMarket(uint96,address)");
 
         if (poolId == corePoolId) revert CorePoolModificationNotAllowed();
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
 
+        // Core Pool Index
         PoolMarketId index = getPoolMarketIndex(corePoolId, vToken);
         if (!_poolMarkets[index].isListed) revert MarketNotListedInCorePool();
+
+        // Pool Index
         index = getPoolMarketIndex(poolId, vToken);
+        if (_poolMarkets[index].isListed) revert MarketAlreadyListed(poolId, vToken);
 
         Market storage m = _poolMarkets[index];
         m.poolId = poolId;
@@ -663,7 +667,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         pools[poolId].vTokens.push(vToken);
 
-        emit PoolMarketInitialized(poolId, vToken, false);
+        emit PoolMarketInitialized(poolId, vToken);
     }
 
     /**

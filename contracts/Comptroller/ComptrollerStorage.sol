@@ -85,13 +85,6 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
         bool isBorrowAllowed;
     }
 
-    struct PoolData {
-        /// @notice label for the pool
-        string label;
-        /// @notice List of vToken addresses associated with this pool
-        address[] vTokens;
-    }
-
     /**
      * @notice Mapping of PoolMarketId -> Market metadata
      * Underlying key layout: First 12 bytes (96 bits) represent the poolId, last 20 bytes the vToken address
@@ -289,6 +282,13 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 }
 
 contract ComptrollerV17Storage is ComptrollerV16Storage {
+    struct PoolData {
+        /// @notice label for the pool
+        string label;
+        /// @notice List of vToken addresses associated with this pool
+        address[] vTokens;
+    }
+
     /**
      * @notice Tracks the selected pool for each user.
      * @dev

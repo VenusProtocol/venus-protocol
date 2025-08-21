@@ -6,6 +6,7 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
 
 enum Action {
     MINT,
@@ -170,7 +171,7 @@ interface ComptrollerInterface {
     function getEffectiveLtvFactor(
         address account,
         address vToken,
-        bool applyCollateralFactor
+        WeightFunction weightingStrategy
     ) external view returns (uint256);
 
     function lastPoolId() external view returns (uint96);

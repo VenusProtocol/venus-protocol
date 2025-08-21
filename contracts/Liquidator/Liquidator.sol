@@ -449,9 +449,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
         // Our share is % of bonus portion only
         uint256 bonusAmount = (seizedAmount * bonusMantissa) / totalIncentive;
-        uint256 ourBonusShare = (bonusAmount * treasuryPercentMantissa) / MANTISSA_ONE;
+        ours = (bonusAmount * treasuryPercentMantissa) / MANTISSA_ONE;
 
-        ours = ourBonusShare;
         theirs = seizedAmount - ours;
     }
 
