@@ -76,7 +76,7 @@ describe("Comptroller", () => {
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "setLiquidationIncentive(uint96,address,uint256)",
+          "setLiquidationIncentive(address,uint256)",
         );
       });
     });
