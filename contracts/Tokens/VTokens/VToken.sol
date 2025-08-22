@@ -277,7 +277,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (possible error, token balance, borrow balance, exchange rate mantissa)
      */
     function getAccountSnapshot(address account) external view override returns (uint, uint, uint, uint) {
-        uint vTokenBalance = accountTokens[account];
         uint borrowBalance;
         uint exchangeRateMantissa;
 
@@ -293,7 +292,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return (uint(Error.MATH_ERROR), 0, 0, 0);
         }
 
-        return (uint(Error.NO_ERROR), vTokenBalance, borrowBalance, exchangeRateMantissa);
+        return (uint(Error.NO_ERROR), accountTokens[account], borrowBalance, exchangeRateMantissa);
     }
 
     /**
@@ -352,7 +351,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * requirements
      *      - The caller must be the Comptroller contract.
      * custom:reverts
-     *      - Reverts with "Only Comptroller" if the caller is not the Comptroller.
+     *      - Reverts with "Invalid Comptroller" if the caller is not the Comptroller.
      * custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
     function transferOutUnderlying(
@@ -381,7 +380,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * requirements
      *      - The caller must be the Comptroller contract.
      * custom:reverts
-     *      - Reverts with "Only Comptroller" if the caller is not the Comptroller.
+     *      - Reverts with "Invalid Comptroller" if the caller is not the Comptroller.
      * custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
     function transferInUnderlyingAndVerify(
@@ -419,7 +418,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * custom:reverts
      *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
      *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
-     *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.
+     *      - Reverts with `Insufficient repayment balance` if the repayment (amount + fee) is insufficient after the operation.
      * custom:event Emits FlashLoanExecuted event on success
      */
     function executeFlashLoan(
@@ -427,9 +426,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 amount,
         bytes calldata param
     ) external nonReentrant returns (uint256) {
+        if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
         ensureNonZeroAddress(receiver);
-
-        IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
 
         // Tracks the flashLoan amount before transferring amount to the receiver
         flashLoanAmount += amount;
@@ -443,7 +441,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 repayAmount = amount + fee;
 
         // Call the execute operation on receiver contract
-        if (!receiverContract.executeOperation(underlying, amount, fee, msg.sender, param)) {
+        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, fee, msg.sender, param)) {
             revert("Execute flashLoan failed");
         }
 
@@ -764,17 +762,17 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Revert if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
-            revert("math error");
+            return failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.BORROW_COMPTROLLER_REJECTION, allowed);
         }
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != block.number) {
-            revert("math error");
+            return fail(Error.MARKET_NOT_FRESH, FailureInfo.BORROW_FRESHNESS_CHECK);
         }
 
         /* Revert if protocol has insufficient underlying cash */
         if (getCashPrior() < borrowAmount) {
-            revert("math error");
+            return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.BORROW_CASH_NOT_AVAILABLE);
         }
 
         BorrowLocalVars memory vars;
@@ -819,31 +817,17 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev This function reverts if flash loans are not enabled.
      */
     function calculateFlashLoanFee(uint256 amount) public view returns (uint256, uint256) {
-        if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
+        MathError mErr;
+        uint256 protocolFee;
+        uint256 supplierFee;
 
-        (MathError protocolMulErr, uint256 protocolFee) = mulScalarTruncate(
-            Exp({ mantissa: amount }),
-            flashLoanProtocolFeeMantissa
-        );
-        if (protocolMulErr != MathError.NO_ERROR) revert("Fee calculation failed");
+        (mErr, protocolFee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanProtocolFeeMantissa);
+        ensureNoMathError(mErr);
 
-        (MathError supplierMulErr, uint256 supplierFee) = mulScalarTruncate(
-            Exp({ mantissa: amount }),
-            flashLoanProtocolFeeMantissa
-        );
-        if (supplierMulErr != MathError.NO_ERROR) revert("Fee calculation failed");
+        (mErr, supplierFee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanSupplierFeeMantissa);
+        ensureNoMathError(mErr);
 
         return (protocolFee, supplierFee);
-    }
-
-    /**
-     * @notice Verifies that the balance after a flash loan is sufficient to cover the repayment amount.
-     * @param balanceBefore The balance before the flash loan.
-     * @param repaymentAmount The total amount to be repaid (amount + fee).
-     * @dev This function reverts if the balance after the flash loan is insufficient to cover the repayment amount.
-     */
-    function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view {
-        // balanceAfter should be greater than the fee calculated
     }
 
     /**
@@ -1194,12 +1178,12 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Fail if redeem not allowed */
         uint allowed = comptroller.redeemAllowed(address(this), redeemer, vars.redeemTokens);
         if (allowed != 0) {
-            revert("math error");
+            return failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.REDEEM_COMPTROLLER_REJECTION, allowed);
         }
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != block.number) {
-            revert("math error");
+            return fail(Error.MARKET_NOT_FRESH, FailureInfo.REDEEM_FRESHNESS_CHECK);
         }
 
         /*
@@ -1215,7 +1199,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* Fail gracefully if protocol has insufficient cash */
         if (getCashPrior() < vars.redeemAmount) {
-            revert("math error");
+            return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.REDEEM_CASH_NOT_AVAILABLE);
         }
 
         /////////////////////////
@@ -1299,17 +1283,17 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
 
         if (allowed != 0) {
-            revert("math error");
+            return failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.BORROW_COMPTROLLER_REJECTION, allowed);
         }
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != block.number) {
-            revert("math error");
+            return fail(Error.MARKET_NOT_FRESH, FailureInfo.BORROW_FRESHNESS_CHECK);
         }
 
         /* Revert if protocol has insufficient underlying cash */
         if (getCashPrior() < borrowAmount) {
-            revert("math error");
+            return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.BORROW_CASH_NOT_AVAILABLE);
         }
 
         BorrowLocalVars memory vars;
@@ -1408,16 +1392,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* We fetch the amount the borrower owes, with accumulated interest */
         (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            return (
-                failOpaque(
-                    Error.MATH_ERROR,
-                    FailureInfo.REPAY_BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED,
-                    uint(vars.mathErr)
-                ),
-                0
-            );
-        }
+        ensureNoMathError(vars.mathErr);
 
         /* If repayAmount == -1, repayAmount = accountBorrows */
         if (repayAmount == type(uint256).max) {
@@ -1543,9 +1518,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Fail if repayBorrow fails */
-        (uint repayBorrowError, uint actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
-        if (repayBorrowError != uint(Error.NO_ERROR)) {
-            return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
+        uint err;
+        uint actualRepayAmount;
+        (err, actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
+        if (err != uint(Error.NO_ERROR)) {
+            return (fail(Error(err), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
         }
 
         /////////////////////////
@@ -1553,27 +1530,27 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We calculate the number of collateral tokens that will be seized */
-        (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
+        uint seizeTokens;
+        (err, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
             address(this),
             address(vTokenCollateral),
             actualRepayAmount
         );
 
         require(
-            (amountSeizeError == uint(Error.NO_ERROR)) && (vTokenCollateral.balanceOf(borrower) >= seizeTokens),
+            (err == uint(Error.NO_ERROR)) && (vTokenCollateral.balanceOf(borrower) >= seizeTokens),
             "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED or LIQUIDATE_SEIZE_TOO_MUCH"
         );
 
         // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
-        uint seizeError;
         if (address(vTokenCollateral) == address(this)) {
-            seizeError = seizeInternal(address(this), liquidator, borrower, seizeTokens);
+            err = seizeInternal(address(this), liquidator, borrower, seizeTokens);
         } else {
-            seizeError = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
+            err = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
         }
 
         /* Revert if seize tokens fails (since we cannot be sure of side effects) */
-        require(seizeError == uint(Error.NO_ERROR), "token seizure failed");
+        require(err == uint(Error.NO_ERROR), "token seizure failed");
 
         /* We emit a LiquidateBorrow event */
         emit LiquidateBorrow(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
@@ -1767,11 +1744,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
 
-        // totalReserves - reduceAmount
-        uint totalReservesNew = totalReserves - reduceAmount;
-
         // Store reserves[n+1] = reserves[n] - reduceAmount
-        totalReserves = totalReservesNew;
+        totalReserves = totalReserves - reduceAmount;
 
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
         doTransferOut(protocolShareReserve, reduceAmount);
@@ -1782,7 +1756,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             IProtocolShareReserve.IncomeType.SPREAD
         );
 
-        emit ReservesReduced(protocolShareReserve, reduceAmount, totalReservesNew);
+        emit ReservesReduced(protocolShareReserve, reduceAmount, totalReserves);
 
         return uint(Error.NO_ERROR);
     }
@@ -1794,8 +1768,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModelFresh(InterestRateModelV8 newInterestRateModel) internal returns (uint) {
-        // Used to store old model for use in the event that is emitted on success
-        InterestRateModelV8 oldInterestRateModel;
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_INTEREST_RATE_MODEL_FRESH_CHECK);
