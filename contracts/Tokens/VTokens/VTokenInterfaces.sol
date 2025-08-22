@@ -159,12 +159,13 @@ contract VTokenStorage is VTokenStorageBase {
     uint256 public flashLoanProtocolFeeMantissa;
 
     /**
-     * @notice fee percentage collected by protocol on flashLoan
+     * @notice fee percentage collected by supplier on flashLoan
      */
     uint256 public flashLoanSupplierFeeMantissa;
 
     /**
-     * @notice variable to store the flashLoan amount
+     * @notice Amount of flashLoan taken by the receiver
+     * @dev This is used to track the amount of flashLoan taken in the current transaction
      */
     uint256 public flashLoanAmount;
 
@@ -290,13 +291,15 @@ abstract contract VTokenInterface is VTokenStorage {
      */
     event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserve);
 
-    /// @notice Emitted when access control address is changed by admin
+    /**
+     * @notice Emitted when access control address is changed by admin
+     */
     event NewAccessControlManager(address oldAccessControlAddress, address newAccessControlAddress);
 
     /**
      * @notice Event emitted when flashLoanEnabled status is changed
      */
-    event ToggleFlashLoanEnabled(bool oldEnabled, bool enabled);
+    event ToggleFlashLoanEnabled(bool previousStatus, bool newStatus);
 
     /**
      * @notice Event emitted when flashLoan is executed
@@ -309,18 +312,18 @@ abstract contract VTokenInterface is VTokenStorage {
     event TransferOutUnderlying(address asset, address receiver, uint256 amount);
 
     /**
-     * @notice Event emitted when asset is transferred to receiver
+     * @notice Event emitted when asset is transferred from sender and verified
      */
-    event TransferInUnderlyingAndVerify(address asset, address receiver, uint256 amount);
+    event TransferInUnderlyingAndVerify(address asset, address sender, uint256 amount);
 
     /**
      * @notice Event emitted when flashLoan fee mantissa is updated
      */
     event FlashLoanFeeUpdated(
         uint256 oldFlashLoanProtocolFeeMantissa,
-        uint256 flashLoanProtocolFeeMantissa,
+        uint256 newFlashLoanProtocolFeeMantissa,
         uint256 oldFlashLoanSupplierFeeMantissa,
-        uint256 flashLoanSupplierFeeMantissa
+        uint256 newFlashLoanSupplierFeeMantissa
     );
 
     /*** User Interface ***/
@@ -351,6 +354,8 @@ abstract contract VTokenInterface is VTokenStorage {
     /*** Admin Function ***/
     function _reduceReserves(uint reduceAmount) external virtual returns (uint);
 
+    function borrowDebtPosition(address borrower, uint borrowAmount) external virtual returns (uint);
+
     function balanceOf(address owner) external view virtual returns (uint);
 
     function allowance(address owner, address spender) external view virtual returns (uint);
@@ -376,8 +381,6 @@ abstract contract VTokenInterface is VTokenStorage {
     function borrowBalanceStored(address account) public view virtual returns (uint);
 
     function exchangeRateStored() public view virtual returns (uint);
-
-    function borrowDebtPosition(address borrower, uint borrowAmount) external virtual returns (uint);
 }
 
 interface VBep20Interface {

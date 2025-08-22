@@ -11,7 +11,7 @@ interface IFlashLoanReceiver {
     /**
      * @notice Executes an operation after receiving the flash-borrowed assets.
      * @dev Implementation of this function must ensure the borrowed amount plus the premium (fee) is repaid within the same transaction.
-     * @param assets The addresses of the assets that were flash-borrowed.
+     * @param assets The assets that were flash-borrowed.
      * @param amounts The amounts of each of the flash-borrowed assets.
      * @param premiums The premiums (fees) associated with each flash-borrowed asset.
      * @param initiator The address that initiated the flashLoan operation.
