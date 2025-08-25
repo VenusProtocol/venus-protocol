@@ -3247,8 +3247,118 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0x350d56985A269C148648207E4Cea9f87656E762a",
+      "address": "0x5675112bf79C66d8CEbe48C40f25e9Dd6576c4e6",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "CorePoolModificationNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -3275,7 +3385,6 @@
           "type": "event"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -3301,6 +3410,11 @@
               "internalType": "uint256",
               "name": "borrowAmount",
               "type": "uint256"
+            },
+            {
+              "internalType": "enum WeightFunction",
+              "name": "weightingStrategy",
+              "type": "uint8"
             }
           ],
           "name": "getHypotheticalAccountLiquidity",
@@ -3321,12 +3435,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -3362,12 +3474,54 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "comptroller",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenBorrowed",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenCollateral",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "actualRepayAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "liquidateCalculateSeizeTokens",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -3398,7 +3552,6 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -13991,7 +14144,7 @@
       ]
     },
     "Liquidator_Implementation": {
-      "address": "0x83372155dd4a4306af82795d5a27d40188ed1f3b",
+      "address": "0x0F30B2a844339b7bD2Be0D82298e82f44286A0cA",
       "abi": [
         {
           "inputs": [
@@ -14144,11 +14297,6 @@
           "type": "error"
         },
         {
-          "inputs": [],
-          "name": "UnexpectedZeroAddress",
-          "type": "error"
-        },
-        {
           "inputs": [
             {
               "internalType": "uint256",
@@ -14199,6 +14347,11 @@
             }
           ],
           "name": "WrongTransactionAmount",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
           "type": "error"
         },
         {
@@ -15098,8 +15251,118 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x377c2E7CE08B4cc7033EDF678EE1224A290075Fd",
+      "address": "0xfdFd4BEdc16339fE2dfa19Bab8bC9B8DA4149F75",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "CorePoolModificationNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -15228,7 +15491,88 @@
           "type": "event"
         },
         {
-          "constant": false,
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "name": "PoolCreated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketInitialized",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketRemoved",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint96",
+              "name": "previousPoolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "newPoolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolSelected",
+          "type": "event"
+        },
+        {
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -15244,12 +15588,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15270,12 +15612,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15283,7 +15623,7 @@
               "type": "address"
             },
             {
-              "internalType": "enum ComptrollerTypes.Action",
+              "internalType": "enum Action",
               "name": "action",
               "type": "uint8"
             }
@@ -15296,12 +15636,28 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96[]",
+              "name": "poolIds",
+              "type": "uint96[]"
+            },
+            {
+              "internalType": "address[]",
+              "name": "vTokens",
+              "type": "address[]"
+            }
+          ],
+          "name": "addPoolMarkets",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "admin",
           "outputs": [
@@ -15311,12 +15667,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "uint256",
@@ -15332,12 +15686,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15358,12 +15710,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "borrowCapGuardian",
           "outputs": [
@@ -15373,12 +15723,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15394,12 +15742,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15420,12 +15766,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "closeFactorMantissa",
           "outputs": [
@@ -15435,12 +15779,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerImplementation",
           "outputs": [
@@ -15450,12 +15792,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerLens",
           "outputs": [
@@ -15465,12 +15805,42 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
+          "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "name": "createPool",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address[]",
@@ -15486,12 +15856,23 @@
               "type": "uint256[]"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "enterPool",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -15507,12 +15888,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "getAllMarkets",
           "outputs": [
@@ -15522,12 +15901,10 @@
               "type": "address[]"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15543,12 +15920,163 @@
               "type": "address[]"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getCollateralFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getEffectiveLiquidationIncentive",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "enum WeightFunction",
+              "name": "weightingStrategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "getEffectiveLtvFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getLiquidationIncentive",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getLiquidationThreshold",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "getPoolVTokens",
+          "outputs": [
+            {
+              "internalType": "address[]",
+              "name": "",
+              "type": "address[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
@@ -15558,12 +16086,34 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "internalType": "uint96",
+              "name": "targetPoolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "hasValidPoolBorrows",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "isComptroller",
           "outputs": [
@@ -15573,12 +16123,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "pure",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15594,21 +16142,19 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "user",
               "type": "address"
             },
             {
               "internalType": "address",
-              "name": "",
+              "name": "market",
               "type": "address"
             }
           ],
@@ -15620,12 +16166,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -15641,12 +16185,62 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "lastPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenBorrowed",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenCollateral",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "actualRepayAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "liquidateCalculateSeizeTokens",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -15677,12 +16271,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15708,27 +16300,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
-          "inputs": [],
-          "name": "liquidationIncentiveMantissa",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": true,
           "inputs": [],
           "name": "liquidatorContract",
           "outputs": [
@@ -15738,16 +16313,14 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "vToken",
               "type": "address"
             }
           ],
@@ -15767,14 +16340,32 @@
               "internalType": "bool",
               "name": "isVenus",
               "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint96",
+              "name": "marketPoolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bool",
+              "name": "isBorrowAllowed",
+              "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "maxAssets",
           "outputs": [
@@ -15784,12 +16375,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "minReleaseAmount",
           "outputs": [
@@ -15799,12 +16388,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "mintVAIGuardianPaused",
           "outputs": [
@@ -15814,12 +16401,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15835,27 +16420,36 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "oldLiquidationIncentiveMantissa",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "oracle",
           "outputs": [
             {
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "",
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pauseGuardian",
           "outputs": [
@@ -15865,12 +16459,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingAdmin",
           "outputs": [
@@ -15880,12 +16472,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingComptrollerImplementation",
           "outputs": [
@@ -15895,12 +16485,83 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "poolMarkets",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "isListed",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "collateralFactorMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isVenus",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxLiquidationIncentiveMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint96",
+              "name": "marketPoolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bool",
+              "name": "isBorrowAllowed",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -15910,12 +16571,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "protocolPaused",
           "outputs": [
@@ -15925,12 +16584,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "releaseStartBlock",
           "outputs": [
@@ -15940,12 +16597,28 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "removePoolMarket",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "repayVAIGuardianPaused",
           "outputs": [
@@ -15955,12 +16628,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -15976,12 +16647,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -15997,12 +16666,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryAddress",
           "outputs": [
@@ -16012,12 +16679,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryGuardian",
           "outputs": [
@@ -16027,12 +16692,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryPercent",
           "outputs": [
@@ -16042,12 +16705,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -16063,12 +16724,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -16083,12 +16742,29 @@
           ],
           "name": "updateDelegate",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "vaiController",
           "outputs": [
@@ -16098,12 +16774,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiMintRate",
           "outputs": [
@@ -16113,12 +16787,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiVaultAddress",
           "outputs": [
@@ -16128,12 +16800,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -16149,12 +16819,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -16170,12 +16838,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -16196,12 +16862,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -16222,12 +16886,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusInitialIndex",
           "outputs": [
@@ -16237,12 +16899,10 @@
               "type": "uint224"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -16263,12 +16923,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -16284,12 +16942,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -16310,12 +16966,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusVAIVaultRate",
           "outputs": [
@@ -16325,7 +16979,6 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -20952,8 +21605,118 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0x671B787AEDB6769972f081C6ee4978146F7D92E6",
+      "address": "0x284d000665296515280a4fB066a887EFF6A3bD9E",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "CorePoolModificationNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -21112,7 +21875,6 @@
           "type": "event"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -21132,12 +21894,10 @@
           ],
           "name": "_setVenusSpeeds",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21158,12 +21918,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21171,7 +21929,7 @@
               "type": "address"
             },
             {
-              "internalType": "enum ComptrollerTypes.Action",
+              "internalType": "enum Action",
               "name": "action",
               "type": "uint8"
             }
@@ -21184,12 +21942,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "admin",
           "outputs": [
@@ -21199,12 +21955,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "uint256",
@@ -21220,12 +21974,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21246,12 +21998,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -21277,12 +22027,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "borrowCapGuardian",
           "outputs": [
@@ -21292,12 +22040,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21313,12 +22059,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -21338,12 +22082,10 @@
           ],
           "name": "borrowVerify",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "closeFactorMantissa",
           "outputs": [
@@ -21353,12 +22095,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerImplementation",
           "outputs": [
@@ -21368,12 +22108,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerLens",
           "outputs": [
@@ -21383,12 +22121,23 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -21414,12 +22163,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21445,12 +22192,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21491,12 +22236,34 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
@@ -21506,12 +22273,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21527,21 +22292,19 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "user",
               "type": "address"
             },
             {
               "internalType": "address",
-              "name": "",
+              "name": "market",
               "type": "address"
             }
           ],
@@ -21553,12 +22316,23 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "lastPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -21594,12 +22368,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -21634,27 +22406,10 @@
           ],
           "name": "liquidateBorrowVerify",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
-          "inputs": [],
-          "name": "liquidationIncentiveMantissa",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": true,
           "inputs": [],
           "name": "liquidatorContract",
           "outputs": [
@@ -21664,43 +22419,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": true,
           "inputs": [],
           "name": "maxAssets",
           "outputs": [
@@ -21710,12 +22432,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "minReleaseAmount",
           "outputs": [
@@ -21725,12 +22445,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -21756,12 +22474,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "mintVAIGuardianPaused",
           "outputs": [
@@ -21771,12 +22487,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -21801,12 +22515,10 @@
           ],
           "name": "mintVerify",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -21822,27 +22534,36 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "oldLiquidationIncentiveMantissa",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "oracle",
           "outputs": [
             {
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "",
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pauseGuardian",
           "outputs": [
@@ -21852,12 +22573,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingAdmin",
           "outputs": [
@@ -21867,12 +22586,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingComptrollerImplementation",
           "outputs": [
@@ -21882,12 +22599,29 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -21897,12 +22631,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "protocolPaused",
           "outputs": [
@@ -21912,12 +22644,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -21943,12 +22673,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -21973,12 +22701,10 @@
           ],
           "name": "redeemVerify",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "releaseStartBlock",
           "outputs": [
@@ -21988,12 +22714,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -22024,12 +22748,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -22059,12 +22781,10 @@
           ],
           "name": "repayBorrowVerify",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "repayVAIGuardianPaused",
           "outputs": [
@@ -22074,12 +22794,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -22115,12 +22833,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -22150,12 +22866,10 @@
           ],
           "name": "seizeVerify",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22171,12 +22885,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -22207,12 +22919,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -22237,12 +22947,10 @@
           ],
           "name": "transferVerify",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryAddress",
           "outputs": [
@@ -22252,12 +22960,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryGuardian",
           "outputs": [
@@ -22267,12 +22973,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryPercent",
           "outputs": [
@@ -22282,12 +22986,29 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "vaiController",
           "outputs": [
@@ -22297,12 +23018,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiMintRate",
           "outputs": [
@@ -22312,12 +23031,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiVaultAddress",
           "outputs": [
@@ -22327,12 +23044,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22348,12 +23063,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22369,12 +23082,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22395,12 +23106,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22421,12 +23130,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusInitialIndex",
           "outputs": [
@@ -22436,12 +23143,10 @@
               "type": "uint224"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22462,12 +23167,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22483,12 +23186,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -22509,12 +23210,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusVAIVaultRate",
           "outputs": [
@@ -22524,7 +23223,6 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -30169,8 +30867,118 @@
       ]
     },
     "RewardFacet": {
-      "address": "0x905006DCD5DbAa9B67359bcB341a0C49AfC8d0A6",
+      "address": "0x0CB4FdDA118Da048B9AAaC15f34662C6AB34F5dB",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "CorePoolModificationNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -30329,7 +31137,6 @@
           "type": "event"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -30344,12 +31151,10 @@
           ],
           "name": "_grantXVS",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -30370,12 +31175,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -30383,7 +31186,7 @@
               "type": "address"
             },
             {
-              "internalType": "enum ComptrollerTypes.Action",
+              "internalType": "enum Action",
               "name": "action",
               "type": "uint8"
             }
@@ -30396,12 +31199,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "admin",
           "outputs": [
@@ -30411,12 +31212,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "uint256",
@@ -30432,12 +31231,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -30458,12 +31255,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "borrowCapGuardian",
           "outputs": [
@@ -30473,12 +31268,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -30494,12 +31287,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address[]",
@@ -30529,12 +31320,10 @@
           ],
           "name": "claimVenus",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -30549,12 +31338,10 @@
           ],
           "name": "claimVenus",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -30564,12 +31351,10 @@
           ],
           "name": "claimVenus",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address[]",
@@ -30594,12 +31379,10 @@
           ],
           "name": "claimVenus",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -30609,12 +31392,10 @@
           ],
           "name": "claimVenusAsCollateral",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "closeFactorMantissa",
           "outputs": [
@@ -30624,12 +31405,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerImplementation",
           "outputs": [
@@ -30639,12 +31418,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerLens",
           "outputs": [
@@ -30654,12 +31431,47 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
@@ -30669,12 +31481,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "getXVSVTokenAddress",
           "outputs": [
@@ -30684,12 +31494,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -30705,21 +31513,19 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "user",
               "type": "address"
             },
             {
               "internalType": "address",
-              "name": "",
+              "name": "market",
               "type": "address"
             }
           ],
@@ -30731,27 +31537,23 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
+          "name": "lastPoolId",
           "outputs": [
             {
-              "internalType": "uint256",
+              "internalType": "uint96",
               "name": "",
-              "type": "uint256"
+              "type": "uint96"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "liquidatorContract",
           "outputs": [
@@ -30761,43 +31563,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": true,
           "inputs": [],
           "name": "maxAssets",
           "outputs": [
@@ -30807,12 +31576,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "minReleaseAmount",
           "outputs": [
@@ -30822,12 +31589,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "mintVAIGuardianPaused",
           "outputs": [
@@ -30837,12 +31602,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -30858,27 +31621,36 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "oldLiquidationIncentiveMantissa",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "oracle",
           "outputs": [
             {
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "",
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pauseGuardian",
           "outputs": [
@@ -30888,12 +31660,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingAdmin",
           "outputs": [
@@ -30903,12 +31673,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingComptrollerImplementation",
           "outputs": [
@@ -30918,12 +31686,29 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -30933,12 +31718,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "protocolPaused",
           "outputs": [
@@ -30948,12 +31731,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "releaseStartBlock",
           "outputs": [
@@ -30963,12 +31744,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "repayVAIGuardianPaused",
           "outputs": [
@@ -30978,12 +31757,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address[]",
@@ -31004,12 +31781,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31025,12 +31800,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryAddress",
           "outputs": [
@@ -31040,12 +31813,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryGuardian",
           "outputs": [
@@ -31055,12 +31826,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryPercent",
           "outputs": [
@@ -31070,12 +31839,29 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "vaiController",
           "outputs": [
@@ -31085,12 +31871,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiMintRate",
           "outputs": [
@@ -31100,12 +31884,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiVaultAddress",
           "outputs": [
@@ -31115,12 +31897,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31136,12 +31916,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31157,12 +31935,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31183,12 +31959,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31209,12 +31983,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusInitialIndex",
           "outputs": [
@@ -31224,12 +31996,10 @@
               "type": "uint224"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31250,12 +32020,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31271,12 +32039,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -31297,12 +32063,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusVAIVaultRate",
           "outputs": [
@@ -31312,7 +32076,6 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -31628,8 +32391,118 @@
       ]
     },
     "SetterFacet": {
-      "address": "0xb619F7ce96c0a6E3F0b44e993f663522F79f294A",
+      "address": "0xe41Ab9b0ea3edD4cE3108650056641F1E361246c",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "CorePoolModificationNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -31641,7 +32514,7 @@
             },
             {
               "indexed": true,
-              "internalType": "enum ComptrollerTypes.Action",
+              "internalType": "enum Action",
               "name": "action",
               "type": "uint8"
             },
@@ -31666,6 +32539,31 @@
             }
           ],
           "name": "ActionProtocolPaused",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "isAllowed",
+              "type": "bool"
+            }
+          ],
+          "name": "BorrowAllowedUpdated",
           "type": "event"
         },
         {
@@ -31831,6 +32729,12 @@
           "inputs": [
             {
               "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
               "internalType": "contract VToken",
               "name": "vToken",
               "type": "address"
@@ -31874,6 +32778,12 @@
           "anonymous": false,
           "inputs": [
             {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
               "indexed": false,
               "internalType": "uint256",
               "name": "oldLiquidationIncentiveMantissa",
@@ -31887,6 +32797,37 @@
             }
           ],
           "name": "NewLiquidationIncentive",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "contract VToken",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "oldLiquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "newLiquidationThresholdMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "NewLiquidationThreshold",
           "type": "event"
         },
         {
@@ -31932,13 +32873,13 @@
           "inputs": [
             {
               "indexed": false,
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "oldPriceOracle",
               "type": "address"
             },
             {
               "indexed": false,
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "newPriceOracle",
               "type": "address"
             }
@@ -32162,7 +33103,6 @@
           "type": "event"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32178,12 +33118,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address[]",
@@ -32191,7 +33129,7 @@
               "type": "address[]"
             },
             {
-              "internalType": "enum ComptrollerTypes.Action[]",
+              "internalType": "enum Action[]",
               "name": "actions_",
               "type": "uint8[]"
             },
@@ -32203,12 +33141,10 @@
           ],
           "name": "_setActionsPaused",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -32224,38 +33160,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
-          "inputs": [
-            {
-              "internalType": "contract VToken",
-              "name": "vToken",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "newCollateralFactorMantissa",
-              "type": "uint256"
-            }
-          ],
-          "name": "_setCollateralFactor",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract ComptrollerLensInterface",
@@ -32271,12 +33179,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32291,12 +33197,10 @@
           ],
           "name": "_setForcedLiquidation",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32316,33 +33220,10 @@
           ],
           "name": "_setForcedLiquidationForUser",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "newLiquidationIncentiveMantissa",
-              "type": "uint256"
-            }
-          ],
-          "name": "_setLiquidationIncentive",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32352,12 +33233,10 @@
           ],
           "name": "_setLiquidatorContract",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -32372,12 +33251,10 @@
           ],
           "name": "_setMarketBorrowCaps",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -32392,12 +33269,10 @@
           ],
           "name": "_setMarketSupplyCaps",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32413,15 +33288,13 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "newOracle",
               "type": "address"
             }
@@ -32434,12 +33307,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract IPrime",
@@ -32455,12 +33326,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "bool",
@@ -32476,12 +33345,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32507,12 +33374,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VAIControllerInterface",
@@ -32528,12 +33393,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -32549,12 +33412,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32574,12 +33435,10 @@
           ],
           "name": "_setVAIVaultInfo",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -32589,12 +33448,10 @@
           ],
           "name": "_setVenusVAIVaultRate",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32604,12 +33461,10 @@
           ],
           "name": "_setXVSToken",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -32619,12 +33474,10 @@
           ],
           "name": "_setXVSVToken",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -32645,12 +33498,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -32658,7 +33509,7 @@
               "type": "address"
             },
             {
-              "internalType": "enum ComptrollerTypes.Action",
+              "internalType": "enum Action",
               "name": "action",
               "type": "uint8"
             }
@@ -32671,12 +33522,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "admin",
           "outputs": [
@@ -32686,12 +33535,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "uint256",
@@ -32707,12 +33554,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -32733,12 +33578,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "borrowCapGuardian",
           "outputs": [
@@ -32748,12 +33591,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -32769,12 +33610,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "closeFactorMantissa",
           "outputs": [
@@ -32784,12 +33623,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerImplementation",
           "outputs": [
@@ -32799,12 +33636,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerLens",
           "outputs": [
@@ -32814,12 +33649,47 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
@@ -32829,12 +33699,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -32850,21 +33718,19 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "user",
               "type": "address"
             },
             {
               "internalType": "address",
-              "name": "",
+              "name": "market",
               "type": "address"
             }
           ],
@@ -32876,27 +33742,23 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
+          "name": "lastPoolId",
           "outputs": [
             {
-              "internalType": "uint256",
+              "internalType": "uint96",
               "name": "",
-              "type": "uint256"
+              "type": "uint96"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "liquidatorContract",
           "outputs": [
@@ -32906,43 +33768,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": true,
           "inputs": [],
           "name": "maxAssets",
           "outputs": [
@@ -32952,12 +33781,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "minReleaseAmount",
           "outputs": [
@@ -32967,12 +33794,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "mintVAIGuardianPaused",
           "outputs": [
@@ -32982,12 +33807,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33003,27 +33826,36 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "oldLiquidationIncentiveMantissa",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "oracle",
           "outputs": [
             {
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "",
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pauseGuardian",
           "outputs": [
@@ -33033,12 +33865,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingAdmin",
           "outputs": [
@@ -33048,12 +33878,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingComptrollerImplementation",
           "outputs": [
@@ -33063,12 +33891,29 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -33078,12 +33923,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "protocolPaused",
           "outputs": [
@@ -33093,12 +33936,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "releaseStartBlock",
           "outputs": [
@@ -33108,12 +33949,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "repayVAIGuardianPaused",
           "outputs": [
@@ -33123,12 +33962,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address[]",
@@ -33136,7 +33973,7 @@
               "type": "address[]"
             },
             {
-              "internalType": "enum ComptrollerTypes.Action[]",
+              "internalType": "enum Action[]",
               "name": "actions_",
               "type": "uint8[]"
             },
@@ -33148,12 +33985,10 @@
           ],
           "name": "setActionsPaused",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -33169,12 +34004,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -33200,12 +34033,44 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "contract VToken",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "newCollateralFactorMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "newLiquidationThresholdMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "setCollateralFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -33220,13 +34085,44 @@
           ],
           "name": "setForcedLiquidation",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "borrowAllowed",
+              "type": "bool"
+            }
+          ],
+          "name": "setIsBorrowAllowed",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
             {
               "internalType": "uint256",
               "name": "newLiquidationIncentiveMantissa",
@@ -33241,12 +34137,34 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "newLiquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "setLiquidationIncentive",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -33261,12 +34179,10 @@
           ],
           "name": "setMarketBorrowCaps",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -33281,12 +34197,10 @@
           ],
           "name": "setMarketSupplyCaps",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -33307,15 +34221,13 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "newOracle",
               "type": "address"
             }
@@ -33328,12 +34240,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract IPrime",
@@ -33349,12 +34259,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33370,12 +34278,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryAddress",
           "outputs": [
@@ -33385,12 +34291,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryGuardian",
           "outputs": [
@@ -33400,12 +34304,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryPercent",
           "outputs": [
@@ -33415,12 +34317,29 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "vaiController",
           "outputs": [
@@ -33430,12 +34349,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiMintRate",
           "outputs": [
@@ -33445,12 +34362,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiVaultAddress",
           "outputs": [
@@ -33460,12 +34375,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33481,12 +34394,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33502,12 +34413,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33528,12 +34437,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33554,12 +34461,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusInitialIndex",
           "outputs": [
@@ -33569,12 +34474,10 @@
               "type": "uint224"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33595,12 +34498,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33616,12 +34517,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -33642,12 +34541,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusVAIVaultRate",
           "outputs": [
@@ -33657,7 +34554,6 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -47625,7 +48521,7 @@
       ]
     },
     "Unitroller_Implementation": {
-      "address": "0x1D5F9752bA40cF7047db2E24Cb6Aa196E3c334DA",
+      "address": "0xC1eCF5Ee6B2F43194359c02FB460B31e4494895d",
       "abi": [
         {
           "anonymous": false,
@@ -47658,12 +48554,10 @@
           "type": "event"
         },
         {
-          "payable": true,
-          "stateMutability": "payable",
+          "stateMutability": "nonpayable",
           "type": "fallback"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract Unitroller",
@@ -47673,12 +48567,10 @@
           ],
           "name": "_become",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -47699,12 +48591,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "admin",
           "outputs": [
@@ -47714,12 +48604,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "uint256",
@@ -47735,12 +48623,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -47761,12 +48647,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "borrowCapGuardian",
           "outputs": [
@@ -47776,12 +48660,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -47797,12 +48679,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "closeFactorMantissa",
           "outputs": [
@@ -47812,12 +48692,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerImplementation",
           "outputs": [
@@ -47827,12 +48705,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptrollerLens",
           "outputs": [
@@ -47842,12 +48718,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "components": [
@@ -47874,12 +48748,10 @@
           ],
           "name": "diamondCut",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "bytes4",
@@ -47907,12 +48779,10 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "facetAddresses",
           "outputs": [
@@ -47922,12 +48792,10 @@
               "type": "address[]"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -47943,12 +48811,10 @@
               "type": "bytes4[]"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -47964,12 +48830,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "facets",
           "outputs": [
@@ -47991,12 +48855,10 @@
               "type": "tuple[]"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48012,21 +48874,19 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "user",
               "type": "address"
             },
             {
               "internalType": "address",
-              "name": "",
+              "name": "market",
               "type": "address"
             }
           ],
@@ -48038,27 +48898,23 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
+          "name": "lastPoolId",
           "outputs": [
             {
-              "internalType": "uint256",
+              "internalType": "uint96",
               "name": "",
-              "type": "uint256"
+              "type": "uint96"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "liquidatorContract",
           "outputs": [
@@ -48068,43 +48924,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": true,
           "inputs": [],
           "name": "maxAssets",
           "outputs": [
@@ -48114,12 +48937,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "minReleaseAmount",
           "outputs": [
@@ -48129,12 +48950,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "mintVAIGuardianPaused",
           "outputs": [
@@ -48144,12 +48963,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48165,27 +48982,36 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "oldLiquidationIncentiveMantissa",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "oracle",
           "outputs": [
             {
-              "internalType": "contract PriceOracle",
+              "internalType": "contract ResilientOracleInterface",
               "name": "",
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pauseGuardian",
           "outputs": [
@@ -48195,12 +49021,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingAdmin",
           "outputs": [
@@ -48210,12 +49034,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingComptrollerImplementation",
           "outputs": [
@@ -48225,12 +49047,29 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -48240,12 +49079,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "protocolPaused",
           "outputs": [
@@ -48255,12 +49092,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "releaseStartBlock",
           "outputs": [
@@ -48270,12 +49105,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "repayVAIGuardianPaused",
           "outputs": [
@@ -48285,12 +49118,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48306,12 +49137,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryAddress",
           "outputs": [
@@ -48321,12 +49150,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryGuardian",
           "outputs": [
@@ -48336,12 +49163,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryPercent",
           "outputs": [
@@ -48351,12 +49176,29 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "vaiController",
           "outputs": [
@@ -48366,12 +49208,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiMintRate",
           "outputs": [
@@ -48381,12 +49221,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiVaultAddress",
           "outputs": [
@@ -48396,12 +49234,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48417,12 +49253,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48438,12 +49272,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48464,12 +49296,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48490,12 +49320,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48516,12 +49344,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48537,12 +49363,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48563,12 +49387,10 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusVAIVaultRate",
           "outputs": [
@@ -48578,7 +49400,6 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -51990,11 +52811,10 @@
       ]
     },
     "VBep20Delegate": {
-      "address": "0xad6aa8Bb4829560412A94AA930745f407BF8000B",
+      "address": "0xf292c8F321fF1BC49A3FeADf4D0971E519485e19",
       "abi": [
         {
           "inputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "constructor"
         },
@@ -52277,13 +53097,13 @@
           "inputs": [
             {
               "indexed": false,
-              "internalType": "contract InterestRateModel",
+              "internalType": "contract InterestRateModelV8",
               "name": "oldInterestRateModel",
               "type": "address"
             },
             {
               "indexed": false,
-              "internalType": "contract InterestRateModel",
+              "internalType": "contract InterestRateModelV8",
               "name": "newInterestRateModel",
               "type": "address"
             }
@@ -52536,7 +53356,6 @@
           "type": "event"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "_acceptAdmin",
           "outputs": [
@@ -52546,12 +53365,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -52567,12 +53384,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "bytes",
@@ -52582,12 +53397,10 @@
           ],
           "name": "_becomeImplementation",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -52603,21 +53416,17 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "_resignImplementation",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract ComptrollerInterface",
@@ -52633,15 +53442,13 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
-              "internalType": "contract InterestRateModel",
+              "internalType": "contract InterestRateModelV8",
               "name": "newInterestRateModel_",
               "type": "address"
             }
@@ -52654,12 +53461,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address payable",
@@ -52675,12 +53480,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -52696,12 +53499,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "accessControlManager",
           "outputs": [
@@ -52711,12 +53512,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "accrualBlockNumber",
           "outputs": [
@@ -52726,12 +53525,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "accrueInterest",
           "outputs": [
@@ -52741,12 +53538,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "admin",
           "outputs": [
@@ -52756,12 +53551,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -52782,12 +53575,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -52808,12 +53599,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -52829,12 +53618,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -52850,12 +53637,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -52871,12 +53656,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -52892,12 +53675,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -52913,12 +53694,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -52939,12 +53718,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "borrowIndex",
           "outputs": [
@@ -52954,12 +53731,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "borrowRatePerBlock",
           "outputs": [
@@ -52969,12 +53744,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptroller",
           "outputs": [
@@ -52984,12 +53757,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "decimals",
           "outputs": [
@@ -52999,12 +53770,10 @@
               "type": "uint8"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "exchangeRateCurrent",
           "outputs": [
@@ -53014,12 +53783,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "exchangeRateStored",
           "outputs": [
@@ -53029,12 +53796,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -53065,12 +53830,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "getCash",
           "outputs": [
@@ -53080,12 +53843,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "implementation",
           "outputs": [
@@ -53095,12 +53856,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53113,7 +53872,7 @@
               "type": "address"
             },
             {
-              "internalType": "contract InterestRateModel",
+              "internalType": "contract InterestRateModelV8",
               "name": "interestRateModel_",
               "type": "address"
             },
@@ -53140,12 +53899,10 @@
           ],
           "name": "initialize",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract ComptrollerInterface",
@@ -53153,7 +53910,7 @@
               "type": "address"
             },
             {
-              "internalType": "contract InterestRateModel",
+              "internalType": "contract InterestRateModelV8",
               "name": "interestRateModel_",
               "type": "address"
             },
@@ -53180,27 +53937,23 @@
           ],
           "name": "initialize",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "interestRateModel",
           "outputs": [
             {
-              "internalType": "contract InterestRateModel",
+              "internalType": "contract InterestRateModelV8",
               "name": "",
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "isVToken",
           "outputs": [
@@ -53210,12 +53963,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53241,12 +53992,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -53262,12 +54011,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53288,12 +54035,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "name",
           "outputs": [
@@ -53303,12 +54048,10 @@
               "type": "string"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingAdmin",
           "outputs": [
@@ -53318,12 +54061,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "protocolShareReserve",
           "outputs": [
@@ -53333,12 +54074,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -53354,12 +54093,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53380,12 +54117,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -53401,12 +54136,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53427,12 +54160,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "reduceReservesBlockDelta",
           "outputs": [
@@ -53442,12 +54173,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "reduceReservesBlockNumber",
           "outputs": [
@@ -53457,12 +54186,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -53478,12 +54205,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53504,12 +54229,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "reserveFactorMantissa",
           "outputs": [
@@ -53519,12 +54242,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53550,12 +54271,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53571,12 +54290,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address payable",
@@ -53586,12 +54303,10 @@
           ],
           "name": "setProtocolShareReserve",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -53601,12 +54316,10 @@
           ],
           "name": "setReduceReservesBlockDelta",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "supplyRatePerBlock",
           "outputs": [
@@ -53616,12 +54329,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "symbol",
           "outputs": [
@@ -53631,12 +54342,10 @@
               "type": "string"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "totalBorrows",
           "outputs": [
@@ -53646,12 +54355,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "totalBorrowsCurrent",
           "outputs": [
@@ -53661,12 +54368,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "totalReserves",
           "outputs": [
@@ -53676,12 +54381,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "totalSupply",
           "outputs": [
@@ -53691,12 +54394,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53717,12 +54418,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -53748,12 +54447,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "underlying",
           "outputs": [
@@ -53763,7 +54460,6 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -57399,7 +58095,7 @@
       ]
     },
     "VaiController": {
-      "address": "0xDFcbfb82a416B5CEbB80FECFbBF4E055299931FF",
+      "address": "0x5361EeCB35Dbbf239F0AB3600e460bFdBa14c592",
       "abi": [
         {
           "anonymous": false,
@@ -57755,7 +58451,19 @@
           "type": "event"
         },
         {
-          "constant": true,
+          "inputs": [],
+          "name": "CORE_POOL_ID",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "INITIAL_VAI_MINT_INDEX",
           "outputs": [
@@ -57765,12 +58473,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VAIUnitroller",
@@ -57780,12 +58486,10 @@
           ],
           "name": "_become",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract ComptrollerInterface",
@@ -57801,12 +58505,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -57832,12 +58534,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "accessControl",
           "outputs": [
@@ -57847,21 +58547,17 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "accrueVAIInterest",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "admin",
           "outputs": [
@@ -57871,12 +58567,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "baseRateMantissa",
           "outputs": [
@@ -57886,12 +58580,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "comptroller",
           "outputs": [
@@ -57901,12 +58593,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "floatRateMantissa",
           "outputs": [
@@ -57916,12 +58606,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "getBlocksPerYear",
           "outputs": [
@@ -57931,12 +58619,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -57957,12 +58643,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "getVAIAddress",
           "outputs": [
@@ -57972,12 +58656,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -58008,12 +58690,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -58029,12 +58709,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -58050,12 +58728,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "getVAIRepayRate",
           "outputs": [
@@ -58065,12 +58741,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "getVAIRepayRatePerBlock",
           "outputs": [
@@ -58080,21 +58754,17 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "initialize",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "isVenusVAIInitialized",
           "outputs": [
@@ -58104,12 +58774,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -58140,12 +58808,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "mintCap",
           "outputs": [
@@ -58155,12 +58821,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "mintEnabledOnlyForPrimeHolder",
           "outputs": [
@@ -58170,12 +58834,10 @@
               "type": "bool"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -58191,12 +58853,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -58212,12 +58872,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingAdmin",
           "outputs": [
@@ -58227,12 +58885,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "pendingVAIControllerImplementation",
           "outputs": [
@@ -58242,12 +58898,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -58257,12 +58911,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "receiver",
           "outputs": [
@@ -58272,12 +58924,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -58298,12 +58948,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -58329,12 +58977,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -58344,12 +58990,10 @@
           ],
           "name": "setAccessControl",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -58359,12 +59003,10 @@
           ],
           "name": "setBaseRate",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -58374,12 +59016,10 @@
           ],
           "name": "setFloatRate",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
@@ -58389,12 +59029,10 @@
           ],
           "name": "setMintCap",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -58404,12 +59042,10 @@
           ],
           "name": "setPrimeToken",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -58419,12 +59055,10 @@
           ],
           "name": "setReceiver",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "address",
@@ -58434,12 +59068,10 @@
           ],
           "name": "setVAIToken",
           "outputs": [],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [],
           "name": "toggleOnlyPrimeHolderMint",
           "outputs": [
@@ -58449,12 +59081,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryAddress",
           "outputs": [
@@ -58464,12 +59094,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryGuardian",
           "outputs": [
@@ -58479,12 +59107,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "treasuryPercent",
           "outputs": [
@@ -58494,12 +59120,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiControllerImplementation",
           "outputs": [
@@ -58509,12 +59133,10 @@
               "type": "address"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "vaiMintIndex",
           "outputs": [
@@ -58524,12 +59146,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -58545,12 +59165,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "venusVAIState",
           "outputs": [
@@ -58565,7 +59183,6 @@
               "type": "uint32"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
@@ -61013,10 +61630,9 @@
       ]
     },
     "VenusLens": {
-      "address": "0x068b437aCD9F4668f77Aa24e2B715a41D4a9a599",
+      "address": "0x1c993C0Da4fA4D9EBFA9C71752EFCC42f4b93bCA",
       "abi": [
         {
-          "constant": true,
           "inputs": [],
           "name": "BLOCKS_PER_DAY",
           "outputs": [
@@ -61026,12 +61642,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [],
           "name": "VTOKEN_ACTIONS",
           "outputs": [
@@ -61041,12 +61655,10 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "contract ComptrollerInterface",
@@ -61084,12 +61696,93 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
+          "inputs": [
+            {
+              "internalType": "contract ComptrollerInterface",
+              "name": "comptroller",
+              "type": "address"
+            }
+          ],
+          "name": "getAllPoolsData",
+          "outputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint96",
+                  "name": "poolId",
+                  "type": "uint96"
+                },
+                {
+                  "internalType": "string",
+                  "name": "label",
+                  "type": "string"
+                },
+                {
+                  "components": [
+                    {
+                      "internalType": "uint96",
+                      "name": "poolId",
+                      "type": "uint96"
+                    },
+                    {
+                      "internalType": "string",
+                      "name": "poolLabel",
+                      "type": "string"
+                    },
+                    {
+                      "internalType": "address",
+                      "name": "vToken",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "bool",
+                      "name": "isListed",
+                      "type": "bool"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "collateralFactor",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "bool",
+                      "name": "isVenus",
+                      "type": "bool"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "liquidationThreshold",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "liquidationIncentive",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "bool",
+                      "name": "isBorrowAllowed",
+                      "type": "bool"
+                    }
+                  ],
+                  "internalType": "struct VenusLens.MarketData[]",
+                  "name": "markets",
+                  "type": "tuple[]"
+                }
+              ],
+              "internalType": "struct VenusLens.PoolWithMarkets[]",
+              "name": "poolsData",
+              "type": "tuple[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address payable",
@@ -61110,15 +61803,84 @@
               "type": "uint256"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
-              "internalType": "contract XVS",
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "contract ComptrollerInterface",
+              "name": "comptroller",
+              "type": "address"
+            }
+          ],
+          "name": "getMarketsDataByPool",
+          "outputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint96",
+                  "name": "poolId",
+                  "type": "uint96"
+                },
+                {
+                  "internalType": "string",
+                  "name": "poolLabel",
+                  "type": "string"
+                },
+                {
+                  "internalType": "address",
+                  "name": "vToken",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isListed",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "collateralFactor",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isVenus",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationThreshold",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationIncentive",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isBorrowAllowed",
+                  "type": "bool"
+                }
+              ],
+              "internalType": "struct VenusLens.MarketData[]",
+              "name": "result",
+              "type": "tuple[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "contract IXVS",
               "name": "xvs",
               "type": "address"
             },
@@ -61153,15 +61915,13 @@
               "type": "tuple[]"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
-              "internalType": "contract XVS",
+              "internalType": "contract IXVS",
               "name": "xvs",
               "type": "address"
             },
@@ -61196,15 +61956,13 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
-              "internalType": "contract XVS",
+              "internalType": "contract IXVS",
               "name": "xvs",
               "type": "address"
             },
@@ -61249,12 +62007,10 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -61309,12 +62065,10 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -61367,12 +62121,10 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -61425,12 +62177,10 @@
               "type": "tuple[]"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -61543,12 +62293,10 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": false,
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -61661,12 +62409,10 @@
               "type": "tuple[]"
             }
           ],
-          "payable": false,
           "stateMutability": "nonpayable",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -61694,12 +62440,10 @@
               "type": "tuple"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "constant": true,
           "inputs": [
             {
               "internalType": "contract VToken[]",
@@ -61727,7 +62471,6 @@
               "type": "tuple[]"
             }
           ],
-          "payable": false,
           "stateMutability": "view",
           "type": "function"
         }
