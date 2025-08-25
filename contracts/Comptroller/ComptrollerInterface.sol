@@ -13,7 +13,7 @@ contract ComptrollerInterface {
 
     function enterMarkets(address[] calldata vTokens) external returns (uint[] memory);
 
-    function enterMarket(address vToken) external returns (uint256);
+    function enterMarket(address user, address vToken) external returns (uint256);
 
     function exitMarket(address vToken) external returns (uint);
 

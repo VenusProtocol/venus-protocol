@@ -136,14 +136,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Add asset to be included in account liquidity calculation
      * @dev Allows only whitelisted executors to call this function
+     * @param user The address of the account to enter the market
      * @param vToken The address of the vToken market to be enabled
      * @return Success indicator for whether the corresponding market was entered
      */
-    function enterMarket(address vToken) external returns (uint256) {
+    function enterMarket(address user, address vToken) external returns (uint256) {
         if (!whitelistedExecutors[msg.sender]) {
             return uint256(Error.UNAUTHORIZED);
         }
-        return uint256(addToMarketInternal(VToken(vToken), msg.sender));
+        return uint256(addToMarketInternal(VToken(vToken), user));
     }
 
     /**
