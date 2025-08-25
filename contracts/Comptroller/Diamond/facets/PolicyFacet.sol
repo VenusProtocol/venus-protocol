@@ -168,7 +168,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
         // Skipped for debt swapping, the receiver is the PositionSwapper contract
-        if (receiver == address(0) || !whitelistedExecutors[receiver]) {
+        if (!whitelistedExecutors[receiver]) {
             (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
                 borrower,
                 VToken(vToken),
