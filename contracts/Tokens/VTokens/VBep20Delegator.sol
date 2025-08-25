@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
@@ -221,7 +223,7 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
      * @dev This will overwrite the approval amount for `spender`
      *  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)
      * @param spender The address of the account which may transfer tokens
-     * @param amount The number of tokens that are approved (-1 means infinite)
+     * @param amount The number of tokens that are approved (type(uint256).max means infinite)
      * @return Whether or not the approval succeeded
      */
     function approve(address spender, uint256 amount) external override returns (bool) {
@@ -347,7 +349,7 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
      * @notice Get the current allowance from `owner` for `spender`
      * @param owner The address of the account which owns the tokens to be spent
      * @param spender The address of the account which may transfer tokens
-     * @return The number of tokens allowed to be spent (-1 means infinite)
+     * @return The number of tokens allowed to be spent (type(uint256).max means infinite)
      */
     function allowance(address owner, address spender) external view override returns (uint) {
         bytes memory data = delegateToViewImplementation(

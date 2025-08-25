@@ -1,5 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { impersonateAccount, loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { impersonateAccount, loadFixture, mine, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
@@ -14,14 +15,14 @@ import {
   PrimeLiquidityProvider,
 } from "../../../typechain";
 
-let primeLiquidityProvider: MockContract<PrimeLiquidityProvider>;
+let primeLiquidityProvider: PrimeLiquidityProvider;
 let tokenA: MockContract<FaucetToken>;
 let tokenB: MockContract<FaucetToken>;
 let tokenC: MockContract<FaucetToken>;
 let prime: FakeContract<Prime>;
 let accessControl: FakeContract<IAccessControlManagerV5>;
-let signer: ethers.signer;
-let signers: ethers.signers;
+let signer: SignerWithAddress;
+let signers: SignerWithAddress[];
 
 const tokenASpeed = parseUnits("1", 16);
 const tokenBSpeed = parseUnits("2", 16);
@@ -349,7 +350,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
   describe("Release funds to prime contract", () => {
     beforeEach(async () => {
-      await accessControl.isAllowedToCall.returns(true);
+      accessControl.isAllowedToCall.returns(true);
 
       await tokenA.transfer(primeLiquidityProvider.address, tokenAInitialFund);
       await tokenB.transfer(primeLiquidityProvider.address, tokenBInitialFund);
@@ -360,12 +361,11 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Revert on funds transfer Paused", async () => {
-      const [wallet] = await ethers.getSigners();
       await primeLiquidityProvider.pauseFundsTransfer();
 
       await impersonateAccount(prime.address);
-      const primeSigner = await ethers.provider.getSigner(prime.address);
-      await wallet.sendTransaction({ to: prime.address, value: ethers.utils.parseEther("10") });
+      await setBalance(prime.address, ethers.utils.parseEther("10"));
+      const primeSigner = ethers.provider.getSigner(prime.address);
 
       const tx = primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
 
@@ -379,13 +379,11 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Release funds success", async () => {
-      const [wallet] = await ethers.getSigners();
-
       const lastAccruedBlockOrSecondTokenA = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenB.address);
 
       await impersonateAccount(prime.address);
-      const primeSigner = await ethers.provider.getSigner(prime.address);
-      await wallet.sendTransaction({ to: prime.address, value: ethers.utils.parseEther("10") });
+      await setBalance(prime.address, ethers.utils.parseEther("10"));
+      const primeSigner = ethers.provider.getSigner(prime.address);
 
       const tx = await primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
       await tx.wait();

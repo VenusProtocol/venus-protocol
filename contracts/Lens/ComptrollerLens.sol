@@ -1,14 +1,13 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
-import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-
-import "../Tokens/VTokens/VBep20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
-import "../Utils/ErrorReporter.sol";
-import "../Comptroller/ComptrollerInterface.sol";
-import "../Comptroller/ComptrollerLensInterface.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
+import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
+import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
+import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 
 /**
  * @title ComptrollerLens Contract
