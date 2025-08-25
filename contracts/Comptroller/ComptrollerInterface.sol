@@ -72,7 +72,7 @@ contract ComptrollerInterface {
 
     function seizeAllowed(
         address vTokenCollateral,
-        address vTokenBorrowed,
+        address vTokenOrExecutor,
         address liquidator,
         address borrower,
         uint seizeTokens
