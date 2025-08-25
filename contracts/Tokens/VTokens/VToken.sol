@@ -406,6 +406,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      is returned by the receiver contract after the operation. The function performs checks to ensure the validity
      *      of parameters, that flashLoan is enabled for the given asset, and that the total repayment is sufficient.
      *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
+     * @param initiator The address that initiated the flash loan.
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
      * @param amount The amount of asset to be loaned.
      * @param param Additional encoded parameters passed with the flash loan.
@@ -414,6 +415,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - FlashLoans must be enabled for the asset.
      *      - The `receiver` contract must repay the loan with the appropriate fee.
      * custom:reverts
+     *      - Reverts with `Flash loan not authorized for this account` if the initiator is not authorized for flash loans.
      *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
      *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
      *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.

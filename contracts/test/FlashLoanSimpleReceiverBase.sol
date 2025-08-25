@@ -18,7 +18,7 @@ contract FlashLoanSimpleReceiverBase is IFlashLoanSimpleReceiver {
 
     /// @notice Initializes the base contract by setting the VToken address
     /// @param vToken_ The address of the VToken contract that supports flash loan
-    constructor(VToken vToken_) public {
-        VTOKEN = vToken_;
+    constructor(address vToken_) public {
+        VTOKEN = VToken(vToken_);
     }
 }

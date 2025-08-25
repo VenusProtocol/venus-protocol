@@ -17,7 +17,7 @@ contract FlashLoanReceiverBase is IFlashLoanReceiver {
      * @notice Constructor to initialize the base contract with the Comptroller address.
      * @param comptroller_ The address of the Comptroller contract that oversees the protocol.
      */
-    constructor(ComptrollerInterface comptroller_) public {
-        COMPTROLLER = comptroller_;
+    constructor(address comptroller_) public {
+        COMPTROLLER = ComptrollerInterface(comptroller_);
     }
 }

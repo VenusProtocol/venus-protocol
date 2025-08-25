@@ -33,7 +33,7 @@ contract ComptrollerInterface {
         address initiator,
         address payable receiver,
         VToken[] calldata assets,
-        uint256[] calldata amounts,
+        uint256[] calldata underlyingAmounts,
         bytes calldata param
     ) external;
 

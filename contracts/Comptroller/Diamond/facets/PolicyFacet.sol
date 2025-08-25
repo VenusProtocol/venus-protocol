@@ -369,6 +369,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      is returned by the receiver contract after the operation for each asset. The function performs checks to ensure the validity
      *      of parameters, that flashLoans are enabled for the given assets, and that the total repayment is sufficient.
      *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
+     * @param initiator The address of the account initiating the flashLoan.
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
      * @param vTokens The addresses of the vToken assets to be loaned.
      * @param underlyingAmounts The amounts of each underlying asset to be loaned.
@@ -381,6 +382,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      - The `receiver` contract must repay the loan with the appropriate fee.
      * custom:reverts
      *      - Reverts with `Invalid flashLoan params` if parameter checks fail.
+     *      - Reverts with `Flash loan not authorized for this account` if the initiator is not authorized.
      *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
      *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
      *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.

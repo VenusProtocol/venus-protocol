@@ -198,8 +198,8 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if user is not whitelisted", async () => {
-      //await vTokenA._toggleFlashLoan();
-      expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
+      await vTokenA._toggleFlashLoan();
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
 
       await expect(
         mockReceiverContract.requestFlashLoan(

@@ -174,8 +174,7 @@ forking(59918472, async () => {
       let accessControlManager: FakeContract<IAccessControlManagerV5>;
 
       beforeEach(async () => {
-        ({ vUSDT, timeLockUser, USDT, accessControlManager, setterFacet } =
-          await loadFixture(deployProtocol));
+        ({ vUSDT, timeLockUser, USDT, accessControlManager, setterFacet } = await loadFixture(deployProtocol));
         usdtHolder = await initMainnetUser(USDT_HOLDER, parseUnits("2"));
         user = await initMainnetUser(USER, parseUnits("2"));
 
