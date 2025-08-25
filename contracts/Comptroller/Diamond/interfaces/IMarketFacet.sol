@@ -22,6 +22,8 @@ interface IMarketFacet {
 
     function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory);
 
+    function enterMarket(address vToken) external returns (uint256);
+
     function exitMarket(address vToken) external returns (uint256);
 
     function _supportMarket(VToken vToken) external returns (uint256);
