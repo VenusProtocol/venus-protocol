@@ -26,6 +26,13 @@ interface ComptrollerLensInterface {
         address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
+        uint actualRepayAmount
+    ) external view returns (uint, uint);
+
+    function liquidateCalculateSeizeTokens(
+        address comptroller,
+        address vTokenBorrowed,
+        address vTokenCollateral,
         uint256 actualRepayAmount,
         uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);

@@ -63,6 +63,14 @@ interface ComptrollerInterface {
         address vTokenCollateral,
         address liquidator,
         address borrower,
+        uint repayAmount
+    ) external returns (uint);
+
+    function liquidateBorrowAllowed(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        address liquidator,
+        address borrower,
         uint repayAmount,
         ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external returns (uint);
@@ -97,6 +105,12 @@ interface ComptrollerInterface {
     function transferVerify(address vToken, address src, address dst, uint transferTokens) external;
 
     /*** Liquidity/Liquidation Calculations ***/
+
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint repayAmount
+    ) external view returns (uint, uint);
 
     function liquidateCalculateSeizeTokens(
         address vTokenBorrowed,

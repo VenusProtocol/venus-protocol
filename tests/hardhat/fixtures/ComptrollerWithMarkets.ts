@@ -100,12 +100,13 @@ export const deployLiquidatorContract = async ({
 }): Promise<Liquidator> => {
   const accessControlManager = await deployFakeAccessControlManager();
   const protocolShareReserve = await deployFakeProtocolShareReserve();
+  const comptrollerLens = await deployComptrollerLens();
   const liquidatorFactory = await ethers.getContractFactory("Liquidator");
   const liquidator = (await upgrades.deployProxy(
     liquidatorFactory,
     [treasuryPercentMantissa, accessControlManager.address, protocolShareReserve.address],
     {
-      constructorArgs: [comptroller.address, vBNB.address, treasuryAddress],
+      constructorArgs: [comptroller.address, vBNB.address, treasuryAddress, comptrollerLens.address],
     },
   )) as Liquidator;
   await liquidator.setTreasuryPercent(treasuryPercentMantissa);

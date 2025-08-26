@@ -513,9 +513,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     function validateTreasuryPercentMantissa(uint256 treasuryPercentMantissa_) internal view {
-        uint256 maxTreasuryPercentMantissa = comptroller.liquidationIncentiveMantissa() - MANTISSA_ONE;
-        if (treasuryPercentMantissa_ > maxTreasuryPercentMantissa) {
-            revert TreasuryPercentTooHigh(maxTreasuryPercentMantissa, treasuryPercentMantissa_);
+        if (treasuryPercentMantissa_ > MANTISSA_ONE) {
+            revert TreasuryPercentTooHigh(MANTISSA_ONE, treasuryPercentMantissa_);
         }
     }
 

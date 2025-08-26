@@ -163,7 +163,7 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// when calculating the liquidator's share
     /// @return The denominator for the seized amount used when calculating the liquidator's share
     function _getDenominator() internal view returns (uint256) {
-        uint256 totalPercentageToDistribute = comptroller.liquidationIncentiveMantissa();
+        uint256 totalPercentageToDistribute = 1.1e18;
         uint256 regularTreasuryPercent = ILiquidator(comptroller.liquidatorContract()).treasuryPercentMantissa();
         uint256 denominator = totalPercentageToDistribute - regularTreasuryPercent;
         return denominator;

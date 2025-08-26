@@ -10,6 +10,7 @@ import {
   BUSDLiquidator,
   ComptrollerMock,
   FaucetToken,
+  IAccessControlManagerV8,
   IAccessControlManagerV8__factory,
   VBep20,
 } from "../../../typechain";
@@ -87,15 +88,27 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
     treasuryAddress: treasury.address,
     treasuryPercentMantissa: TREASURY_PERCENT,
   });
+
   const busdLiquidator = await deployBUSDLiquidator({
     comptroller,
     vBUSD,
     treasuryAddress: treasury.address,
     liquidatorShareMantissa: LIQUIDATOR_PERCENT,
   });
-  const LiquidationManagerFactory = await ethers.getContractFactory("LiquidationManager");
-  const liquidationManager = await LiquidationManagerFactory.deploy();
+
+  const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+  const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+  const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+  const accessControlManager = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
+
+  const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
+  const liquidationManager = await LiquidationManager.deploy(
+    baseCloseFactorMantissa,
+    defaultCloseFactorMantissa,
+    targetHealthFactor,
+  );
   await liquidationManager.deployed();
+  await liquidationManager.initialize(accessControlManager.address);
 
   await comptroller.setLiquidationManager(liquidationManager.address);
   await comptroller.setCollateralFactor(vCollateral.address, parseUnits("0.5", 18), parseUnits("0.5", 18));

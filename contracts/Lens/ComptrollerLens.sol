@@ -42,6 +42,46 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
+     * @return A tuple of error code, and tokens to seize
+     */
+    function liquidateCalculateSeizeTokens(
+        address comptroller,
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
+        /* Read oracle prices for borrowed and collateral markets */
+        uint256 priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
+        uint256 priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
+            vTokenCollateral
+        );
+        if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
+            return (uint256(Error.PRICE_ERROR), 0);
+        }
+        /*
+         * Get the exchange rate and calculate the number of collateral tokens to seize:
+         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
+         *  seizeTokens = seizeAmount / exchangeRate
+         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
+         */
+        uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored();
+        uint256 liquidationIncentiveMantissa = 1.1e18;
+        uint256 seizeTokens = _calculateSeizeTokens(
+            actualRepayAmount,
+            liquidationIncentiveMantissa,
+            priceBorrowedMantissa,
+            priceCollateralMantissa,
+            exchangeRateMantissa
+        );
+        return (uint(Error.NO_ERROR), seizeTokens);
+    }
+
+    /**
+     * @notice Computes the number of collateral tokens to be seized in a liquidation event
+     * @param comptroller Address of comptroller
+     * @param vTokenBorrowed Address of the borrowed vToken
+     * @param vTokenCollateral Address of collateral for the borrow
+     * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
      * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
      * @return A tuple of error code, and tokens to seize
      */
@@ -232,6 +272,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 Exp({ mantissa: vars.exchangeRateMantissa }),
                 Exp({ mantissa: vars.oraclePriceMantissa })
             );
+
             Exp memory weightedVTokenPrice = mul_(Exp({ mantissa: weight(address(asset)) }), vTokenPrice);
 
             if (asset == vTokenModify) {

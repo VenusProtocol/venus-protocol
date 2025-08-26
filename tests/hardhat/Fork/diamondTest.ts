@@ -25,8 +25,6 @@ let owner,
   // layout variables
   oracle,
   maxAssets,
-  closeFactorMantissa,
-  liquidationIncentiveMantissa,
   allMarkets,
   venusSupplyState,
   venusBorrowState,
@@ -118,6 +116,9 @@ forking(31873700, () => {
       ownerSigner = await initMainnetUser(Owner, parseUnits("1000", 18));
       accessControlManager = IAccessControlManagerV5__factory.connect(ACM, owner);
 
+      await diamondUnitroller.connect(owner)._setXVSToken("0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63");
+      await diamondUnitroller.connect(owner)._setXVSVToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D");
+
       [vBUSD, vUSDT] = await Promise.all(
         [VBUSD, VUSDT].map((address: string) => {
           return ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
@@ -158,14 +159,6 @@ forking(31873700, () => {
           maxAssets = await unitroller.maxAssets();
           const maxAssetsAfterUpgrade = await diamondUnitroller.maxAssets();
           expect(maxAssets).to.equal(maxAssetsAfterUpgrade);
-
-          closeFactorMantissa = await unitroller.closeFactorMantissa();
-          const closeFactorMantissaAfterUpgrade = await diamondUnitroller.closeFactorMantissa();
-          expect(closeFactorMantissa).to.equal(closeFactorMantissaAfterUpgrade);
-
-          liquidationIncentiveMantissa = await unitroller.liquidationIncentiveMantissa();
-          const liquidationIncentiveMantissaAfterUpgrade = await diamondUnitroller.liquidationIncentiveMantissa();
-          expect(liquidationIncentiveMantissa).to.equal(liquidationIncentiveMantissaAfterUpgrade);
 
           allMarkets = await unitroller.allMarkets(0);
           const allMarketsAfterUpgrade = await diamondUnitroller.allMarkets(0);
@@ -394,6 +387,7 @@ forking(31873700, () => {
             diamondUnitroller,
             "ActionPausedMarket",
           );
+
           await expect(vUSDT.connect(busdHolder).mint(10)).to.be.emit(vUSDT, "Transfer");
         });
 
