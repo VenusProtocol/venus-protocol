@@ -6,6 +6,7 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
 
 enum Action {
     MINT,
@@ -113,6 +114,13 @@ interface ComptrollerInterface {
         uint repayAmount
     ) external view returns (uint, uint);
 
+    function liquidateCalculateSeizeTokens(
+        address borrower,
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint repayAmount
+    ) external view returns (uint, uint);
+
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
 
     function liquidateVAICalculateSeizeTokens(
@@ -154,7 +162,7 @@ interface ComptrollerInterface {
 
     function vaiController() external view returns (VAIControllerInterface);
 
-    function liquidationIncentiveMantissa() external view returns (uint);
+    function oldLiquidationIncentiveMantissa() external view returns (uint);
 
     function protocolPaused() external view returns (bool);
 
@@ -169,6 +177,39 @@ interface ComptrollerInterface {
         address market,
         address delegate
     ) external view returns (bool);
+    function userPoolId(address account) external view returns (uint96);
+
+    function getLiquidationIncentive(address vToken) external view returns (uint256);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256);
+
+    function lastPoolId() external view returns (uint96);
+
+    function pools(uint96 poolId) external view returns (string memory label);
+
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
+
+    function poolMarkets(
+        uint96 poolId,
+        address vToken
+    )
+        external
+        view
+        returns (
+            bool isListed,
+            uint256 collateralFactorMantissa,
+            bool isVenus,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
+            uint96 marketPoolId,
+            bool isBorrowAllowed
+        );
 }
 
 interface IVAIVault {

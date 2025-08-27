@@ -7,11 +7,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
+  await deploy("Unitroller_Implementation", {
+    contract: "Diamond",
+    from: deployer,
+    args: [],
+    log: true,
+    autoMine: true,
+    skipIfAlreadyDeployed: true,
+  });
+
   await deploy("PolicyFacet", {
     from: deployer,
     args: [],
     log: true,
     autoMine: true,
+    skipIfAlreadyDeployed: true,
   });
 
   await deploy("SetterFacet", {
@@ -19,6 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
+    skipIfAlreadyDeployed: true,
   });
 
   await deploy("MarketFacet", {
@@ -26,6 +37,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
+    skipIfAlreadyDeployed: true,
+  });
+
+  await deploy("RewardFacet", {
+    from: deployer,
+    args: [],
+    log: true,
+    autoMine: true,
+    skipIfAlreadyDeployed: true,
   });
 };
 
