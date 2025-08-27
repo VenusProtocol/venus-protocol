@@ -629,6 +629,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
         delegateAuthorizationFlashloan[msg.sender][market][delegate] = approved;
 
         emit DelegateAuthorizationFlashloanChanged(msg.sender, market, delegate, approved);
+    }
+
+    /**
      * @notice Updates the `isBorrowAllowed` flag for a market in a pool.
      * @param poolId The ID of the pool.
      * @param vToken The address of the market (vToken).

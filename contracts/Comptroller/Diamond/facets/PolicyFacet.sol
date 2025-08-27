@@ -401,6 +401,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address onBehalfOf,
         bytes calldata param
     ) external {
+        for (uint256 i = 0; i < vTokens.length; i++) {
+            if (!(vTokens[i]).isFlashLoanEnabled()) revert("FlashLoan not enabled");
+        }
+
         ensureNonzeroAddress(receiver);
         ensureNonzeroAddress(onBehalfOf);
         // All arrays must have the same length and not be zero

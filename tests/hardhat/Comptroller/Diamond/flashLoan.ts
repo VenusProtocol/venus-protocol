@@ -66,7 +66,7 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   await comptroller._setAccessControl(accessControlManager.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
+
 
   return {
     admin,
@@ -109,9 +109,8 @@ describe("FlashLoan", async () => {
     const underlyingA = await mockUnderlying("TokenA", "TKNA");
 
     protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
-      "contracts/InterfacesV8.sol:IProtocolShareReserve",
+      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
     );
-    protocolShareReserveMock.updateAssetsState.returns(true);
 
     const vTokenAFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
     const vTokenA = await vTokenAFactory.deploy(
@@ -161,9 +160,12 @@ describe("FlashLoan", async () => {
         [vTokenA.address, vTokenB.address],
         [convertToUnit(1, 50), convertToUnit(1, 50)],
       );
-
+      
       await comptroller._supportMarket(vTokenA.address);
       await comptroller._supportMarket(vTokenB.address);
+
+      await comptroller["setLiquidationIncentive(address,uint256)"](vTokenA.address, convertToUnit("1", 18));
+      await comptroller["setLiquidationIncentive(address,uint256)"](vTokenB.address, convertToUnit("1", 18));
 
       const MockFlashLoanReceiver =
         await ethers.getContractFactory<MockFlashLoanReceiver__factory>("MockFlashLoanReceiver");
@@ -185,6 +187,9 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if invalid mode is used", async () => {
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
       await expect(
         mockReceiverContract.requestFlashLoan(
           [vTokenA.address, vTokenB.address],
@@ -198,6 +203,9 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if onBehalf param is Zero Address", async () => {
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
       await expect(
         mockReceiverContract.requestFlashLoan(
           [vTokenA.address, vTokenB.address],
@@ -292,8 +300,8 @@ describe("FlashLoan", async () => {
       await vTokenB._toggleFlashLoan();
 
       // Set collateral factors for the markets
-      await comptroller._setCollateralFactor(vTokenA.address, parseUnits("0.9", 18)); // 80% collateral factor
-      await comptroller._setCollateralFactor(vTokenB.address, parseUnits("0.9", 18)); // 80% collateral factor
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenB.address, parseUnits("0.9", 18), parseUnits("1", 18));
 
       // Set borrow caps to allow borrowing
       await comptroller._setMarketBorrowCaps(
@@ -306,6 +314,9 @@ describe("FlashLoan", async () => {
         [vTokenA.address, vTokenB.address],
         [parseUnits("100000", 18), parseUnits("100000", 18)],
       );
+
+      await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
+      await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
 
       // This is needed because onBehalfOf is alice but the caller is bob
       await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenA.address, bob.address, true);
@@ -398,8 +409,8 @@ describe("FlashLoan", async () => {
       await vTokenB._toggleFlashLoan();
 
       // Set collateral factors for the markets
-      await comptroller._setCollateralFactor(vTokenA.address, parseUnits("0.9", 18));
-      await comptroller._setCollateralFactor(vTokenB.address, parseUnits("0.9", 18));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenB.address, parseUnits("0.9", 18), parseUnits("1", 18));
 
       // Set borrow caps to allow borrowing
       await comptroller._setMarketBorrowCaps(
@@ -410,6 +421,9 @@ describe("FlashLoan", async () => {
         [vTokenA.address, vTokenB.address],
         [parseUnits("100000", 18), parseUnits("100000", 18)],
       );
+
+      await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
+      await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
 
       // Set delegation authorization (only needed for mode = 1)
       await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);

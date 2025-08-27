@@ -45,6 +45,7 @@ const BUSD_ADDRESS = "0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47";
 const BUSD_HOLDER = "0x72253172CECFb70561b73FCF3Fa77A52a1D035c7";
 const OLD_POLICY_FACET = "0x085C8d0133291348004AabFfbE7CAc2097aF2aa1";
 const OLD_SETTER_FACET = "0x490DFD07f592452307817C4283866035BDb3b275";
+const OLD_MARKET_FACET = "0x00a949FfDa9B216fBA9C4E5b40ef561Af0FDb723";
 const COMPTROLLER_ADDRESS = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
 const USER = "0x4C45758bF15AF0714E4CC44C4EFd177e209C2890";
 const ACM = "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA";
@@ -101,16 +102,27 @@ async function deploy(): Promise<SetupProtocolFixture> {
   const newPolicyFacet = await policyFacetFactory.deploy();
   await newPolicyFacet.deployed();
 
+  const marketFacetFactory = await ethers.getContractFactory("MarketFacet");
+  const newMarketFacet = await marketFacetFactory.deploy();
+  await newMarketFacet.deployed();
+
   const addExecuteFlashLoanFunctionSignature = newPolicyFacet.interface.getSighash(
     newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],uint256[],address,bytes)"],
   );
 
+  const addSetCollateralFactorSelector = newSetterFacet.interface.getSighash("setCollateralFactor(address,uint256,uint256)");
+
   const addSetDelegateAuthorizationFlashloanFunctionSignature = newSetterFacet.interface.getSighash(
-    newSetterFacet.interface.functions["setDelegateAuthorizationFlashloan(address,address,bool)"],
+    newSetterFacet.interface.functions["setDelegateAuthorizationFlashloan(address,address,bool)"]
   );
+
+  const addSetIsBorrowAllowedSelector = newSetterFacet.interface.getSighash("setIsBorrowAllowed(uint96,address,bool)");
+
+  const addGetEffectiveLtvFactorSelector = newMarketFacet.interface.getSighash("getEffectiveLtvFactor(address,address,uint8)");
 
   const existingPolicyFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_POLICY_FACET);
   const existingSetterFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_SETTER_FACET);
+  const existingMarketFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_MARKET_FACET);
 
   const cut = [
     {
@@ -124,9 +136,23 @@ async function deploy(): Promise<SetupProtocolFixture> {
       functionSelectors: existingPolicyFacetFunctions,
     },
     {
+      facetAddress: newMarketFacet.address,
+      action: FacetCutAction.Add,
+      functionSelectors: [addGetEffectiveLtvFactorSelector],
+    },
+    {
+      facetAddress: newMarketFacet.address,
+      action: FacetCutAction.Replace,
+      functionSelectors: existingMarketFacetFunctions,
+    },
+    {
       facetAddress: newSetterFacet.address,
       action: FacetCutAction.Add,
-      functionSelectors: [addSetDelegateAuthorizationFlashloanFunctionSignature],
+      functionSelectors: [
+        addSetDelegateAuthorizationFlashloanFunctionSignature,
+        addSetCollateralFactorSelector,
+        addSetIsBorrowAllowedSelector,
+      ],
     },
     {
       facetAddress: newSetterFacet.address,
@@ -134,6 +160,7 @@ async function deploy(): Promise<SetupProtocolFixture> {
       functionSelectors: existingSetterFacetFunctions,
     },
   ];
+
 
   await unitroller.connect(timeLockUser)._setPendingImplementation(diamond.address);
   await diamond.connect(timeLockUser)._become(unitroller.address);
@@ -166,6 +193,11 @@ async function deploy(): Promise<SetupProtocolFixture> {
   await vBUSD.setAccessControlManager(accessControlManager.address);
 
   await setterFacet.connect(timeLockUser)._setPriceOracle(oracle.address);
+
+  // set updated lens
+  const ComptrollerLens = await ethers.getContractFactory("ComptrollerLens");
+  const lens = await ComptrollerLens.deploy();
+  await setterFacet.connect(timeLockUser)._setComptrollerLens(lens.address);
 
   return {
     admin,
@@ -241,6 +273,15 @@ forking(56732787, () => {
           .connect(timeLockUser)
           .giveCallPermission(vBUSD.address, "_setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);
 
+        await accessControlManager
+          .connect(timeLockUser)
+          .giveCallPermission(setterFacet.address, "setCollateralFactor(address,uint256,uint256)", timeLockUser.address);
+
+        await accessControlManager
+          .connect(timeLockUser)
+          .giveCallPermission(setterFacet.address, "setIsBorrowAllowed(uint96,address,bool)", timeLockUser.address);
+
+
         // ADDED: Set supply caps to allow minting
         await setterFacet.connect(timeLockUser)._setMarketSupplyCaps(
           [vUSDT.address, vBUSD.address],
@@ -260,9 +301,20 @@ forking(56732787, () => {
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [2], false); // 2 = borrow action
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [7], false); // 7 = enterMarket action
 
-        await setterFacet.connect(timeLockUser)._setCollateralFactor(vUSDT.address, parseUnits("0.9", 18)); // 80% collateral factor
+        await setterFacet.connect(timeLockUser)["setCollateralFactor(address,uint256,uint256)"](
+          vUSDT.address,
+          parseUnits("0.9", 18),
+          parseUnits("0.9", 18),
+        );
 
-        await setterFacet.connect(timeLockUser)._setCollateralFactor(vBUSD.address, parseUnits("0.9", 18)); // 80% collateral factor
+        await setterFacet.connect(timeLockUser)["setCollateralFactor(address,uint256,uint256)"](
+          vBUSD.address,
+          parseUnits("0.9", 18),
+          parseUnits("0.9", 18),
+        );
+
+        await setterFacet.connect(timeLockUser).setIsBorrowAllowed(0, vUSDT.address, true);
+        await setterFacet.connect(timeLockUser).setIsBorrowAllowed(0, vBUSD.address, true);
       });
 
       it("Should revert if flashLoan not enabled", async () => {
@@ -282,6 +334,9 @@ forking(56732787, () => {
 
       it("Should revert if asset and amount arrays are mismatched", async () => {
         // Attempt to execute a flashLoan with mismatched arrays for assets and amounts, which should revert
+        await vUSDT.connect(timeLockUser)._toggleFlashLoan();
+        await vBUSD.connect(timeLockUser)._toggleFlashLoan();
+
         await expect(
           policyFacet.connect(user).executeFlashLoan(
             user.address,
@@ -392,8 +447,8 @@ forking(56732787, () => {
         const balanceAfterUSDT = await USDT.balanceOf(vUSDT.address);
         const balanceAfterBUSD = await BUSD.balanceOf(vBUSD.address);
 
-        const USDTFlashLoanFee = usdtFlashLoanAmount.mul(USDTFlashLoanProtocolFeeMantissa).div(parseUnits("1", 18));
-        const BUSDFlashLoanFee = busdFlashLoanAmount.mul(BUSDFlashLoanProtocolFeeMantissa).div(parseUnits("1", 18));
+        const USDTFlashLoanFee = usdtFlashLoanAmount.mul(USDTFlashLoanSupplierFeeMantissa).div(parseUnits("1", 18));
+        const BUSDFlashLoanFee = busdFlashLoanAmount.mul(BUSDFlashLoanSupplierFeeMantissa).div(parseUnits("1", 18));
 
         // Validate that USDT and BUSD balances in the contracts increased, confirming repayment plus fees
         expect(balanceAfterBUSD).to.be.equal(balanceBeforeBUSD.add(BUSDFlashLoanFee));
@@ -596,7 +651,6 @@ forking(56732787, () => {
 
         // Record receiver balances after flash loan
         const receiverUSDTAfter = await USDT.balanceOf(mockFlashLoanReceiver.address);
-        const receiverBUSDAfter = await BUSD.balanceOf(mockFlashLoanReceiver.address);
 
         // USDT: Should have NO debt increase (mode 0)
         expect(userBorrowBalanceAfterUSDT).to.equal(
@@ -604,13 +658,13 @@ forking(56732787, () => {
           "USDT should have no debt increase in mode 0",
         );
 
-        // USDT: vToken balance should increase by protocol fee only
-        const expectedUSDTProtocolFee = usdtFlashLoanAmount
-          .mul(USDTFlashLoanProtocolFeeMantissa)
+        // USDT: vToken balance should increase by supplier fee only
+        const expectedUSDTSupplierFee = usdtFlashLoanAmount
+          .mul(USDTFlashLoanSupplierFeeMantissa)
           .div(parseUnits("1", 18));
         expect(balanceAfterUSDT).to.equal(
-          balanceBeforeUSDT.add(expectedUSDTProtocolFee),
-          "USDT vToken balance should increase by protocol fee",
+          balanceBeforeUSDT.add(expectedUSDTSupplierFee),
+          "USDT vToken balance should increase by supplier fee",
         );
 
         // USDT: Receiver should have consumed the loan + total fees
