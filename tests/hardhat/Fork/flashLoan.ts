@@ -651,6 +651,7 @@ forking(56732787, () => {
 
         // Record receiver balances after flash loan
         const receiverUSDTAfter = await USDT.balanceOf(mockFlashLoanReceiver.address);
+        const receiverBUSDAfter = await BUSD.balanceOf(mockFlashLoanReceiver.address);
 
         // USDT: Should have NO debt increase (mode 0)
         expect(userBorrowBalanceAfterUSDT).to.equal(
