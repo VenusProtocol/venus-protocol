@@ -481,9 +481,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 seizedAmount,
         uint256 totalIncentive
     ) internal view returns (uint256 ours, uint256 theirs) {
-        ours =
-            (seizedAmount * (totalIncentive - MANTISSA_ONE) * treasuryPercentMantissa) /
-            (MANTISSA_ONE * MANTISSA_ONE);
+        uint256 bonusMantissa = totalIncentive - MANTISSA_ONE;
+
+        // Our share is % of bonus portion only
+        uint256 bonusAmount = (seizedAmount * bonusMantissa) / totalIncentive;
+        ours = (bonusAmount * treasuryPercentMantissa) / MANTISSA_ONE;
+
         theirs = seizedAmount - ours;
     }
 
