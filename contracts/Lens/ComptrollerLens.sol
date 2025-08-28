@@ -39,6 +39,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     /**
      * @notice Computes the number of collateral tokens to be seized in a liquidation event
      * @param comptroller Address of comptroller
+     * @param borrower The address of the borrower to be liquidated
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
@@ -46,6 +47,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      */
     function liquidateCalculateSeizeTokens(
         address comptroller,
+        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint256 actualRepayAmount
@@ -65,7 +67,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
         uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored();
-        uint256 liquidationIncentiveMantissa = 1.1e18;
+        uint256 liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getDynamicLiquidationIncentive(
+            borrower,
+            vTokenCollateral
+        );
         uint256 seizeTokens = _calculateSeizeTokens(
             actualRepayAmount,
             liquidationIncentiveMantissa,
