@@ -5,12 +5,20 @@ import { expect } from "chai";
 import { parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
+import { FacetCutAction, getSelectors } from "../../../script/deploy/comptroller/diamond";
 import {
+  ComptrollerMock,
+  ComptrollerMock__factory,
+  Diamond,
   DiamondConsolidated,
   DiamondConsolidated__factory,
+  Diamond__factory,
+  IAccessControlManagerV8,
+  IAccessControlManagerV8__factory,
   IERC20,
   IERC20__factory,
   ResilientOracleInterface,
+  Unitroller__factory,
   VAI,
   VAIController,
   VAIController__factory,
@@ -42,9 +50,11 @@ const networkAddresses = {
     usdt: "0x55d398326f99059fF775485246999027B3197955",
     vUSDT: "0xfD5840Cd36d94D7229439859C0112a4185BC0255",
     usdtHolder: "0x796db965bB0aDf9f3732e84428af1bc0efBebb37",
+    UNITROLLER: "0xfD36E2c2a6789Db23113685031d7F16329158384",
   },
 };
 
+let accessControlManager: IAccessControlManagerV8;
 let timelock: SignerWithAddress;
 let user1: SignerWithAddress;
 let user2: SignerWithAddress;
@@ -54,8 +64,76 @@ let vai: VAI;
 let usdt: IERC20;
 let vUSDT: VBep20Delegate;
 let comptroller: DiamondConsolidated;
+let comptrollerNew: ComptrollerMock;
+let diamond: Diamond;
 
 const MINTED_AMOUNT = parseUnits("100", 18);
+
+async function upgradeComptroller() {
+  const DiamondFactory = await ethers.getContractFactory("Diamond");
+  const newDiamond = await DiamondFactory.deploy();
+
+  const Unitroller = Unitroller__factory.connect(networkAddresses.bscmainnet.UNITROLLER, timelock);
+  await Unitroller._setPendingImplementation(newDiamond.address);
+  await newDiamond.connect(timelock)._become(Unitroller.address);
+
+  diamond = Diamond__factory.connect(networkAddresses.bscmainnet.UNITROLLER, timelock);
+
+  // remove existing facets (excluding reward which has no changes)
+  const excludeFacets = ["0xc2F6bDCEa4907E8CB7480d3d315bc01c125fb63C"];
+  const cut: any[] = [];
+
+  const facets = await diamond.facets();
+  for (const facet of facets) {
+    if (excludeFacets.includes(facet.facetAddress)) continue;
+    cut.push({
+      facetAddress: ethers.constants.AddressZero,
+      action: FacetCutAction.Remove,
+      functionSelectors: facet.functionSelectors,
+    });
+  }
+
+  await diamond.diamondCut(cut);
+  cut.length = 0; // clear array
+
+  // deploy and add new facets
+  const FacetNames = ["MarketFacet", "PolicyFacet", "SetterFacet"];
+  for (const FacetName of FacetNames) {
+    const Facet = await ethers.getContractFactory(FacetName);
+    const facet = await Facet.deploy();
+    await facet.deployed();
+
+    const facetInterface = await ethers.getContractAt(`I${FacetName}`, facet.address);
+    cut.push({
+      facetAddress: facet.address,
+      action: FacetCutAction.Add,
+      functionSelectors: getSelectors(facetInterface),
+    });
+
+    if (FacetName === "MarketFacet") {
+      const baseIface = await ethers.getContractAt("IFacetBase", facet.address);
+      let selectors = getSelectors(baseIface);
+      // exclude duplicate selectors
+      selectors = selectors.filter(x => !["0xbf32442d", "0xe85a2960"].includes(x));
+      cut.push({
+        facetAddress: facet.address,
+        action: FacetCutAction.Add,
+        functionSelectors: selectors,
+      });
+    }
+  }
+
+  await diamond.diamondCut(cut);
+
+  comptrollerNew = ComptrollerMock__factory.connect(networkAddresses.bscmainnet.UNITROLLER, timelock);
+
+  // set updated lens
+  const ComptrollerLens = await ethers.getContractFactory("ComptrollerLens");
+  const lens = await ComptrollerLens.deploy();
+  await comptrollerNew._setComptrollerLens(lens.address);
+
+  return comptrollerNew;
+}
 
 const current = async () => {
   [, user1, user2] = await ethers.getSigners();
@@ -89,6 +167,43 @@ const current = async () => {
 
 const upgraded = async () => {
   await loadFixture(current);
+
+  accessControlManager = await IAccessControlManagerV8__factory.connect(networkAddresses.bscmainnet.acm, timelock);
+  let tx = await accessControlManager
+    .connect(timelock)
+    .giveCallPermission(
+      networkAddresses.bscmainnet.UNITROLLER,
+      "setLiquidationManager(address)",
+      networkAddresses.bscmainnet.normalTimelock,
+    );
+  await tx.wait();
+
+  tx = await accessControlManager
+    .connect(timelock)
+    .giveCallPermission(
+      networkAddresses.bscmainnet.UNITROLLER,
+      "setMarketMaxLiquidationIncentive(address,uint256)",
+      networkAddresses.bscmainnet.normalTimelock,
+    );
+  await tx.wait();
+
+  comptrollerNew = await upgradeComptroller();
+  const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
+
+  // constructor parameters
+  const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+  const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+  const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+
+  const liquidationManager = await LiquidationManager.deploy(
+    baseCloseFactorMantissa,
+    defaultCloseFactorMantissa,
+    targetHealthFactor,
+  );
+  await liquidationManager.deployed();
+  await liquidationManager.initialize(accessControlManager.address);
+
+  await comptrollerNew.setLiquidationManager(liquidationManager.address);
 
   const vaiControllerFactory = await ethers.getContractFactory("VAIController");
   const vaiControllerImpl = await vaiControllerFactory.deploy();
@@ -142,12 +257,29 @@ if (FORK_MAINNET) {
 
       it("sends the actually repaid amount * liquidation incentive during liquidation", async () => {
         await comptroller.connect(timelock).setCollateralFactor(addresses.vUSDT, 0, 0);
+        await comptroller.connect(timelock).setMarketMaxLiquidationIncentive(addresses.vUSDT, parseUnits("1.1", 18));
         await vaiController.connect(timelock).setBaseRate(parseUnits("1", 18));
         await mine(100);
 
+        const [, snapshotRaw] = await comptrollerNew.getHypotheticalHealthSnapshot(
+          user1.address,
+          ethers.constants.AddressZero,
+          0,
+          0,
+        );
+
+        const totalIncentive = await comptrollerNew["getDynamicLiquidationIncentive(address,uint256,uint256)"](
+          addresses.vUSDT,
+          snapshotRaw.liquidationThresholdAvg,
+          snapshotRaw.healthFactor,
+        );
+
+        const snapshot = { ...snapshotRaw };
+        snapshot.dynamicLiquidationIncentiveMantissa = totalIncentive;
+
         const [err, repaidAmountInSimulation] = await vaiController
           .connect(user2)
-          .callStatic.liquidateVAI(user1.address, parseUnits("50", 18), addresses.vUSDT);
+          .callStatic.liquidateVAI(user1.address, parseUnits("50", 18), addresses.vUSDT, snapshot);
         expect(err).to.equal(0);
 
         // The returned amount may be a bit less due to round-down in computing
@@ -155,7 +287,7 @@ if (FORK_MAINNET) {
         expect(repaidAmountInSimulation).to.satisfy(around(parseUnits("50", 18), 100));
 
         const vaiBalanceBefore = await vai.balanceOf(user2.address);
-        await vaiController.connect(user2).liquidateVAI(user1.address, parseUnits("50", 18), addresses.vUSDT);
+        await vaiController.connect(user2).liquidateVAI(user1.address, parseUnits("50", 18), addresses.vUSDT, snapshot);
         const vaiBalanceAfter = await vai.balanceOf(user2.address);
 
         // One block of interest changes the percentage, so the transferred amount may

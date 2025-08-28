@@ -11,6 +11,7 @@ import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 
 interface IFacetBase {
     /**
@@ -42,4 +43,11 @@ interface IFacetBase {
     function getCollateralFactor(address vToken) external view returns (uint256);
 
     function getLiquidationThreshold(address vToken) external view returns (uint256);
+
+    function getHypotheticalHealthSnapshot(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount
+    ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot);
 }
