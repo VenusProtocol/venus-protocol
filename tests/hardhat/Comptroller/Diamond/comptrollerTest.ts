@@ -758,7 +758,9 @@ describe("Comptroller", () => {
         it("reverts if borrowed market is not listed", async () => {
           const someVToken = await smock.fake<VToken>("VToken");
           await expect(
-            comptroller.liquidateBorrowAllowed(
+            comptroller[
+              "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+            ](
               someVToken.address,
               vToken.address,
               accounts[0].address,
@@ -772,7 +774,9 @@ describe("Comptroller", () => {
         it("reverts if collateral market is not listed", async () => {
           const someVToken = await smock.fake<VToken>("VToken");
           await expect(
-            comptroller.liquidateBorrowAllowed(
+            comptroller[
+              "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+            ](
               vToken.address,
               someVToken.address,
               accounts[0].address,
@@ -787,7 +791,9 @@ describe("Comptroller", () => {
           const vaiController = await smock.fake<VAIController>("VAIController");
           await comptroller._setVAIController(vaiController.address);
           await expect(
-            comptroller.liquidateBorrowAllowed(
+            comptroller[
+              "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+            ](
               vaiController.address,
               vToken.address,
               accounts[0].address,
@@ -804,40 +810,25 @@ describe("Comptroller", () => {
 
         it("allows liquidations without shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-            mockSnapshot,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(0);
         });
 
         it("allows to repay 100% of the borrow", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("1", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-            mockSnapshot,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(0);
         });
 
         it("fails with TOO_MUCH_REPAY if trying to repay > borrowed amount", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("0.99", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-            mockSnapshot,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(17);
         });
       };
@@ -856,14 +847,9 @@ describe("Comptroller", () => {
         it("checks the shortfall if isForcedLiquidationEnabledForUser is set back to false", async () => {
           await comptroller._setForcedLiquidationForUser(root.address, vToken.address, false);
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-            mockSnapshot,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(3);
         });
       });
@@ -878,14 +864,9 @@ describe("Comptroller", () => {
         it("checks the shortfall if isForcedLiquidationEnabled is set back to false", async () => {
           await comptroller._setForcedLiquidation(vToken.address, false);
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-            mockSnapshot,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(3);
         });
       });
@@ -916,42 +897,27 @@ describe("Comptroller", () => {
 
         it("fails if borrower has 0 shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-            mockSnapshot,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(3);
         });
 
         it("succeeds if borrower has nonzero shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
           liquidationMananger.calculateDynamicCloseFactor.returns(convertToUnit("0.5", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-            snapshot1,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), snapshot1);
           expect(errCode).to.equal(0);
         });
 
         it("fails with TOO_MUCH_REPAY if trying to repay > borrowed amount", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
           liquidationMananger.calculateDynamicCloseFactor.returns(convertToUnit("0.5", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("60", 18),
-            snapshot1,
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("60", 18), snapshot1);
           expect(errCode).to.equal(17);
         });
       });

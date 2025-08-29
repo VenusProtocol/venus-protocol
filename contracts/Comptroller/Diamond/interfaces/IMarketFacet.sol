@@ -14,6 +14,13 @@ interface IMarketFacet {
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256);
 
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
+    ) external view returns (uint256, uint256);
+
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
         uint256 actualRepayAmount,

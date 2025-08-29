@@ -47,6 +47,7 @@ describe("Comptroller", async () => {
     await expect(diamondHarness.getFacetAddress("0xabfceffc")).to.be.revertedWith("Diamond: Function does not exist");
     await expect(diamondHarness.getFacetAddress("0x007e3dd2")).to.be.revertedWith("Diamond: Function does not exist");
     await expect(diamondHarness.getFacetAddress("0x9e9b1877")).to.be.revertedWith("Diamond: Function does not exist");
+    await expect(diamondHarness.getFacetAddress("0x0ef332ca")).to.be.revertedWith("Diamond: Function does not exist");
   });
 
   it("Add Facet and function selectors to proxy", async () => {
@@ -59,6 +60,7 @@ describe("Comptroller", async () => {
     expect(await diamondHarness.getFacetAddress("0xabfceffc")).to.equal(facet.address);
     expect(await diamondHarness.getFacetAddress("0x007e3dd2")).to.equal(facet.address);
     expect(await diamondHarness.getFacetAddress("0x9e9b1877")).to.equal(facet.address);
+    expect(await diamondHarness.getFacetAddress("0x0ef332ca")).to.equal(facet.address);
   });
 
   it("Get all facet function selectors by facet address", async () => {
@@ -104,6 +106,7 @@ describe("Comptroller", async () => {
     expect(await diamondHarness.getFacetAddress("0xabfceffc")).to.equal(facet.address);
     expect(await diamondHarness.getFacetAddress("0x007e3dd2")).to.equal(facet.address);
     expect(await diamondHarness.getFacetAddress("0x9e9b1877")).to.equal(facet.address);
+    expect(await diamondHarness.getFacetAddress("0x0ef332ca")).to.equal(facet.address);
   });
 
   it("Replace the function from facet mapping", async () => {
@@ -127,6 +130,7 @@ describe("Comptroller", async () => {
     expect(await diamondHarness.getFacetAddress("0xabfceffc")).to.equal(newFacet.address);
     expect(await diamondHarness.getFacetAddress("0x007e3dd2")).to.equal(facet.address);
     expect(await diamondHarness.getFacetAddress("0x9e9b1877")).to.equal(facet.address);
+    expect(await diamondHarness.getFacetAddress("0x0ef332ca")).to.equal(facet.address);
   });
 
   it("Remove all functions", async () => {
@@ -134,7 +138,7 @@ describe("Comptroller", async () => {
       {
         facetAddress: ethers.constants.AddressZero,
         action: FacetCutAction.Remove,
-        functionSelectors: ["0xc2998238", "0xede4edd0", "0xabfceffc", "0x007e3dd2", "0x9e9b1877"],
+        functionSelectors: ["0xc2998238", "0xede4edd0", "0xabfceffc", "0x007e3dd2", "0x9e9b1877", "0x0ef332ca"],
       },
     ];
     await diamondHarness.connect(unitrollerAdmin).diamondCut(facetCutParams);
@@ -146,5 +150,6 @@ describe("Comptroller", async () => {
     await expect(diamondHarness.getFacetAddress("0xabfceffc")).to.be.revertedWith("Diamond: Function does not exist");
     await expect(diamondHarness.getFacetAddress("0x007e3dd2")).to.be.revertedWith("Diamond: Function does not exist");
     await expect(diamondHarness.getFacetAddress("0x9e9b1877")).to.be.revertedWith("Diamond: Function does not exist");
+    await expect(diamondHarness.getFacetAddress("0x0ef332ca")).to.be.revertedWith("Diamond: Function does not exist");
   });
 });

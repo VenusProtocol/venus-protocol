@@ -73,7 +73,7 @@ function configure(fixture: LiquidatorFixture) {
 
 function calculateSplitSeizedTokens(amount: bigint) {
   const treasuryDelta =
-    (amount * (announcedIncentive - MANTISSA_ONE) * treasuryPercent) / (MANTISSA_ONE * MANTISSA_ONE);
+    (amount * (announcedIncentive - MANTISSA_ONE) * treasuryPercent) / (announcedIncentive * MANTISSA_ONE);
   const liquidatorDelta = amount - treasuryDelta;
   return { treasuryDelta, liquidatorDelta };
 }

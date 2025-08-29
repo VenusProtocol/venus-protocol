@@ -30,7 +30,7 @@ async function calculateSeizeTokens(
   repayAmount: BigNumberish,
   liquidationIncentiveMantissa: BigNumberish,
 ) {
-  return comptroller.liquidateCalculateSeizeTokens(
+  return comptroller["liquidateCalculateSeizeTokens(address,address,uint256,uint256)"](
     vTokenBorrowed.address,
     vTokenCollateral.address,
     repayAmount,
@@ -173,7 +173,7 @@ describe("Comptroller", () => {
       ethers.provider.getBlockNumber();
       /// TODO: Somehow the error message does not get propagated into the resulting tx. Smock bug?
       await expect(
-        comptroller.liquidateCalculateSeizeTokens(
+        comptroller["liquidateCalculateSeizeTokens(address,address,uint256,uint256)"](
           vTokenBorrowed.address,
           vTokenCollateral.address,
           repayAmount,

@@ -33,7 +33,7 @@ const treasuryPercent = convertToBigInt("0.05", 18);
 const MANTISSA_ONE = convertToBigInt("1", 18);
 
 const treasuryShare =
-  (seizeTokens * (announcedIncentive - MANTISSA_ONE) * treasuryPercent) / (MANTISSA_ONE * MANTISSA_ONE);
+  (seizeTokens * (announcedIncentive - MANTISSA_ONE) * treasuryPercent) / (announcedIncentive * MANTISSA_ONE);
 const liquidatorShare = seizeTokens - treasuryShare;
 
 type LiquidatorFixture = {
@@ -370,8 +370,8 @@ describe("Liquidator", () => {
     });
 
     it("fails when the percentage is too high", async () => {
-      const maxPercentage = convertToBigInt("0.1", 18); // announced incentive - 1, with 18 decimals
-      const tooHighPercentage = convertToBigInt("0.1000000000001", 18);
+      const maxPercentage = convertToBigInt("1", 18); // announced incentive - 1, with 18 decimals
+      const tooHighPercentage = convertToBigInt("1.1", 18);
       await expect(liquidatorContract.setTreasuryPercent(tooHighPercentage))
         .to.be.revertedWithCustomError(liquidatorContract, "TreasuryPercentTooHigh")
         .withArgs(maxPercentage, tooHighPercentage);
@@ -389,7 +389,7 @@ describe("Liquidator", () => {
 
       const treasuryDelta =
         (seizeTokens * (announcedIncentive - MANTISSA_ONE) * convertToBigInt("0.08", 18)) /
-        (MANTISSA_ONE * MANTISSA_ONE);
+        (announcedIncentive * MANTISSA_ONE);
       const liquidatorDelta = seizeTokens - treasuryDelta;
 
       await expect(tx)

@@ -360,12 +360,16 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Revert on funds transfer Paused", async () => {
-      const [wallet] = await ethers.getSigners();
       await primeLiquidityProvider.pauseFundsTransfer();
 
       await impersonateAccount(prime.address);
+
+      await ethers.provider.send("hardhat_setBalance", [
+        prime.address,
+        ethers.utils.hexValue(ethers.utils.parseEther("10")),
+      ]);
+
       const primeSigner = await ethers.provider.getSigner(prime.address);
-      await wallet.sendTransaction({ to: prime.address, value: ethers.utils.parseEther("10") });
 
       const tx = primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
 
@@ -379,13 +383,14 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Release funds success", async () => {
-      const [wallet] = await ethers.getSigners();
-
       const lastAccruedBlockOrSecondTokenA = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenB.address);
 
       await impersonateAccount(prime.address);
+      await ethers.provider.send("hardhat_setBalance", [
+        prime.address,
+        ethers.utils.hexValue(ethers.utils.parseEther("10")),
+      ]);
       const primeSigner = await ethers.provider.getSigner(prime.address);
-      await wallet.sendTransaction({ to: prime.address, value: ethers.utils.parseEther("10") });
 
       const tx = await primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
       await tx.wait();
