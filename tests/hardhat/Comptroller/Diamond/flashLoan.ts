@@ -160,7 +160,7 @@ describe("FlashLoan", async () => {
         [vTokenA.address, vTokenB.address],
         [convertToUnit(1, 50), convertToUnit(1, 50)],
       );
-      
+
       await comptroller._supportMarket(vTokenA.address);
       await comptroller._supportMarket(vTokenB.address);
 
@@ -216,6 +216,51 @@ describe("FlashLoan", async () => {
           "0x",
         ),
       ).to.be.revertedWith("can't be zero address");
+    });
+
+    it("Should revert if array params are unequal", async () => {
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          [0, 10],
+          alice.address,
+          "0x",
+        ),
+      ).to.be.revertedWith("Invalid flashLoan params");
+    });
+
+    it("Should revert if receiver's executeOperation returns false", async () => {
+      // Enable flashLoan for vTokens
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // Deploy the bad receiver contract
+      const BadFlashLoanReceiver = await ethers.getContractFactory("BadFlashLoanReceiver");
+      const badReceiver = await BadFlashLoanReceiver.deploy(unitroller.address);
+      await badReceiver.deployed();
+
+      // Set the balance of badReceiver to cover full repayment for both tokens
+      await underlyingA.harnessSetBalance(badReceiver.address, parseUnits("20", 18));
+      await underlyingB.harnessSetBalance(badReceiver.address, parseUnits("20", 18));
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+
+      await expect(
+        badReceiver.connect(alice).requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          badReceiver.address,
+          [0, 0],
+          alice.address,
+          "0x"
+        )
+      ).to.be.revertedWith("Execute flashLoan failed");
     });
 
     it("FlashLoan for multiple underlying and transfer funds to PSR", async () => {

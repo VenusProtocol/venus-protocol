@@ -14,7 +14,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
      * @notice Constructor to initialize the flashLoan receiver with the Comptroller contract.
      * @param comptroller The address of the Comptroller contract used to request flash loans.
      */
-    constructor(ComptrollerInterface comptroller) public FlashLoanReceiverBase(comptroller) {}
+    constructor(ComptrollerInterface comptroller) FlashLoanReceiverBase(comptroller) {}
 
     /**
      * @notice Requests a flash loan from the Comptroller contract.
@@ -53,7 +53,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         uint256[] calldata premiums,
         address initiator,
         bytes calldata param
-    ) external returns (bool) {
+    ) external virtual returns (bool) {
         // 👇 Your custom logic for the flash loan should be implemented here 👇
         /** YOUR CUSTOM LOGIC HERE */
         initiator;
