@@ -96,6 +96,8 @@ interface IComptroller {
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256);
 
     function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory);
+
+    function enterMarket(address user, address vToken) external returns (uint256);
 }
 
 interface ILiquidator {

@@ -13,6 +13,8 @@ contract ComptrollerInterface {
 
     function enterMarkets(address[] calldata vTokens) external returns (uint[] memory);
 
+    function enterMarket(address user, address vToken) external returns (uint256);
+
     function exitMarket(address vToken) external returns (uint);
 
     /*** Policy Hooks ***/
@@ -70,7 +72,7 @@ contract ComptrollerInterface {
 
     function seizeAllowed(
         address vTokenCollateral,
-        address vTokenBorrowed,
+        address vTokenOrExecutor,
         address liquidator,
         address borrower,
         uint seizeTokens
