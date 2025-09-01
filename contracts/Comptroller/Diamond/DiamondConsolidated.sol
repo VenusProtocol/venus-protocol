@@ -1,11 +1,12 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: BSD-3-Clause
 
-import "./facets/MarketFacet.sol";
-import "./facets/PolicyFacet.sol";
-import "./facets/RewardFacet.sol";
-import "./facets/SetterFacet.sol";
-import "./Diamond.sol";
+pragma solidity 0.8.25;
+
+import { MarketFacet } from "./facets/MarketFacet.sol";
+import { PolicyFacet } from "./facets/PolicyFacet.sol";
+import { RewardFacet } from "./facets/RewardFacet.sol";
+import { SetterFacet } from "./facets/SetterFacet.sol";
+import { Diamond } from "./Diamond.sol";
 
 /**
  * @title DiamondConsolidated

@@ -181,6 +181,7 @@ forking(59918472, async () => {
         // Deploy a mock flashLoan receiver to test flashLoan functionality
         const MockFlashLoanSimpleReceiver =
           await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>("MockFlashLoanSimpleReceiver");
+
         mockReceiverSimpleFlashLoan = await MockFlashLoanSimpleReceiver.deploy(vUSDT.address);
 
         await accessControlManager

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
@@ -90,10 +90,15 @@ interface IPolicyFacet {
     ) external;
 
     function executeFlashLoan(
-        address initiator,
+        address payable initiator,
         address payable receiver,
         VToken[] calldata assets,
         uint256[] calldata underlyingAmounts,
+        uint256[] calldata modes,
+        address onBehalfOf,
         bytes calldata param
     ) external;
+    function getBorrowingPower(
+        address account
+    ) external view returns (uint256 error, uint256 liquidity, uint256 shortfall);
 }

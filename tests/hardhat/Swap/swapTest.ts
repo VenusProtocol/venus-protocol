@@ -138,7 +138,7 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
     blockTimestampLast: 0,
   });
   vToken.borrowBalanceCurrent.returns(MIN_AMOUNT_OUT);
-  wBNB.withdraw.returns(true);
+  wBNB.withdraw.returns();
   wBNB.transfer.returns(true);
   await tokenA.allocateTo(user.address, SWAP_AMOUNT);
   await tokenA.allocateTo(tokenPair.address, DEFAULT_RESERVE);

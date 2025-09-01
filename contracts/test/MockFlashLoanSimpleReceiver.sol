@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import { FlashLoanSimpleReceiverBase } from "./FlashLoanSimpleReceiverBase.sol";
-import { EIP20NonStandardInterface } from "../Tokens/EIP20NonStandardInterface.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { IERC20NonStandard } from "../Tokens/IERC20NonStandard.sol";
 
 /// @title MockFlashLoanSimpleReceiver
 /// @notice This contract serves as a mock implementation for a flash loan receiver, utilizing the
@@ -13,7 +14,7 @@ contract MockFlashLoanSimpleReceiver is FlashLoanSimpleReceiverBase {
      * @notice Constructor that initializes the flashLoan receiver with a reference to the VToken contract.
      * @param vToken The address of the VToken contract that supports flashLoan functionality.
      */
-    constructor(address vToken) public FlashLoanSimpleReceiverBase(vToken) {}
+    constructor(VToken vToken) public FlashLoanSimpleReceiverBase(vToken) {}
 
     /**
      * @notice Requests a flash loan from the VToken contract.
@@ -55,7 +56,7 @@ contract MockFlashLoanSimpleReceiver is FlashLoanSimpleReceiverBase {
         uint256 total = amount + premium;
 
         // Transfer the total amount (principal + premium) back to the VToken contract to repay the loan
-        EIP20NonStandardInterface(asset).approve(address(VTOKEN), total);
+        IERC20NonStandard(asset).approve(address(VTOKEN), total);
 
         // Return true to indicate successful execution of the flash loan operation
         return true;

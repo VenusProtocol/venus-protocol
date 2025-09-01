@@ -33,7 +33,8 @@ interface IMockProtocolShareReserve {
     /// @notice it represents the type of vToken income
     enum IncomeType {
         SPREAD,
-        LIQUIDATION
+        LIQUIDATION,
+        FLASHLOAN
     }
 
     function updateAssetsState(address comptroller, address asset, IncomeType incomeType) external;

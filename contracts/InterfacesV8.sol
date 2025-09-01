@@ -84,6 +84,8 @@ interface IComptroller {
     function markets(address) external view returns (bool, uint256, bool);
 
     function isForcedLiquidationEnabled(address) external view returns (bool);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
 }
 
 interface ILiquidator {
@@ -105,17 +107,4 @@ interface ILiquidator {
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external;
 
     function treasuryPercentMantissa() external view returns (uint256);
-}
-
-interface IProtocolShareReserve {
-    enum IncomeType {
-        SPREAD,
-        LIQUIDATION
-    }
-
-    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
-}
-
-interface IWBNB is IERC20Upgradeable {
-    function deposit() external payable;
 }

@@ -130,8 +130,11 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         liquidatorContract.liquidateBorrow(address(vBUSD), borrower, actualRepayAmount, vTokenCollateral);
         uint256 receivedAmount = vTokenCollateral.balanceOf(address(this)) - balanceBefore;
         approveOrRevert(busd, address(liquidatorContract), 0);
-
-        (uint256 liquidatorAmount, uint256 treasuryAmount) = _computeShares(receivedAmount);
+        (uint256 liquidatorAmount, uint256 treasuryAmount) = _computeShares(
+            receivedAmount,
+            borrower,
+            address(vTokenCollateral)
+        );
         vTokenCollateral.safeTransfer(msg.sender, liquidatorAmount);
         vTokenCollateral.safeTransfer(treasury, treasuryAmount);
     }
@@ -147,39 +150,54 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         return token.balanceOf(address(this)) - prevBalance;
     }
 
-    /// @dev Computes the liquidator's and treasury's shares of the received amount
-    /// @param receivedAmount The amount received from the liquidation
-    /// @return liquidatorAmount The liquidator's share
-    /// @return treasuryAmount The treasury's share
+    /// @notice Computes the liquidator's and treasury's shares from the received liquidation amount
+    /// @param receivedAmount The total amount received from liquidating the borrower's collateral
+    /// @param borrower The account whose collateral was liquidated
+    /// @param vTokenCollateral The vToken representing the collateral asset
+    /// @return liquidatorAmount The portion of `receivedAmount` allocated to the liquidator
+    /// @return treasuryAmount The portion of `receivedAmount` allocated to the treasury
     function _computeShares(
-        uint256 receivedAmount
+        uint256 receivedAmount,
+        address borrower,
+        address vTokenCollateral
     ) internal view returns (uint256 liquidatorAmount, uint256 treasuryAmount) {
-        uint256 denominator = _getDenominator();
-        liquidatorAmount = (receivedAmount * liquidatorShareMantissa) / denominator;
-        treasuryAmount = receivedAmount - liquidatorAmount;
+        uint256 effectiveIncentive = _getEffectiveIncentive(borrower, vTokenCollateral);
+
+        // The bonus portion only (extra incentive above 100%)
+        uint256 bonusAmount = (receivedAmount * (effectiveIncentive - MANTISSA_ONE)) / effectiveIncentive;
+
+        // Treasury takes a fixed % of the bonus
+        uint256 treasuryPercentMantissa = MANTISSA_ONE - liquidatorShareMantissa;
+        treasuryAmount = (bonusAmount * treasuryPercentMantissa) / MANTISSA_ONE;
+
+        // Liquidator gets the rest
+        liquidatorAmount = receivedAmount - treasuryAmount;
     }
 
-    /// @dev Returns (liquidation incentive - treasury percent), the value used as the denominator
-    /// when calculating the liquidator's share
-    /// @return The denominator for the seized amount used when calculating the liquidator's share
-    function _getDenominator() internal view returns (uint256) {
-        uint256 totalPercentageToDistribute = comptroller.liquidationIncentiveMantissa();
-        uint256 regularTreasuryPercent = ILiquidator(comptroller.liquidatorContract()).treasuryPercentMantissa();
-        uint256 denominator = totalPercentageToDistribute - regularTreasuryPercent;
-        return denominator;
+    /// @notice Computes the effective liquidation incentive after accounting the Liquidatior Contract treasury share
+    /// @param borrower The account whose collateral is being evaluated
+    /// @param vTokenCollateral The vToken representing the collateral asset
+    /// @return effectiveIncentiveMantissa The incentive after accounting the Liquidatior Contract treasury share
+    function _getEffectiveIncentive(address borrower, address vTokenCollateral) internal view returns (uint256) {
+        uint256 totalIncentive = comptroller.getEffectiveLiquidationIncentive(borrower, vTokenCollateral);
+        uint256 treasuryPercent = ILiquidator(comptroller.liquidatorContract()).treasuryPercentMantissa();
+
+        // Bonus portion after subtracting treasury share
+        uint256 adjustedBonus = ((totalIncentive - MANTISSA_ONE) * (MANTISSA_ONE - treasuryPercent)) / MANTISSA_ONE;
+
+        // Return effective incentive
+        return MANTISSA_ONE + adjustedBonus;
     }
 
-    /// @dev Checks if the liquidator's share is more than 100% of the debt covered and less
-    /// than (liquidation incentive - treasury percent)
-    /// @param liquidatorShareMantissa_ Liquidator's share, scaled by 1e18 (e.g. 1.01 * 1e18 for 101%)
+    /// @notice Validates that the liquidator's share of the bonus is within acceptable bounds
+    /// @dev `liquidatorShareMantissa_` represents the percentage of the bonus portion (extra above 100%).
+    ///      For example, if the liquidation incentive is 1.1 (i.e., 10% bonus), `liquidatorShareMantissa_`
+    ///      of 0.5e18 means the liquidator gets 50% of that 10% bonus.
+    ///      Must not exceed 100% (1e18) of the bonus.
+    /// @param liquidatorShareMantissa_ The liquidator's share of the bonus, scaled by 1e18
     function _validateLiquidatorShareMantissa(uint256 liquidatorShareMantissa_) internal view {
-        uint256 maxLiquidatorShareMantissa = _getDenominator();
-        if (liquidatorShareMantissa_ < MANTISSA_ONE) {
-            revert LiquidatorShareTooLow(liquidatorShareMantissa_);
-        }
-
-        if (liquidatorShareMantissa_ > maxLiquidatorShareMantissa) {
-            revert LiquidatorShareTooHigh(maxLiquidatorShareMantissa, liquidatorShareMantissa_);
+        if (liquidatorShareMantissa_ > MANTISSA_ONE) {
+            revert LiquidatorShareTooHigh(MANTISSA_ONE, liquidatorShareMantissa_);
         }
     }
 }

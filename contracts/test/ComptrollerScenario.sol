@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import "./ComptrollerMock.sol";
 
@@ -7,7 +7,7 @@ contract ComptrollerScenario is ComptrollerMock {
     address public xvsAddress;
     address public vaiAddress;
 
-    constructor() public ComptrollerMock() {}
+    constructor() ComptrollerMock() {}
 
     function setXVSAddress(address xvsAddress_) public {
         xvsAddress = xvsAddress_;
@@ -39,7 +39,7 @@ contract ComptrollerScenario is ComptrollerMock {
         blockNumber = number;
     }
 
-    function getBlockNumber() internal view returns (uint) {
+    function getBlockNumber() internal view override returns (uint) {
         return blockNumber;
     }
 
@@ -47,7 +47,7 @@ contract ComptrollerScenario is ComptrollerMock {
         uint m = allMarkets.length;
         uint n = 0;
         for (uint i = 0; i < m; i++) {
-            if (markets[address(allMarkets[i])].isVenus) {
+            if (getCorePoolMarket(address(allMarkets[i])).isVenus) {
                 n++;
             }
         }
@@ -55,7 +55,7 @@ contract ComptrollerScenario is ComptrollerMock {
         address[] memory venusMarkets = new address[](n);
         uint k = 0;
         for (uint i = 0; i < m; i++) {
-            if (markets[address(allMarkets[i])].isVenus) {
+            if (getCorePoolMarket(address(allMarkets[i])).isVenus) {
                 venusMarkets[k++] = address(allMarkets[i]);
             }
         }
@@ -63,7 +63,7 @@ contract ComptrollerScenario is ComptrollerMock {
     }
 
     function unlist(VToken vToken) public {
-        markets[address(vToken)].isListed = false;
+        _poolMarkets[getCorePoolMarketIndex(address(vToken))].isListed = false;
     }
 
     /**
@@ -84,7 +84,7 @@ contract ComptrollerScenario is ComptrollerMock {
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
             if (venusSpeeds[address(vToken)] > 0) {
-                Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(vToken) });
+                Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(address(vToken)) });
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
                 utilities[i] = utility;
                 totalUtility = add_(totalUtility, utility);

@@ -65,7 +65,6 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   await comptroller._setAccessControl(accessControlManager.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
 
   return {
     admin,
@@ -106,9 +105,8 @@ describe("FlashLoan", async () => {
     const underlyingA = await mockUnderlying("TokenA", "TKNA");
 
     protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
-      "contracts/InterfacesV8.sol:IProtocolShareReserve",
+      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
     );
-    protocolShareReserveMock.updateAssetsState.returns(true);
 
     const vTokenAFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
     const vTokenA = await vTokenAFactory.deploy(

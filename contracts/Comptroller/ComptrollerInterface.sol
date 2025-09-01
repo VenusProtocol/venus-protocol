@@ -1,13 +1,28 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
 
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
-import { ComptrollerTypes } from "./ComptrollerStorage.sol";
+pragma solidity 0.8.25;
 
-contract ComptrollerInterface {
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
+
+enum Action {
+    MINT,
+    REDEEM,
+    BORROW,
+    REPAY,
+    SEIZE,
+    LIQUIDATE,
+    TRANSFER,
+    ENTER_MARKET,
+    EXIT_MARKET
+}
+
+interface ComptrollerInterface {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
-    bool public constant isComptroller = true;
+    function isComptroller() external pure returns (bool);
 
     /*** Assets You Are In ***/
 
@@ -30,10 +45,12 @@ contract ComptrollerInterface {
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
     function executeFlashLoan(
-        address initiator,
+        address payable initiator,
         address payable receiver,
         VToken[] calldata assets,
-        uint256[] calldata underlyingAmounts,
+        uint256[] calldata amounts,
+        uint256[] calldata modes,
+        address onBehalfOf,
         bytes calldata param
     ) external;
 
@@ -97,6 +114,13 @@ contract ComptrollerInterface {
         uint repayAmount
     ) external view returns (uint, uint);
 
+    function liquidateCalculateSeizeTokens(
+        address borrower,
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint repayAmount
+    ) external view returns (uint, uint);
+
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
 
     function liquidateVAICalculateSeizeTokens(
@@ -104,11 +128,11 @@ contract ComptrollerInterface {
         uint repayAmount
     ) external view returns (uint, uint);
 
-    function getXVSAddress() public view returns (address);
+    function getXVSAddress() external view returns (address);
 
     function markets(address) external view returns (bool, uint);
 
-    function oracle() external view returns (PriceOracle);
+    function oracle() external view returns (ResilientOracleInterface);
 
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
 
@@ -138,17 +162,55 @@ contract ComptrollerInterface {
 
     function vaiController() external view returns (VAIControllerInterface);
 
-    function liquidationIncentiveMantissa() external view returns (uint);
+    function oldLiquidationIncentiveMantissa() external view returns (uint);
 
     function protocolPaused() external view returns (bool);
 
-    function actionPaused(address market, ComptrollerTypes.Action action) public view returns (bool);
+    function actionPaused(address market, Action action) external view returns (bool);
 
     function mintedVAIs(address user) external view returns (uint);
 
     function vaiMintRate() external view returns (uint);
 
     function authorizedFlashLoan(address account) external view returns (bool);
+    function delegateAuthorizationFlashloan(
+        address account,
+        address market,
+        address delegate
+    ) external view returns (bool);
+    function userPoolId(address account) external view returns (uint96);
+
+    function getLiquidationIncentive(address vToken) external view returns (uint256);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256);
+
+    function lastPoolId() external view returns (uint96);
+
+    function pools(uint96 poolId) external view returns (string memory label);
+
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
+
+    function poolMarkets(
+        uint96 poolId,
+        address vToken
+    )
+        external
+        view
+        returns (
+            bool isListed,
+            uint256 collateralFactorMantissa,
+            bool isVenus,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
+            uint96 marketPoolId,
+            bool isBorrowAllowed
+        );
 }
 
 interface IVAIVault {

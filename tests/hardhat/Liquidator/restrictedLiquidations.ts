@@ -31,13 +31,11 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const treasuryPercentMantissa = convertToBigInt("0.05", 18);
 
   const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
-  comptroller.liquidationIncentiveMantissa.returns(convertToBigInt("1.1", 18));
+  comptroller.getEffectiveLiquidationIncentive.returns(convertToBigInt("1.1", 18));
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-    "contracts/InterfacesV8.sol:IProtocolShareReserve",
-  );
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const wBnb = await smock.fake<WBNB>("WBNB");
   const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControlManager.isAllowedToCall.returns(true);
@@ -56,7 +54,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
 
 function configure(fixture: LiquidatorFixture) {
   const { comptroller } = fixture;
-  comptroller.liquidationIncentiveMantissa.returns(convertToBigInt("1.1", 18));
+  comptroller.getEffectiveLiquidationIncentive.returns(convertToBigInt("1.1", 18));
 }
 
 describe("Liquidator", () => {

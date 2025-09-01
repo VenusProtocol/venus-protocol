@@ -9,7 +9,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   ComptrollerMock__factory,
-  IAccessControlManagerV5,
+  IAccessControlManagerV8,
   IProtocolShareReserve,
   PrimeScenario__factory,
   VAIControllerHarness__factory,
@@ -33,7 +33,7 @@ const BLOCKS_PER_YEAR = 1000;
 
 interface ComptrollerFixture {
   usdt: BEP20Harness;
-  accessControl: FakeContract<IAccessControlManagerV5>;
+  accessControl: FakeContract<IAccessControlManagerV8>;
   comptroller: MockContract<ComptrollerMock>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
@@ -47,7 +47,7 @@ describe("VAIController", async () => {
   let wallet: Wallet;
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
-  let accessControl: FakeContract<IAccessControlManagerV5>;
+  let accessControl: FakeContract<IAccessControlManagerV8>;
   let comptroller: MockContract<ComptrollerMock>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
@@ -69,12 +69,10 @@ describe("VAIController", async () => {
       "BEP20 usdt",
     )) as BEP20Harness;
 
-    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+    const accessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
     accessControl.isAllowedToCall.returns(true);
 
-    protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserveV5",
-    );
+    protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
     protocolShareReserve.updateAssetsState.returns(true);
 
     const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
@@ -103,7 +101,6 @@ describe("VAIController", async () => {
     await vaiController._setComptroller(comptroller.address);
     await vaiController.setAccessControl(accessControl.address);
     await vaiController.setBlocksPerYear(BLOCKS_PER_YEAR);
-    await comptroller._setLiquidationIncentive(liquidationIncentive);
     await comptroller._setCloseFactor(closeFactor);
     await comptroller._setPriceOracle(priceOracle.address);
     comptroller.getXVSAddress.returns(xvs.address);
@@ -138,8 +135,13 @@ describe("VAIController", async () => {
     await priceOracle.setUnderlyingPrice(vusdt.address, bigNumber18);
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
-    await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(5));
+    await comptroller["setCollateralFactor(address,uint256,uint256)"](
+      vusdt.address,
+      bigNumber17.mul(5),
+      bigNumber17.mul(5),
+    );
     await vusdt.setProtocolShareReserve(protocolShareReserve.address);
+    await comptroller["setLiquidationIncentive(address,uint256)"](vusdt.address, liquidationIncentive);
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
 
@@ -342,7 +344,11 @@ describe("VAIController", async () => {
     });
 
     it("success for zero rate 0.9 vusdt collateralFactor", async () => {
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(9),
+        bigNumber17.mul(9),
+      );
       const res = await comptroller.getHypotheticalAccountLiquidity(
         user1.address,
         ethers.constants.AddressZero,
@@ -358,7 +364,11 @@ describe("VAIController", async () => {
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
       await vaiController.accrueVAIInterest();
 
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(9),
+        bigNumber17.mul(9),
+      );
       const res = await comptroller.getHypotheticalAccountLiquidity(
         user1.address,
         ethers.constants.AddressZero,
@@ -380,7 +390,8 @@ describe("VAIController", async () => {
     });
 
     it("liquidationIncentiveMantissa", async () => {
-      expect(await comptroller.liquidationIncentiveMantissa()).to.eq(bigNumber18);
+      const data = comptroller.markets(vusdt.address);
+      expect((await data).liquidationIncentiveMantissa).to.eq(bigNumber18);
     });
 
     it("reverts if the protocol is paused", async () => {
@@ -396,7 +407,11 @@ describe("VAIController", async () => {
     it("success for zero rate 0.2 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(3),
+        bigNumber17.mul(3),
+      );
       await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
@@ -412,7 +427,11 @@ describe("VAIController", async () => {
       await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(3),
+        bigNumber17.mul(3),
+      );
       await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
@@ -665,7 +684,7 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+      const newAccessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")
@@ -673,7 +692,7 @@ describe("VAIController", async () => {
     });
 
     it("sets ACM address in storage", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+      const newAccessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
     });

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
+/// @title IFlashLoanSimpleReceiver
+/// @notice Interface for flashLoan receiver contract, which execute custom logic with flash-borrowed asset.
+/// @dev This interface defines the method that must be implemented by any contract wishing to interact with the flashLoan system.
+///      Contracts must ensure they have the means to repay both the flashLoan amount and the associated premium (fee).
 interface IFlashLoanSimpleReceiver {
     /**
      * @notice Executes an operation after receiving the flash-borrowed asset

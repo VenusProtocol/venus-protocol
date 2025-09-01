@@ -16,40 +16,18 @@ import { ethers, network } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+import { Chain } from "../helpers/chains";
+import { getBlockOrTimestampBasedDeploymentInfo, getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
 interface AdminAccounts {
   [key: string]: string;
-}
-
-interface Config {
-  [key: string]: number;
 }
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
 
-  const isTimeBased = false; // configure this value if time based deployment
-
-  const blocksPerYear: Config = {
-    bsctestnet: 21_024_000, // 1.5 sec per block
-    sepolia: 2_628_000, // 12 sec per block
-    arbitrumsepolia: 0, // time based deployment
-    opsepolia: 0, // time based deployment
-    opmainnet: 0, // time based deployment
-    arbitrumone: 0, // time based deployment
-    zksyncsepolia: 0, // time based deployment
-    zksyncmainnet: 0, // time based deployment
-    unichainsepolia: 0, // time based deployment
-    bscmainnet: 21_024_000,
-    ethereum: 2_628_000,
-    basesepolia: 0, // time based deployment
-    basemainnet: 0, // time based deployment
-    unichainmainnet: 0, // time based deployment
-    berachainbepolia: 0, // time based deployment
-    hardhat: 100,
-  };
+  const { isTimeBased, blocksPerYear } = getBlockOrTimestampBasedDeploymentInfo(network.name as Chain);
 
   const adminAccount: AdminAccounts = {
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
@@ -84,7 +62,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   xvsVault = await ethers.getContractAt("XVSVault", xvsVaultProxyDeployment.address);
 
-  let txn = await xvsVault.initializeTimeManager(isTimeBased, blocksPerYear[network.name]);
+  let txn = await xvsVault.initializeTimeManager(isTimeBased, blocksPerYear);
   await txn.wait();
 
   txn = await xvsVault.setXvsStore(xvs.address, xvsStoreDeployment.address);
