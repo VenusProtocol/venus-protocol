@@ -73,10 +73,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         continue; // skip if no change
       }
 
-      // log newly paused actions
-
       if (isActionPaused && !isActionPausedOld) {
-        console.log(`Action: ${actionName}, ID: ${actionId}, Paused: ${isActionPaused}`);
+        console.log(`Action: ${actionName}, ID: ${actionId}, Current: ${isActionPaused}, Old: ${isActionPausedOld}`);
       }
     }
   }
