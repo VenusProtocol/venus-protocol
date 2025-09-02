@@ -43,13 +43,13 @@ const allVTokens = {
   vBNB: "0xA07c5b74C9B40447a954e1466938b865b6BBea36",
 };
 
-const blocknumber = 59654054;
+const oldBlocknumber = 59654054;
 
 const actions = {
-  MINT: 0,
+  // MINT: 0,
   REDEEM: 1,
   BORROW: 2,
-  REPAY: 3,
+  // REPAY: 3,
   SEIZE: 4,
   LIQUIDATE: 5,
   TRANSFER: 6,
@@ -66,9 +66,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- ${vTokenSymbol} ---`);
 
     for (const [actionName, actionId] of Object.entries(actions)) {
-      const isActionPaused = await comptroller.actionPaused(vTokenAddress, actionId, { blockTag: blocknumber });
-      const logColor = isActionPaused ? "\x1b[31m" : "\x1b[32m"; // red for paused, green for unpaused
-      console.log(`${logColor}Action: ${actionName}, ID: ${actionId}, Paused: ${isActionPaused}\x1b[0m`);
+      const isActionPausedOld = await comptroller.actionPaused(vTokenAddress, actionId, { blockTag: oldBlocknumber });
+      const isActionPaused = await comptroller.actionPaused(vTokenAddress, actionId);
+
+      if (isActionPaused === isActionPausedOld) {
+        continue; // skip if no change
+      }
+
+      // log newly paused actions
+
+      if (isActionPaused && !isActionPausedOld) {
+        console.log(`Action: ${actionName}, ID: ${actionId}, Paused: ${isActionPaused}`);
+      }
     }
   }
 };
