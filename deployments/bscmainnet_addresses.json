@@ -108,6 +108,7 @@
     "JumpRateModel_base200bps_slope2000bps_jump30000bps_kink5000bps_bpy10512000": "0x2dE4739a9C68B02B54C0d8323752551d724b3cc2",
     "JumpRateModel_base200bps_slope2000bps_jump30000bps_kink5000bps_bpy21024000": "0x1063A02E500Ae1448DDd6767ead97368FEeCafE7",
     "JumpRateModel_base200bps_slope2000bps_jump30000bps_kink5000bps_bpy42048000": "0x6BBb4FAAE927Df5a299892217dFB354E5F5000A2",
+    "JumpRateModel_base250bps_slope367bps_jump20000bps_kink7500bps_bpy42048000": "0xbFF70a96B8F4F2d5BdFB71fC74eb9572F422d500",
     "JumpRateModel_base5000bps_slope3000bps_jump30000bps_kink6000bps_bpy10512000": "0x91475A3f288841bce074Ec7edF27ec3fE58e18d1",
     "JumpRateModel_base5000bps_slope3000bps_jump30000bps_kink6000bps_bpy21024000": "0xF34AfA5B6a9F828da41f146321221B60977F20E0",
     "JumpRateModel_base5000bps_slope3000bps_jump30000bps_kink6000bps_bpy42048000": "0x3DC78Fe78fd3084CAAd0DC881b4Eb98B6151A5f3",
