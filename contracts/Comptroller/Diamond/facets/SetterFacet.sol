@@ -101,7 +101,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when an account's flash loan whitelist status is updated
     event IsAccountFlashLoanWhitelisted(address indexed account, bool indexed isWhitelisted);
-    
+
     /// @notice Emitted when delegate authorization for flash loans is changed
     event DelegateAuthorizationFlashloanChanged(
         address indexed user,
@@ -130,6 +130,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         LiquidationManager indexed oldLiquidationManager,
         LiquidationManager indexed newLiquidationManager
     );
+
     /// @notice Emitted when the borrowAllowed flag is updated for a market
     event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool isAllowed);
 
@@ -219,29 +220,33 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Sets the liquidation incentive for a particular market
+     * @notice Sets the liquidation incentive for a particular market in the core pool only.
      * @param vToken The market to set the liquidation incentive for
      * @param newMaxLiquidationIncentive The liquidation incentive, scaled by 1e18
+     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function setMarketMaxLiquidationIncentive(
         address vToken,
         uint256 newMaxLiquidationIncentive
     ) external returns (uint256) {
-        return __setMarketMaxLiquidationIncentive(vToken, newMaxLiquidationIncentive);
+        ensureAllowed("setMarketMaxLiquidationIncentive(address,uint256)");
+        return __setMarketMaxLiquidationIncentive(corePoolId, vToken, newMaxLiquidationIncentive);
     }
 
     /**
-     * @notice Sets the liquidation incentive for a market in the Core Pool only.
-     * @dev Alias to _setLiquidationIncentive to support the Isolated Lending Comptroller Interface
-     * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
+     * @notice Sets the liquidation incentive for a particular market in the specified pool.
+     * @param poolId The ID of the pool.
+     * @param vToken The market to set the liquidation incentive for
+     * @param newMaxLiquidationIncentive The liquidation incentive, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function setLiquidationIncentive(
+    function setMarketMaxLiquidationIncentive(
+        uint96 poolId,
         address vToken,
-        uint256 newLiquidationIncentiveMantissa
+        uint256 newMaxLiquidationIncentive
     ) external returns (uint256) {
-        ensureAllowed("setLiquidationIncentive(address,uint256)");
-        return __setLiquidationIncentive(corePoolId, vToken, newLiquidationIncentiveMantissa);
+        ensureAllowed("setMarketMaxLiquidationIncentive(uint96,address,uint256)");
+        return __setMarketMaxLiquidationIncentive(poolId, vToken, newMaxLiquidationIncentive);
     }
 
     /**
@@ -260,21 +265,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
     ) external returns (uint256) {
         ensureAllowed("setCollateralFactor(uint96,address,uint256,uint256)");
         return __setCollateralFactor(poolId, vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
-    }
-
-    /**
-     * @notice Sets the liquidation incentive for a market in the specified pool.
-     * @param poolId The ID of the pool.
-     * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
-     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
-     */
-    function setLiquidationIncentive(
-        uint96 poolId,
-        address vToken,
-        uint256 newLiquidationIncentiveMantissa
-    ) external returns (uint256) {
-        ensureAllowed("setLiquidationIncentive(uint96,address,uint256)");
-        return __setLiquidationIncentive(poolId, vToken, newLiquidationIncentiveMantissa);
     }
 
     /**
@@ -647,21 +637,27 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Set the liquidation incentive for a market
+     * @param poolId The ID of the pool.
      * @param vToken The market to set the liquidation incentive for
      * @param newMaxLiquidationIncentive The new liquidation incentive, scaled by 1e18
      * @return uint256 0=success, otherwise reverted
      */
     function __setMarketMaxLiquidationIncentive(
+        uint96 poolId,
         address vToken,
         uint256 newMaxLiquidationIncentive
     )
         internal
-        compareValue(markets[address(vToken)].maxLiquidationIncentiveMantissa, newMaxLiquidationIncentive)
+        compareValue(
+            _poolMarkets[getPoolMarketIndex(poolId, vToken)].maxLiquidationIncentiveMantissa,
+            newMaxLiquidationIncentive
+        )
         returns (uint256)
     {
-        ensureAllowed("setMarketMaxLiquidationIncentive(address,uint256)");
+        // Check if pool exists
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
 
-        Market storage market = markets[vToken];
+        Market storage market = _poolMarkets[getPoolMarketIndex(poolId, vToken)];
         ensureListed(market);
 
         require(newMaxLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
