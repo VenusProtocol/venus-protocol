@@ -141,6 +141,12 @@ interface ComptrollerInterface {
         uint liquidationIncentiveMantissa
     ) external view returns (uint, uint);
 
+    function liquidateVAICalculateSeizeTokens(
+        address borrower,
+        address vTokenCollateral,
+        uint repayAmount
+    ) external view returns (uint, uint);
+
     function getXVSAddress() external view returns (address);
 
     function markets(address) external view returns (bool, uint, bool, uint, uint);
@@ -207,7 +213,7 @@ interface ComptrollerInterface {
     ) external view returns (uint256, ComptrollerLensInterface.AccountSnapshot memory);
 
     function authorizedFlashLoan(address account) external view returns (bool);
-    
+
     function delegateAuthorizationFlashloan(
         address account,
         address market,

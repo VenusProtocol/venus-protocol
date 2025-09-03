@@ -28,6 +28,12 @@ interface IMarketFacet {
         uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
+    function liquidateVAICalculateSeizeTokens(
+        address borrower,
+        address vTokenCollateral,
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256);
+
     function checkMembership(address account, VToken vToken) external view returns (bool);
 
     function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory);
@@ -66,7 +72,7 @@ interface IMarketFacet {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );

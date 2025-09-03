@@ -97,8 +97,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256) {
         (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            address(this),
             borrower,
+            address(this),
             vTokenBorrowed,
             vTokenCollateral,
             actualRepayAmount
@@ -109,31 +109,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
-     * @param borrower Address of borrower whose collateral is being seized
      * @param vTokenBorrowed The address of the borrowed vToken
-     * @param vTokenCollateral The address of the collateral vToken
-     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
-     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
-     */
-    function liquidateCalculateSeizeTokens(
-        address borrower,
-        address vTokenBorrowed,
-        address vTokenCollateral,
-        uint256 actualRepayAmount
-    ) external view returns (uint256, uint256) {
-        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            borrower,
-            address(this),
-            vTokenBorrowed,
-            vTokenCollateral,
-            actualRepayAmount
-        );
-        return (err, seizeTokens);
-    }
-
-    /**
-     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
-     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
      * @param vTokenCollateral The address of the collateral vToken
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
      * @param liquidationIncentiveMantissa The liquidation incentive to apply
@@ -173,6 +149,28 @@ contract MarketFacet is IMarketFacet, FacetBase {
             vTokenCollateral,
             actualRepayAmount,
             liquidationIncentiveMantissa
+        );
+        return (err, seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param borrower The address of the borrower
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateVAICalculateSeizeTokens(
+        address borrower,
+        address vTokenCollateral,
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
+            address(this),
+            borrower,
+            vTokenCollateral,
+            actualRepayAmount
         );
         return (err, seizeTokens);
     }
@@ -587,7 +585,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             m.collateralFactorMantissa,
             m.isVenus,
             m.liquidationThresholdMantissa,
-            m.liquidationIncentiveMantissa,
+            m.maxLiquidationIncentiveMantissa,
             m.poolId,
             m.isBorrowAllowed
         );
@@ -742,7 +740,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         return (
             market.collateralFactorMantissa,
             market.liquidationThresholdMantissa,
-            market.liquidationIncentiveMantissa
+            market.maxLiquidationIncentiveMantissa
         );
     }
 }

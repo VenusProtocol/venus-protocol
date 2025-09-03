@@ -42,6 +42,14 @@ interface IPolicyFacet {
         ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external view returns (uint256);
 
+    function liquidateBorrowAllowed(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        address liquidator,
+        address borrower,
+        uint256 repayAmount
+    ) external view returns (uint256);
+
     function liquidateBorrowVerify(
         address vTokenBorrowed,
         address vTokenCollateral,
@@ -100,6 +108,7 @@ interface IPolicyFacet {
         address onBehalfOf,
         bytes calldata param
     ) external;
+
     function getBorrowingPower(
         address account
     ) external view returns (uint256 error, uint256 liquidity, uint256 shortfall);

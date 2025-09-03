@@ -173,6 +173,52 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     }
 
     /**
+     * @notice Computes the number of VAI tokens to be seized in a liquidation event
+     * @param comptroller Address of comptroller
+     * @param borrower Address of borrower
+     * @param vTokenCollateral Address of collateral for vToken
+     * @param actualRepayAmount Repayment amount i.e amount to be repaid of the total borrowed amount
+     * @return A tuple of error code, and tokens to seize
+     */
+    function liquidateVAICalculateSeizeTokens(
+        address comptroller,
+        address borrower,
+        address vTokenCollateral,
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
+        /* Read oracle prices for borrowed and collateral markets */
+        uint256 priceBorrowedMantissa = 1e18; // Note: this is VAI
+        uint256 priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
+            vTokenCollateral
+        );
+        if (priceCollateralMantissa == 0) {
+            return (uint256(Error.PRICE_ERROR), 0);
+        }
+
+        /*
+         * Get the exchange rate and calculate the number of collateral tokens to seize:
+         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
+         *  seizeTokens = seizeAmount / exchangeRate
+         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
+         */
+        uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint256 liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getDynamicLiquidationIncentive(
+            borrower,
+            vTokenCollateral
+        );
+
+        uint256 seizeTokens = _calculateSeizeTokens(
+            actualRepayAmount,
+            liquidationIncentiveMantissa,
+            priceBorrowedMantissa,
+            priceCollateralMantissa,
+            exchangeRateMantissa
+        );
+
+        return (uint256(Error.NO_ERROR), seizeTokens);
+    }
+
+    /**
      * @notice Computes the hypothetical liquidity and shortfall of an account given a hypothetical borrow
      *      A snapshot of the account is taken and the total borrow amount of the account is calculated
      * @param comptroller Address of comptroller

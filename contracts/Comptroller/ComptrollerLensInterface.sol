@@ -49,6 +49,13 @@ interface ComptrollerLensInterface {
         uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
+    function liquidateVAICalculateSeizeTokens(
+        address comptroller,
+        address borrower,
+        address vTokenCollateral,
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256);
+
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,
