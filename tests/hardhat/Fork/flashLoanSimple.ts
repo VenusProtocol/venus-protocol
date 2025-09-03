@@ -53,7 +53,7 @@ type SetupProtocolFixture = {
   diamond: Diamond;
   admin: SignerWithAddress;
   oracle: FakeContract<PriceOracle>;
-  accessControlManager: FakeContract<IAccessControlManagerV5>;
+  accessControlManager: IAccessControlManagerV5;
   interestRateModel: FakeContract<InterestRateModel>;
   timeLockUser: SignerWithAddress;
   USDT: IERC20;
@@ -67,7 +67,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const [admin] = await ethers.getSigners();
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
   oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
-
   const accessControlManager = await ethers.getContractAt("IAccessControlManagerV5", ACM);
 
   const interestRateModel = await smock.fake<InterestRateModel>("InterestRateModel");
@@ -82,7 +81,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await diamond.deployed();
 
   // Get the existing Unitroller
-  const unitroller = await Unitroller__factory.connect(COMPTROLLER_ADDRESS, timeLockUser);
+  const unitroller = Unitroller__factory.connect(COMPTROLLER_ADDRESS, timeLockUser);
 
   const policyFacetFactory = await ethers.getContractFactory("PolicyFacet");
   const newPolicyFacet = await policyFacetFactory.deploy();
@@ -93,7 +92,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await newSetterFacet.deployed();
 
   const addExecuteFlashLoanFunctionSignature = newPolicyFacet.interface.getSighash(
-    newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],bytes)"],
+    newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],uint256[],address,bytes)"],
   );
 
   const addSetWhiteListFlashLoanAccountFunctionSignature = newSetterFacet.interface.getSighash(
@@ -161,7 +160,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   };
 }
 
-forking(59918472, async () => {
+forking(64048894, async () => {
   if (FORK_TESTNET) {
     describe("FlashLoan Fork Test", async () => {
       let usdtHolder: SignerWithAddress;
@@ -171,7 +170,7 @@ forking(59918472, async () => {
       let user: SignerWithAddress;
       let timeLockUser: SignerWithAddress;
       let setterFacet: SetterFacet;
-      let accessControlManager: FakeContract<IAccessControlManagerV5>;
+      let accessControlManager: IAccessControlManagerV5;
 
       beforeEach(async () => {
         ({ vUSDT, timeLockUser, USDT, accessControlManager, setterFacet } = await loadFixture(deployProtocol));
@@ -198,7 +197,6 @@ forking(59918472, async () => {
       });
 
       it("Should revert if flashLoan not enabled", async () => {
-        await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(user.address, true);
         // Attempt to take a flashLoan when the flashLoan feature is disabled should fail
         await expect(
           vUSDT
@@ -209,10 +207,13 @@ forking(59918472, async () => {
               flashLoanAmount.toString(),
               ethers.utils.hexlify([]),
             ),
-        ).to.be.revertedWith("FlashLoan not enabled");
+        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotEnabled")
       });
 
       it("Should revert if user is not whitelisted", async () => {
+        // Enable flashLoan feature for testing
+        await vUSDT.connect(timeLockUser)._toggleFlashLoan(); 
+
         await expect(
           vUSDT
             .connect(user)
@@ -222,7 +223,7 @@ forking(59918472, async () => {
               flashLoanAmount.toString(),
               ethers.utils.hexlify([]),
             ),
-        ).to.be.revertedWith("Flash loan not authorized for this account");
+        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotAuthorized")
       });
 
       it("Should revert if receiver is zero address", async () => {

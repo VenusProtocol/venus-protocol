@@ -187,6 +187,8 @@ describe("FlashLoan", async () => {
             [vTokenA.address, vTokenB.address],
             [flashLoanAmount1, flashLoanAmount2],
             mockReceiverContract.address,
+            [0, 0],
+            alice.address,
             "0x",
           ),
       ).to.be.revertedWith("FlashLoan not enabled");
@@ -267,6 +269,9 @@ describe("FlashLoan", async () => {
       // Enable flashLoan for vTokens
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
 
       // Deploy the bad receiver contract
       const BadFlashLoanReceiver = await ethers.getContractFactory("BadFlashLoanReceiver");
@@ -377,6 +382,9 @@ describe("FlashLoan", async () => {
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
 
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
+
       // Set collateral factors for the markets
       await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
       await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenB.address, parseUnits("0.9", 18), parseUnits("1", 18));
@@ -485,6 +493,8 @@ describe("FlashLoan", async () => {
       // Enable flashLoan for multiple vTokens
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
+
+      await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
 
       // Set collateral factors for the markets
       await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
