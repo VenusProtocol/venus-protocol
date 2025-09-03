@@ -158,7 +158,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return True if the account is in the asset, otherwise false
      */
     function checkMembership(address account, VToken vToken) external view returns (bool) {
-        return _poolMarkets[getCorePoolMarketIndex(address(vToken))].accountMembership[account];
+        return getCorePoolMarket(address(vToken)).accountMembership[account];
     }
 
     /**
@@ -167,7 +167,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return listed True if the (Core Pool, vToken) market is listed, otherwise false
      */
     function isMarketListed(VToken vToken) external view returns (bool) {
-        return _poolMarkets[getCorePoolMarketIndex(address(vToken))].isListed;
+        return getCorePoolMarket(address(vToken)).isListed;
     }
 
     /**
@@ -195,7 +195,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function unlistMarket(address market) external returns (uint256) {
         ensureAllowed("unlistMarket(address)");
 
-        Market storage _market = _poolMarkets[getCorePoolMarketIndex(market)];
+        Market storage _market = getCorePoolMarket(market);
 
         if (!_market.isListed) {
             return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);
@@ -248,7 +248,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
 
-        Market storage marketToExit = _poolMarkets[getCorePoolMarketIndex(address(vToken))];
+        Market storage marketToExit = getCorePoolMarket(address(vToken));
 
         /* Return true if the sender is not already ‘in’ the market */
         if (!marketToExit.accountMembership[msg.sender]) {
@@ -658,7 +658,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         vToken.isVToken(); // Sanity check to make sure its really a VToken
 
         // Note that isVenus is not in active use anymore
-        Market storage newMarket = _poolMarkets[getCorePoolMarketIndex(address(vToken))];
+        Market storage newMarket = getCorePoolMarket(address(vToken));
         newMarket.isListed = true;
         newMarket.isVenus = false;
         newMarket.collateralFactorMantissa = 0;
@@ -713,20 +713,19 @@ contract MarketFacet is IMarketFacet, FacetBase {
             uint256 maxLiquidationIncentiveMantissa
         )
     {
-        PoolMarketId coreKey = getPoolMarketIndex(corePoolId, vToken);
         PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
 
         Market storage market;
 
         if (poolId == corePoolId) {
-            market = _poolMarkets[coreKey];
+            market = getCorePoolMarket(vToken);
         } else {
             Market storage poolMarket = _poolMarkets[poolKey];
 
             if (poolMarket.isListed) {
                 market = poolMarket;
             } else {
-                market = _poolMarkets[coreKey];
+                market = getCorePoolMarket(vToken);
             }
         }
 

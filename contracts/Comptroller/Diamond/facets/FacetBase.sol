@@ -174,7 +174,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      */
     function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
         checkActionPauseState(address(vToken), Action.ENTER_MARKET);
-        Market storage marketToJoin = _poolMarkets[getCorePoolMarketIndex(address(vToken))];
+        Market storage marketToJoin = getCorePoolMarket(address(vToken));
         ensureListed(marketToJoin);
         if (marketToJoin.accountMembership[borrower]) {
             // already joined

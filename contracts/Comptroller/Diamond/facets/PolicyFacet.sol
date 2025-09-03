@@ -324,7 +324,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
-        Market storage market = _poolMarkets[getCorePoolMarketIndex(vTokenCollateral)];
+        Market storage market = getCorePoolMarket(vTokenCollateral);
 
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
