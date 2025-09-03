@@ -377,7 +377,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param poolIds Array of pool IDs.
      * @param vTokens Array of market (vToken) addresses.
      * @custom:error ArrayLengthMismatch Reverts if `poolIds` and `vTokens` arrays have different lengths.
-     * @custom:error CorePoolModificationNotAllowed Reverts if attempting to modify the core pool.
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
      * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
      * @custom:error MarketNotListedInCorePool Reverts if the market is not listed in the core pool.
      * @custom:error MarketAlreadyListed Reverts if the given market is already listed in the specified pool.
@@ -398,12 +398,14 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @notice Removes a market (vToken) from the specified pool.
      * @param poolId The ID of the pool from which the market should be removed.
      * @param vToken The address of the market token to remove.
+     * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool.
      * @custom:error PoolMarketNotFound Reverts if the market is not listed in the pool.
      * @custom:event PoolMarketRemoved Emitted after a market is successfully removed from a pool.
      */
     function removePoolMarket(uint96 poolId, address vToken) external {
         ensureAllowed("removePoolMarket(uint96,address)");
 
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
         PoolMarketId index = getPoolMarketIndex(poolId, vToken);
         if (!_poolMarkets[index].isListed) {
             revert PoolMarketNotFound(poolId, vToken);
@@ -493,9 +495,11 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param poolId The ID of the pool whose vTokens are being queried.
      * @return An array of vToken addresses associated with the pool.
      * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
+     * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool.
      */
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory) {
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
         return pools[poolId].vTokens;
     }
 
@@ -541,6 +545,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
      * @return marketPoolId The pool ID this market belongs to.
      * @return isBorrowAllowed Whether borrowing is allowed in this market.
+     * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
      */
     function poolMarkets(
         uint96 poolId,
@@ -558,6 +563,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             bool isBorrowAllowed
         )
     {
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
         PoolMarketId key = getPoolMarketIndex(poolId, vToken);
         Market storage m = _poolMarkets[key];
 
@@ -662,7 +668,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function _addPoolMarket(uint96 poolId, address vToken) internal {
         ensureAllowed("addPoolMarket(uint96,address)");
 
-        if (poolId == corePoolId) revert CorePoolModificationNotAllowed();
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
 
         // Core Pool Index

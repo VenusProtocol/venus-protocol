@@ -128,6 +128,12 @@ contract VenusLens is ExponentialNoError {
         MarketData[] markets;
     }
 
+    /// @notice Thrown when a given pool ID does not exist
+    error PoolDoesNotExist(uint96 poolId);
+
+    /// @notice Thrown when trying to call pool-specific methods on the Core Pool
+    error InvalidOperationForCorePool();
+
     /**
      * @notice Query the metadata of a vToken by its address
      * @param vToken The address of the vToken to fetch VTokenMetadata
@@ -596,11 +602,16 @@ contract VenusLens is ExponentialNoError {
      * @param comptroller The address of the Comptroller contract
      * @param poolId The pool ID to fetch data for
      * @return result An array of MarketData structs containing detailed market info
+     * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
+     * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool.
      */
     function getMarketsDataByPool(
         uint96 poolId,
         ComptrollerInterface comptroller
     ) public view returns (MarketData[] memory result) {
+        if (poolId > comptroller.lastPoolId()) revert PoolDoesNotExist(poolId);
+        if (poolId == comptroller.corePoolId()) revert InvalidOperationForCorePool();
+
         address[] memory vTokens = comptroller.getPoolVTokens(poolId);
         uint256 length = vTokens.length;
         result = new MarketData[](length);

@@ -1052,7 +1052,7 @@ describe("Comptroller", () => {
       it("reverts if trying to add to core pool (poolId 0)", async () => {
         await expect(comptroller.addPoolMarkets([corePoolId], [vToken.address])).to.be.revertedWithCustomError(
           comptroller,
-          "CorePoolModificationNotAllowed",
+          "InvalidOperationForCorePool",
         );
       });
 
