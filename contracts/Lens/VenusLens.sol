@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -105,6 +106,26 @@ contract VenusLens is ExponentialNoError {
         address rewardTokenAddress;
         uint256 totalRewards;
         PendingReward[] pendingRewards;
+    }
+
+    /// @notice Holds full market information for a single vToken within a specific pool
+    struct MarketData {
+        uint96 poolId;
+        string poolLabel;
+        address vToken;
+        bool isListed;
+        uint256 collateralFactor;
+        bool isVenus;
+        uint256 liquidationThreshold;
+        uint256 liquidationIncentive;
+        bool isBorrowAllowed;
+    }
+
+    /// @notice Struct representing a pool and its associated markets
+    struct PoolWithMarkets {
+        uint96 poolId;
+        string label;
+        MarketData[] markets;
     }
 
     /**
@@ -548,6 +569,67 @@ contract VenusLens is ExponentialNoError {
             rewardSummary.pendingRewards[i] = marketReward;
         }
         return rewardSummary;
+    }
+
+    /**
+     * @notice Returns all pools along with their associated market data
+     * @param comptroller The Comptroller contract to query
+     * @return poolsData An array of PoolWithMarkets structs, each containing pool info and its markets
+     */
+    function getAllPoolsData(
+        ComptrollerInterface comptroller
+    ) external view returns (PoolWithMarkets[] memory poolsData) {
+        uint96 lastPoolId = comptroller.lastPoolId();
+        poolsData = new PoolWithMarkets[](lastPoolId);
+
+        for (uint96 i = 1; i <= lastPoolId; i++) {
+            poolsData[i - 1] = PoolWithMarkets({
+                poolId: i,
+                label: comptroller.pools(i),
+                markets: getMarketsDataByPool(i, comptroller)
+            });
+        }
+    }
+
+    /**
+     * @notice Retrieves full market data for all vTokens in a specific pool
+     * @param comptroller The address of the Comptroller contract
+     * @param poolId The pool ID to fetch data for
+     * @return result An array of MarketData structs containing detailed market info
+     */
+    function getMarketsDataByPool(
+        uint96 poolId,
+        ComptrollerInterface comptroller
+    ) public view returns (MarketData[] memory result) {
+        address[] memory vTokens = comptroller.getPoolVTokens(poolId);
+        uint256 length = vTokens.length;
+        result = new MarketData[](length);
+
+        string memory label = comptroller.pools(poolId);
+
+        for (uint256 i; i < length; i++) {
+            (
+                bool isListed,
+                uint256 collateralFactor,
+                bool isVenus,
+                uint256 liquidationThreshold,
+                uint256 liquidationIncentive,
+                uint96 marketPoolId,
+                bool isBorrowAllowed
+            ) = comptroller.poolMarkets(poolId, vTokens[i]);
+
+            result[i] = MarketData({
+                poolId: marketPoolId,
+                poolLabel: label,
+                vToken: vTokens[i],
+                isListed: isListed,
+                collateralFactor: collateralFactor,
+                isVenus: isVenus,
+                liquidationThreshold: liquidationThreshold,
+                liquidationIncentive: liquidationIncentive,
+                isBorrowAllowed: isBorrowAllowed
+            });
+        }
     }
 
     // utilities

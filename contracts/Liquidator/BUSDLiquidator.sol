@@ -130,7 +130,6 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         liquidatorContract.liquidateBorrow(address(vBUSD), borrower, actualRepayAmount, vTokenCollateral);
         uint256 receivedAmount = vTokenCollateral.balanceOf(address(this)) - balanceBefore;
         approveOrRevert(busd, address(liquidatorContract), 0);
-
         (uint256 liquidatorAmount, uint256 treasuryAmount) = _computeShares(
             receivedAmount,
             borrower,

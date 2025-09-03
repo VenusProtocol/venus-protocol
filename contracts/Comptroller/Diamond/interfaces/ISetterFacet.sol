@@ -22,6 +22,13 @@ interface ISetterFacet {
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
+    function setCollateralFactor(
+        uint96 poolId,
+        VToken vToken,
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
+    ) external returns (uint256);
+
     function _setLiquidatorContract(address newLiquidatorContract_) external;
 
     function _setPauseGuardian(address newPauseGuardian) external returns (uint256);
@@ -78,4 +85,10 @@ interface ISetterFacet {
     ) external returns (uint256);
 
     function setLiquidationManager(address liquidationManager_) external;
+
+    function setWhiteListFlashLoanAccount(address account, bool _isWhiteListed) external;
+
+    function setDelegateAuthorizationFlashloan(address market, address delegate, bool approved) external;
+    
+    function setIsBorrowAllowed(uint96 poolId, address vToken, bool borrowAllowed) external;
 }

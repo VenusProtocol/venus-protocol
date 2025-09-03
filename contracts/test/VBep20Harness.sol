@@ -234,7 +234,7 @@ contract VEvil is VBep20Scenario {
     }
 }
 
-contract VBep20DelegatorScenario is VBep20Delegator {
+abstract contract VBep20DelegatorScenario is VBep20Delegator {
     constructor(
         address underlying_,
         ComptrollerInterface comptroller_,
@@ -245,7 +245,10 @@ contract VBep20DelegatorScenario is VBep20Delegator {
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData
+        bytes memory becomeImplementationData,
+        bool flashLoanEnabled_,
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     )
         VBep20Delegator(
             underlying_,
@@ -257,7 +260,10 @@ contract VBep20DelegatorScenario is VBep20Delegator {
             decimals_,
             admin_,
             implementation_,
-            becomeImplementationData
+            becomeImplementationData,
+            flashLoanEnabled_,
+            flashLoanProtocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa_
         )
     {}
 

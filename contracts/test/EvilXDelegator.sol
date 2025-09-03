@@ -10,7 +10,7 @@ import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterfac
  * @notice VTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Venus
  */
-contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
+abstract contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset

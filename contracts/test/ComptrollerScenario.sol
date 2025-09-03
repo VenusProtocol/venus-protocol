@@ -47,7 +47,7 @@ contract ComptrollerScenario is ComptrollerMock {
         uint m = allMarkets.length;
         uint n = 0;
         for (uint i = 0; i < m; i++) {
-            if (markets[address(allMarkets[i])].isVenus) {
+            if (getCorePoolMarket(address(allMarkets[i])).isVenus) {
                 n++;
             }
         }
@@ -55,7 +55,7 @@ contract ComptrollerScenario is ComptrollerMock {
         address[] memory venusMarkets = new address[](n);
         uint k = 0;
         for (uint i = 0; i < m; i++) {
-            if (markets[address(allMarkets[i])].isVenus) {
+            if (getCorePoolMarket(address(allMarkets[i])).isVenus) {
                 venusMarkets[k++] = address(allMarkets[i]);
             }
         }
@@ -63,7 +63,7 @@ contract ComptrollerScenario is ComptrollerMock {
     }
 
     function unlist(VToken vToken) public {
-        markets[address(vToken)].isListed = false;
+        _poolMarkets[getCorePoolMarketIndex(address(vToken))].isListed = false;
     }
 
     /**

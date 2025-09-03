@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
@@ -6,6 +8,7 @@ import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { LiquidationManager } from "../LiquidationManager.sol";
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
+import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
 
 enum Action {
     MINT,
@@ -42,6 +45,16 @@ interface ComptrollerInterface {
     function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint);
 
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
+
+    function executeFlashLoan(
+        address payable initiator,
+        address payable receiver,
+        VToken[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata modes,
+        address onBehalfOf,
+        bytes calldata param
+    ) external;
 
     function repayBorrowAllowed(
         address vToken,
@@ -107,6 +120,7 @@ interface ComptrollerInterface {
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
+        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint repayAmount
@@ -163,7 +177,7 @@ interface ComptrollerInterface {
 
     function vaiController() external view returns (VAIControllerInterface);
 
-    function liquidationIncentiveMantissa() external view returns (uint);
+    function oldLiquidationIncentiveMantissa() external view returns (uint);
 
     function protocolPaused() external view returns (bool);
 
@@ -191,6 +205,47 @@ interface ComptrollerInterface {
         uint redeemTokens,
         uint borrowAmount
     ) external view returns (uint256, ComptrollerLensInterface.AccountSnapshot memory);
+
+    function authorizedFlashLoan(address account) external view returns (bool);
+    
+    function delegateAuthorizationFlashloan(
+        address account,
+        address market,
+        address delegate
+    ) external view returns (bool);
+    function userPoolId(address account) external view returns (uint96);
+
+    function getLiquidationIncentive(address vToken) external view returns (uint256);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256);
+
+    function lastPoolId() external view returns (uint96);
+
+    function pools(uint96 poolId) external view returns (string memory label);
+
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
+
+    function poolMarkets(
+        uint96 poolId,
+        address vToken
+    )
+        external
+        view
+        returns (
+            bool isListed,
+            uint256 collateralFactorMantissa,
+            bool isVenus,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
+            uint96 marketPoolId,
+            bool isBorrowAllowed
+        );
 }
 
 interface IVAIVault {

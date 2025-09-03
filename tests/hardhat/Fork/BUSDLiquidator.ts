@@ -215,7 +215,8 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
   });
   await zeroRateModel.deployed();
   await vBUSD._setInterestRateModel(zeroRateModel.address);
-
+  await comptroller.setIsBorrowAllowed(0, vBUSD.address, true);
+  await comptroller["setLiquidationIncentive(address,uint256)"](vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
   await deployLiquidatorContract({
     comptroller,
     vBNB,
@@ -245,7 +246,11 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
   await liquidationManager.initialize(accessControlManager.address);
 
   await comptroller.setLiquidationManager(liquidationManager.address);
-  await comptroller.setCollateralFactor(vCollateral.address, parseUnits("0.5", 18), parseUnits("0.5", 18));
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](
+    vCollateral.address,
+    parseUnits("0.5", 18),
+    parseUnits("0.5", 18),
+  );
   await comptroller._setMarketSupplyCaps(
     [vBUSD.address, vCollateral.address],
     [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
@@ -433,11 +438,15 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
 
       it("should seize collateral and split correctly between liquidator and treasury", async () => {
         const repayAmount = parseUnits("1000", 18);
+
+        // Capture balances before liquidation
         const treasuryBalanceBefore = await vCollateral.callStatic.balanceOf(treasuryAddress);
         const liquidatorBalanceBefore = await vCollateral.callStatic.balanceOf(someone.address);
 
+        // Perform liquidation
         const tx = await busdLiquidator.connect(someone).liquidateEntireBorrow(borrower.address, vCollateral.address);
 
+        // Capture balances after liquidation
         const treasuryBalanceAfter = await vCollateral.callStatic.balanceOf(treasuryAddress);
         const liquidatorBalanceAfter = await vCollateral.callStatic.balanceOf(someone.address);
 
@@ -486,8 +495,9 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
         expect(await vBUSD.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(parseUnits("900", 18));
       });
 
-      it("should seize collateral for partial repay and split between liquidator and treasury", async () => {
+      it("should seize collateral correctly for partial repay and split between liquidator and treasury", async () => {
         const repayAmount = parseUnits("100", 18);
+
         const tx = await busdLiquidator
           .connect(someone)
           .liquidateBorrow(borrower.address, repayAmount, vCollateral.address);

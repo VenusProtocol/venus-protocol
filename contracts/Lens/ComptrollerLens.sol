@@ -1,14 +1,14 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
-import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-
-import "../Tokens/VTokens/VBep20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
-import "../Utils/ErrorReporter.sol";
-import "../Comptroller/ComptrollerInterface.sol";
-import "../Comptroller/ComptrollerLensInterface.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
+import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
+import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
+import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 /**
  * @title ComptrollerLens Contract
@@ -83,6 +83,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
     /**
      * @notice Computes the number of collateral tokens to be seized in a liquidation event
+     * @dev This will be used only in vBNB
      * @param comptroller Address of comptroller
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow
@@ -175,6 +176,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return Returns a tuple of error code, liquidity, and shortfall
      */
     function getHypotheticalAccountLiquidity(
@@ -247,8 +251,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 borrowAmount,
         function(address) external view returns (uint256) weight
     ) internal view returns (uint256 errorCode, AccountSnapshot memory snapshot) {
-        AccountSnapshotLocal memory vars;
-
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         vars.assetsCount = assets.length;
@@ -320,6 +322,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         if (address(vaiController) != address(0)) {
             snapshot.borrows = add_(snapshot.borrows, vaiController.getVAIRepayAmount(account));
         }
+        oErr = uint(Error.NO_ERROR);
 
         _finalizeSnapshot(snapshot);
 

@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { PoolMarketId } from "./Types/PoolMarketId.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
@@ -44,9 +45,9 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     uint256 public __oldCloseFactorMantissaSlot;
 
     /**
-     * @notice Multiplier representing the discount on collateral that a liquidator receives
+     * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
      */
-    uint256 public liquidationIncentiveMantissa;
+    uint256 public oldLiquidationIncentiveMantissa;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
@@ -79,13 +80,17 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
         uint256 liquidationThresholdMantissa;
         /// @notice discount on collateral that a liquidator receives when liquidating a borrow in this market
         uint256 maxLiquidationIncentiveMantissa;
+        /// @notice The pool ID this market is associated with, Used to support pools/emodes
+        uint96 poolId;
+        /// @notice Flag  to restrict borrowing in certain pools/emodes.
+        bool isBorrowAllowed;
     }
 
     /**
-     * @notice Official mapping of vTokens -> Market metadata
-     * @dev Used e.g. to determine if a market is supported
+     * @notice Mapping of PoolMarketId -> Market metadata
+     * Underlying key layout: First 12 bytes (96 bits) represent the poolId, last 20 bytes the vToken address
      */
-    mapping(address => Market) public markets;
+    mapping(PoolMarketId => Market) internal _poolMarkets;
 
     /**
      * @notice The Pause Guardian can pause certain actions as a safety mechanism.
@@ -280,4 +285,47 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 contract ComptrollerV17Storage is ComptrollerV16Storage {
     /// @notice The LiquidationManager contract address
     LiquidationManager public liquidationManager;
+
+    /// @notice Mapping of accounts authorized to execute flash loans
+    mapping(address => bool) public authorizedFlashLoan;
+
+    struct FlashLoanData {
+        uint256[] protocolFees;
+        uint256[] supplierFees;
+        uint256[] totalFees;
+        uint256[] balanceAfterTransfer;
+        uint256[] actualRepayments;
+        uint256[] remainingDebts;
+    }
+
+    /// @notice Mapping to store delegate authorization for flash loans
+    mapping(address /* delegator */ => mapping(address /* market */ => mapping(address /* sender */ => bool)))
+        public delegateAuthorizationFlashloan;
+        
+    struct PoolData {
+        /// @notice label for the pool
+        string label;
+        /// @notice List of vToken addresses associated with this pool
+        address[] vTokens;
+    }
+
+    /**
+     * @notice Tracks the selected pool for each user.
+     * @dev
+     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in.
+     * - A value of `0` represents the default core pool (legacy behavior).
+     */
+    mapping(address => uint96) public userPoolId;
+
+    /**
+     * @notice Mapping of pool ID to its corresponding metadata and configuration
+     * @dev Pool IDs are unique and incremented via `nextPoolId` when a new pool is created
+     */
+    mapping(uint96 => PoolData) public pools;
+
+    /**
+     * @notice Counter used to generate unique pool IDs
+     * @dev Increments each time a pool is created; `poolId = 0` is reserved for the core pool
+     */
+    uint96 public lastPoolId;
 }

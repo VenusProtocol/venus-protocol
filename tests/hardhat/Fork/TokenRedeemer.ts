@@ -106,6 +106,9 @@ const setupLocal = async (): Promise<TokenRedeemerFixture> => {
     numBep20Tokens: 2,
   });
   const [vToken, vToken2] = vTokens;
+  await comptroller.setIsBorrowAllowed(0, vBNB.address, true);
+  await comptroller.setIsBorrowAllowed(0, vToken.address, true);
+  await comptroller.setIsBorrowAllowed(0, vToken2.address, true);
 
   const redeemer = await deployTokenRedeemer(owner, vBNB);
   await comptroller._setMarketSupplyCaps(
@@ -116,10 +119,14 @@ const setupLocal = async (): Promise<TokenRedeemerFixture> => {
     [vToken.address, vToken2.address, vBNB.address],
     [ethers.constants.MaxUint256, ethers.constants.MaxUint256, ethers.constants.MaxUint256],
   );
-  await comptroller.setCollateralFactor(vToken.address, parseUnits("0.9", 18), parseUnits("0.9", 18));
   await comptroller.setMarketMaxLiquidationIncentive(vToken.address, parseUnits("1.1", 18));
   await comptroller.setMarketMaxLiquidationIncentive(vToken2.address, parseUnits("1.1", 18));
   await comptroller.setMarketMaxLiquidationIncentive(vBNB.address, parseUnits("1.1", 18));
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](
+    vToken.address,
+    parseUnits("0.9", 18),
+    parseUnits("0.9", 18),
+  );
   const underlying = await ethers.getContractAt("FaucetToken", await vToken.underlying());
   const underlying2 = await ethers.getContractAt("FaucetToken", await vToken2.underlying());
 

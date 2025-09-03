@@ -39,7 +39,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControlManager.isAllowedToCall.returns(true);
   const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
-  comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
+  comptroller.getEffectiveLiquidationIncentive.returns(announcedIncentive);
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const wBnb = await smock.fake<WBNB>("WBNB");
   const underlying = await smock.fake<FaucetToken>("FaucetToken");
@@ -83,12 +83,12 @@ describe("Liquidator", () => {
   let vTokenCollateral: FakeContract<VBep20Immutable>;
   let liquidatorContract: MockContract<LiquidatorHarness>;
   let underlying: FakeContract<FaucetToken>;
-
   beforeEach(async () => {
     [liquidator] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
     configure(contracts);
     ({ vTokenCollateral, liquidator: liquidatorContract, underlying } = contracts);
+    const [borrowerSigner] = await ethers.getSigners();
   });
 
   describe("splitLiquidationIncentive", () => {

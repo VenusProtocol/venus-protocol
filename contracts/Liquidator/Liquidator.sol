@@ -6,10 +6,10 @@ import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/acc
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { IProtocolShareReserve } from "../external/IProtocolShareReserve.sol";
 import { IWBNB } from "../external/IWBNB.sol";
-import "./LiquidatorStorage.sol";
+import { LiquidatorStorage } from "./LiquidatorStorage.sol";
 import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
 import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
@@ -290,11 +290,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             }
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
-        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(
-            vTokenCollateral,
-            (ourBalanceAfter - ourBalanceBefore),
-            totalIncentive
-        );
+        uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
+        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(borrower, vTokenCollateral, seizedAmount);
         _reduceReservesInternal();
         emit LiquidateBorrowedTokens(
             msg.sender,
@@ -393,11 +390,13 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
+        address borrower,
         IVToken vTokenCollateral,
         uint256 seizedAmount,
         uint256 totalIncentive
     ) internal returns (uint256 ours, uint256 theirs) {
         (ours, theirs) = _splitLiquidationIncentive(seizedAmount, totalIncentive);
+        // (ours, theirs) = _splitLiquidationIncentive(borrower, address(vTokenCollateral), seizedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }

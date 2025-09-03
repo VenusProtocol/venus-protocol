@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
@@ -10,7 +12,7 @@ import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInter
  * @notice vTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Venus
  */
-contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
+abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
@@ -23,6 +25,9 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @param admin_ Address of the administrator of this token
      * @param implementation_ The address of the implementation the contract delegates to
      * @param becomeImplementationData The encoded args for becomeImplementation
+     * @param flashLoanEnabled_ Enable flashLoan or not for this market
+     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
+     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     constructor(
         address underlying_,
@@ -34,7 +39,10 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData
+        bytes memory becomeImplementationData,
+        bool flashLoanEnabled_,
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     ) {
         // Creator of the contract is admin during initialization
         admin = payable(msg.sender);
@@ -43,14 +51,17 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         delegateTo(
             implementation_,
             abi.encodeWithSignature(
-                "initialize(address,address,address,uint256,string,string,uint8)",
+                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256,uint256)",
                 underlying_,
                 comptroller_,
                 interestRateModel_,
                 initialExchangeRateMantissa_,
                 name_,
                 symbol_,
-                decimals_
+                decimals_,
+                flashLoanEnabled_,
+                flashLoanProtocolFeeMantissa_,
+                flashLoanSupplierFeeMantissa_
             )
         );
 
@@ -220,7 +231,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @dev This will overwrite the approval amount for `spender`
      *  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)
      * @param spender The address of the account which may transfer tokens
-     * @param amount The number of tokens that are approved (-1 means infinite)
+     * @param amount The number of tokens that are approved (type(uint256).max means infinite)
      * @return Whether or not the approval succeeded
      */
     function approve(address spender, uint256 amount) external override returns (bool) {
@@ -346,7 +357,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @notice Get the current allowance from `owner` for `spender`
      * @param owner The address of the account which owns the tokens to be spent
      * @param spender The address of the account which may transfer tokens
-     * @return The number of tokens allowed to be spent (-1 means infinite)
+     * @return The number of tokens allowed to be spent (type(uint256).max means infinite)
      */
     function allowance(address owner, address spender) external view override returns (uint) {
         bytes memory data = delegateToViewImplementation(

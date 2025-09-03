@@ -60,7 +60,7 @@ describe("Comptroller", () => {
     describe("setCollateralFactor", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user).setCollateralFactor(ethers.constants.AddressZero, 1, 1),
+          comptroller.connect(user)["setCollateralFactor(address,uint256,uint256)"](ethers.constants.AddressZero, 1, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,

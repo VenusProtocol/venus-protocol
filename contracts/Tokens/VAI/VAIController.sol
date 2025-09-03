@@ -7,12 +7,13 @@ import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { VToken } from "../VTokens/VToken.sol";
-import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
+import { VAIUnitroller } from "./VAIUnitroller.sol";
 import { VAIControllerInterface } from "./VAIControllerInterface.sol";
 import { IVAI } from "./IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
 import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
 import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
+import { VAIControllerStorageG4 } from "./VAIControllerStorage.sol";
 
 /**
  * @title VAI Comptroller
@@ -22,6 +23,9 @@ import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInter
 contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAIControllerErrorReporter, Exponential {
     /// @notice Initial index used in interest computations
     uint256 public constant INITIAL_VAI_MINT_INDEX = 1e18;
+
+    /// poolId for core Pool
+    uint96 public constant CORE_POOL_ID = 0;
 
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
@@ -105,6 +109,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         if (address(comptroller) == address(0)) {
             return uint256(Error.NO_ERROR);
         }
+
+        require(comptroller.userPoolId(msg.sender) == CORE_POOL_ID, "VAI mint only allowed in the core Pool");
 
         _ensureNonzeroAmount(mintVAIAmount);
         _ensureNotPaused();
@@ -318,7 +324,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
             }
 
-            /* Fail if repayAmount = -1 */
+            /* Fail if repayAmount = type(uint256).max */
             if (repayAmount == type(uint256).max) {
                 return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
             }

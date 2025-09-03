@@ -3,6 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { constants } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
@@ -30,7 +31,9 @@ type SimpleComptrollerFixture = {
   comptrollerLens: MockContract<ComptrollerLens>;
   unitroller: Unitroller;
   comptroller: ComptrollerMock;
+  vToken: FakeContract<VToken>;
 };
+const corePoolId = 0;
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
@@ -45,7 +48,9 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  return { oracle, comptroller, unitroller, comptrollerLens, accessControl };
+  const vToken = await smock.fake<VToken>("VToken");
+
+  return { oracle, comptroller, unitroller, comptrollerLens, accessControl, vToken };
 }
 
 function configureOracle(oracle: FakeContract<PriceOracle>) {
@@ -316,10 +321,9 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
-      vToken.comptroller.returns(contracts.comptroller.address);
-      vToken.isVToken.returns(true);
-      return { vToken, ...contracts };
+      contracts.vToken.comptroller.returns(contracts.comptroller.address);
+      contracts.vToken.isVToken.returns(true);
+      return { ...contracts };
     }
 
     beforeEach(async () => {
@@ -328,15 +332,15 @@ describe("Comptroller", () => {
     });
 
     it("fails if asset is not listed", async () => {
-      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold)).to.be.revertedWith(
-        "market not listed",
-      );
+      await expect(
+        comptroller["setCollateralFactor(address,uint256,uint256)"](vToken.address, half, half),
+      ).to.be.revertedWith("market not listed");
     });
 
     it("fails if factor is set without an underlying price", async () => {
       await comptroller._supportMarket(vToken.address);
       oracle.getUnderlyingPrice.returns(0);
-      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold))
+      await expect(comptroller["setCollateralFactor(address,uint256,uint256)"](vToken.address, half, half))
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
@@ -347,16 +351,18 @@ describe("Comptroller", () => {
 
     it("succeeds and sets market", async () => {
       await comptroller._supportMarket(vToken.address);
-      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold))
+      await expect(comptroller["setCollateralFactor(address,uint256,uint256)"](vToken.address, half, half))
         .emit(comptroller, "NewCollateralFactor")
-        .withArgs(vToken.address, "0", half);
+        .withArgs(corePoolId, vToken.address, "0", half);
     });
 
     it("succeeds and sets market using alias", async () => {
       await comptroller.supportMarket(vToken.address);
-      await expect(comptroller.setCollateralFactor(vToken.address, half, liquidationThreshold))
+      await expect(
+        comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](corePoolId, vToken.address, half, half),
+      )
         .emit(comptroller, "NewCollateralFactor")
-        .withArgs(vToken.address, "0", half);
+        .withArgs(corePoolId, vToken.address, "0", half);
 
       expect(await comptroller.isMarketListed(vToken.address)).to.be.true;
     });
@@ -942,7 +948,7 @@ describe("Comptroller", () => {
         vToken.borrowIndex.returns(1);
         comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
         await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
-
+        await comptroller.setIsBorrowAllowed(0, vToken.address, true);
         expect(
           await comptroller
             .connect(vToken.wallet)
@@ -958,6 +964,7 @@ describe("Comptroller", () => {
         vToken.borrowIndex.returns(1);
         comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
         await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
+        await comptroller.setIsBorrowAllowed(0, vToken.address, true);
 
         await expect(
           comptroller
@@ -974,6 +981,7 @@ describe("Comptroller", () => {
         vToken.borrowIndex.returns(1);
         comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
         await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
+        await comptroller.setIsBorrowAllowed(0, vToken.address, true);
 
         await expect(
           comptroller
@@ -989,6 +997,446 @@ describe("Comptroller", () => {
         expect(borrowingPower[0]).to.eq(accountLiquidity[0]);
         expect(borrowingPower[1]).to.eq(accountLiquidity[1]);
         expect(borrowingPower[2]).to.eq(accountLiquidity[2]);
+      });
+    });
+  });
+
+  describe("E-Mode Pool", async () => {
+    let comptroller: ComptrollerMock;
+    let vToken: FakeContract<VToken>;
+    let accessControl: FakeContract<IAccessControlManagerV5>;
+    let oracle: FakeContract<PriceOracle>;
+    let poolId;
+
+    const corePoolId = 0;
+    const oneMantissa = parseUnits("1", 18);
+    const defaultCF = parseUnits("0.5", 18);
+    const defaultLT = parseUnits("0.6", 18);
+    const defaultLI = parseUnits("1.1", 18);
+
+    const coreCF = parseUnits("0.3", 18);
+    const coreLT = parseUnits("0.4", 18);
+    const coreLI = parseUnits("1.1", 18);
+
+    async function deploy(): Promise<SimpleComptrollerFixture & { vToken: FakeContract<VToken> }> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      configureVToken(vToken, contracts.comptroller);
+      await contracts.comptroller._supportMarket(vToken.address);
+      const comptrollerLensFactory = await ethers.getContractFactory("ComptrollerLens");
+      const comptrollerLens = await comptrollerLensFactory.deploy();
+      await contracts.comptroller._setComptrollerLens(comptrollerLens.address);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, vToken, accessControl, oracle } = await loadFixture(deploy));
+      accessControl.isAllowedToCall.returns(true);
+      configureOracle(oracle);
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](vToken.address, coreCF, coreLT);
+      await comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, coreLI);
+      await comptroller.createPool("e-mode");
+      poolId = await comptroller.lastPoolId();
+      await comptroller.addPoolMarkets([poolId], [vToken.address]);
+    });
+
+    describe("createPool", () => {
+      it("reverts if label is empty", async () => {
+        await expect(comptroller.createPool("")).to.be.revertedWithCustomError(comptroller, "EmptyPoolLabel");
+      });
+
+      it("should increment poolId and stores label", async () => {
+        const currentLastPoolId = await comptroller.lastPoolId();
+        const newLabel = "test-pool";
+
+        const tx = await comptroller.createPool(newLabel);
+        await tx.wait();
+
+        // poolId should increment by 1
+        const newPoolId = currentLastPoolId.add(1);
+        expect(await comptroller.lastPoolId()).to.equal(newPoolId);
+
+        const poolLabel = await comptroller.pools(newPoolId);
+        expect(poolLabel).to.equal(newLabel);
+
+        await expect(tx).to.emit(comptroller, "PoolCreated").withArgs(newPoolId, newLabel);
+
+        const returnedPoolId = await comptroller.callStatic.createPool("another-pool");
+        expect(returnedPoolId).to.equal(newPoolId.add(1));
+      });
+    });
+
+    describe("addPoolMarkets", () => {
+      it("reverts if array lengths mismatch", async () => {
+        await expect(
+          comptroller.addPoolMarkets([poolId], [vToken.address, vToken.address]),
+        ).to.be.revertedWithCustomError(comptroller, "ArrayLengthMismatch");
+      });
+
+      it("reverts if trying to add to core pool (poolId 0)", async () => {
+        await expect(comptroller.addPoolMarkets([corePoolId], [vToken.address])).to.be.revertedWithCustomError(
+          comptroller,
+          "CorePoolModificationNotAllowed",
+        );
+      });
+
+      it("reverts if pool does not exist", async () => {
+        await expect(comptroller.addPoolMarkets([poolId + 1], [vToken.address]))
+          .to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist")
+          .withArgs(poolId + 1);
+      });
+
+      it("reverts if market Already exist in the pool", async () => {
+        await expect(comptroller.addPoolMarkets([poolId], [vToken.address]))
+          .to.be.revertedWithCustomError(comptroller, "MarketAlreadyListed")
+          .withArgs(poolId, vToken.address);
+      });
+
+      it("reverts if market not listed in core pool", async () => {
+        const fakeVToken = await smock.fake<VToken>("VToken");
+        await expect(comptroller.addPoolMarkets([poolId], [fakeVToken.address])).to.be.revertedWithCustomError(
+          comptroller,
+          "MarketNotListedInCorePool",
+        );
+      });
+
+      it("should add multiple markets", async () => {
+        const vToken1 = await smock.fake<VToken>("VToken");
+        const vToken2 = await smock.fake<VToken>("VToken");
+
+        await comptroller._supportMarket(vToken1.address);
+        await comptroller._supportMarket(vToken2.address);
+
+        await comptroller.addPoolMarkets([poolId, poolId], [vToken1.address, vToken2.address]);
+
+        const vTokensInPool = await comptroller.getPoolVTokens(poolId);
+        expect(vTokensInPool).to.include(vToken1.address);
+        expect(vTokensInPool).to.include(vToken2.address);
+      });
+    });
+
+    describe("setIsBorrowAllowed", () => {
+      it("reverts if pool does not exist", async () => {
+        await expect(comptroller.setIsBorrowAllowed(poolId + 1, vToken.address, true))
+          .to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist")
+          .withArgs(poolId + 1);
+      });
+
+      it("reverts if market is not listed in the pool", async () => {
+        const fakeVToken = await smock.fake<VToken>("VToken");
+        await expect(comptroller.setIsBorrowAllowed(poolId, fakeVToken.address, true)).to.be.revertedWithCustomError(
+          comptroller,
+          "MarketConfigNotFound",
+        );
+      });
+
+      it("should return silenty if borrowAllowed is already set to desired value", async () => {
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, true);
+        await expect(comptroller.setIsBorrowAllowed(poolId, vToken.address, true)).to.not.emit(
+          comptroller,
+          "BorrowAllowedUpdated",
+        );
+      });
+
+      it("should update borrowAllowed and emits event", async () => {
+        await expect(comptroller.setIsBorrowAllowed(poolId, vToken.address, true))
+          .to.emit(comptroller, "BorrowAllowedUpdated")
+          .withArgs(poolId, vToken.address, true);
+
+        let [, , , , , , isBorrowAllowed] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(isBorrowAllowed).to.be.true;
+
+        // swtitch to false
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, false);
+        [, , , , , , isBorrowAllowed] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(isBorrowAllowed).to.be.false;
+      });
+    });
+
+    describe("setCollateralFactor for specific poolId", () => {
+      it("reverts if pool does not exist", async () => {
+        await expect(
+          comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+            poolId + 1,
+            vToken.address,
+            defaultCF,
+            defaultLT,
+          ),
+        )
+          .to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist")
+          .withArgs(poolId + 1);
+      });
+
+      it("reverts if market is not listed in the pool", async () => {
+        const fakeVToken = await smock.fake<VToken>("VToken");
+        await expect(
+          comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+            poolId,
+            fakeVToken.address,
+            defaultCF,
+            defaultLT,
+          ),
+        ).to.be.revertedWith("market not listed");
+      });
+
+      it("reverts on invalid parameter bounds", async () => {
+        // CF > 1
+        await expect(
+          comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+            poolId,
+            vToken.address,
+            oneMantissa.add(1),
+            defaultLT,
+          ),
+        ).to.emit(comptroller, "Failure");
+
+        // LT > 1
+        await expect(
+          comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+            poolId,
+            vToken.address,
+            defaultCF,
+            oneMantissa.add(1),
+          ),
+        ).to.emit(comptroller, "Failure");
+
+        // LT < CF
+        const lowerLT = parseUnits("0.4", 18);
+        await expect(
+          comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+            poolId,
+            vToken.address,
+            defaultCF,
+            lowerLT,
+          ),
+        ).to.emit(comptroller, "Failure");
+      });
+
+      it("should update collateral factor and liquidation threshold and emits event", async () => {
+        await expect(
+          comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+            poolId,
+            vToken.address,
+            defaultCF,
+            defaultLT,
+          ),
+        )
+          .to.emit(comptroller, "NewCollateralFactor")
+          .withArgs(poolId, vToken.address, 0, defaultCF);
+
+        const [, cf, , lt] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(cf).to.equal(defaultCF);
+        expect(lt).to.equal(defaultLT);
+      });
+    });
+
+    describe("setLiquidationIncentive with poolId", () => {
+      it("reverts if pool does not exist", async () => {
+        await expect(
+          comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId + 1, vToken.address, defaultLI),
+        )
+          .to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist")
+          .withArgs(poolId + 1);
+      });
+
+      it("reverts if market is not listed in the pool", async () => {
+        const fakeVToken = await smock.fake<VToken>("VToken");
+        await expect(
+          comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, fakeVToken.address, defaultLI),
+        ).to.be.revertedWith("market not listed");
+      });
+
+      it("reverts on invalid parameter bounds", async () => {
+        // LI < 1
+        const lessThanOne = parseUnits("0.9", 18);
+        await expect(
+          comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, lessThanOne),
+        ).to.be.revertedWith("incentive < 1e18");
+      });
+
+      it("should update liquidation incentive and emits event", async () => {
+        await expect(comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI))
+          .to.emit(comptroller, "NewLiquidationIncentive")
+          .withArgs(poolId, 0, defaultLI);
+
+        const [, , , , li] = await comptroller.poolMarkets(poolId, vToken.address);
+        expect(li).to.equal(defaultLI);
+      });
+    });
+
+    describe("removePoolMarket", () => {
+      it("reverts if pool does not exist", async () => {
+        await expect(comptroller.removePoolMarket(poolId + 1, vToken.address))
+          .to.be.revertedWithCustomError(comptroller, "PoolMarketNotFound")
+          .withArgs(poolId + 1, vToken.address);
+      });
+
+      it("reverts if market is not listed in the pool", async () => {
+        const fakeVToken = await smock.fake<VToken>("VToken");
+        await expect(comptroller.removePoolMarket(poolId, fakeVToken.address))
+          .to.be.revertedWithCustomError(comptroller, "PoolMarketNotFound")
+          .withArgs(poolId, fakeVToken.address);
+      });
+
+      it("removes the market and emits event", async () => {
+        // Add an extra market
+        const vToken2 = await smock.fake<VToken>("VToken");
+        await comptroller._supportMarket(vToken2.address);
+        await comptroller.addPoolMarkets([poolId], [vToken2.address]);
+
+        // Remove one
+        await expect(comptroller.removePoolMarket(poolId, vToken2.address))
+          .to.emit(comptroller, "PoolMarketRemoved")
+          .withArgs(poolId, vToken2.address);
+
+        // Confirm only one remains
+        const vTokens = await comptroller.getPoolVTokens(poolId);
+        expect(vTokens.length).to.equal(1);
+        expect(vTokens).to.deep.equal([vToken.address]);
+      });
+
+      it("should delete pool vTokens array if last market removed", async () => {
+        await expect(comptroller.removePoolMarket(poolId, vToken.address))
+          .to.emit(comptroller, "PoolMarketRemoved")
+          .withArgs(poolId, vToken.address);
+
+        const vTokens = await comptroller.getPoolVTokens(poolId);
+        expect(vTokens.length).to.equal(0);
+      });
+    });
+
+    describe("poolEnter", () => {
+      it("reverts if entering the wrong pool", async () => {
+        await expect(comptroller.enterPool(poolId + 1)).to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist");
+      });
+
+      it("reverts if entering the same pool", async () => {
+        await comptroller.enterPool(poolId); // success
+        await expect(comptroller.enterPool(poolId)).to.be.revertedWithCustomError(comptroller, "AlreadyInSelectedPool");
+      });
+
+      it("reverts if user has invalid pool borrows", async () => {
+        await comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+          poolId,
+          vToken.address,
+          defaultCF,
+          defaultLT,
+        );
+        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, false);
+        vToken.borrowBalanceStored.returns(parseUnits("10", 18));
+        await comptroller.enterMarkets([vToken.address]);
+
+        await expect(comptroller.enterPool(poolId)).to.be.revertedWithCustomError(
+          comptroller,
+          "IncompatibleBorrowedAssets",
+        );
+      });
+
+      it("should emit PoolSelected on successful pool switch", async () => {
+        await comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+          poolId,
+          vToken.address,
+          defaultCF,
+          defaultLT,
+        );
+        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+        await expect(comptroller.enterPool(poolId))
+          .to.emit(comptroller, "PoolSelected")
+          .withArgs(root.address, corePoolId, poolId);
+      });
+    });
+
+    describe("effective risk params", () => {
+      it("should return emode params if market included in the emode category, else falls back to core", async () => {
+        await comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+          poolId,
+          vToken.address,
+          defaultCF,
+          defaultLT,
+        );
+        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+
+        // Core pool params should be used initially (userPool 0)
+        let cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        let lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        expect(cf).to.equal(coreCF);
+        expect(lt).to.equal(coreLT);
+
+        // Enter e-mode pool → effective params should update to pool defaults
+        await comptroller.enterPool(poolId);
+        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        expect(cf).to.equal(defaultCF);
+        expect(lt).to.equal(defaultLT);
+
+        // Remove market from pool → fallback to core pool params
+        await comptroller.removePoolMarket(poolId, vToken.address);
+        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        expect(cf).to.equal(coreCF);
+        expect(lt).to.equal(coreLT);
+      });
+    });
+
+    describe("Market Getters", () => {
+      it("returns correct key for core pool", async () => {
+        const key = await comptroller.getPoolMarketIndex(corePoolId, vToken.address);
+        const expected = ethers.utils.hexZeroPad(vToken.address, 32);
+        expect(key.toLowerCase()).to.equal(expected.toLowerCase());
+      });
+
+      it("returns correct core pool market info using markets()", async () => {
+        const [isListed, cf, isVenus, lt, li, marketPoolId, isBorrowAllowed] = await comptroller.markets(
+          vToken.address,
+        );
+
+        expect(isListed).to.be.true;
+        expect(cf).to.equal(coreCF);
+        expect(isVenus).to.be.false;
+        expect(lt).to.equal(coreLT);
+        expect(li).to.equal(coreLI);
+        expect(marketPoolId).to.equal(corePoolId);
+        expect(isBorrowAllowed).to.be.false;
+      });
+
+      it("returns correct pool market info using poolMarkets()", async () => {
+        await comptroller["setCollateralFactor(uint96,address,uint256,uint256)"](
+          poolId,
+          vToken.address,
+          defaultCF,
+          defaultLT,
+        );
+        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+        await comptroller.setIsBorrowAllowed(poolId, vToken.address, true);
+
+        const [isListed, cf, isVenus, lt, li, marketPoolId, isBorrowAllowed] = await comptroller.poolMarkets(
+          poolId,
+          vToken.address,
+        );
+
+        expect(isListed).to.be.true;
+        expect(cf).to.equal(defaultCF);
+        expect(isVenus).to.be.false;
+        expect(lt).to.equal(defaultLT);
+        expect(li).to.equal(defaultLI);
+        expect(marketPoolId).to.equal(poolId);
+        expect(isBorrowAllowed).to.be.true;
+      });
+
+      it("returns all the markets of the specific pool", async () => {
+        const vToken1 = await smock.fake<VToken>("VToken");
+        const vToken2 = await smock.fake<VToken>("VToken");
+        await comptroller._supportMarket(vToken1.address);
+        await comptroller._supportMarket(vToken2.address);
+
+        const poolId = await comptroller.callStatic.createPool("vToken-emode");
+        await comptroller.createPool("vToken-emode");
+        await comptroller.addPoolMarkets([poolId, poolId], [vToken1.address, vToken2.address]);
+
+        const vTokens = await comptroller.getPoolVTokens(poolId);
+        expect(vTokens).to.include(vToken1.address);
+        expect(vTokens).to.include(vToken2.address);
       });
     });
   });

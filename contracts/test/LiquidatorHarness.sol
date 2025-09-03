@@ -25,6 +25,7 @@ contract LiquidatorHarness is Liquidator {
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
     function distributeLiquidationIncentive(
+        address borrower,
         IVToken vTokenCollateral,
         uint256 siezedAmount,
         uint256 totalIncentive

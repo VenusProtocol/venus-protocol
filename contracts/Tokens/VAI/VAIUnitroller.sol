@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import "../../Utils/ErrorReporter.sol";
-import "./VAIControllerStorage.sol";
+import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
+import { VAIUnitrollerAdminStorage } from "./VAIControllerStorage.sol";
 
 /**
  * @title VAI Unitroller

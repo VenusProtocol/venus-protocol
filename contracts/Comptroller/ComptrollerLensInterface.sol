@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.25;
 
-import "../Tokens/VTokens/VToken.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
 
 interface ComptrollerLensInterface {
     struct AccountSnapshot {
@@ -22,6 +25,7 @@ interface ComptrollerLensInterface {
         uint256 dynamicLiquidationIncentiveMantissa;
     }
 
+    // Just need to make borrower first then comptroller
     function liquidateCalculateSeizeTokens(
         address comptroller,
         address borrower,
@@ -58,6 +62,7 @@ interface ComptrollerLensInterface {
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
-    ) external view returns (uint256, AccountSnapshot memory);
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256, uint256, uint256);
 }

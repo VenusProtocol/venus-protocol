@@ -2,16 +2,20 @@
 
 pragma solidity 0.8.25;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
+import { Action } from "../../../Comptroller/ComptrollerInterface.sol";
+import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
+enum WeightFunction {
+    /// @notice Use the collateral factor of the asset for weighting
+    USE_COLLATERAL_FACTOR,
+    /// @notice Use the liquidation threshold of the asset for weighting
+    USE_LIQUIDATION_THRESHOLD
+}
 
 interface IFacetBase {
     /**
@@ -50,4 +54,8 @@ interface IFacetBase {
         uint256 redeemTokens,
         uint256 borrowAmount
     ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot);
+    
+    function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (PoolMarketId);
+
+    function corePoolId() external pure returns (uint96);
 }

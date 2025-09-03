@@ -52,7 +52,6 @@ describe("Evil Token test", async () => {
     unitroller = ComptrollerHarness__factory.connect(unitroller.address, root);
 
     await unitroller._setAccessControl(accessControlMock.address);
-
     await unitroller._setPriceOracle(priceOracle.address);
     await unitroller._setComptrollerLens(comptrollerLens.address);
     await unitroller.setXVSAddress(xvs.address); // harness only
@@ -98,7 +97,11 @@ describe("Evil Token test", async () => {
     await vToken1.setAccessControlManager(accessControlMock.address);
 
     await unitroller._supportMarket(vToken1.address);
-    await unitroller.setCollateralFactor(vToken1.address, convertToUnit(cf1, 18), convertToUnit(cf1, 18));
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken1.address,
+      convertToUnit(cf1, 18),
+      convertToUnit(cf1, 18),
+    );
     await priceOracle.setUnderlyingPrice(vToken1.address, convertToUnit(up1, 18));
 
     const underlying2Factory = await ethers.getContractFactory("BEP20Harness");
@@ -127,7 +130,11 @@ describe("Evil Token test", async () => {
     vToken2 = await ethers.getContractAt("VBep20MockDelegate", vDelegator2.address);
 
     await unitroller._supportMarket(vToken2.address);
-    await unitroller.setCollateralFactor(vToken2.address, convertToUnit(cf2, 18), convertToUnit(cf2, 18));
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken2.address,
+      convertToUnit(cf2, 18),
+      convertToUnit(cf2, 18),
+    );
     await priceOracle.setUnderlyingPrice(vToken2.address, convertToUnit(up2, 18));
 
     const underlying3Factory = await ethers.getContractFactory("BEP20Harness");
@@ -152,12 +159,19 @@ describe("Evil Token test", async () => {
       "0x00",
     );
     await vDelegator3.deployed();
-
     vToken3 = await ethers.getContractAt("EvilXToken", vDelegator3.address);
     await unitroller._supportMarket(vToken3.address);
 
-    await unitroller.setCollateralFactor(vToken3.address, convertToUnit(cf2, 18), convertToUnit(cf2, 18));
-    await unitroller.setCollateralFactor(vToken3.address, convertToUnit(cf3, 18), convertToUnit(cf3, 18));
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken3.address,
+      convertToUnit(cf2, 18),
+      convertToUnit(cf2, 18),
+    );
+    await unitroller["setCollateralFactor(address,uint256,uint256)"](
+      vToken3.address,
+      convertToUnit(cf3, 18),
+      convertToUnit(cf3, 18),
+    );
     await priceOracle.setUnderlyingPrice(vToken2.address, convertToUnit(up3, 18));
 
     await unitroller._setMarketSupplyCaps(
@@ -182,6 +196,10 @@ describe("Evil Token test", async () => {
     await vToken1.setProtocolShareReserve(protocolShareReserve.address);
     await vToken2.setProtocolShareReserve(protocolShareReserve.address);
     await vToken3.setProtocolShareReserve(protocolShareReserve.address);
+    await unitroller["setLiquidationIncentive(address,uint256)"](vToken1.address, convertToUnit(1.1, 18));
+    await unitroller["setLiquidationIncentive(address,uint256)"](vToken2.address, convertToUnit(1.1, 18));
+    await unitroller["setLiquidationIncentive(address,uint256)"](vToken3.address, convertToUnit(1.1, 18));
+    await unitroller.setIsBorrowAllowed(0, vToken3.address, true);
   });
 
   it("Check the updated vToken states after transfer out", async () => {

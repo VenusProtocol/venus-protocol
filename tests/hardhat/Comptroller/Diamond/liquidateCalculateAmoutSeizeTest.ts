@@ -97,6 +97,11 @@ describe("Comptroller", () => {
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
 
+    await comptroller._supportMarket(vTokenBorrowed.address);
+    await comptroller._supportMarket(vTokenCollateral.address);
+    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenBorrowed.address, convertToUnit("1.1", 18));
+    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenCollateral.address, convertToUnit("1.1", 18));
+
     return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
 

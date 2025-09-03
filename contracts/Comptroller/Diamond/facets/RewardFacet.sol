@@ -10,6 +10,7 @@ import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
+import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title RewardFacet
@@ -190,7 +191,13 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
+            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+                holder,
+                VToken(address(0)),
+                0,
+                0,
+                WeightFunction.USE_COLLATERAL_FACTOR
+            );
 
             uint256 value = venusAccrued[holder];
             delete venusAccrued[holder];
@@ -223,7 +230,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
         for (uint256 i; i < vTokensLength; ++i) {
             VToken vToken = vTokens[i];
-            ensureListed(markets[address(vToken)]);
+            ensureListed(getCorePoolMarket(address(vToken)));
             if (borrowers) {
                 Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
