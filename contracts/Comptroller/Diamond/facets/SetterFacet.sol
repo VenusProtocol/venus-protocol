@@ -194,7 +194,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the collateral factor and liquidation threshold for a market in the Core Pool only.
-     * @dev Alias to _setCollateralFactor to support the Isolated Lending Comptroller Interface
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
@@ -211,7 +210,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the liquidation incentive for a market in the Core Pool only.
-     * @dev Alias to _setLiquidationIncentive to support the Isolated Lending Comptroller Interface
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
