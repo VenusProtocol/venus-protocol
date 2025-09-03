@@ -120,7 +120,7 @@ describe("Comptroller", () => {
       ).to.equal(ComptrollerErrorReporter.Error.NO_ERROR);
       await expect(comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, validIncentive))
         .to.emit(comptroller, "NewLiquidationIncentive")
-        .withArgs(corePoolId, initialIncentive, validIncentive);
+        .withArgs(corePoolId, vToken.address, initialIncentive, validIncentive);
       const data = await comptroller.markets(vToken.address);
       expect(data.liquidationIncentiveMantissa).to.equal(validIncentive);
     });
@@ -1233,7 +1233,7 @@ describe("Comptroller", () => {
       it("should update liquidation incentive and emits event", async () => {
         await expect(comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI))
           .to.emit(comptroller, "NewLiquidationIncentive")
-          .withArgs(poolId, 0, defaultLI);
+          .withArgs(poolId, vToken.address, 0, defaultLI);
 
         const [, , , , li] = await comptroller.poolMarkets(poolId, vToken.address);
         expect(li).to.equal(defaultLI);
