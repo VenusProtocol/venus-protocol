@@ -388,6 +388,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @custom:event PoolMarketInitialized Emitted after successfully initializing a market in a pool.
      */
     function addPoolMarkets(uint96[] calldata poolIds, address[] calldata vTokens) external {
+        ensureAllowed("addPoolMarkets(uint96[],address[])");
+
         uint256 len = poolIds.length;
         if (vTokens.length != len) {
             revert ArrayLengthMismatch();
@@ -672,8 +674,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     function _addPoolMarket(uint96 poolId, address vToken) internal {
-        ensureAllowed("addPoolMarket(uint96,address)");
-
         if (poolId == corePoolId) revert InvalidOperationForCorePool();
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
 
