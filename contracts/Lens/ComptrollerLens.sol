@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-
 pragma solidity 0.8.25;
 
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
@@ -32,22 +32,26 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 exchangeRateMantissa;
         // Price of the underlying asset from the oracle (USD, scaled by 1e18)
         uint256 oraclePriceMantissa;
+        // Price of the vToken (USD, scaled by 1e18)
+        Exp vTokenPrice;
+        // Weighted price of the vToken (USD, scaled by 1e18)
+        Exp weightedVTokenPrice;
         // Error code for operations
         uint256 err;
     }
 
     /**
      * @notice Computes the number of collateral tokens to be seized in a liquidation event
-     * @param comptroller Address of comptroller
      * @param borrower The address of the borrower to be liquidated
+     * @param comptroller Address of comptroller
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
      * @return A tuple of error code, and tokens to seize
      */
     function liquidateCalculateSeizeTokens(
-        address comptroller,
         address borrower,
+        address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint256 actualRepayAmount
@@ -186,7 +190,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
     ) external view returns (uint256, uint256, uint256) {
         (uint256 errorCode, AccountSnapshot memory snapshot) = _calculateAccountPosition(
             comptroller,
@@ -194,7 +199,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            ComptrollerInterface(comptroller).getCollateralFactor
+            weightingStrategy
         );
 
         return (errorCode, snapshot.liquidity, snapshot.shortfall);
@@ -208,6 +213,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return Returns AccountSnapshot struct containing the account's position
      */
     function getAccountHealthSnapshot(
@@ -215,7 +223,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
     ) external view returns (uint256, AccountSnapshot memory) {
         (uint256 errorCode, AccountSnapshot memory snapshot) = _calculateAccountPosition(
             comptroller,
@@ -223,7 +232,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vTokenModify,
             redeemTokens,
             borrowAmount,
-            ComptrollerInterface(comptroller).getLiquidationThreshold
+            weightingStrategy
         );
 
         return (errorCode, snapshot);
@@ -236,7 +245,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @param weight Function to get the collateral factor or liquidation threshold for a vToken
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return errorCode Returns an error code indicating success or failure
      * @return snapshot Returns an AccountSnapshot struct containing the calculated values
      * @dev This function processes all assets the account is in, calculates their balances, prices,
@@ -249,8 +260,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount,
-        function(address) external view returns (uint256) weight
+        WeightFunction weightingStrategy
     ) internal view returns (uint256 errorCode, AccountSnapshot memory snapshot) {
+        AccountSnapshotLocal memory vars;
+
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         vars.assetsCount = assets.length;
@@ -275,12 +288,18 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 return (errorCode, snapshot);
             }
 
-            Exp memory vTokenPrice = mul_(
+            vars.vTokenPrice = mul_(
                 Exp({ mantissa: vars.exchangeRateMantissa }),
                 Exp({ mantissa: vars.oraclePriceMantissa })
             );
 
-            Exp memory weightedVTokenPrice = mul_(Exp({ mantissa: weight(address(asset)) }), vTokenPrice);
+            vars.weightedVTokenPrice = Exp({
+                mantissa: ComptrollerInterface(comptroller).getEffectiveLtvFactor(
+                    account,
+                    address(asset),
+                    weightingStrategy
+                )
+            });
 
             if (asset == vTokenModify) {
                 // redeem effect: reduce the vToken balance
@@ -297,14 +316,14 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
 
             snapshot.totalCollateral = mul_ScalarTruncateAddUInt(
-                vTokenPrice,
+                vars.vTokenPrice,
                 vars.vTokenBalance,
                 snapshot.totalCollateral
             );
 
             // weightedCollateral += weightedVTokenPrice * vTokenBalance
             snapshot.weightedCollateral = mul_ScalarTruncateAddUInt(
-                weightedVTokenPrice,
+                vars.weightedVTokenPrice,
                 vars.vTokenBalance,
                 snapshot.weightedCollateral
             );
@@ -322,7 +341,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         if (address(vaiController) != address(0)) {
             snapshot.borrows = add_(snapshot.borrows, vaiController.getVAIRepayAmount(account));
         }
-        oErr = uint(Error.NO_ERROR);
 
         _finalizeSnapshot(snapshot);
 

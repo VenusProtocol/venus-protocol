@@ -25,12 +25,9 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
+
     // poolId for core Pool
     uint96 public constant corePoolId = 0;
-    // closeFactorMantissa must be strictly greater than this value
-    uint256 internal constant closeFactorMinMantissa = 0.05e18; // 0.05
-    // closeFactorMantissa must not exceed this value
-    uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
 
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
@@ -174,6 +171,9 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return err Error code
      * @return snapshot Snapshot of the account's health and collateral status
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
@@ -183,9 +183,11 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
     ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
-        return getHypotheticalHealthSnapshotInternal(account, vTokenModify, redeemTokens, borrowAmount);
+        return
+            getHypotheticalHealthSnapshotInternal(account, vTokenModify, redeemTokens, borrowAmount, weightingStrategy);
     }
 
     /**
@@ -195,6 +197,9 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
      * @return err Error code
      * @return snapshot Snapshot of the account's health and collateral status
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
@@ -204,14 +209,16 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
     ) internal view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
         (err, snapshot) = comptrollerLens.getAccountHealthSnapshot(
             address(this),
             account,
             vTokenModify,
             redeemTokens,
-            borrowAmount
+            borrowAmount,
+            weightingStrategy
         );
     }
 
@@ -296,7 +303,7 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         uint256 liquidationThresholdAvg,
         uint256 healthFactor
     ) external view returns (uint256 incentive) {
-        Market storage market = markets[vToken];
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
             vToken,
@@ -316,12 +323,13 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
         address borrower,
         address vToken
     ) external view returns (uint256 incentive) {
-        Market storage market = markets[vToken];
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
         (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = getHypotheticalHealthSnapshotInternal(
             borrower,
             VToken(vToken),
             0,
-            0
+            0,
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
         );
         if (err != uint256(Error.NO_ERROR)) {
             return err;
@@ -333,26 +341,6 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             snapshot.liquidationThresholdAvg,
             market.maxLiquidationIncentiveMantissa
         );
-    }
-
-    /**
-     * @notice Get the collateral factor for a vToken
-     * @param vToken The address of the vToken to get the collateral factor for
-     * @return The collateral factor for the vToken, scaled by 1e18
-     */
-    function getCollateralFactor(address vToken) external view returns (uint256) {
-        // return Exp({ mantissa: markets[vToken].collateralFactorMantissa });
-        return markets[vToken].collateralFactorMantissa;
-    }
-
-    /**
-     * @notice Get the liquidation threshold for a vToken
-     * @param vToken The address of the vToken to get the liquidation threshold for
-     * @return The liquidation threshold for the vToken, scaled by 1e18
-     */
-    function getLiquidationThreshold(address vToken) external view returns (uint256) {
-        // return Exp({ mantissa: markets[vToken].liquidationThresholdMantissa });
-        return markets[vToken].liquidationThresholdMantissa;
     }
 
     /**

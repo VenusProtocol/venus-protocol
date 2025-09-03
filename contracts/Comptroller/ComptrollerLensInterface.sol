@@ -31,8 +31,8 @@ interface ComptrollerLensInterface {
         address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint);
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256);
 
     function liquidateCalculateSeizeTokens(
         address comptroller,
@@ -54,7 +54,8 @@ interface ComptrollerLensInterface {
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
-        uint256 borrowAmount
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
     ) external view returns (uint256, uint256, uint256);
 
     function getAccountHealthSnapshot(
@@ -64,5 +65,5 @@ interface ComptrollerLensInterface {
         uint256 redeemTokens,
         uint256 borrowAmount,
         WeightFunction weightingStrategy
-    ) external view returns (uint256, uint256, uint256);
+    ) external view returns (uint256, AccountSnapshot memory);
 }

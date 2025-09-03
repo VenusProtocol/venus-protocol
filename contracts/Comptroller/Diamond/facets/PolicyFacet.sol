@@ -272,7 +272,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             borrower,
             VToken(address(0)),
             0,
-            0
+            0,
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
         );
         if (err != 0) {
             return uint256(err);
@@ -281,7 +282,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        Market storage marketCollateral = markets[vTokenCollateral];
+        Market storage marketCollateral = getCorePoolMarket(vTokenCollateral);
         uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
             vTokenBorrowed,
             borrowBalance,
@@ -326,11 +327,11 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.UNAUTHORIZED);
         }
 
-        ensureListed(markets[vTokenCollateral]);
+        ensureListed(getCorePoolMarket(vTokenCollateral));
 
         uint256 borrowBalance;
         if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
+            ensureListed(getCorePoolMarket(vTokenBorrowed));
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
             borrowBalance = vaiController.getVAIRepayAmount(borrower);
@@ -347,7 +348,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        Market storage marketCollateral = markets[vTokenCollateral];
+        Market storage marketCollateral = getCorePoolMarket(vTokenCollateral);
         uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
             vTokenBorrowed,
             borrowBalance,

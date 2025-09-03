@@ -13,6 +13,7 @@ import { LiquidatorStorage } from "./LiquidatorStorage.sol";
 import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
 import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.
@@ -290,8 +291,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             }
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
-        uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
-        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(borrower, vTokenCollateral, seizedAmount);
+        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(
+            vTokenCollateral,
+            (ourBalanceAfter - ourBalanceBefore),
+            totalIncentive
+        );
         _reduceReservesInternal();
         emit LiquidateBorrowedTokens(
             msg.sender,
@@ -390,7 +394,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
-        address borrower,
         IVToken vTokenCollateral,
         uint256 seizedAmount,
         uint256 totalIncentive
@@ -503,7 +506,14 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 repayAmount
     ) internal view returns (ComptrollerLensInterface.AccountSnapshot memory) {
         (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = comptrollerLens
-            .getAccountHealthSnapshot(address(comptroller), borrower, VToken(vTokenCollateral), 0, repayAmount);
+            .getAccountHealthSnapshot(
+                address(comptroller),
+                borrower,
+                VToken(vTokenCollateral),
+                0,
+                repayAmount,
+                WeightFunction.USE_LIQUIDATION_THRESHOLD
+            );
         if (err != 0) revert SnapshotError(err);
         return snapshot;
     }
