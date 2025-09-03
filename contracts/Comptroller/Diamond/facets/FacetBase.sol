@@ -236,33 +236,33 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Returns the market index for a given vToken
-     * @dev Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping.
+     * @notice Returns the unique market index for the given poolId and vToken pair
+     * @dev Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping
      * - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,
-     *   maintaining backward compatibility with legacy mappings.
+     *   maintaining backward compatibility with legacy mappings
      * - For other pools, packs the `poolId` and `market` address into a single `bytes32` key,
-     *   The first 96 bits are used for the `poolId`, and the remaining 160 bits for the `market` address.
-     * @param poolId The ID of the pool.
-     * @param vToken The address of the market (vToken).
-     * @return A `bytes32` key that uniquely represents the (poolId, market) pair.
+     *   The first 96 bits are used for the `poolId`, and the remaining 160 bits for the `market` address
+     * @param poolId The ID of the pool
+     * @param vToken The address of the market (vToken)
+     * @return PoolMarketId The `bytes32` key that uniquely represents the (poolId, vToken) pair
      */
     function getPoolMarketIndex(uint96 poolId, address vToken) public pure returns (PoolMarketId) {
         return PoolMarketId.wrap(bytes32((uint256(poolId) << 160) | uint160(vToken)));
     }
 
     /**
-     * @dev Returns the market index for a given vToken in the Core Pool (poolId = 0)
-     * @param vToken The address of the vToken
-     * @return The bytes32 key used to index into the _poolMarkets mapping for the Core Pool
+     * @dev Returns the unique market index for the given vToken in the Core Pool (`poolId = 0`)
+     * @param vToken The address of the vToken in the Core Pool
+     * @return PoolMarketId The `bytes32` key that uniquely represents the (corePoolId, vToken) pair
      */
     function getCorePoolMarketIndex(address vToken) internal pure returns (PoolMarketId) {
         return getPoolMarketIndex(corePoolId, vToken);
     }
 
     /**
-     * @notice Returns the Market struct for a given vToken in the core pool
+     * @dev Returns the Market struct for the given vToken in the Core Pool (`poolId = 0`)
      * @param vToken The vToken address for which the market details are requested
-     * @return Market data corresponding to the given vToken
+     * @return market The Market struct corresponding to the (corePoolId, vToken) pair
      */
     function getCorePoolMarket(address vToken) internal view returns (Market storage) {
         return _poolMarkets[getCorePoolMarketIndex(address(vToken))];

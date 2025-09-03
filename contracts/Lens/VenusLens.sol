@@ -578,7 +578,7 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
-     * @notice Returns all pools along with their associated market data
+     * @notice Returns all pools (excluding the Core Pool) along with their associated market data
      * @param comptroller The Comptroller contract to query
      * @return poolsData An array of PoolWithMarkets structs, each containing pool info and its markets
      */
@@ -598,12 +598,12 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
-     * @notice Retrieves full market data for all vTokens in a specific pool
+     * @notice Retrieves full market data for all vTokens in a specific pool (excluding the Core Pool)
      * @param comptroller The address of the Comptroller contract
      * @param poolId The pool ID to fetch data for
-     * @return result An array of MarketData structs containing detailed market info
-     * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
-     * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool.
+     * @return result An array of MarketData structs containing detailed market info for the given pool
+     * @custom:error PoolDoesNotExist Reverts if the given pool ID does not exist
+     * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool (`poolId = 0`)
      */
     function getMarketsDataByPool(
         uint96 poolId,

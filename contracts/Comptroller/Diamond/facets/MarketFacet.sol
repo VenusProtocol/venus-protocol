@@ -46,9 +46,11 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Returns the assets an account has entered
-     * @param account The address of the account to pull assets for
-     * @return A dynamic list with the assets the account has entered
+     * @notice Returns the vToken markets an account has entered in the Core Pool
+     * @dev Reads membership from the Core Pool (`poolId = 0`). Although the account may have entered other pools,
+     *      all entered market state is recorded in the Core Pool indexes, making this function applicable to all poolIds
+     * @param account The address of the account to query
+     * @return assets A dynamic array of vToken markets the account has entered
      */
     function getAssetsIn(address account) external view returns (VToken[] memory) {
         uint256 len;
@@ -148,7 +150,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Returns whether the given account is entered in the given asset
+     * @notice Returns whether the given account has entered the specified vToken market in the Core Pool
+     * @dev Reads membership from the Core Pool (`poolId = 0`). Although the account may have entered other pools,
+     *      all entered market state is recorded in the Core Pool indexes, making this function applicable to all poolIds
      * @param account The address of the account to check
      * @param vToken The vToken to check
      * @return True if the account is in the asset, otherwise false
@@ -158,9 +162,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Check if a market is marked as listed (active)
-     * @param vToken vToken Address for the market to check
-     * @return listed True if listed otherwise false
+     * @notice Checks whether the given vToken market is listed in the Core Pool (`poolId = 0`)
+     * @param vToken The vToken Address of the market to check
+     * @return listed True if the (Core Pool, vToken) market is listed, otherwise false
      */
     function isMarketListed(VToken vToken) external view returns (bool) {
         return _poolMarkets[getCorePoolMarketIndex(address(vToken))].isListed;
@@ -183,10 +187,10 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Unlist a market by setting isListed to false
+     * @notice Unlists the given vToken market from the Core Pool (`poolId = 0`) by setting `isListed` to false
      * @dev Checks if market actions are paused and borrowCap/supplyCap/CF are set to 0
      * @param market The address of the market (vToken) to unlist
-     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
+     * @return uint256 0=success, otherwise a failure (See enum Error for details)
      */
     function unlistMarket(address market) external returns (uint256) {
         ensureAllowed("unlistMarket(address)");
@@ -285,9 +289,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Add the market to the _poolMarkets mapping and set it as listed
+     * @notice Adds the given vToken market to the Core Pool (`poolId = 0`) and marks it as listed
      * @dev Allows a privileged role to add and list markets to the Comptroller
-     * @param vToken The address of the market (token) to list
+     * @param vToken The address of the vToken market to list in the Core Pool
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function _supportMarket(VToken vToken) external returns (uint256) {
@@ -448,9 +452,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the liquidation Incentive for a vToken
-     * @param vToken The address of the vToken whose liquidation Incentive is being queried.
-     * @return The liquidation Incentive for the vToken, scaled by 1e18
+     * @notice Get the core pool liquidation Incentive for a vToken
+     * @param vToken The address of the vToken to get the liquidation Incentive for
+     * @return liquidationIncentive The liquidation incentive for the vToken, scaled by 1e18
      */
     function getLiquidationIncentive(address vToken) external view returns (uint256) {
         (, , uint256 li) = getLiquidationParams(corePoolId, vToken);
@@ -479,10 +483,12 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the Effective liquidation Incentive for a vToken
-     * @dev This value should be used when calculating account liquidity and during liquidation checks.
-     * @param account The address of the account for which to fetch the liquidation Incentive.
-     * @param vToken The address of the vToken whose liquidation Incentive is being queried.
+     * @notice Get the Effective liquidation Incentive for or a given account and market
+     * @dev The incentive is determined by the pool that the account has entered (`userPoolId[account]`)
+     *      together with the specified vToken. If the vToken is not part of the user’s pool,
+     *      the Core Pool (`poolId = 0`) is used as a fallback
+     * @param account The account whose pool is used to determine the market's risk parameters
+     * @param vToken The address of the vToken market
      * @return The liquidation Incentive for the vToken, scaled by 1e18
      */
     function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256) {

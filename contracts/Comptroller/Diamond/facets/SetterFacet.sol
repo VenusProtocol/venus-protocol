@@ -693,10 +693,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @dev Updates the collateral factor. Used by _setCollateralFactor and setCollateralFactor
+     * @dev Updates the collateral factor and the liquidation threshold. Used by setCollateralFactor
      * @param poolId The ID of the pool.
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor to be set
+     * @param newLiquidationThresholdMantissa The new liquidation threshold to be set
      * @return uint256 0=success, otherwise reverted
      */
     function __setCollateralFactor(
