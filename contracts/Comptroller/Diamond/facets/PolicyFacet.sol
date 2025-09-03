@@ -517,6 +517,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
     }
 
+    /**
+     * @dev Checks if vToken borrowing is allowed in the account's entered pool
+     *      Reverts if borrowing is not permitted
+     * @param account The address of the account whose borrow permission is being checked
+     * @param vToken The vToken market to check borrowing status for
+     * @custom:error BorrowNotAllowedInPool Reverts if borrowing is not allowed in the account's entered pool
+     */
     function poolBorrowAllowed(address account, address vToken) internal view {
         PoolMarketId index = getPoolMarketIndex(userPoolId[account], vToken);
         if (!_poolMarkets[index].isBorrowAllowed) {
