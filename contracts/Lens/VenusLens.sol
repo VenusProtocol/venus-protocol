@@ -108,7 +108,7 @@ contract VenusLens is ExponentialNoError {
         PendingReward[] pendingRewards;
     }
 
-    /// @notice Holds full market information for a single vToken within a specific pool
+    /// @notice Holds full market information for a single vToken within a specific pool (excluding the Core Pool)
     struct MarketData {
         uint96 poolId;
         string poolLabel;
@@ -121,7 +121,7 @@ contract VenusLens is ExponentialNoError {
         bool isBorrowAllowed;
     }
 
-    /// @notice Struct representing a pool and its associated markets
+    /// @notice Struct representing a pool (excluding the Core Pool) and its associated markets
     struct PoolWithMarkets {
         uint96 poolId;
         string label;
