@@ -359,7 +359,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function transferOutUnderlying(
         address payable to,
         uint256 amount
-    ) external nonReentrant returns (uint256 balanceBefore) {
+    ) external nonReentrant returns (uint256 balanceBeforeRepayFlashloan) {
         if (msg.sender != address(comptroller)) {
             revert("Invalid comptroller");
         }
@@ -367,7 +367,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         flashLoanAmount += amount;
         doTransferOut(to, amount);
 
-        balanceBefore = getCashPrior();
+        balanceBeforeRepayFlashloan = getCashPrior();
         emit TransferOutUnderlying(underlying, to, amount);
     }
 
