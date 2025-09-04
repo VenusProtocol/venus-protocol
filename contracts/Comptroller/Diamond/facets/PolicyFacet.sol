@@ -401,7 +401,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address onBehalfOf,
         bytes calldata param
     ) external {
-        for (uint256 i = 0; i < vTokens.length; i++) {
+        for (uint256 i; i < vTokens.length; i++) {
             if (!(vTokens[i]).isFlashLoanEnabled()) revert("FlashLoan not enabled");
         }
 
@@ -434,7 +434,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) internal view {
         // Check delegation if borrowing on behalf of someone else
         if (onBehalfOf != initiator) {
-            for (uint256 i = 0; i < vTokens.length; i++) {
+            for (uint256 i; i < vTokens.length; i++) {
                 if (modes[i] == 1) {
                     // Only check delegation for debt-creating modes
                     require(
@@ -446,7 +446,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         // Validate modes
-        for (uint256 i = 0; i < modes.length; i++) {
+        for (uint256 i; i < modes.length; i++) {
             require(modes[i] <= 1, "Invalid mode");
         }
     }

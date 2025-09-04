@@ -96,13 +96,13 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
         // The code below assumes no fees on transfer
         if (balance >= totalBorrowedAmount) {
             // If we're doing a full repayment, we can optimize it by skipping the balance checks
-            for (uint256 i = 0; i < repaymentsCount; ++i) {
+            for (uint256 i; i < repaymentsCount; ++i) {
                 Repayment memory repayment = repayments[i];
                 _repay(vToken, repayment.borrower, repayment.amount);
             }
         } else {
             // Otherwise, we have to check and update the balance on every iteration
-            for (uint256 i = 0; i < repaymentsCount && balance != 0; ++i) {
+            for (uint256 i; i < repaymentsCount && balance != 0; ++i) {
                 Repayment memory repayment = repayments[i];
                 _repay(vToken, repayment.borrower, _min(repayment.amount, balance));
                 balance = underlying.balanceOfSelf();
@@ -124,7 +124,7 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
         uint256 balance = vai.balanceOfSelf();
         vai.approve(address(vaiController), type(uint256).max);
         uint256 repaymentsCount = requestedRepayments.length;
-        for (uint256 i = 0; i < repaymentsCount && balance != 0; ++i) {
+        for (uint256 i; i < repaymentsCount && balance != 0; ++i) {
             Repayment calldata requestedRepayment = requestedRepayments[i];
             uint256 repaymentCap = requestedRepayment.amount;
             uint256 debt = vaiController.getVAIRepayAmount(requestedRepayment.borrower);
@@ -188,7 +188,7 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
         uint256 repaymentsCount = requestedRepayments.length;
         Repayment[] memory actualRepayments = new Repayment[](repaymentsCount);
         uint256 totalAmountToRepay = 0;
-        for (uint256 i = 0; i < repaymentsCount; ++i) {
+        for (uint256 i; i < repaymentsCount; ++i) {
             Repayment calldata requestedRepayment = requestedRepayments[i];
             uint256 repaymentCap = requestedRepayment.amount;
             uint256 debt = vToken.borrowBalanceStored(requestedRepayment.borrower);
