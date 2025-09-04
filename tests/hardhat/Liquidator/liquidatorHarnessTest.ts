@@ -88,7 +88,6 @@ describe("Liquidator", () => {
     const contracts = await loadFixture(deployLiquidator);
     configure(contracts);
     ({ vTokenCollateral, liquidator: liquidatorContract, underlying } = contracts);
-    const [borrowerSigner] = await ethers.getSigners();
   });
 
   describe("splitLiquidationIncentive", () => {

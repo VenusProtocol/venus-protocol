@@ -1,6 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { impersonateAccount, loadFixture, mine, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";

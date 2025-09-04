@@ -440,8 +440,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert("Flash loan not authorized for this account");
         }
 
-        IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
-
         // Tracks the flashLoan amount before transferring amount to the receiver
         flashLoanAmount += amount;
 

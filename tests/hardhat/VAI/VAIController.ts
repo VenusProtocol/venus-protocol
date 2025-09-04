@@ -81,6 +81,8 @@ describe("VAIController", async () => {
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
     const priceOracle = (await priceOracleFactory.deploy()) as SimplePriceOracle;
 
+    const liquidationIncentive = bigNumber18;
+
     const xvsFactory = await ethers.getContractFactory("XVS");
     const xvs = (await xvsFactory.deploy(wallet.address)) as XVS;
 
@@ -146,14 +148,14 @@ describe("VAIController", async () => {
     await priceOracle.setUnderlyingPrice(vusdt.address, bigNumber18);
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
-    await comptroller.setMarketMaxLiquidationIncentive(vusdt.address, parseUnits("1.1", 18));
+    await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vusdt.address, parseUnits("1.1", 18));
     await comptroller["setCollateralFactor(address,uint256,uint256)"](
       vusdt.address,
       bigNumber17.mul(5),
       bigNumber17.mul(5),
     );
     await vusdt.setProtocolShareReserve(protocolShareReserve.address);
-    await comptroller["setLiquidationIncentive(address,uint256)"](vusdt.address, liquidationIncentive);
+    await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vusdt.address, liquidationIncentive);
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
 
@@ -427,7 +429,11 @@ describe("VAIController", async () => {
     it("should fail if the liquidation amount exceeds the allowed close factor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
-      await comptroller.setCollateralFactor(vusdt.address, bigNumber17.mul(3), bigNumber17.mul(4));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vusdt.address,
+        bigNumber17.mul(3),
+        bigNumber17.mul(4),
+      );
       await mineUpTo(99999999);
 
       const [, snapshotRaw] = await comptroller.getHypotheticalHealthSnapshot(
@@ -435,6 +441,7 @@ describe("VAIController", async () => {
         ethers.constants.AddressZero,
         0,
         0,
+        1,
       );
       const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
         vusdt.address,
@@ -468,6 +475,7 @@ describe("VAIController", async () => {
         ethers.constants.AddressZero,
         0,
         0,
+        1,
       );
       const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
         vusdt.address,
@@ -481,7 +489,7 @@ describe("VAIController", async () => {
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(50), vusdt.address, snapshot);
       console.log("Liquidation successful");
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(55));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));
     });
 
     it("success for 1.2 rate 0.3 vusdt collateralFactor", async () => {
@@ -505,6 +513,7 @@ describe("VAIController", async () => {
         ethers.constants.AddressZero,
         0,
         0,
+        1,
       );
       const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
         vusdt.address,
@@ -516,7 +525,7 @@ describe("VAIController", async () => {
 
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address, snapshot);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(66));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
       expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(10));
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(50));
     });

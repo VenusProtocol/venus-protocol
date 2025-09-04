@@ -196,9 +196,9 @@ describe("Evil Token test", async () => {
     await vToken1.setProtocolShareReserve(protocolShareReserve.address);
     await vToken2.setProtocolShareReserve(protocolShareReserve.address);
     await vToken3.setProtocolShareReserve(protocolShareReserve.address);
-    await unitroller["setLiquidationIncentive(address,uint256)"](vToken1.address, convertToUnit(1.1, 18));
-    await unitroller["setLiquidationIncentive(address,uint256)"](vToken2.address, convertToUnit(1.1, 18));
-    await unitroller["setLiquidationIncentive(address,uint256)"](vToken3.address, convertToUnit(1.1, 18));
+    await unitroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken1.address, convertToUnit(1.1, 18));
+    await unitroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken2.address, convertToUnit(1.1, 18));
+    await unitroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken3.address, convertToUnit(1.1, 18));
     await unitroller.setIsBorrowAllowed(0, vToken3.address, true);
   });
 

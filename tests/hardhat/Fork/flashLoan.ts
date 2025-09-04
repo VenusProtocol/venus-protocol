@@ -114,15 +114,19 @@ async function deploy(): Promise<SetupProtocolFixture> {
     newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],uint256[],address,bytes)"],
   );
 
-  const addSetCollateralFactorSelector = newSetterFacet.interface.getSighash("setCollateralFactor(address,uint256,uint256)");
+  const addSetCollateralFactorSelector = newSetterFacet.interface.getSighash(
+    "setCollateralFactor(address,uint256,uint256)",
+  );
 
   const addSetDelegateAuthorizationFlashloanFunctionSignature = newSetterFacet.interface.getSighash(
-    newSetterFacet.interface.functions["setDelegateAuthorizationFlashloan(address,address,bool)"]
+    newSetterFacet.interface.functions["setDelegateAuthorizationFlashloan(address,address,bool)"],
   );
 
   const addSetIsBorrowAllowedSelector = newSetterFacet.interface.getSighash("setIsBorrowAllowed(uint96,address,bool)");
 
-  const addGetEffectiveLtvFactorSelector = newMarketFacet.interface.getSighash("getEffectiveLtvFactor(address,address,uint8)");
+  const addGetEffectiveLtvFactorSelector = newMarketFacet.interface.getSighash(
+    "getEffectiveLtvFactor(address,address,uint8)",
+  );
 
   const existingPolicyFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_POLICY_FACET);
   const existingSetterFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_SETTER_FACET);
@@ -165,7 +169,6 @@ async function deploy(): Promise<SetupProtocolFixture> {
       functionSelectors: existingSetterFacetFunctions,
     },
   ];
-
 
   await unitroller.connect(timeLockUser)._setPendingImplementation(diamond.address);
   await diamond.connect(timeLockUser)._become(unitroller.address);
@@ -257,7 +260,7 @@ forking(56732787, () => {
         await accessControlManager
           .connect(timeLockUser)
           .giveCallPermission(setterFacet.address, "setWhiteListFlashLoanAccount(address,bool)", timeLockUser.address);
-          
+
         await accessControlManager
           .connect(timeLockUser)
           .giveCallPermission(
@@ -284,12 +287,15 @@ forking(56732787, () => {
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(setterFacet.address, "setCollateralFactor(address,uint256,uint256)", timeLockUser.address);
+          .giveCallPermission(
+            setterFacet.address,
+            "setCollateralFactor(address,uint256,uint256)",
+            timeLockUser.address,
+          );
 
         await accessControlManager
           .connect(timeLockUser)
           .giveCallPermission(setterFacet.address, "setIsBorrowAllowed(uint96,address,bool)", timeLockUser.address);
-
 
         // ADDED: Set supply caps to allow minting
         await setterFacet.connect(timeLockUser)._setMarketSupplyCaps(
@@ -310,17 +316,13 @@ forking(56732787, () => {
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [2], false); // 2 = borrow action
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [7], false); // 7 = enterMarket action
 
-        await setterFacet.connect(timeLockUser)["setCollateralFactor(address,uint256,uint256)"](
-          vUSDT.address,
-          parseUnits("0.9", 18),
-          parseUnits("0.9", 18),
-        );
+        await setterFacet
+          .connect(timeLockUser)
+          ["setCollateralFactor(address,uint256,uint256)"](vUSDT.address, parseUnits("0.9", 18), parseUnits("0.9", 18));
 
-        await setterFacet.connect(timeLockUser)["setCollateralFactor(address,uint256,uint256)"](
-          vBUSD.address,
-          parseUnits("0.9", 18),
-          parseUnits("0.9", 18),
-        );
+        await setterFacet
+          .connect(timeLockUser)
+          ["setCollateralFactor(address,uint256,uint256)"](vBUSD.address, parseUnits("0.9", 18), parseUnits("0.9", 18));
 
         await setterFacet.connect(timeLockUser).setIsBorrowAllowed(0, vUSDT.address, true);
         await setterFacet.connect(timeLockUser).setIsBorrowAllowed(0, vBUSD.address, true);
@@ -393,8 +395,8 @@ forking(56732787, () => {
       it("Should revert if whitelisting is done by non-authorized account", async () => {
         await expect(setterFacet.connect(user).setWhiteListFlashLoanAccount(user.address, true)).to.be.revertedWith(
           "access denied",
-        ); 
-      })
+        );
+      });
 
       it("Should revert if VToken address is Invalid", async () => {
         // Attempt to execute a flashLoan with a zero address as the receiver, which should revert

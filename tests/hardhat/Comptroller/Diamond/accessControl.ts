@@ -67,16 +67,42 @@ describe("Comptroller", () => {
           "setCollateralFactor(address,uint256,uint256)",
         );
       });
+
+      it("Should have AccessControl", async () => {
+        await expect(
+          comptroller
+            .connect(user)
+            ["setCollateralFactor(uint96,address,uint256,uint256)"](1, ethers.constants.AddressZero, 1, 1),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "setCollateralFactor(uint96,address,uint256,uint256)",
+        );
+      });
     });
 
     describe("setMarketMaxLiquidaitonIncentive", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user).setMarketMaxLiquidationIncentive(ethers.constants.AddressZero, 1),
+          comptroller
+            .connect(user)
+            ["setMarketMaxLiquidationIncentive(address,uint256)"](ethers.constants.AddressZero, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "setMarketMaxLiquidationIncentive(address,uint256)",
+        );
+      });
+
+      it("Should have AccessControl", async () => {
+        await expect(
+          comptroller
+            .connect(user)
+            ["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](1, ethers.constants.AddressZero, 1),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "setMarketMaxLiquidationIncentive(uint96,address,uint256)",
         );
       });
     });

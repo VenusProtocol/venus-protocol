@@ -216,7 +216,7 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
   await zeroRateModel.deployed();
   await vBUSD._setInterestRateModel(zeroRateModel.address);
   await comptroller.setIsBorrowAllowed(0, vBUSD.address, true);
-  await comptroller["setLiquidationIncentive(address,uint256)"](vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
+  // await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
   await deployLiquidatorContract({
     comptroller,
     vBNB,
@@ -259,8 +259,11 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
     [vBUSD.address, vCollateral.address],
     [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
   );
-  await comptroller.setMarketMaxLiquidationIncentive(vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
-  await comptroller.setMarketMaxLiquidationIncentive(vBUSD.address, TOTAL_LIQUIDATION_INCENTIVE);
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](
+    vCollateral.address,
+    TOTAL_LIQUIDATION_INCENTIVE,
+  );
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vBUSD.address, TOTAL_LIQUIDATION_INCENTIVE);
 
   const busd = await ethers.getContractAt("FaucetToken", await vBUSD.underlying());
   const collateral = await ethers.getContractAt("FaucetToken", await vCollateral.underlying());
@@ -346,8 +349,10 @@ const setupFork = async (): Promise<BUSDLiquidatorFixture> => {
     .giveCallPermission(comptroller.address, "_setActionsPaused(address[],uint8[],bool)", busdLiquidator.address);
   await comptroller
     .connect(timelock)
-    .setMarketMaxLiquidationIncentive(vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
-  await comptroller.connect(timelock).setMarketMaxLiquidationIncentive(vBUSD.address, TOTAL_LIQUIDATION_INCENTIVE);
+    ["setMarketMaxLiquidationIncentive(address,uint256)"](vCollateral.address, TOTAL_LIQUIDATION_INCENTIVE);
+  await comptroller
+    .connect(timelock)
+    ["setMarketMaxLiquidationIncentive(address,uint256)"](vBUSD.address, TOTAL_LIQUIDATION_INCENTIVE);
   await comptroller.connect(timelock)._setMarketSupplyCaps([vBUSD.address], [ethers.constants.MaxUint256]);
   await comptroller.connect(timelock)._setMarketBorrowCaps([vBUSD.address], [ethers.constants.MaxUint256]);
   await comptroller.connect(timelock)._setForcedLiquidation(vBUSD.address, true);

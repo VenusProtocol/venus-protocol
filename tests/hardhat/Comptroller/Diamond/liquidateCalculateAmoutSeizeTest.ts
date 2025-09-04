@@ -99,8 +99,14 @@ describe("Comptroller", () => {
 
     await comptroller._supportMarket(vTokenBorrowed.address);
     await comptroller._supportMarket(vTokenCollateral.address);
-    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenBorrowed.address, convertToUnit("1.1", 18));
-    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenCollateral.address, convertToUnit("1.1", 18));
+    await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](
+      vTokenBorrowed.address,
+      convertToUnit("1.1", 18),
+    );
+    await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](
+      vTokenCollateral.address,
+      convertToUnit("1.1", 18),
+    );
 
     return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
@@ -111,7 +117,6 @@ describe("Comptroller", () => {
       vToken.comptroller.returns(comptroller.address);
       vToken.isVToken.returns(true);
       await comptroller._supportMarket(vToken.address);
-      await comptroller.setMarketMaxLiquidationIncentive(vToken.address, convertToUnit("1.1", 18));
     }
 
     vTokenCollateral.exchangeRateStored.returns(5e9);
@@ -202,7 +207,10 @@ describe("Comptroller", () => {
 
         setOraclePrice(vTokenCollateral, collateralPrice);
         setOraclePrice(vTokenBorrowed, borrowedPrice);
-        await comptroller.setMarketMaxLiquidationIncentive(vTokenCollateral.address, liquidationIncentive);
+        await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](
+          vTokenCollateral.address,
+          liquidationIncentive,
+        );
         vTokenCollateral.exchangeRateStored.returns(exchangeRate);
 
         const seizeAmount = (repayAmount * liquidationIncentive * borrowedPrice) / collateralPrice;

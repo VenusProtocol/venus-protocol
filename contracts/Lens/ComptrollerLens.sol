@@ -322,6 +322,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             (vars.err, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
                 account
             );
+
             if (vars.err != 0) {
                 errorCode = vars.err;
                 return (errorCode, snapshot);

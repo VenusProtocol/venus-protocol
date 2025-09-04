@@ -29,13 +29,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa
     );
 
-    /// @notice Emitted when liquidation incentive is changed by admin
-    event NewLiquidationIncentive(
-        uint96 indexed poolId,
-        uint256 oldLiquidationIncentiveMantissa,
-        uint256 newLiquidationIncentiveMantissa
-    );
-
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(ResilientOracleInterface oldPriceOracle, ResilientOracleInterface newPriceOracle);
 
@@ -120,7 +113,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when market's liquidation incentive is changed by admin
     event NewMarketLiquidationIncentive(
-        address vToken,
+        uint96 indexed poolId,
+        address indexed vToken,
         uint256 oldLiquidationIncentiveMantissa,
         uint256 newLiquidationIncentiveMantissa
     );
@@ -662,7 +656,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         require(newMaxLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
         // Emit event with old incentive, new incentive
-        emit NewMarketLiquidationIncentive(vToken, market.maxLiquidationIncentiveMantissa, newMaxLiquidationIncentive);
+        emit NewMarketLiquidationIncentive(
+            poolId,
+            vToken,
+            market.maxLiquidationIncentiveMantissa,
+            newMaxLiquidationIncentive
+        );
         // Set liquidation incentive to new incentive
         market.maxLiquidationIncentiveMantissa = newMaxLiquidationIncentive;
         return uint256(Error.NO_ERROR);

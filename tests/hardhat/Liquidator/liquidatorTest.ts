@@ -29,7 +29,6 @@ const seizeTokens = 1000n * 4n;
 const minLiquidatableVAI = convertToBigInt("500", 0);
 const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
-const mantisaOne = convertToBigInt("1", 18);
 // const effectiveIncentive = convertToBigInt("0.1", 18);
 
 const MANTISSA_ONE = convertToBigInt("1", 18);
@@ -69,17 +68,9 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   collateralUnderlying.transfer.returns(true);
   vTokenCollateral.underlying.returns(collateralUnderlying.address);
 
-  comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   comptroller.vaiController.returns(vaiController.address);
   comptroller.comptrollerLens.returns(comptrollerLens.address);
-  comptroller.markets.returns({
-    isListed: true,
-    collateralFactorMantissa: convertToUnit(5, 17),
-    accountMembership: true,
-    isVenus: true,
-    liquidationThresholdMantissa: convertToUnit(5, 17),
-    maxLiquidationIncentiveMantissa: convertToUnit(1.1, 18),
-  });
+  comptroller.markets.returns([true, convertToUnit(5, 17), true, 0, 0, 0, false]);
 
   vaiController.getVAIAddress.returns(vai.address);
 
@@ -317,7 +308,6 @@ describe("Liquidator", () => {
         { value: repayAmount - 1n },
       );
       await expect(tx1)
-      
         .to.be.revertedWithCustomError(liquidatorContract, "WrongTransactionAmount")
         .withArgs(repayAmount, repayAmount - 1n);
 
@@ -393,7 +383,7 @@ describe("Liquidator", () => {
       );
 
       const treasuryDelta =
-        (seizeTokens * (announcedIncentive - MANTISSA_ONE) * convertToBigInt("0.08", 18)) /
+        (seizeTokens * (announcedIncentive - MANTISSA_ONE) * convertToBigInt("0.10", 18)) /
         (announcedIncentive * MANTISSA_ONE);
       const liquidatorDelta = seizeTokens - treasuryDelta;
 

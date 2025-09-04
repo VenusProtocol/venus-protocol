@@ -229,12 +229,15 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if user is not whitelisted", async () => {
+      await vTokenA._toggleFlashLoan();
+
       await expect(
         mockReceiverSimple.connect(alice).requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),
       ).to.be.revertedWith("Flash loan not authorized for this account");
     });
 
     it("Should revert if the flashLoan is not enabled", async () => {
+      await vTokenA._toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
 
       // whitelist alice for flashLoan

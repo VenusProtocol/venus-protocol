@@ -256,8 +256,10 @@ if (FORK_MAINNET) {
       });
 
       it("sends the actually repaid amount * liquidation incentive during liquidation", async () => {
-        await comptroller.connect(timelock).setCollateralFactor(addresses.vUSDT, 0, 0);
-        await comptroller.connect(timelock).setMarketMaxLiquidationIncentive(addresses.vUSDT, parseUnits("1.1", 18));
+        await comptroller.connect(timelock)["setCollateralFactor(address,uint256,uint256)"](addresses.vUSDT, 0, 0);
+        await comptroller
+          .connect(timelock)
+          ["setMarketMaxLiquidationIncentive(address,uint256)"](addresses.vUSDT, parseUnits("1.1", 18));
         await vaiController.connect(timelock).setBaseRate(parseUnits("1", 18));
         await mine(100);
 
@@ -266,6 +268,7 @@ if (FORK_MAINNET) {
           ethers.constants.AddressZero,
           0,
           0,
+          1,
         );
 
         const totalIncentive = await comptrollerNew["getDynamicLiquidationIncentive(address,uint256,uint256)"](
