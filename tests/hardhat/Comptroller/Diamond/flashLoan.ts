@@ -67,7 +67,6 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
 
-
   return {
     admin,
     oracle,
@@ -286,14 +285,16 @@ describe("FlashLoan", async () => {
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
 
       await expect(
-        badReceiver.connect(alice).requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          badReceiver.address,
-          [0, 0],
-          alice.address,
-          "0x"
-        )
+        badReceiver
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            badReceiver.address,
+            [0, 0],
+            alice.address,
+            "0x",
+          ),
       ).to.be.revertedWith("Execute flashLoan failed");
     });
 
@@ -386,8 +387,16 @@ describe("FlashLoan", async () => {
       await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
 
       // Set collateral factors for the markets
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenB.address, parseUnits("0.9", 18), parseUnits("1", 18));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
 
       // Set borrow caps to allow borrowing
       await comptroller._setMarketBorrowCaps(
@@ -497,8 +506,16 @@ describe("FlashLoan", async () => {
       await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
 
       // Set collateral factors for the markets
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenB.address, parseUnits("0.9", 18), parseUnits("1", 18));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
 
       // Set borrow caps to allow borrowing
       await comptroller._setMarketBorrowCaps(

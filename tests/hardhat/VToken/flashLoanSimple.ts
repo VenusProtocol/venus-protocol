@@ -228,14 +228,12 @@ describe("FlashLoan", async () => {
       await underlyingA.harnessSetBalance(underlyingA.address, parseUnits("1", 18));
     });
 
-
     it("Should revert if the flashLoan is not enabled", async () => {
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
 
       await expect(
         mockReceiverSimple.connect(alice).requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),
-      ).to.be.revertedWithCustomError(vTokenA, "FlashLoanNotEnabled")
-
+      ).to.be.revertedWithCustomError(vTokenA, "FlashLoanNotEnabled");
     });
 
     it("Should revert if user is not whitelisted", async () => {
@@ -243,13 +241,13 @@ describe("FlashLoan", async () => {
 
       await expect(
         mockReceiverSimple.connect(alice).requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),
-      ).to.be.revertedWithCustomError(vTokenA, "FlashLoanNotAuthorized")
+      ).to.be.revertedWithCustomError(vTokenA, "FlashLoanNotAuthorized");
     });
 
     it("FlashLoan for single underlying", async () => {
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
-    
+
       const vTokenBalanceBefore = await underlyingA.balanceOf(vTokenA.address);
       const psrBalanceBefore = await underlyingA.balanceOf(protocolShareReserveMock.address);
 

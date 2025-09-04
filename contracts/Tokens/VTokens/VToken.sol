@@ -449,13 +449,14 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 repayAmount = amount + fee;
 
         // Call the execute operation on receiver contract
-        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, fee, msg.sender, param)) revert ExecuteFlashLoanFailed();
+        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, fee, msg.sender, param))
+            revert ExecuteFlashLoanFailed();
 
         doTransferIn(receiver, repayAmount);
         flashLoanAmount -= amount;
 
         if ((getCashPrior() - balanceBefore) < repayAmount) revert InsufficientRepaymentBalance();
-        
+
         // Transfer protocol fee to protocol share reserve
         doTransferOut(protocolShareReserve, protocolFee);
 

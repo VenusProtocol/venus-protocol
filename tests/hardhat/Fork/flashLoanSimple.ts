@@ -207,12 +207,12 @@ forking(64048894, async () => {
               flashLoanAmount.toString(),
               ethers.utils.hexlify([]),
             ),
-        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotEnabled")
+        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotEnabled");
       });
 
       it("Should revert if user is not whitelisted", async () => {
         // Enable flashLoan feature for testing
-        await vUSDT.connect(timeLockUser)._toggleFlashLoan(); 
+        await vUSDT.connect(timeLockUser)._toggleFlashLoan();
 
         await expect(
           vUSDT
@@ -223,7 +223,7 @@ forking(64048894, async () => {
               flashLoanAmount.toString(),
               ethers.utils.hexlify([]),
             ),
-        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotAuthorized")
+        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotAuthorized");
       });
 
       it("Should revert if receiver is zero address", async () => {

@@ -329,14 +329,14 @@ abstract contract VTokenInterface is VTokenStorage {
     );
 
     /*** Flash Loan Error***/
-    
-     error FlashLoanNotAuthorized();
 
-     error FlashLoanNotEnabled();
+    error FlashLoanNotAuthorized();
 
-     error ExecuteFlashLoanFailed();
+    error FlashLoanNotEnabled();
 
-     error InsufficientRepaymentBalance();
+    error ExecuteFlashLoanFailed();
+
+    error InsufficientRepaymentBalance();
 
     /*** User Interface ***/
 
