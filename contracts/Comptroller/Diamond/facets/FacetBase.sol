@@ -251,21 +251,12 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     }
 
     /**
-     * @dev Returns the unique market index for the given vToken in the Core Pool (`poolId = 0`)
-     * @param vToken The address of the vToken in the Core Pool
-     * @return PoolMarketId The `bytes32` key that uniquely represents the (corePoolId, vToken) pair
-     */
-    function getCorePoolMarketIndex(address vToken) internal pure returns (PoolMarketId) {
-        return getPoolMarketIndex(corePoolId, vToken);
-    }
-
-    /**
      * @dev Returns the Market struct for the given vToken in the Core Pool (`poolId = 0`)
      * @param vToken The vToken address for which the market details are requested
      * @return market The Market struct corresponding to the (corePoolId, vToken) pair
      */
     function getCorePoolMarket(address vToken) internal view returns (Market storage) {
-        return _poolMarkets[getCorePoolMarketIndex(address(vToken))];
+        return _poolMarkets[getPoolMarketIndex(corePoolId, address(vToken))];
     }
 
     /**

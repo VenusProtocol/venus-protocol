@@ -483,10 +483,10 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the Effective liquidation Incentive for or a given account and market
-     * @dev The incentive is determined by the pool that the account has entered (`userPoolId[account]`)
-     *      together with the specified vToken. If the vToken is not part of the user’s pool,
-     *      the Core Pool (`poolId = 0`) is used as a fallback
+     * @notice Get the Effective liquidation Incentive for a given account and market
+     * @dev The incentive is determined by the pool entered by the account and the specified vToken
+     *      If the pool is inactive or the vToken is not part of the account's pool,
+     *      the core pool (poolId = 0) is used as a fallback via `getLiquidationParams()`
      * @param account The account whose pool is used to determine the market's risk parameters
      * @param vToken The address of the vToken market
      * @return The liquidation Incentive for the vToken, scaled by 1e18

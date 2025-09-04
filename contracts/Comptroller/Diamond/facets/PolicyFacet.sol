@@ -490,6 +490,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
     }
 
+    /**
+     * @dev Internal function to set XVS speed for a single market
+     * @param vToken The market whose XVS speed to update
+     * @param supplySpeed New XVS speed for supply
+     * @param borrowSpeed New XVS speed for borrow
+     * @custom:event VenusSupplySpeedUpdated Emitted after the venus supply speed for a market is updated
+     * @custom:event VenusBorrowSpeedUpdated Emitted after the venus borrow speed for a market is updated
+     */
     function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {
         ensureListed(getCorePoolMarket(address(vToken)));
 

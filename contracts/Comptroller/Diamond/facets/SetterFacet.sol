@@ -32,7 +32,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     );
 
     /// @notice Emitted when liquidation incentive is changed by admin
-    event NewLiquidationIncentive(
+    event NewMarketLiquidationIncentive(
         uint96 indexed poolId,
         address indexed vToken,
         uint256 oldLiquidationIncentiveMantissa,
@@ -815,7 +815,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         require(newLiquidationIncentiveMantissa >= mantissaOne, "incentive < 1e18");
 
-        emit NewLiquidationIncentive(
+        emit NewMarketLiquidationIncentive(
             poolId,
             vToken,
             market.liquidationIncentiveMantissa,
