@@ -616,7 +616,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param active true to enable, false to disable
      * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
      * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
-     * @custom:event PoolActiveStatusUpdated Emitted after the borrow permission for a market is updated.
+     * @custom:event PoolActiveStatusUpdated Emitted after the pool active status is updated.
      */
     function setPoolActive(uint96 poolId, bool active) external {
         ensureAllowed("setPoolActive(uint96,bool)");
