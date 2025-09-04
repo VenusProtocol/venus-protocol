@@ -111,7 +111,10 @@ contract SetterFacet is ISetterFacet, FacetBase {
     );
 
     /// @notice Emitted when the borrowAllowed flag is updated for a market
-    event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool isAllowed);
+    event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool oldStatus, bool newStatus);
+
+    /// @notice Emitted when pool active status changes
+    event PoolActiveStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -608,6 +611,30 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
+     * @notice updates active status for a specific pool (excluding the Core Pool)
+     * @param poolId id of the pool to update
+     * @param active true to enable, false to disable
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
+     * @custom:event PoolActiveStatusUpdated Emitted after the borrow permission for a market is updated.
+     */
+    function setPoolActive(uint96 poolId, bool active) external {
+        ensureAllowed("setPoolActive(uint96,bool)");
+
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+
+        PoolData storage newPool = pools[poolId];
+
+        if (newPool.isActive == active) {
+            return;
+        }
+
+        emit PoolActiveStatusUpdated(poolId, newPool.isActive, active);
+        newPool.isActive = active;
+    }
+
+    /**
      * @notice Updates the `isBorrowAllowed` flag for a market in a pool.
      * @param poolId The ID of the pool.
      * @param vToken The address of the market (vToken).
@@ -632,9 +659,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
             return;
         }
 
+        emit BorrowAllowedUpdated(poolId, vToken, m.isBorrowAllowed, borrowAllowed);
         m.isBorrowAllowed = borrowAllowed;
-
-        emit BorrowAllowedUpdated(poolId, vToken, borrowAllowed);
     }
 
     /**

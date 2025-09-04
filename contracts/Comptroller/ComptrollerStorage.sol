@@ -287,6 +287,8 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
         string label;
         /// @notice List of vToken addresses associated with this pool
         address[] vTokens;
+        /// @notice whether pool is active and can be entered, falls back to core pool values if false
+        bool isActive;
     }
 
     /**

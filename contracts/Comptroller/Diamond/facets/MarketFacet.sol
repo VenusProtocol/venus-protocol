@@ -322,6 +322,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @custom:error AlreadyInSelectedPool The user is already in the target pool.
      * @custom:error IncompatibleBorrowedAssets The user's current borrows are incompatible with the new pool.
      * @custom:error LiquidityCheckFailed The user's liquidity is insufficient after switching pools.
+     * @custom:error InactivePool The user is trying to enter inactive pool.
      * @custom:event PoolSelected Emitted after a successful pool switch.
      */
     function enterPool(uint96 poolId) external {
@@ -329,6 +330,10 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         if (poolId == userPoolId[msg.sender]) {
             revert AlreadyInSelectedPool();
+        }
+
+        if (poolId != corePoolId && !pools[poolId].isActive) {
+            revert InactivePool(poolId);
         }
 
         if (!hasValidPoolBorrows(msg.sender, poolId)) {
@@ -361,7 +366,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         uint96 poolId = ++lastPoolId;
-        pools[poolId].label = label;
+        PoolData storage newPool = pools[poolId];
+        newPool.label = label;
+        newPool.isActive = true;
 
         emit PoolCreated(poolId, label);
         return poolId;
@@ -687,7 +694,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.
-     * @dev If not configured in the given pool, falls back to core pool (poolId = 0).
+     * @dev If the pool is inactive or the vToken is not configured in the given pool,
+     *      falls back to the core pool (poolId = 0).
      * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
      * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
      * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
@@ -704,20 +712,14 @@ contract MarketFacet is IMarketFacet, FacetBase {
             uint256 maxLiquidationIncentiveMantissa
         )
     {
-        PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
-
         Market storage market;
 
-        if (poolId == corePoolId) {
+        if (poolId == corePoolId || !pools[poolId].isActive) {
             market = getCorePoolMarket(vToken);
         } else {
+            PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
             Market storage poolMarket = _poolMarkets[poolKey];
-
-            if (poolMarket.isListed) {
-                market = poolMarket;
-            } else {
-                market = getCorePoolMarket(vToken);
-            }
+            market = poolMarket.isListed ? poolMarket : getCorePoolMarket(vToken);
         }
 
         return (
