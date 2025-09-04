@@ -335,20 +335,11 @@ contract MarketFacet is IMarketFacet, FacetBase {
             revert IncompatibleBorrowedAssets();
         }
 
-        (uint256 error, , uint256 shortfall) = _getAccountLiquidity(
-            msg.sender,
-            WeightFunction.USE_LIQUIDATION_THRESHOLD
-        );
-
-        if (error != 0 || shortfall > 0) {
-            revert LiquidityCheckFailed(error, shortfall);
-        }
-
         emit PoolSelected(msg.sender, userPoolId[msg.sender], poolId);
 
         userPoolId[msg.sender] = poolId;
 
-        (error, , shortfall) = _getAccountLiquidity(msg.sender, WeightFunction.USE_COLLATERAL_FACTOR);
+        (uint256 error, , uint256 shortfall) = _getAccountLiquidity(msg.sender, WeightFunction.USE_COLLATERAL_FACTOR);
 
         if (error != 0 || shortfall > 0) {
             revert LiquidityCheckFailed(error, shortfall);

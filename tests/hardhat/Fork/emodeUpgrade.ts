@@ -27,7 +27,6 @@ const COMPTROLLER_ADDRESS = "0xfd36e2c2a6789db23113685031d7f16329158384";
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 const ACCESS_CONTROL_MANAGER = "0x4788629abc6cfca10f9f969efdeaa1cf70c23555";
 const VAI_CONTROLLER = "0x004065D34C6b18cE4370ced1CeBDE94865DbFAFE";
-const TREASUREY = "0xf322942f644a996a617bd29c16bd7d231d9f35e9";
 
 const USDC = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
 const vUSDT_ADDRESS = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
@@ -135,11 +134,6 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
   forking(blockNumber, () => {
     describe("BNB Core Comptroller - eMode Upgrade", () => {
       const corePoolId = 0;
-      const CF = parseUnits("0.7", 18);
-      const LT = parseUnits("0.8", 18);
-      const LI = parseUnits("1.2", 18);
-      const vBTC_CF = parseUnits("0.8", 18);
-      const vBTC_LT = parseUnits("0.85", 18);
 
       before(async () => {
         user = await initMainnetUser(USER_ADDRESS);
@@ -210,16 +204,15 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       });
 
       describe("Risk Parameter Setters", () => {
+        const CF = parseUnits("0.7", 18);
+        const LT = parseUnits("0.8", 18);
+        const LI = parseUnits("1.2", 18);
+
         it("updates collateral factor", async () => {
           await comptroller["setCollateralFactor(address,uint256,uint256)"](vUSDT_ADDRESS, CF, LT);
-          let data = await comptroller.markets(vUSDT_ADDRESS);
+          const data = await comptroller.markets(vUSDT_ADDRESS);
           expect(data.collateralFactorMantissa).to.equal(CF);
           expect(data.liquidationThresholdMantissa).to.equal(LT);
-
-          await comptroller["setCollateralFactor(address,uint256,uint256)"](vBTC_ADDRESS, vBTC_CF, vBTC_LT);
-          data = await comptroller.markets(vBTC_ADDRESS);
-          expect(data.collateralFactorMantissa).to.equal(vBTC_CF);
-          expect(data.liquidationThresholdMantissa).to.equal(vBTC_LT);
         });
 
         it("updates liquidation incentive", async () => {
@@ -273,35 +266,6 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
           );
         });
 
-        it("should revert on entering e-mode if account is unsafe", async () => {
-          await comptroller.addPoolMarkets([poolId], [vUSDC_ADDRESS]);
-          await comptroller.setIsBorrowAllowed(poolId, vUSDC_ADDRESS, true);
-          await comptroller.setIsBorrowAllowed(corePoolId, vUSDC_ADDRESS, true);
-          await vUSDC.connect(user).borrow(parseUnits("90920", 18));
-
-          // decrease CF to make user account unsafe
-          await comptroller["setCollateralFactor(address,uint256,uint256)"](
-            vBTC_ADDRESS,
-            parseUnits("0", 18),
-            parseUnits("0", 18),
-          );
-          await expect(comptroller.connect(user).enterPool(poolId)).to.be.revertedWithCustomError(
-            comptroller,
-            "LiquidityCheckFailed",
-          );
-
-          // normalize state
-          await comptroller["setCollateralFactor(address,uint256,uint256)"](vBTC_ADDRESS, vBTC_CF, vBTC_LT);
-          const usdc = BEP20__factory.connect(USDC, ethers.provider);
-          // to cover Interest
-          const treasurey = await initMainnetUser(TREASUREY, parseUnits("2", 18));
-          await usdc.connect(treasurey).transfer(USER_ADDRESS, parseUnits("20", 18));
-          await usdc.connect(user).approve(vUSDC.address, ethers.constants.MaxUint256);
-          const borrowAmt = await vUSDC.callStatic.borrowBalanceCurrent(await user.getAddress());
-          await vUSDC.connect(user).repayBorrow(borrowAmt);
-          await comptroller.setIsBorrowAllowed(corePoolId, vUSDC_ADDRESS, false);
-        });
-
         it("increases borrowing power after entering eMode", async () => {
           const before = await comptroller.getAccountLiquidity(USER_ADDRESS);
           await comptroller.connect(user).enterPool(poolId);
@@ -310,7 +274,6 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
         });
 
         it("should revert borrow if market is not enabled in the selected pool", async () => {
-          await comptroller.setIsBorrowAllowed(poolId, vUSDC_ADDRESS, false);
           await expect(vUSDC.connect(user).borrow(parseUnits("100", 18))).to.be.revertedWithCustomError(
             comptroller,
             "BorrowNotAllowedInPool",
@@ -324,6 +287,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
         });
 
         it("should revert pool switch to corePool if account becomes unsafe", async () => {
+          await comptroller.addPoolMarkets([poolId], [vUSDC_ADDRESS]);
           await comptroller.setIsBorrowAllowed(poolId, vUSDC_ADDRESS, true);
           await vUSDC.connect(user).borrow(parseUnits("569140", 18));
           await comptroller.setIsBorrowAllowed(corePoolId, vUSDC_ADDRESS, true);
