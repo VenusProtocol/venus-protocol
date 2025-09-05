@@ -269,6 +269,7 @@ describe("FlashLoan", async () => {
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
 
+      // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
 
       // Deploy the bad receiver contract
@@ -382,6 +383,7 @@ describe("FlashLoan", async () => {
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
 
+      // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
 
       // Set collateral factors for the markets

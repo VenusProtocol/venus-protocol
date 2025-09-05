@@ -360,7 +360,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function transferOutUnderlying(
         address payable to,
         uint256 amount
-    ) external nonReentrant returns (uint256 balanceBefore) {
+    ) external nonReentrant returns (uint256 balanceBeforeRepayFlashloan) {
         if (msg.sender != address(comptroller)) {
             revert("Invalid comptroller");
         }
@@ -368,7 +368,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         flashLoanAmount += amount;
         doTransferOut(to, amount);
 
-        balanceBefore = getCashPrior();
+        balanceBeforeRepayFlashloan = getCashPrior();
         emit TransferOutUnderlying(underlying, to, amount);
     }
 
@@ -400,7 +400,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         doTransferIn(from, repayment);
         flashLoanAmount -= amount;
 
-        if ((getCashPrior() - balanceBefore) < repayment) revert("Insufficient reypayment balance");
+        if ((getCashPrior() - balanceBefore) < repayment) revert InsufficientRepaymentBalance();
 
         emit TransferInUnderlyingAndVerify(underlying, from, repayment);
     }
@@ -432,13 +432,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 amount,
         bytes calldata param
     ) external nonReentrant returns (uint256) {
-        if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
+        if (!isFlashLoanEnabled) revert FlashLoanNotEnabled();
         ensureNonZeroAddress(receiver);
 
         // Check if the caller is authorized to execute flash loans
-        if (!comptroller.authorizedFlashLoan(initiator)) {
-            revert("Flash loan not authorized for this account");
-        }
+        if (!comptroller.authorizedFlashLoan(initiator)) revert FlashLoanNotAuthorized();
 
         // Tracks the flashLoan amount before transferring amount to the receiver
         flashLoanAmount += amount;
@@ -452,16 +450,13 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 repayAmount = amount + fee;
 
         // Call the execute operation on receiver contract
-        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, fee, msg.sender, param)) {
-            revert("Execute flashLoan failed");
-        }
+        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, fee, msg.sender, param))
+            revert ExecuteFlashLoanFailed();
 
         doTransferIn(receiver, repayAmount);
         flashLoanAmount -= amount;
 
-        if ((getCashPrior() - balanceBefore) < repayAmount) {
-            revert("Insufficient repayment balance");
-        }
+        if ((getCashPrior() - balanceBefore) < repayAmount) revert InsufficientRepaymentBalance();
 
         // Transfer protocol fee to protocol share reserve
         doTransferOut(protocolShareReserve, protocolFee);

@@ -477,7 +477,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address onBehalfOf,
         bytes calldata param
     ) external {
-        for (uint256 i = 0; i < vTokens.length; i++) {
+        for (uint256 i; i < vTokens.length; i++) {
             if (!(vTokens[i]).isFlashLoanEnabled()) revert("FlashLoan not enabled");
         }
 
@@ -510,7 +510,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) internal view {
         // Check delegation if borrowing on behalf of someone else
         if (onBehalfOf != initiator) {
-            for (uint256 i = 0; i < vTokens.length; i++) {
+            for (uint256 i; i < vTokens.length; i++) {
                 if (modes[i] == 1) {
                     // Only check delegation for debt-creating modes
                     require(
@@ -522,7 +522,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         // Validate modes
-        for (uint256 i = 0; i < modes.length; i++) {
+        for (uint256 i; i < modes.length; i++) {
             require(modes[i] <= 1, "Invalid mode");
         }
     }
@@ -669,38 +669,15 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) internal returns (uint256 actualRepayment, uint256 remainingDebt) {
         VToken vToken = VToken(vTokenAddress);
         uint256 requiredRepayment = amount + totalFee;
-        uint256 currentBalance = IERC20(vToken.underlying()).balanceOf(onBehalfOf);
 
-        // Calculate actual repayment received
-        if (currentBalance > balanceAfterTransfer) {
-            actualRepayment = currentBalance - balanceAfterTransfer;
-        } else {
-            actualRepayment = 0;
-        }
-
-        // Create debt position by calling VBep20's borrow function
-        // This will handle all the proper borrow logic including state updates
         uint256 accrueResult = vToken.accrueInterest();
         require(accrueResult == 0, "Failed to accrue interest");
 
-        // If actual repayment is less than required, we create a debt position
+        // create a debt position
         uint256 debtError = vToken.borrowDebtPosition(onBehalfOf, requiredRepayment);
         require(debtError == 0, "Failed to create debt position");
 
-        // Handle fees from actual repayment proportionally
-        if (actualRepayment > 0) {
-            uint256 feeFromRepayment = (actualRepayment * protocolFee) / requiredRepayment;
-            if (feeFromRepayment > 0) {
-                vToken.transferOutUnderlying(vToken.protocolShareReserve(), feeFromRepayment);
-                IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
-                    address(vToken.comptroller()),
-                    address(vToken.underlying()),
-                    IProtocolShareReserve.IncomeType.FLASHLOAN
-                );
-            }
-        }
-
-        return (actualRepayment, requiredRepayment);
+        return (0, requiredRepayment);
     }
 
     /**
