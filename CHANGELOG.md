@@ -1,3 +1,10 @@
+## [9.8.0-dev.21](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.20...v9.8.0-dev.21) (2025-08-11)
+
+
+### Bug Fixes
+
+* removed berachain deployment ([7401b5b](https://github.com/VenusProtocol/venus-protocol/commit/7401b5b33a95f251294e4e9b5c695da5a27c0175))
+
 ## [9.8.0-dev.20](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.19...v9.8.0-dev.20) (2025-08-06)
 
 
