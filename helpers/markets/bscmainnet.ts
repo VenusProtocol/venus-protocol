@@ -120,8 +120,8 @@ export default [
     asset: "BTCB",
     interestRateModel: {
       model: "jump",
-      baseRatePerYear: "0",
-      multiplierPerYear: "0.09",
+      baseRatePerYear: "0.0025",
+      multiplierPerYear: "0.0367",
       kink: "0.75",
       jumpMultiplierPerYear: "2",
     },
