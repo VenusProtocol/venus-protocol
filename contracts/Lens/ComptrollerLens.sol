@@ -34,6 +34,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint256 oraclePriceMantissa;
         // Price of the vToken (USD, scaled by 1e18)
         Exp vTokenPrice;
+        // Effective collateral factor or liquidation threshold the asset has (scaled by 1e18)
+        Exp weightedFactor;
         // Weighted price of the vToken (USD, scaled by 1e18)
         Exp weightedVTokenPrice;
         // Error code for operations
@@ -340,13 +342,15 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 Exp({ mantissa: vars.oraclePriceMantissa })
             );
 
-            vars.weightedVTokenPrice = Exp({
+            vars.weightedFactor = Exp({
                 mantissa: ComptrollerInterface(comptroller).getEffectiveLtvFactor(
                     account,
                     address(asset),
                     weightingStrategy
                 )
             });
+
+            vars.weightedVTokenPrice = mul_(vars.weightedFactor, vars.vTokenPrice);
 
             if (asset == vTokenModify) {
                 // redeem effect: reduce the vToken balance
