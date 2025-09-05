@@ -229,7 +229,6 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if the flashLoan is not enabled", async () => {
-      await vTokenA._toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
 
       await expect(
