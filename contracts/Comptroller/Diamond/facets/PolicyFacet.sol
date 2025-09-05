@@ -403,10 +403,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) external {
         for (uint256 i; i < vTokens.length; i++) {
             if (!(vTokens[i]).isFlashLoanEnabled()) revert("FlashLoan not enabled");
+            if (underlyingAmounts[i] == 0) revert("Invalid amount");
         }
 
         ensureNonzeroAddress(receiver);
         ensureNonzeroAddress(onBehalfOf);
+
         // All arrays must have the same length and not be zero
         if (vTokens.length != underlyingAmounts.length || vTokens.length != modes.length || vTokens.length == 0) {
             revert("Invalid flashLoan params");

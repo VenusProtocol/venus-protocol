@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
@@ -264,6 +264,58 @@ describe("FlashLoan", async () => {
       ).to.be.revertedWith("Invalid flashLoan params");
     });
 
+    it("should revert when requested flash loan amount is zero", async () => {
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+
+      // Execute the flashLoan from the mockReceiverContract
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [0, 0],
+          mockReceiverContract.address,
+          [0, 0],
+          alice.address,
+          "0x",
+        ),
+      ).to.be.revertedWith("Invalid amount");
+    });
+
+    it("should revert if repayment is insufficient", async () => {
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+
+      // Execute the flashLoan from the mockReceiverContract
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          [0, 0],
+          alice.address,
+          "0x",
+        ),
+      ).to.be.revertedWith("Insufficient balance");
+    });
+
     it("Should revert if receiver's executeOperation returns false", async () => {
       // Enable flashLoan for vTokens
       await vTokenA._toggleFlashLoan();
@@ -298,7 +350,7 @@ describe("FlashLoan", async () => {
       ).to.be.revertedWith("Execute flashLoan failed");
     });
 
-    it("FlashLoan for multiple underlying and transfer funds to PSR", async () => {
+    it("FlashLoan for multiple underlying and transfer funds to PSR (mode = 0)", async () => {
       // Enable flashLoan for multiple vToken
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
@@ -378,12 +430,163 @@ describe("FlashLoan", async () => {
       );
     });
 
+    it("should revert when no collateral is provided", async () => {
+      // Enable flashLoan for multiple vTokens
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // whitelist bob for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+
+      // Set borrow caps to allow borrowing
+      await comptroller._setMarketBorrowCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
+
+      // Set supply caps to allow supplying
+      await comptroller._setMarketSupplyCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
+
+      await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
+      await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
+
+      // This is needed because onBehalfOf is alice but the caller is bob
+      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenA.address, bob.address, true);
+      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
+
+      // Alice needs to have collateral to borrow against in mode 1
+      // Give Alice some underlying tokens and let her supply as collateral
+      await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
+
+      // Enter markets for Alice so she can borrow
+      await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
+
+      // Set balances for vTokens to have liquidity
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("100", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("100", 18));
+
+      await expect(
+        mockReceiverContract.connect(bob).requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          [1, 1], // Both assets in mode 1
+          alice.address,
+          "0x",
+        )
+      ).to.be.revertedWith("Failed to create debt position");
+    });
+
+    it("should revert when borrow cap is reached", async () => {
+      // Enable flashLoan for multiple vTokens
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // whitelist bob for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+
+      // Set borrow caps to allow borrowing
+      await comptroller._setMarketBorrowCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("12", 18), parseUnits("12", 18)],
+      );
+
+      // Set supply caps to allow supplying
+      await comptroller._setMarketSupplyCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("12", 18), parseUnits("12", 18)],
+      );
+
+      await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
+      await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
+
+      // This is needed because onBehalfOf is alice but the caller is bob
+      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenA.address, bob.address, true);
+      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
+
+      // Alice needs to have collateral to borrow against in mode 1
+      // Give Alice some underlying tokens and let her supply as collateral
+      await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("1000", 18));
+      await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("1000", 18));
+      await vTokenA.connect(alice).mint(parseUnits("12", 18)); // Alice supplies 12 tokens as collateral
+      await vTokenB.connect(alice).mint(parseUnits("12", 18)); // Alice supplies 12 tokens as collateral
+
+      // Enter markets for Alice so she can borrow
+      await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
+
+      // Make small borrows to establish Alice as a borrower (much smaller amounts)
+      await vTokenA.connect(alice).borrow(parseUnits("12", 18)); // Very small borrow
+      await vTokenB.connect(alice).borrow(parseUnits("12", 18)); // Very small borrow
+
+      // Set balances for vTokens to have liquidity
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("100", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("100", 18));
+
+      await expect(
+        mockReceiverContract.connect(bob).requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          [1, 1], // Both assets in mode 1
+          alice.address,
+          "0x",
+        )
+      ).to.be.revertedWith("market borrow cap reached");
+    });
+
+    it("should revert if delegate is not authorized for flash loan", async () => {
+      // Enable flashLoan for multiple vTokens
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      await expect(
+        mockReceiverContract.connect(bob).requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          [1, 1], // Both assets in mode 1
+          alice.address,
+          "0x",
+        )
+      ).to.be.revertedWith("Sender not authorized to use flashloan on behalf");
+    });
+
     it("FlashLoan for multiple underlying with debt position (mode = 1)", async () => {
       // Enable flashLoan for multiple vTokens
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
 
-      // whitelist alice for flashLoan
+      // whitelist bob for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
 
       // Set collateral factors for the markets
@@ -484,25 +687,30 @@ describe("FlashLoan", async () => {
           [flashLoanAmount1, flashLoanAmount2],
         );
 
-      // Protocol share reserve should be updated for partial fees received
-      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
-        comptroller.address,
-        underlyingA.address,
-        2,
-      );
+      const borrowIndexPrevA = await vTokenA.borrowIndex();
+      const borrowIndexPrevB = await vTokenB.borrowIndex();
 
-      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
-        comptroller.address,
-        underlyingB.address,
-        2,
-      );
+      await mine(30000);
+      await vTokenA.accrueInterest();
+      await vTokenB.accrueInterest();
+
+      let borrowIndexCurrentA = await vTokenA.borrowIndex();
+      let borrowIndexCurrentB = await vTokenB.borrowIndex();
+
+      // Change borrow balance of acc1
+      let borrowBalanceStoredA = await vTokenA.borrowBalanceStored(alice.address);
+      let borrowBalanceStoredB = await vTokenB.borrowBalanceStored(alice.address);
+
+      expect(borrowIndexCurrentA.mul(aliceBorrowBalanceAfterA).div(borrowIndexPrevA)).equals(borrowBalanceStoredA);
+      expect(borrowIndexCurrentB.mul(aliceBorrowBalanceAfterB).div(borrowIndexPrevB)).equals(borrowBalanceStoredB);
     });
 
     it("FlashLoan for multiple underlying with mixed modes (mode = 0 and mode = 1)", async () => {
       // Enable flashLoan for multiple vTokens
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
-
+      
+      // whitelist bob for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
 
       // Set collateral factors for the markets
