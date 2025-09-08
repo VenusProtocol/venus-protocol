@@ -193,7 +193,7 @@ interface ComptrollerInterface {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 maxLiquidationIncentiveMantissa,
+            uint256 liquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );

@@ -213,6 +213,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the liquidation incentive for a market in the Core Pool only.
+     * @param vToken The market to set the liquidationIncentive for
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
@@ -245,6 +246,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Sets the liquidation incentive for a market in the specified pool.
      * @param poolId The ID of the pool.
+     * @param vToken The market to set the liquidationIncentive for
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
