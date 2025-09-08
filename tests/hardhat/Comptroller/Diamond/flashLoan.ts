@@ -489,7 +489,7 @@ describe("FlashLoan", async () => {
           [1, 1], // Both assets in mode 1
           alice.address,
           "0x",
-        )
+        ),
       ).to.be.revertedWith("Failed to create debt position");
     });
 
@@ -560,7 +560,7 @@ describe("FlashLoan", async () => {
           [1, 1], // Both assets in mode 1
           alice.address,
           "0x",
-        )
+        ),
       ).to.be.revertedWith("market borrow cap reached");
     });
 
@@ -577,7 +577,7 @@ describe("FlashLoan", async () => {
           [1, 1], // Both assets in mode 1
           alice.address,
           "0x",
-        )
+        ),
       ).to.be.revertedWith("Sender not authorized to use flashloan on behalf");
     });
 
@@ -694,12 +694,12 @@ describe("FlashLoan", async () => {
       await vTokenA.accrueInterest();
       await vTokenB.accrueInterest();
 
-      let borrowIndexCurrentA = await vTokenA.borrowIndex();
-      let borrowIndexCurrentB = await vTokenB.borrowIndex();
+      const borrowIndexCurrentA = await vTokenA.borrowIndex();
+      const borrowIndexCurrentB = await vTokenB.borrowIndex();
 
       // Change borrow balance of acc1
-      let borrowBalanceStoredA = await vTokenA.borrowBalanceStored(alice.address);
-      let borrowBalanceStoredB = await vTokenB.borrowBalanceStored(alice.address);
+      const borrowBalanceStoredA = await vTokenA.borrowBalanceStored(alice.address);
+      const borrowBalanceStoredB = await vTokenB.borrowBalanceStored(alice.address);
 
       expect(borrowIndexCurrentA.mul(aliceBorrowBalanceAfterA).div(borrowIndexPrevA)).equals(borrowBalanceStoredA);
       expect(borrowIndexCurrentB.mul(aliceBorrowBalanceAfterB).div(borrowIndexPrevB)).equals(borrowBalanceStoredB);
@@ -709,7 +709,7 @@ describe("FlashLoan", async () => {
       // Enable flashLoan for multiple vTokens
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
-      
+
       // whitelist bob for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
 
