@@ -547,9 +547,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
                     address(vTokens[k]),
                     onBehalfOf,
                     underlyingAmounts[k],
-                    flashLoanData.totalFees[k],
-                    flashLoanData.protocolFees[k],
-                    flashLoanData.balanceAfterTransfer[k]
+                    flashLoanData.totalFees[k]
                 );
             }
         }
@@ -589,9 +587,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address vTokenAddress,
         address onBehalfOf,
         uint256 amount,
-        uint256 totalFee,
-        uint256 protocolFee,
-        uint256 balanceAfterTransfer
+        uint256 totalFee
     ) internal returns (uint256 actualRepayment, uint256 remainingDebt) {
         VToken vToken = VToken(vTokenAddress);
         uint256 requiredRepayment = amount + totalFee;
