@@ -383,6 +383,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
      * @custom:error MarketNotListedInCorePool Reverts if the market is not listed in the core pool.
      * @custom:error MarketAlreadyListed Reverts if the given market is already listed in the specified pool.
+     * @custom:error InactivePool Reverts if attempted to add markets to an inactive pool.
      * @custom:event PoolMarketInitialized Emitted after successfully initializing a market in a pool.
      */
     function addPoolMarkets(uint96[] calldata poolIds, address[] calldata vTokens) external {
@@ -674,6 +675,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function _addPoolMarket(uint96 poolId, address vToken) internal {
         if (poolId == corePoolId) revert InvalidOperationForCorePool();
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (!pools[poolId].isActive) revert InactivePool(poolId);
 
         // Core Pool Index
         PoolMarketId index = getPoolMarketIndex(corePoolId, vToken);

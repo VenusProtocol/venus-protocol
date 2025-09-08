@@ -43,7 +43,7 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when an invalid weighting strategy is provided
     error InvalidWeightingStrategy(WeightFunction strategy);
 
-    /// @notice Thrown when attempting to enter an inactive pool
+    /// @notice Thrown when attempting to interact with an inactive pool
     error InactivePool(uint96 poolId);
 
     enum Error {
