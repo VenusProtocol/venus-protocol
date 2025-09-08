@@ -378,7 +378,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @notice Batch initializes market entries with basic config.
      * @param poolIds Array of pool IDs.
      * @param vTokens Array of market (vToken) addresses.
-     * @custom:error ArrayLengthMismatch Reverts if `poolIds` and `vTokens` arrays have different lengths.
+     * @custom:error ArrayLengthMismatch Reverts if `poolIds` and `vTokens` arrays have different lengths or if the length is zero.
      * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
      * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
      * @custom:error MarketNotListedInCorePool Reverts if the market is not listed in the core pool.
@@ -390,7 +390,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         ensureAllowed("addPoolMarkets(uint96[],address[])");
 
         uint256 len = poolIds.length;
-        if (vTokens.length != len) {
+        if (len == 0 || len != vTokens.length) {
             revert ArrayLengthMismatch();
         }
 
