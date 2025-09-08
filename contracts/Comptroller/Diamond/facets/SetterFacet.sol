@@ -23,7 +23,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
 
-    /// @notice Emitted when a collateral factor is changed by admin
+    /// @notice Emitted when a collateral factor for a market in a pool is changed by admin
     event NewCollateralFactor(
         uint96 indexed poolId,
         VToken indexed vToken,
@@ -31,8 +31,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa
     );
 
-    /// @notice Emitted when liquidation incentive is changed by admin
-    event NewMarketLiquidationIncentive(
+    /// @notice Emitted when liquidation incentive for a market in a pool is changed by admin
+    event NewLiquidationIncentive(
         uint96 indexed poolId,
         address indexed vToken,
         uint256 oldLiquidationIncentiveMantissa,
@@ -102,7 +102,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when XVS vToken address is changed
     event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
-    /// @notice Emitted when liquidation threshold is changed by admin
+    /// @notice Emitted when liquidation threshold for a market in a pool is changed by admin
     event NewLiquidationThreshold(
         uint96 indexed poolId,
         VToken indexed vToken,
@@ -815,7 +815,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         require(newLiquidationIncentiveMantissa >= mantissaOne, "incentive < 1e18");
 
-        emit NewMarketLiquidationIncentive(
+        emit NewLiquidationIncentive(
             poolId,
             vToken,
             market.liquidationIncentiveMantissa,
