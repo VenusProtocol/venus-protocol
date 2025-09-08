@@ -292,58 +292,6 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Get the liquidation incentive for a borrower
-     * @param vToken The address of the vToken to be seized
-     * @param liquidationThresholdAvg The average liquidation threshold for the borrower
-     * @param healthFactor The health factor of the borrower
-     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
-     */
-    function getDynamicLiquidationIncentive(
-        address vToken,
-        uint256 liquidationThresholdAvg,
-        uint256 healthFactor
-    ) external view returns (uint256 incentive) {
-        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
-
-        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
-            vToken,
-            healthFactor,
-            liquidationThresholdAvg,
-            market.maxLiquidationIncentiveMantissa
-        );
-    }
-
-    /**
-     * @notice Get the liquidation incentive for a borrower
-     * @param borrower The address of the borrower
-     * @param vToken The address of the vToken to be seized
-     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
-     */
-    function getDynamicLiquidationIncentive(
-        address borrower,
-        address vToken
-    ) external view returns (uint256 incentive) {
-        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
-        (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = getHypotheticalHealthSnapshotInternal(
-            borrower,
-            VToken(vToken),
-            0,
-            0,
-            WeightFunction.USE_LIQUIDATION_THRESHOLD
-        );
-        if (err != uint256(Error.NO_ERROR)) {
-            return err;
-        }
-
-        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
-            vToken,
-            snapshot.healthFactor,
-            snapshot.liquidationThresholdAvg,
-            market.maxLiquidationIncentiveMantissa
-        );
-    }
-
-    /**
      * @notice Returns the market index for a given vToken
      * @dev Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping.
      * - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,

@@ -8,6 +8,7 @@ import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { WeightFunction } from "../interfaces/IFacetBase.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title MarketFacet
@@ -442,6 +443,58 @@ contract MarketFacet is IMarketFacet, FacetBase {
         delete _poolMarkets[index];
 
         emit PoolMarketRemoved(poolId, vToken);
+    }
+
+    /**
+     * @notice Get the liquidation incentive for a borrower
+     * @param vToken The address of the vToken to be seized
+     * @param liquidationThresholdAvg The average liquidation threshold for the borrower
+     * @param healthFactor The health factor of the borrower
+     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address vToken,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256 incentive) {
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
+
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
+            healthFactor,
+            liquidationThresholdAvg,
+            market.maxLiquidationIncentiveMantissa
+        );
+    }
+
+    /**
+     * @notice Get the liquidation incentive for a borrower
+     * @param borrower The address of the borrower
+     * @param vToken The address of the vToken to be seized
+     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address borrower,
+        address vToken
+    ) external view returns (uint256 incentive) {
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
+        (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = getHypotheticalHealthSnapshotInternal(
+            borrower,
+            VToken(vToken),
+            0,
+            0,
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
+        );
+        if (err != uint256(Error.NO_ERROR)) {
+            return err;
+        }
+
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
+            snapshot.healthFactor,
+            snapshot.liquidationThresholdAvg,
+            market.maxLiquidationIncentiveMantissa
+        );
     }
 
     /**

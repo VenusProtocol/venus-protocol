@@ -35,14 +35,6 @@ interface IFacetBase {
      */
     function getXVSAddress() external view returns (address);
 
-    function getDynamicLiquidationIncentive(address borrower, address vToken) external view returns (uint256);
-
-    function getDynamicLiquidationIncentive(
-        address vToken,
-        uint256 liquidationThresholdAvg,
-        uint256 healthFactor
-    ) external view returns (uint256);
-
     function getHypotheticalHealthSnapshot(
         address account,
         VToken vTokenModify,
