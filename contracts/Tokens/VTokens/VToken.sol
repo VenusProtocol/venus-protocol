@@ -383,6 +383,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - The caller must be the Comptroller contract.
      * custom:reverts
      *      - Reverts with "Invalid Comptroller" if the caller is not the Comptroller.
+     * custom:error
+     *      - Reverts with `InsufficientRepaymentBalance` if the repayment (amount + fee) is insufficient after the operation.
      * custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
     function transferInUnderlyingAndVerify(
@@ -418,11 +420,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - The `receiver` address must not be the zero address.
      *      - FlashLoans must be enabled for the asset.
      *      - The `receiver` contract must repay the loan with the appropriate fee.
-     * custom:reverts
-     *      - Reverts with `Flash loan not authorized for this account` if the initiator is not authorized for flash loans.
-     *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
-     *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
-     *      - Reverts with `Insufficient repayment balance` if the repayment (amount + fee) is insufficient after the operation.
+     * custom:error
+     *      - Reverts with `FlashLoanNotAuthorized` if the initiator is not authorized for flash loans.
+     *      - Reverts with `FlashLoanNotEnabled` if flashLoans are disabled for any of the requested assets.
+     *      - Reverts with `ExecuteFlashLoanFailed` if the receiver contract fails to execute the operation.
+     *      - Reverts with `InsufficientRepaymentBalance` if the repayment (amount + fee) is insufficient after the operation.
      * custom:event Emits FlashLoanExecuted event on success
      */
     function executeFlashLoan(
