@@ -1,3 +1,4 @@
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { network } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
@@ -34,7 +35,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     await accessControlManager.giveCallPermission(ethers.constants.AddressZero, "_supportMarket(address)", deployer);
 
+    await accessControlManager.giveCallPermission(
+      ethers.constants.AddressZero,
+      "_setLiquidationIncentive(uint256)",
+      deployer,
+    );
+
     await comptroller.connect(deployerSigner)._setAccessControl(accessControlManager.address);
+    await comptroller.connect(deployerSigner)._setLiquidationIncentive(parseUnits("5", 18));
   }
 };
 
