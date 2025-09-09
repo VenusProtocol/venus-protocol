@@ -2,27 +2,6 @@
   "address": "0x55AEABa76ecf144031Ef64E222166eb28Cb4865F",
   "abi": [
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_logic",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "admin_",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_data",
-          "type": "bytes"
-        }
-      ],
-      "stateMutability": "payable",
-      "type": "constructor"
-    },
-    {
       "anonymous": false,
       "inputs": [
         {
@@ -149,27 +128,6 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "comptroller_",
-          "type": "address"
-        },
-        {
-          "internalType": "address payable",
-          "name": "vBnb_",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "wBNB_",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
           "name": "borrower",
           "type": "address"
         },
@@ -262,6 +220,17 @@
       "inputs": [
         {
           "internalType": "uint256",
+          "name": "errorCode",
+          "type": "uint256"
+        }
+      ],
+      "name": "SnapshotError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
           "name": "maxTreasuryPercentMantissa",
           "type": "uint256"
         },
@@ -293,11 +262,6 @@
         }
       ],
       "name": "Unauthorized",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "UnexpectedZeroAddress",
       "type": "error"
     },
     {
@@ -351,6 +315,11 @@
         }
       ],
       "name": "WrongTransactionAmount",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAddressNotAllowed",
       "type": "error"
     },
     {
@@ -740,6 +709,19 @@
     },
     {
       "inputs": [],
+      "name": "comptrollerLens",
+      "outputs": [
+        {
+          "internalType": "contract ComptrollerLensInterface",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "forceVAILiquidate",
       "outputs": [
         {
@@ -1095,10 +1077,38 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_logic",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "admin_",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_data",
+          "type": "bytes"
+        }
+      ],
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "constructor"
     }
   ],
-  "numDeployments": 1,
-  "implementation": "0x0F30B2a844339b7bD2Be0D82298e82f44286A0cA"
+  "numDeployments": 2,
+  "execute": {
+    "methodName": "initialize",
+    "args": [
+      {
+        "type": "BigNumber",
+        "hex": "0xb1a2bc2ec50000"
+      },
+      "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA",
+      "0x8b293600c50d6fbdc6ed4251cc75ece29880276f"
+    ]
+  },
+  "implementation": "0x549ECe7d8Fe25343189EB09F6214B0d9Bc072F06"
 }
