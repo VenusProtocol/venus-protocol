@@ -588,7 +588,7 @@ contract VenusLens is ExponentialNoError {
         uint96 lastPoolId = comptroller.lastPoolId();
         poolsData = new PoolWithMarkets[](lastPoolId);
 
-        for (uint96 i = 1; i <= lastPoolId; i++) {
+        for (uint96 i = 1; i <= lastPoolId; ++i) {
             poolsData[i - 1] = PoolWithMarkets({
                 poolId: i,
                 label: comptroller.pools(i),
@@ -599,8 +599,8 @@ contract VenusLens is ExponentialNoError {
 
     /**
      * @notice Retrieves full market data for all vTokens in a specific pool (excluding the Core Pool)
-     * @param comptroller The address of the Comptroller contract
      * @param poolId The pool ID to fetch data for
+     * @param comptroller The address of the Comptroller contract
      * @return result An array of MarketData structs containing detailed market info for the given pool
      * @custom:error PoolDoesNotExist Reverts if the given pool ID does not exist
      * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool (`poolId = 0`)
@@ -618,7 +618,7 @@ contract VenusLens is ExponentialNoError {
 
         string memory label = comptroller.pools(poolId);
 
-        for (uint256 i; i < length; i++) {
+        for (uint256 i; i < length; ++i) {
             (
                 bool isListed,
                 uint256 collateralFactor,
