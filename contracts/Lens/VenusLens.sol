@@ -108,7 +108,7 @@ contract VenusLens is ExponentialNoError {
         PendingReward[] pendingRewards;
     }
 
-    /// @notice Holds full market information for a single vToken within a specific pool
+    /// @notice Holds full market information for a single vToken within a specific pool (excluding the Core Pool)
     struct MarketData {
         uint96 poolId;
         string poolLabel;
@@ -121,12 +121,18 @@ contract VenusLens is ExponentialNoError {
         bool isBorrowAllowed;
     }
 
-    /// @notice Struct representing a pool and its associated markets
+    /// @notice Struct representing a pool (excluding the Core Pool) and its associated markets
     struct PoolWithMarkets {
         uint96 poolId;
         string label;
         MarketData[] markets;
     }
+
+    /// @notice Thrown when a given pool ID does not exist
+    error PoolDoesNotExist(uint96 poolId);
+
+    /// @notice Thrown when trying to call pool-specific methods on the Core Pool
+    error InvalidOperationForCorePool();
 
     /**
      * @notice Query the metadata of a vToken by its address
@@ -572,7 +578,7 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
-     * @notice Returns all pools along with their associated market data
+     * @notice Returns all pools (excluding the Core Pool) along with their associated market data
      * @param comptroller The Comptroller contract to query
      * @return poolsData An array of PoolWithMarkets structs, each containing pool info and its markets
      */
@@ -592,15 +598,20 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
-     * @notice Retrieves full market data for all vTokens in a specific pool
+     * @notice Retrieves full market data for all vTokens in a specific pool (excluding the Core Pool)
      * @param comptroller The address of the Comptroller contract
      * @param poolId The pool ID to fetch data for
-     * @return result An array of MarketData structs containing detailed market info
+     * @return result An array of MarketData structs containing detailed market info for the given pool
+     * @custom:error PoolDoesNotExist Reverts if the given pool ID does not exist
+     * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool (`poolId = 0`)
      */
     function getMarketsDataByPool(
         uint96 poolId,
         ComptrollerInterface comptroller
     ) public view returns (MarketData[] memory result) {
+        if (poolId > comptroller.lastPoolId()) revert PoolDoesNotExist(poolId);
+        if (poolId == comptroller.corePoolId()) revert InvalidOperationForCorePool();
+
         address[] memory vTokens = comptroller.getPoolVTokens(poolId);
         uint256 length = vTokens.length;
         result = new MarketData[](length);

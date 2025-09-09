@@ -176,6 +176,8 @@ interface ComptrollerInterface {
 
     function lastPoolId() external view returns (uint96);
 
+    function corePoolId() external pure returns (uint96);
+
     function pools(uint96 poolId) external view returns (string memory label);
 
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory);

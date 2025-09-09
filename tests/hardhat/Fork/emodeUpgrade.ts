@@ -121,7 +121,7 @@ async function setAccessControls(acm: IAccessControlManagerV8) {
     "setLiquidationIncentive(address,uint256)",
     "setLiquidationIncentive(uint96,address,uint256)",
     "createPool(string)",
-    "addPoolMarket(uint96,address)",
+    "addPoolMarkets(uint96[],address[])",
     "setIsBorrowAllowed(uint96,address,bool)",
   ];
   for (const sig of fnSigs) {
@@ -195,6 +195,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
         it("new PoolId index should not collide with existing core Pool", async () => {
           for (let i = 1; i < 5; i++) {
             for (const market of assets) {
+              await comptroller.createPool("pool" + i);
               const poolMarket = await comptroller.poolMarkets(i, market);
               expect(poolMarket[0]).to.be.equal(false);
             }
