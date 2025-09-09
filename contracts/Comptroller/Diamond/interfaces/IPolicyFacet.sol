@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
 
 interface IPolicyFacet {
     function mintAllowed(address vToken, address minter, uint256 mintAmount) external returns (uint256);
@@ -31,6 +32,15 @@ interface IPolicyFacet {
         uint256 repayAmount,
         uint256 borrowerIndex
     ) external;
+
+    function liquidateBorrowAllowed(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        address liquidator,
+        address borrower,
+        uint256 repayAmount,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) external view returns (uint256);
 
     function liquidateBorrowAllowed(
         address vTokenBorrowed,
@@ -98,6 +108,7 @@ interface IPolicyFacet {
         address onBehalfOf,
         bytes calldata param
     ) external;
+
     function getBorrowingPower(
         address account
     ) external view returns (uint256 error, uint256 liquidity, uint256 shortfall);

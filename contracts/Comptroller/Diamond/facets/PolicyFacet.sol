@@ -7,6 +7,7 @@ import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
+import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
@@ -267,24 +268,99 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = this.getHypotheticalHealthSnapshot(
             borrower,
             VToken(address(0)),
             0,
             0,
             WeightFunction.USE_LIQUIDATION_THRESHOLD
         );
-
-        if (err != Error.NO_ERROR) {
+        if (err != 0) {
             return uint256(err);
         }
-        if (shortfall == 0) {
+        if (snapshot.shortfall == 0) {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
+        Market storage marketCollateral = getCorePoolMarket(vTokenCollateral);
+        uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
+            vTokenBorrowed,
+            borrowBalance,
+            snapshot.liquidationThresholdAvg,
+            snapshot.totalCollateral,
+            snapshot.dynamicLiquidationIncentiveMantissa,
+            marketCollateral.maxLiquidationIncentiveMantissa
+        );
+
         // The liquidator may not repay more than what is allowed by the closeFactor
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance
-        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactorMantissa }), borrowBalance)) {
+        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactor }), borrowBalance)) {
+            return uint256(Error.TOO_MUCH_REPAY);
+        }
+
+        return uint256(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Checks if the liquidation should be allowed to occur
+     * @param vTokenBorrowed Asset which was borrowed by the borrower
+     * @param vTokenCollateral Asset which was used as collateral and will be seized
+     * @param liquidator The address repaying the borrow and seizing the collateral
+     * @param borrower The address of the borrower
+     * @param repayAmount The amount of underlying being repaid
+     * @param snapshot The account snapshot of the borrower
+     */
+    function liquidateBorrowAllowed(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        address liquidator,
+        address borrower,
+        uint256 repayAmount,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) external view returns (uint256) {
+        checkProtocolPauseState();
+
+        // if we want to pause liquidating to vTokenCollateral, we should pause seizing
+        checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
+
+        if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
+            return uint256(Error.UNAUTHORIZED);
+        }
+
+        ensureListed(getCorePoolMarket(vTokenCollateral));
+
+        uint256 borrowBalance;
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            ensureListed(getCorePoolMarket(vTokenBorrowed));
+            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
+        } else {
+            borrowBalance = vaiController.getVAIRepayAmount(borrower);
+        }
+
+        if (isForcedLiquidationEnabled[vTokenBorrowed] || isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed]) {
+            if (repayAmount > borrowBalance) {
+                return uint(Error.TOO_MUCH_REPAY);
+            }
+            return uint(Error.NO_ERROR);
+        }
+
+        if (snapshot.shortfall == 0) {
+            return uint256(Error.INSUFFICIENT_SHORTFALL);
+        }
+
+        Market storage marketCollateral = getCorePoolMarket(vTokenCollateral);
+        uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
+            vTokenBorrowed,
+            borrowBalance,
+            snapshot.liquidationThresholdAvg,
+            snapshot.totalCollateral,
+            snapshot.dynamicLiquidationIncentiveMantissa,
+            marketCollateral.maxLiquidationIncentiveMantissa
+        );
+
+        // The liquidator may not repay more than what is allowed by the closeFactor
+        //-- maxClose = multipy of closeFactorMantissa and borrowBalance
+        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactor }), borrowBalance)) {
             return uint256(Error.TOO_MUCH_REPAY);
         }
 
@@ -673,7 +749,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
+     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed on the basis of collateral factor 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem

@@ -9,6 +9,7 @@ import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
 import { IPrime } from "../Tokens/Prime/IPrime.sol";
+import { LiquidationManager } from "../LiquidationManager.sol";
 
 contract UnitrollerAdminStorage {
     /**
@@ -39,9 +40,9 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     ResilientOracleInterface public oracle;
 
     /**
-     * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow
+     * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow (deprecated)
      */
-    uint256 public closeFactorMantissa;
+    uint256 public __oldCloseFactorMantissaSlot;
 
     /**
      * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
@@ -78,7 +79,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
          */
         uint256 liquidationThresholdMantissa;
         /// @notice discount on collateral that a liquidator receives when liquidating a borrow in this market
-        uint256 liquidationIncentiveMantissa;
+        uint256 maxLiquidationIncentiveMantissa;
         /// @notice The pool ID this market is associated with, Used to support pools/emodes
         uint96 poolId;
         /// @notice Flag  to restrict borrowing in certain pools/emodes.
@@ -323,4 +324,7 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
     /// @notice Mapping to store delegate authorization for flash loans
     mapping(address /* delegator */ => mapping(address /* market */ => mapping(address /* sender */ => bool)))
         public delegateAuthorizationFlashloan;
+
+    /// @notice The LiquidationManager contract address
+    LiquidationManager public liquidationManager;
 }

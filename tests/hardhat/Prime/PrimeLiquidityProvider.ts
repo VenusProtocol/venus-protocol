@@ -1,6 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { impersonateAccount, loadFixture, mine, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
@@ -364,8 +364,13 @@ describe("PrimeLiquidityProvider: tests", () => {
       await primeLiquidityProvider.pauseFundsTransfer();
 
       await impersonateAccount(prime.address);
-      await setBalance(prime.address, ethers.utils.parseEther("10"));
-      const primeSigner = ethers.provider.getSigner(prime.address);
+
+      await ethers.provider.send("hardhat_setBalance", [
+        prime.address,
+        ethers.utils.hexValue(ethers.utils.parseEther("10")),
+      ]);
+
+      const primeSigner = await ethers.provider.getSigner(prime.address);
 
       const tx = primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
 
@@ -382,8 +387,11 @@ describe("PrimeLiquidityProvider: tests", () => {
       const lastAccruedBlockOrSecondTokenA = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenB.address);
 
       await impersonateAccount(prime.address);
-      await setBalance(prime.address, ethers.utils.parseEther("10"));
-      const primeSigner = ethers.provider.getSigner(prime.address);
+      await ethers.provider.send("hardhat_setBalance", [
+        prime.address,
+        ethers.utils.hexValue(ethers.utils.parseEther("10")),
+      ]);
+      const primeSigner = await ethers.provider.getSigner(prime.address);
 
       const tx = await primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
       await tx.wait();

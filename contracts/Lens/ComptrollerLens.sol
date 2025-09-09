@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-
 pragma solidity 0.8.25;
 
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
@@ -22,64 +22,29 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
      *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
      */
-    struct AccountLiquidityLocalVars {
-        uint sumCollateral;
-        uint sumBorrowPlusEffects;
-        uint vTokenBalance;
-        uint borrowBalance;
-        uint exchangeRateMantissa;
-        uint oraclePriceMantissa;
+    struct AccountSnapshotLocal {
+        uint256 assetsCount;
+        // Balance of vTokens held by the account (vTokens)
+        uint256 vTokenBalance;
+        // Outstanding borrow balance for the account (underlying asset units)
+        uint256 borrowBalance;
+        // Exchange rate between vToken and underlying asset (scaled by 1e18)
+        uint256 exchangeRateMantissa;
+        // Price of the underlying asset from the oracle (USD, scaled by 1e18)
+        uint256 oraclePriceMantissa;
+        // Price of the vToken (USD, scaled by 1e18)
+        Exp vTokenPrice;
+        // Effective collateral factor or liquidation threshold the asset has (scaled by 1e18)
         Exp weightedFactor;
-        Exp exchangeRate;
-        Exp oraclePrice;
-        Exp tokensToDenom;
+        // Weighted price of the vToken (USD, scaled by 1e18)
+        Exp weightedVTokenPrice;
+        // Error code for operations
+        uint256 err;
     }
 
     /**
      * @notice Computes the number of collateral tokens to be seized in a liquidation event
-     * @dev This will be used only in vBNB
-     * @param comptroller Address of comptroller
-     * @param vTokenBorrowed Address of the borrowed vToken
-     * @param vTokenCollateral Address of collateral for the borrow
-     * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
-     * @return A tuple of error code, and tokens to seize
-     */
-    function liquidateCalculateSeizeTokens(
-        address comptroller,
-        address vTokenBorrowed,
-        address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint) {
-        /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
-        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
-        if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
-            return (uint(Error.PRICE_ERROR), 0);
-        }
-
-        /*
-         * Get the exchange rate and calculate the number of collateral tokens to seize:
-         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
-         *  seizeTokens = seizeAmount / exchangeRate
-         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
-         */
-        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
-        uint liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getLiquidationIncentive(vTokenCollateral);
-
-        uint seizeTokens = _calculateSeizeTokens(
-            actualRepayAmount,
-            liquidationIncentiveMantissa,
-            priceBorrowedMantissa,
-            priceCollateralMantissa,
-            exchangeRateMantissa
-        );
-
-        return (uint(Error.NO_ERROR), seizeTokens);
-    }
-
-    /**
-     * @notice Computes the number of collateral tokens to be seized in a liquidation event
-     * @param borrower Address of borrower whose collateral is being seized
+     * @param borrower The address of the borrower to be liquidated
      * @param comptroller Address of comptroller
      * @param vTokenBorrowed Address of the borrowed vToken
      * @param vTokenCollateral Address of collateral for the borrow
@@ -91,13 +56,61 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint) {
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
-        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
+        uint256 priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
+        uint256 priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
+            vTokenCollateral
+        );
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
-            return (uint(Error.PRICE_ERROR), 0);
+            return (uint256(Error.PRICE_ERROR), 0);
+        }
+        /*
+         * Get the exchange rate and calculate the number of collateral tokens to seize:
+         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
+         *  seizeTokens = seizeAmount / exchangeRate
+         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
+         */
+        uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored();
+        uint256 liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getDynamicLiquidationIncentive(
+            borrower,
+            vTokenCollateral
+        );
+        uint256 seizeTokens = _calculateSeizeTokens(
+            actualRepayAmount,
+            liquidationIncentiveMantissa,
+            priceBorrowedMantissa,
+            priceCollateralMantissa,
+            exchangeRateMantissa
+        );
+        return (uint(Error.NO_ERROR), seizeTokens);
+    }
+
+    /**
+     * @notice Computes the number of collateral tokens to be seized in a liquidation event
+     * @dev This will be used only in vBNB
+     * @param comptroller Address of comptroller
+     * @param vTokenBorrowed Address of the borrowed vToken
+     * @param vTokenCollateral Address of collateral for the borrow
+     * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
+     * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
+     * @return A tuple of error code, and tokens to seize
+     */
+    function liquidateCalculateSeizeTokens(
+        address comptroller,
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
+    ) external view returns (uint256, uint256) {
+        /* Read oracle prices for borrowed and collateral markets */
+        uint256 priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
+        uint256 priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
+            vTokenCollateral
+        );
+        if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
+            return (uint256(Error.PRICE_ERROR), 0);
         }
 
         /*
@@ -106,13 +119,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
          *  seizeTokens = seizeAmount / exchangeRate
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
-        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
-        uint liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getEffectiveLiquidationIncentive(
-            borrower,
-            vTokenCollateral
-        );
+        uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored();
 
-        uint seizeTokens = _calculateSeizeTokens(
+        uint256 seizeTokens = _calculateSeizeTokens(
             actualRepayAmount,
             liquidationIncentiveMantissa,
             priceBorrowedMantissa,
@@ -128,18 +137,22 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param comptroller Address of comptroller
      * @param vTokenCollateral Address of collateral for vToken
      * @param actualRepayAmount Repayment amount i.e amount to be repaid of the total borrowed amount
+     * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
      * @return A tuple of error code, and tokens to seize
      */
     function liquidateVAICalculateSeizeTokens(
         address comptroller,
         address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint) {
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
+    ) external view returns (uint256, uint256) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = 1e18; // Note: this is VAI
-        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
+        uint256 priceBorrowedMantissa = 1e18; // Note: this is VAI
+        uint256 priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
+            vTokenCollateral
+        );
         if (priceCollateralMantissa == 0) {
-            return (uint(Error.PRICE_ERROR), 0);
+            return (uint256(Error.PRICE_ERROR), 0);
         }
 
         /*
@@ -148,9 +161,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
          *  seizeTokens = seizeAmount / exchangeRate
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
-        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
-        uint liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getLiquidationIncentive(vTokenCollateral);
-        uint seizeTokens = _calculateSeizeTokens(
+        uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+
+        uint256 seizeTokens = _calculateSeizeTokens(
             actualRepayAmount,
             liquidationIncentiveMantissa,
             priceBorrowedMantissa,
@@ -158,15 +171,61 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             exchangeRateMantissa
         );
 
-        return (uint(Error.NO_ERROR), seizeTokens);
+        return (uint256(Error.NO_ERROR), seizeTokens);
+    }
+
+    /**
+     * @notice Computes the number of VAI tokens to be seized in a liquidation event
+     * @param comptroller Address of comptroller
+     * @param borrower Address of borrower
+     * @param vTokenCollateral Address of collateral for vToken
+     * @param actualRepayAmount Repayment amount i.e amount to be repaid of the total borrowed amount
+     * @return A tuple of error code, and tokens to seize
+     */
+    function liquidateVAICalculateSeizeTokens(
+        address comptroller,
+        address borrower,
+        address vTokenCollateral,
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
+        /* Read oracle prices for borrowed and collateral markets */
+        uint256 priceBorrowedMantissa = 1e18; // Note: this is VAI
+        uint256 priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
+            vTokenCollateral
+        );
+        if (priceCollateralMantissa == 0) {
+            return (uint256(Error.PRICE_ERROR), 0);
+        }
+
+        /*
+         * Get the exchange rate and calculate the number of collateral tokens to seize:
+         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
+         *  seizeTokens = seizeAmount / exchangeRate
+         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
+         */
+        uint256 exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint256 liquidationIncentiveMantissa = ComptrollerInterface(comptroller).getDynamicLiquidationIncentive(
+            borrower,
+            vTokenCollateral
+        );
+
+        uint256 seizeTokens = _calculateSeizeTokens(
+            actualRepayAmount,
+            liquidationIncentiveMantissa,
+            priceBorrowedMantissa,
+            priceCollateralMantissa,
+            exchangeRateMantissa
+        );
+
+        return (uint256(Error.NO_ERROR), seizeTokens);
     }
 
     /**
      * @notice Computes the hypothetical liquidity and shortfall of an account given a hypothetical borrow
      *      A snapshot of the account is taken and the total borrow amount of the account is calculated
      * @param comptroller Address of comptroller
-     * @param account Address of the borrowed vToken
-     * @param vTokenModify Address of collateral for vToken
+     * @param account Address of the account to be queried
+     * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
      * @param weightingStrategy The weighting strategy to use:
@@ -178,11 +237,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address comptroller,
         address account,
         VToken vTokenModify,
-        uint redeemTokens,
-        uint borrowAmount,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
         WeightFunction weightingStrategy
-    ) external view returns (uint, uint, uint) {
-        (uint errorCode, AccountLiquidityLocalVars memory vars) = _calculateAccountPosition(
+    ) external view returns (uint256, uint256, uint256) {
+        (uint256 errorCode, AccountSnapshot memory snapshot) = _calculateAccountPosition(
             comptroller,
             account,
             vTokenModify,
@@ -190,53 +249,99 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             borrowAmount,
             weightingStrategy
         );
-        if (errorCode != 0) {
-            return (errorCode, 0, 0);
-        }
 
-        // These are safe, as the underflow condition is checked first
-        if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
-            return (uint(Error.NO_ERROR), vars.sumCollateral - vars.sumBorrowPlusEffects, 0);
-        } else {
-            return (uint(Error.NO_ERROR), 0, vars.sumBorrowPlusEffects - vars.sumCollateral);
-        }
+        return (errorCode, snapshot.liquidity, snapshot.shortfall);
     }
 
     /**
-     * @notice Internal function to calculate account position
+     * @notice Computes the hypothetical health snapshot of an account given a hypothetical borrow
+     *      A snapshot of the account is taken and the total borrow amount of the account is calculated
      * @param comptroller Address of comptroller
-     * @param account Address of the account whose liquidity is being calculated
-     * @param vTokenModify The vToken being modified (redeemed or borrowed)
+     * @param account Address of the account to be queried
+     * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
      * @param weightingStrategy The weighting strategy to use:
      *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
      *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
-     * @return oErr Returns an error code indicating success or failure
-     * @return vars Returns an AccountLiquidityLocalVars struct containing the calculated values
+     * @return Returns AccountSnapshot struct containing the account's position
+     */
+    function getAccountHealthSnapshot(
+        address comptroller,
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256, AccountSnapshot memory) {
+        (uint256 errorCode, AccountSnapshot memory snapshot) = _calculateAccountPosition(
+            comptroller,
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount,
+            weightingStrategy
+        );
+
+        return (errorCode, snapshot);
+    }
+
+    /**
+     * @notice Internal function to calculate account position
+     * @param comptroller Address of comptroller
+     * @param account Address of the account to be queried
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param redeemTokens Number of vTokens being redeemed
+     * @param borrowAmount Amount borrowed
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
+     * @return errorCode Returns an error code indicating success or failure
+     * @return snapshot Returns an AccountSnapshot struct containing the calculated values
+     * @dev This function processes all assets the account is in, calculates their balances, prices,
+     *      and computes the total collateral, borrows, and effects of the hypothetical actions.
+     *      It also calculates the health factor and average liquidation threshold.
      */
     function _calculateAccountPosition(
         address comptroller,
         address account,
         VToken vTokenModify,
-        uint redeemTokens,
-        uint borrowAmount,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
         WeightFunction weightingStrategy
-    ) internal view returns (uint oErr, AccountLiquidityLocalVars memory vars) {
+    ) internal view returns (uint256 errorCode, AccountSnapshot memory snapshot) {
+        AccountSnapshotLocal memory vars;
+
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
-        uint assetsCount = assets.length;
-        for (uint i = 0; i < assetsCount; ++i) {
+        vars.assetsCount = assets.length;
+        ResilientOracleInterface oracle = ComptrollerInterface(comptroller).oracle();
+
+        for (uint256 i = 0; i < vars.assetsCount; ++i) {
             VToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
+            (vars.err, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
                 account
             );
-            if (oErr != 0) {
-                // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
-                return (uint(Error.SNAPSHOT_ERROR), vars);
+
+            if (vars.err != 0) {
+                errorCode = vars.err;
+                return (errorCode, snapshot);
             }
+
+            // Get the normalized price of the asset
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(asset));
+            if (vars.oraclePriceMantissa == 0) {
+                errorCode = uint256(Error.PRICE_ERROR);
+                return (errorCode, snapshot);
+            }
+
+            vars.vTokenPrice = mul_(
+                Exp({ mantissa: vars.exchangeRateMantissa }),
+                Exp({ mantissa: vars.oraclePriceMantissa })
+            );
+
             vars.weightedFactor = Exp({
                 mantissa: ComptrollerInterface(comptroller).getEffectiveLtvFactor(
                     account,
@@ -244,54 +349,77 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                     weightingStrategy
                 )
             });
-            vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-            // Get the normalized price of the asset
-            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(address(asset));
-            if (vars.oraclePriceMantissa == 0) {
-                return (uint(Error.PRICE_ERROR), vars);
+            vars.weightedVTokenPrice = mul_(vars.weightedFactor, vars.vTokenPrice);
+
+            if (asset == vTokenModify) {
+                // redeem effect: reduce the vToken balance
+                if (redeemTokens > 0) {
+                    vars.vTokenBalance = vars.vTokenBalance - redeemTokens;
+                }
+
+                // borrow effect: oraclePrice * borrowAmount
+                snapshot.borrows = mul_ScalarTruncateAddUInt(
+                    Exp({ mantissa: vars.oraclePriceMantissa }),
+                    borrowAmount,
+                    snapshot.borrows
+                );
             }
-            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
-            // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
-            vars.tokensToDenom = mul_(mul_(vars.weightedFactor, vars.exchangeRate), vars.oraclePrice);
-
-            // sumCollateral += tokensToDenom * vTokenBalance
-            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
-
-            // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                vars.oraclePrice,
-                vars.borrowBalance,
-                vars.sumBorrowPlusEffects
+            snapshot.totalCollateral = mul_ScalarTruncateAddUInt(
+                vars.vTokenPrice,
+                vars.vTokenBalance,
+                snapshot.totalCollateral
             );
 
-            // Calculate effects of interacting with vTokenModify
-            if (asset == vTokenModify) {
-                // redeem effect
-                // sumBorrowPlusEffects += tokensToDenom * redeemTokens
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    vars.tokensToDenom,
-                    redeemTokens,
-                    vars.sumBorrowPlusEffects
-                );
+            // weightedCollateral += weightedVTokenPrice * vTokenBalance
+            snapshot.weightedCollateral = mul_ScalarTruncateAddUInt(
+                vars.weightedVTokenPrice,
+                vars.vTokenBalance,
+                snapshot.weightedCollateral
+            );
 
-                // borrow effect
-                // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    vars.oraclePrice,
-                    borrowAmount,
-                    vars.sumBorrowPlusEffects
-                );
-            }
+            // borrows += oraclePrice * borrowBalance
+            snapshot.borrows = mul_ScalarTruncateAddUInt(
+                Exp({ mantissa: vars.oraclePriceMantissa }),
+                vars.borrowBalance,
+                snapshot.borrows
+            );
         }
 
         VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
 
         if (address(vaiController) != address(0)) {
-            vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, vaiController.getVAIRepayAmount(account));
+            snapshot.borrows = add_(snapshot.borrows, vaiController.getVAIRepayAmount(account));
         }
-        oErr = uint(Error.NO_ERROR);
+
+        _finalizeSnapshot(snapshot);
+
+        errorCode = uint256(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Finalizes the snapshot of the account's position
+     * @param snapshot The AccountSnapshot struct containing the calculated values
+     */
+    function _finalizeSnapshot(AccountSnapshot memory snapshot) internal pure {
+        if (snapshot.totalCollateral > 0) {
+            snapshot.liquidationThresholdAvg = div_(snapshot.weightedCollateral, snapshot.totalCollateral);
+        }
+
+        if (snapshot.borrows > 0) {
+            snapshot.healthFactor = div_(snapshot.weightedCollateral, snapshot.borrows);
+        } else {
+            snapshot.healthFactor = type(uint256).max;
+        }
+
+        if (snapshot.weightedCollateral > snapshot.borrows) {
+            snapshot.liquidity = snapshot.weightedCollateral - snapshot.borrows;
+            snapshot.shortfall = 0;
+        } else {
+            snapshot.liquidity = 0;
+            snapshot.shortfall = snapshot.borrows - snapshot.weightedCollateral;
+        }
     }
 
     /**
@@ -304,12 +432,12 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @return seizeTokens The number of tokens to seize during liquidation, scaled by 1e18
      */
     function _calculateSeizeTokens(
-        uint actualRepayAmount,
-        uint liquidationIncentiveMantissa,
-        uint priceBorrowedMantissa,
-        uint priceCollateralMantissa,
-        uint exchangeRateMantissa
-    ) internal pure returns (uint seizeTokens) {
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa,
+        uint256 priceBorrowedMantissa,
+        uint256 priceCollateralMantissa,
+        uint256 exchangeRateMantissa
+    ) internal pure returns (uint256 seizeTokens) {
         Exp memory numerator = mul_(
             Exp({ mantissa: liquidationIncentiveMantissa }),
             Exp({ mantissa: priceBorrowedMantissa })

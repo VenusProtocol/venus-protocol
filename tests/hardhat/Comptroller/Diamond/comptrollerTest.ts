@@ -13,6 +13,7 @@ import {
   ComptrollerMock,
   EIP20Interface,
   IAccessControlManagerV5,
+  LiquidationManager,
   PriceOracle,
   Unitroller,
   VAIController,
@@ -90,47 +91,6 @@ describe("Comptroller", () => {
       const { comptroller } = await loadFixture(deploySimpleComptroller);
       expect(await comptroller.admin()).to.equal(root.address);
       expect(await comptroller.pendingAdmin()).to.equal(constants.AddressZero);
-    });
-  });
-
-  describe("setLiquidationIncentive", () => {
-    let unitroller: Unitroller;
-    let comptroller: ComptrollerMock;
-    let vToken: FakeContract<VToken>;
-    const initialIncentive = convertToUnit("0", 18);
-    const validIncentive = convertToUnit("1.1", 18);
-    const tooSmallIncentive = convertToUnit("0.99999", 18);
-
-    beforeEach(async () => {
-      ({ unitroller, vToken } = await loadFixture(deploySimpleComptroller));
-      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
-    });
-
-    it("fails if incentive is less than 1e18", async () => {
-      await comptroller._supportMarket(vToken.address);
-      await expect(
-        comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, tooSmallIncentive),
-      ).to.be.revertedWith("incentive < 1e18");
-    });
-
-    it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {
-      await comptroller._supportMarket(vToken.address);
-      expect(
-        await comptroller.callStatic["setLiquidationIncentive(address,uint256)"](vToken.address, validIncentive),
-      ).to.equal(ComptrollerErrorReporter.Error.NO_ERROR);
-      await expect(comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, validIncentive))
-        .to.emit(comptroller, "NewLiquidationIncentive")
-        .withArgs(corePoolId, initialIncentive, validIncentive);
-      const data = await comptroller.markets(vToken.address);
-      expect(data.liquidationIncentiveMantissa).to.equal(validIncentive);
-    });
-
-    it("should revert on same values", async () => {
-      await comptroller._supportMarket(vToken.address);
-      await comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, validIncentive);
-      await expect(
-        comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, validIncentive),
-      ).to.be.revertedWith("old value is same as new value");
     });
   });
 
@@ -350,33 +310,7 @@ describe("Comptroller", () => {
     });
   });
 
-  describe("_setCloseFactor", () => {
-    let comptroller: ComptrollerMock;
-
-    beforeEach(async () => {
-      ({ comptroller } = await loadFixture(deploySimpleComptroller));
-    });
-
-    it("fails if not called by admin", async () => {
-      await expect(comptroller.connect(accounts[0])._setCloseFactor(1)).to.be.revertedWith("only admin can");
-    });
-
-    it("should revert on same values", async () => {
-      await expect(comptroller._setCloseFactor(0)).to.be.revertedWith("old value is same as new value");
-    });
-
-    it("fails if factor is set out of range", async () => {
-      await expect(comptroller._setCloseFactor(convertToUnit(1, 18)))
-        .to.emit(comptroller, "Failure")
-        .withArgs(
-          ComptrollerErrorReporter.Error.INVALID_CLOSE_FACTOR,
-          ComptrollerErrorReporter.FailureInfo.SET_CLOSE_FACTOR_VALIDATION,
-          0,
-        );
-    });
-  });
-
-  describe("_setCollateralFactor", () => {
+  describe("setCollateralFactor", () => {
     const half = convertToUnit("0.5", 18);
     let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
@@ -430,6 +364,83 @@ describe("Comptroller", () => {
         .withArgs(corePoolId, vToken.address, "0", half);
 
       expect(await comptroller.isMarketListed(vToken.address)).to.be.true;
+    });
+  });
+
+  describe("setMarketMaxLiquidationIncentive", () => {
+    let comptroller: ComptrollerMock;
+    let vToken: FakeContract<VToken>;
+    let oracle: FakeContract<PriceOracle>;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      vToken.comptroller.returns(contracts.comptroller.address);
+      vToken.isVToken.returns(true);
+      return { vToken, ...contracts };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, oracle, vToken } = await loadFixture(deploy));
+      configureOracle(oracle);
+    });
+
+    it("fails if asset is not listed", async () => {
+      await expect(
+        comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken.address, convertToUnit("1.1", 18)),
+      ).to.be.revertedWith("market not listed");
+    });
+
+    it("fails if incentive is less than 1e18", async () => {
+      await comptroller._supportMarket(vToken.address);
+      await expect(
+        comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken.address, convertToUnit("0.99999", 18)),
+      ).to.be.revertedWith("incentive < mantissaOne");
+    });
+
+    it("succeeds and sets market liquidation incentive", async () => {
+      await comptroller._supportMarket(vToken.address);
+      const newIncentive = convertToUnit("1.1", 18);
+      await expect(comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken.address, newIncentive))
+        .to.emit(comptroller, "NewMarketLiquidationIncentive")
+        .withArgs(0, vToken.address, "0", newIncentive);
+    });
+
+    it("should revert on same values", async () => {
+      await comptroller._supportMarket(vToken.address);
+      const newIncentive = convertToUnit("1.1", 18);
+      await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken.address, newIncentive);
+      await expect(
+        comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken.address, newIncentive),
+      ).to.be.revertedWith("old value is same as new value");
+    });
+  });
+
+  describe("setLiquidationManager", () => {
+    let comptroller: ComptrollerMock;
+    let liquidationMananger: FakeContract<LiquidationManager>;
+
+    beforeEach(async () => {
+      ({ comptroller } = await loadFixture(deploySimpleComptroller));
+    });
+
+    it("succeeds and sets liquidation manager", async () => {
+      liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
+      await expect(comptroller.setLiquidationManager(liquidationMananger.address))
+        .to.emit(comptroller, "NewLiquidationManager")
+        .withArgs(constants.AddressZero, liquidationMananger.address);
+      expect(await comptroller.liquidationManager()).to.equal(liquidationMananger.address);
+    });
+
+    it("should revert on same values", async () => {
+      liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
+      await comptroller.setLiquidationManager(liquidationMananger.address);
+      await expect(comptroller.setLiquidationManager(liquidationMananger.address)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      testZeroAddress("setLiquidationManager", [constants.AddressZero]);
     });
   });
 
@@ -737,16 +748,30 @@ describe("Comptroller", () => {
     });
 
     describe("liquidateBorrowAllowed", async () => {
+      const mockSnapshot = {
+        totalCollateral: 0,
+        weightedCollateral: 0,
+        borrows: 0,
+        liquidity: 0,
+        shortfall: 0,
+        liquidationThresholdAvg: 0,
+        healthFactor: 0,
+        dynamicLiquidationIncentiveMantissa: 0,
+      };
+
       const generalTests = () => {
         it("reverts if borrowed market is not listed", async () => {
           const someVToken = await smock.fake<VToken>("VToken");
           await expect(
-            comptroller.liquidateBorrowAllowed(
+            comptroller[
+              "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+            ](
               someVToken.address,
               vToken.address,
               accounts[0].address,
               root.address,
               convertToUnit("1", 18),
+              mockSnapshot,
             ),
           ).to.be.revertedWith("market not listed");
         });
@@ -754,12 +779,15 @@ describe("Comptroller", () => {
         it("reverts if collateral market is not listed", async () => {
           const someVToken = await smock.fake<VToken>("VToken");
           await expect(
-            comptroller.liquidateBorrowAllowed(
+            comptroller[
+              "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+            ](
               vToken.address,
               someVToken.address,
               accounts[0].address,
               root.address,
               convertToUnit("1", 18),
+              mockSnapshot,
             ),
           ).to.be.revertedWith("market not listed");
         });
@@ -768,12 +796,15 @@ describe("Comptroller", () => {
           const vaiController = await smock.fake<VAIController>("VAIController");
           await comptroller._setVAIController(vaiController.address);
           await expect(
-            comptroller.liquidateBorrowAllowed(
+            comptroller[
+              "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+            ](
               vaiController.address,
               vToken.address,
               accounts[0].address,
               root.address,
               convertToUnit("1", 18),
+              mockSnapshot,
             ),
           ).to.not.be.revertedWith("market not listed");
         });
@@ -784,37 +815,25 @@ describe("Comptroller", () => {
 
         it("allows liquidations without shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(0);
         });
 
         it("allows to repay 100% of the borrow", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("1", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(0);
         });
 
         it("fails with TOO_MUCH_REPAY if trying to repay > borrowed amount", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("0.99", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(17);
         });
       };
@@ -833,13 +852,9 @@ describe("Comptroller", () => {
         it("checks the shortfall if isForcedLiquidationEnabledForUser is set back to false", async () => {
           await comptroller._setForcedLiquidationForUser(root.address, vToken.address, false);
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(3);
         });
       });
@@ -854,52 +869,61 @@ describe("Comptroller", () => {
         it("checks the shortfall if isForcedLiquidationEnabled is set back to false", async () => {
           await comptroller._setForcedLiquidation(vToken.address, false);
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(3);
         });
       });
 
       describe("Forced liquidations disabled", async () => {
         let comptrollerLens: FakeContract<ComptrollerLens>;
+        let liquidationMananger: FakeContract<LiquidationManager>;
+
+        const snapshot1 = {
+          totalCollateral: 0,
+          weightedCollateral: 0,
+          borrows: 0,
+          liquidity: 0,
+          shortfall: 2,
+          liquidationThresholdAvg: 0,
+          healthFactor: 0,
+          dynamicLiquidationIncentiveMantissa: 0,
+        };
 
         beforeEach(async () => {
           comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
+          liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
           await comptroller._setComptrollerLens(comptrollerLens.address);
-          await comptroller._setCloseFactor(convertToUnit("0.5", 18));
+          await comptroller.setLiquidationManager(liquidationMananger.address);
         });
 
         generalTests();
 
         it("fails if borrower has 0 shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 1, 0]);
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-          );
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), mockSnapshot);
           expect(errCode).to.equal(3);
         });
 
         it("succeeds if borrower has nonzero shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
-          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 1]);
-          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
-            vToken.address,
-            vToken.address,
-            accounts[0].address,
-            root.address,
-            convertToUnit("1", 18),
-          );
+          liquidationMananger.calculateDynamicCloseFactor.returns(convertToUnit("0.5", 18));
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("1", 18), snapshot1);
           expect(errCode).to.equal(0);
+        });
+
+        it("fails with TOO_MUCH_REPAY if trying to repay > borrowed amount", async () => {
+          vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
+          liquidationMananger.calculateDynamicCloseFactor.returns(convertToUnit("0.5", 18));
+          const errCode = await comptroller.callStatic[
+            "liquidateBorrowAllowed(address,address,address,address,uint256,(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+          ](vToken.address, vToken.address, accounts[0].address, root.address, convertToUnit("60", 18), snapshot1);
+          expect(errCode).to.equal(17);
         });
       });
     });
@@ -966,7 +990,6 @@ describe("Comptroller", () => {
       });
 
       it("getBorrowingPower is an alias for getAccountLiquidity", async () => {
-        console.log(vToken.wallet._address);
         const accountLiquidity = await comptroller.getAccountLiquidity(vToken.wallet._address);
         const borrowingPower = await comptroller.getBorrowingPower(vToken.wallet._address);
 
@@ -1010,7 +1033,7 @@ describe("Comptroller", () => {
       accessControl.isAllowedToCall.returns(true);
       configureOracle(oracle);
       await comptroller["setCollateralFactor(address,uint256,uint256)"](vToken.address, coreCF, coreLT);
-      await comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, coreLI);
+      await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken.address, coreLI);
       await comptroller.createPool("e-mode");
       poolId = await comptroller.lastPoolId();
       await comptroller.addPoolMarkets([poolId], [vToken.address]);
@@ -1209,7 +1232,11 @@ describe("Comptroller", () => {
     describe("setLiquidationIncentive with poolId", () => {
       it("reverts if pool does not exist", async () => {
         await expect(
-          comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId + 1, vToken.address, defaultLI),
+          comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
+            poolId + 1,
+            vToken.address,
+            defaultLI,
+          ),
         )
           .to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist")
           .withArgs(poolId + 1);
@@ -1218,7 +1245,11 @@ describe("Comptroller", () => {
       it("reverts if market is not listed in the pool", async () => {
         const fakeVToken = await smock.fake<VToken>("VToken");
         await expect(
-          comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, fakeVToken.address, defaultLI),
+          comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
+            poolId,
+            fakeVToken.address,
+            defaultLI,
+          ),
         ).to.be.revertedWith("market not listed");
       });
 
@@ -1226,14 +1257,16 @@ describe("Comptroller", () => {
         // LI < 1
         const lessThanOne = parseUnits("0.9", 18);
         await expect(
-          comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, lessThanOne),
-        ).to.be.revertedWith("incentive < 1e18");
+          comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, lessThanOne),
+        ).to.be.revertedWith("incentive < mantissaOne");
       });
 
       it("should update liquidation incentive and emits event", async () => {
-        await expect(comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI))
-          .to.emit(comptroller, "NewLiquidationIncentive")
-          .withArgs(poolId, 0, defaultLI);
+        await expect(
+          comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI),
+        )
+          .to.emit(comptroller, "NewMarketLiquidationIncentive")
+          .withArgs(poolId, vToken.address, 0, defaultLI);
 
         const [, , , , li] = await comptroller.poolMarkets(poolId, vToken.address);
         expect(li).to.equal(defaultLI);
@@ -1298,7 +1331,11 @@ describe("Comptroller", () => {
           defaultCF,
           defaultLT,
         );
-        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+        await comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
+          poolId,
+          vToken.address,
+          defaultLI,
+        );
         await comptroller.setIsBorrowAllowed(poolId, vToken.address, false);
         vToken.borrowBalanceStored.returns(parseUnits("10", 18));
         await comptroller.enterMarkets([vToken.address]);
@@ -1316,7 +1353,11 @@ describe("Comptroller", () => {
           defaultCF,
           defaultLT,
         );
-        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+        await comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
+          poolId,
+          vToken.address,
+          defaultLI,
+        );
         await expect(comptroller.enterPool(poolId))
           .to.emit(comptroller, "PoolSelected")
           .withArgs(root.address, corePoolId, poolId);
@@ -1331,7 +1372,11 @@ describe("Comptroller", () => {
           defaultCF,
           defaultLT,
         );
-        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+        await comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
+          poolId,
+          vToken.address,
+          defaultLI,
+        );
 
         // Core pool params should be used initially (userPool 0)
         let cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
@@ -1383,7 +1428,11 @@ describe("Comptroller", () => {
           defaultCF,
           defaultLT,
         );
-        await comptroller["setLiquidationIncentive(uint96,address,uint256)"](poolId, vToken.address, defaultLI);
+        await comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
+          poolId,
+          vToken.address,
+          defaultLI,
+        );
         await comptroller.setIsBorrowAllowed(poolId, vToken.address, true);
 
         const [isListed, cf, isVenus, lt, li, marketPoolId, isBorrowAllowed] = await comptroller.poolMarkets(

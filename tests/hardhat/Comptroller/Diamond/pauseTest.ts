@@ -29,8 +29,24 @@ async function pauseFixture(): Promise<PauseFixture> {
   await comptroller._setAccessControl(accessControl.address);
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
 
+  const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
+
+  // constructor parameters
+  const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+  const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+  const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+
+  const liquidationManager = await LiquidationManager.deploy(
+    baseCloseFactorMantissa,
+    defaultCloseFactorMantissa,
+    targetHealthFactor,
+  );
+  await liquidationManager.deployed();
+  await liquidationManager.initialize(accessControl.address);
+
   accessControl.isAllowedToCall.returns(true);
   await comptroller._setPriceOracle(oracle.address);
+  await comptroller.setLiquidationManager(liquidationManager.address);
   const names = ["OMG", "ZRX", "BAT", "sketch"];
   const [OMG, ZRX, BAT, SKT] = await Promise.all(
     names.map(async name => {

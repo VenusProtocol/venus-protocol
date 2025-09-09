@@ -8,6 +8,7 @@ import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { WeightFunction } from "../interfaces/IFacetBase.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title MarketFacet
@@ -84,29 +85,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
-     * @param vTokenBorrowed The address of the borrowed vToken
-     * @param vTokenCollateral The address of the collateral vToken
-     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
-     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
-     */
-    function liquidateCalculateSeizeTokens(
-        address vTokenBorrowed,
-        address vTokenCollateral,
-        uint256 actualRepayAmount
-    ) external view returns (uint256, uint256) {
-        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            address(this),
-            vTokenBorrowed,
-            vTokenCollateral,
-            actualRepayAmount
-        );
-        return (err, seizeTokens);
-    }
-
-    /**
-     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
-     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
-     * @param borrower Address of borrower whose collateral is being seized
+     * @param borrower The address of the borrower to be liquidated
      * @param vTokenBorrowed The address of the borrowed vToken
      * @param vTokenCollateral The address of the collateral vToken
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
@@ -131,16 +110,66 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param vTokenBorrowed The address of the borrowed vToken
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @param liquidationIncentiveMantissa The liquidation incentive to apply
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
+    ) external view returns (uint256, uint256) {
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
+            address(this),
+            vTokenBorrowed,
+            vTokenCollateral,
+            actualRepayAmount,
+            liquidationIncentiveMantissa
+        );
+        return (err, seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @param liquidationIncentiveMantissa The liquidation incentive to apply
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
+    ) external view returns (uint256, uint256) {
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
+            address(this),
+            vTokenCollateral,
+            actualRepayAmount,
+            liquidationIncentiveMantissa
+        );
+        return (err, seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param borrower The address of the borrower
      * @param vTokenCollateral The address of the collateral vToken
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateVAICalculateSeizeTokens(
+        address borrower,
         address vTokenCollateral,
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256) {
         (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
             address(this),
+            borrower,
             vTokenCollateral,
             actualRepayAmount
         );
@@ -417,6 +446,58 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Get the liquidation incentive for a borrower
+     * @param vToken The address of the vToken to be seized
+     * @param liquidationThresholdAvg The average liquidation threshold for the borrower
+     * @param healthFactor The health factor of the borrower
+     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address vToken,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256 incentive) {
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
+
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
+            healthFactor,
+            liquidationThresholdAvg,
+            market.maxLiquidationIncentiveMantissa
+        );
+    }
+
+    /**
+     * @notice Get the liquidation incentive for a borrower
+     * @param borrower The address of the borrower
+     * @param vToken The address of the vToken to be seized
+     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address borrower,
+        address vToken
+    ) external view returns (uint256 incentive) {
+        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
+        (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = getHypotheticalHealthSnapshotInternal(
+            borrower,
+            VToken(vToken),
+            0,
+            0,
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
+        );
+        if (err != uint256(Error.NO_ERROR)) {
+            return err;
+        }
+
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
+            snapshot.healthFactor,
+            snapshot.liquidationThresholdAvg,
+            market.maxLiquidationIncentiveMantissa
+        );
+    }
+
+    /**
      * @notice Get the core pool collateral factor for a vToken
      * @param vToken The address of the vToken to get the collateral factor for
      * @return The collateral factor for the vToken, scaled by 1e18
@@ -557,7 +638,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             m.collateralFactorMantissa,
             m.isVenus,
             m.liquidationThresholdMantissa,
-            m.liquidationIncentiveMantissa,
+            m.maxLiquidationIncentiveMantissa,
             m.poolId,
             m.isBorrowAllowed
         );
@@ -712,7 +793,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         return (
             market.collateralFactorMantissa,
             market.liquidationThresholdMantissa,
-            market.liquidationIncentiveMantissa
+            market.maxLiquidationIncentiveMantissa
         );
     }
 }

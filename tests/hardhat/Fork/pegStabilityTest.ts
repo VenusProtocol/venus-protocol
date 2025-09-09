@@ -31,6 +31,7 @@ const vaiMintCap = convertToUnit(1000, 18);
 const USDT_HOLDER = "0x6a0b3611214d5001fa5efae91b7222a316c12b52";
 const USDC_HOLDER = "0x97b9d2102a9a65a26e1ee82d59e42d1b73b68689";
 const VAI_HOLDER = "0x29aa70f8f3f2aa241b0ba9eaa744c97808d032c9";
+const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 const MANTISSA_ONE = parseUnits("1", 18);
 
 // ****************************
@@ -44,7 +45,7 @@ const psmConfigs = [
   },
   {
     stableTokenName: "USDC",
-    stableTokenAddress: Mainnet.contracts.USDC,
+    stableTokenAddress: Mainnet.contracts.USDC.address,
     tokenHolder: USDC_HOLDER,
   },
 ];
@@ -65,7 +66,7 @@ async function deployPegStability(stableToken: string): Promise<PegStability> {
     psmFactory,
     [acmAddress, venusTreasury, resilientOracle, feeIn, feeOut, vaiMintCap],
     {
-      constructorArgs: [stableToken, Mainnet.contracts.VAI],
+      constructorArgs: [stableToken, Mainnet.contracts.VAI.address],
     },
   );
   await psm.deployed();
@@ -150,6 +151,7 @@ if (FORK_MAINNET) {
       let stableTokenPrice: BigNumber;
       let stableToken: FaucetToken;
       let VAI: VAI;
+
       describe(`Peg Stability ${stableTokenName}`, () => {
         before(async () => {
           defaultSigner = (await ethers.getSigners())[0];
@@ -157,8 +159,8 @@ if (FORK_MAINNET) {
           tokenSigner = await initMainnetUser(tokenHolder, ethers.utils.parseEther("2"));
           vaiSigner = await initMainnetUser(VAI_HOLDER, ethers.utils.parseEther("2"));
           stableToken = FaucetToken__factory.connect(stableTokenAddress, tokenSigner);
-          vaiAdmin = await initMainnetUser(Mainnet.contracts.Timelock, ethers.utils.parseEther("2"));
-          VAI = VAI__factory.connect(Mainnet.contracts.VAI, vaiAdmin);
+          vaiAdmin = await initMainnetUser(NORMAL_TIMELOCK, ethers.utils.parseEther("2"));
+          VAI = VAI__factory.connect(Mainnet.contracts.VAI.address, vaiAdmin);
           oracle = ResilientOracleInterface__factory.connect(resilientOracle, defaultSigner);
           stableTokenPrice = await oracle.getPrice(stableTokenAddress);
           console.log(`Stable Token Price`);
@@ -170,6 +172,7 @@ if (FORK_MAINNET) {
           //Set PSM as VAI ward
           await VAI.rely(psm.address);
         });
+
         describe("Initialization", () => {
           it("Validate initialization parameters", () => {
             return validateInitialization(psm, stableTokenAddress);

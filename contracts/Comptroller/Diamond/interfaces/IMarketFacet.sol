@@ -18,10 +18,18 @@ interface IMarketFacet {
     function liquidateCalculateSeizeTokens(
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
     function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
+    ) external view returns (uint256, uint256);
+
+    function liquidateVAICalculateSeizeTokens(
+        address borrower,
         address vTokenCollateral,
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256);
@@ -64,7 +72,7 @@ interface IMarketFacet {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );
@@ -92,6 +100,14 @@ interface IMarketFacet {
     function getLiquidationThreshold(address vToken) external view returns (uint256);
 
     function getLiquidationIncentive(address vToken) external view returns (uint256);
+
+    function getDynamicLiquidationIncentive(address borrower, address vToken) external view returns (uint256);
+
+    function getDynamicLiquidationIncentive(
+        address vToken,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256);
 
     function getEffectiveLtvFactor(
         address account,

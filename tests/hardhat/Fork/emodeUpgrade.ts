@@ -118,8 +118,9 @@ async function setAccessControls(acm: IAccessControlManagerV8) {
   const fnSigs = [
     "setCollateralFactor(address,uint256,uint256)",
     "setCollateralFactor(uint96,address,uint256,uint256)",
-    "setLiquidationIncentive(address,uint256)",
-    "setLiquidationIncentive(uint96,address,uint256)",
+    "setMarketMaxLiquidationIncentive(address,uint256)",
+    "setMarketMaxLiquidationIncentive(uint96,address,uint256)",
+    "setLiquidationManager(address)",
     "createPool(string)",
     "addPoolMarket(uint96,address)",
     "setIsBorrowAllowed(uint96,address,bool)",
@@ -215,10 +216,10 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
         });
 
         it("updates liquidation incentive", async () => {
-          await comptroller["setLiquidationIncentive(address,uint256)"](vUSDT_ADDRESS, LI);
+          await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vUSDT_ADDRESS, LI);
           expect((await comptroller.markets(vUSDT_ADDRESS)).liquidationIncentiveMantissa).to.equal(LI);
 
-          await comptroller["setLiquidationIncentive(address,uint256)"](vBTC_ADDRESS, LI);
+          await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vBTC_ADDRESS, LI);
           expect((await comptroller.markets(vBTC_ADDRESS)).liquidationIncentiveMantissa).to.equal(LI);
         });
 
@@ -247,7 +248,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
             parseUnits("0.9", 18),
             parseUnits("0.97", 18),
           );
-          await comptroller["setLiquidationIncentive(uint96,address,uint256)"](
+          await comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
             poolId,
             vBTC_ADDRESS,
             parseUnits("1.1", 18),
@@ -258,7 +259,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
             parseUnits("0.9", 18),
             parseUnits("0.95", 18),
           );
-          await comptroller["setLiquidationIncentive(uint96,address,uint256)"](
+          await comptroller["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](
             poolId,
             vUSDT_ADDRESS,
             parseUnits("1.05", 18),

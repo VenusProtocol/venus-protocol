@@ -11,6 +11,9 @@ import { IProtocolShareReserve } from "../external/IProtocolShareReserve.sol";
 import { IWBNB } from "../external/IWBNB.sol";
 import { LiquidatorStorage } from "./LiquidatorStorage.sol";
 import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
+import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.
@@ -28,6 +31,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Address of wBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable wBNB;
+
+    /// @notice Address of Venus ComptrollerLens contract.
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    ComptrollerLensInterface public immutable comptrollerLens;
 
     /// @dev A unit (literal one) in EXP_SCALE, usually used in additions/subtractions
     uint256 internal constant MANTISSA_ONE = 1e18;
@@ -114,20 +121,26 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Thrown when vToken is not listed
     error MarketNotListed(address vToken);
 
+    /// @notice Thrown when the liquidation snapshot fails
+    error SnapshotError(uint256 errorCode);
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @param comptroller_ The address of the Comptroller contract
     /// @param vBnb_ The address of the VBNB
     /// @param wBNB_ The address of wBNB
+    /// @param comptrollerLens_ The address of the ComptrollerLens contract
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address comptroller_, address payable vBnb_, address wBNB_) {
+    constructor(address comptroller_, address payable vBnb_, address wBNB_, address comptrollerLens_) {
         ensureNonzeroAddress(vBnb_);
         ensureNonzeroAddress(comptroller_);
         ensureNonzeroAddress(wBNB_);
+        ensureNonzeroAddress(comptrollerLens_);
         vBnb = IVBNB(vBnb_);
         wBNB = wBNB_;
         comptroller = IComptroller(comptroller_);
+        comptrollerLens = ComptrollerLensInterface(comptrollerLens_);
         vaiController = IVAIController(IComptroller(comptroller_).vaiController());
         _disableInitializers();
     }
@@ -248,6 +261,18 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             revert MarketNotListed(address(vTokenCollateral));
         }
 
+        ComptrollerLensInterface.AccountSnapshot memory snapshot = _getHealthSnapshot(
+            borrower,
+            address(vTokenCollateral),
+            repayAmount
+        );
+        uint256 totalIncentive = comptroller.getDynamicLiquidationIncentive(
+            address(vTokenCollateral),
+            snapshot.liquidationThresholdAvg,
+            snapshot.healthFactor
+        );
+        snapshot.dynamicLiquidationIncentiveMantissa = totalIncentive;
+
         _checkForceVAILiquidate(vToken, borrower);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
@@ -260,14 +285,17 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
                 revert WrongTransactionAmount(0, msg.value);
             }
             if (vToken == address(vaiController)) {
-                _liquidateVAI(borrower, repayAmount, vTokenCollateral);
+                _liquidateVAI(borrower, repayAmount, vTokenCollateral, snapshot);
             } else {
-                _liquidateBep20(IVBep20(vToken), borrower, repayAmount, vTokenCollateral);
+                _liquidateBep20(IVBep20(vToken), borrower, repayAmount, vTokenCollateral, snapshot);
             }
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
-        uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
-        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(borrower, vTokenCollateral, seizedAmount);
+        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(
+            vTokenCollateral,
+            (ourBalanceAfter - ourBalanceBefore),
+            totalIncentive
+        );
         _reduceReservesInternal();
         emit LiquidateBorrowedTokens(
             msg.sender,
@@ -329,7 +357,13 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
-    function _liquidateBep20(IVBep20 vToken, address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
+    function _liquidateBep20(
+        IVBep20 vToken,
+        address borrower,
+        uint256 repayAmount,
+        IVToken vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) internal {
         (bool isListed, , ) = IComptroller(comptroller).markets(address(vToken));
         if (!isListed) {
             revert MarketNotListed(address(vToken));
@@ -339,27 +373,33 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
         borrowedToken.safeApprove(address(vToken), 0);
         borrowedToken.safeApprove(address(vToken), actualRepayAmount);
-        requireNoError(vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral));
+        requireNoError(vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral, snapshot));
     }
 
     /// @dev Transfers BEP20 tokens to self, then approves VAI to take these tokens.
-    function _liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
+    function _liquidateVAI(
+        address borrower,
+        uint256 repayAmount,
+        IVToken vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) internal {
         IERC20Upgradeable vai = IERC20Upgradeable(vaiController.getVAIAddress());
         vai.safeTransferFrom(msg.sender, address(this), repayAmount);
         vai.safeApprove(address(vaiController), 0);
         vai.safeApprove(address(vaiController), repayAmount);
 
-        (uint256 err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
+        (uint256 err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral, snapshot);
         requireNoError(err);
     }
 
     /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
-        address borrower,
         IVToken vTokenCollateral,
-        uint256 seizedAmount
+        uint256 seizedAmount,
+        uint256 totalIncentive
     ) internal returns (uint256 ours, uint256 theirs) {
-        (ours, theirs) = _splitLiquidationIncentive(borrower, address(vTokenCollateral), seizedAmount);
+        (ours, theirs) = _splitLiquidationIncentive(seizedAmount, totalIncentive);
+        // (ours, theirs) = _splitLiquidationIncentive(borrower, address(vTokenCollateral), seizedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
@@ -440,11 +480,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
     function _splitLiquidationIncentive(
-        address borrower,
-        address vTokenCollateral,
-        uint256 seizedAmount
+        uint256 seizedAmount,
+        uint256 totalIncentive
     ) internal view returns (uint256 ours, uint256 theirs) {
-        uint256 totalIncentive = comptroller.getEffectiveLiquidationIncentive(borrower, vTokenCollateral);
         uint256 bonusMantissa = totalIncentive - MANTISSA_ONE;
 
         // Our share is % of bonus portion only
@@ -460,6 +498,24 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
 
         revert LiquidationFailed(errCode);
+    }
+
+    function _getHealthSnapshot(
+        address borrower,
+        address vTokenCollateral,
+        uint256 repayAmount
+    ) internal view returns (ComptrollerLensInterface.AccountSnapshot memory) {
+        (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = comptrollerLens
+            .getAccountHealthSnapshot(
+                address(comptroller),
+                borrower,
+                VToken(vTokenCollateral),
+                0,
+                repayAmount,
+                WeightFunction.USE_LIQUIDATION_THRESHOLD
+            );
+        if (err != 0) revert SnapshotError(err);
+        return snapshot;
     }
 
     function checkRestrictions(address borrower, address liquidator) internal view {

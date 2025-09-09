@@ -14,10 +14,6 @@ interface ISetterFacet {
 
     function _setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256);
 
-    function setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256);
-
-    function _setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256);
-
     function _setAccessControl(address newAccessControlAddress) external returns (uint256);
 
     function setCollateralFactor(
@@ -31,17 +27,6 @@ interface ISetterFacet {
         VToken vToken,
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
-    ) external returns (uint256);
-
-    function setLiquidationIncentive(
-        address vToken,
-        uint256 newLiquidationIncentiveMantissa
-    ) external returns (uint256);
-
-    function setLiquidationIncentive(
-        uint96 poolId,
-        address vToken,
-        uint256 newLiquidationIncentiveMantissa
     ) external returns (uint256);
 
     function _setLiquidatorContract(address newLiquidatorContract_) external;
@@ -94,7 +79,22 @@ interface ISetterFacet {
 
     function _setXVSVToken(address xvsVToken_) external;
 
+    function setMarketMaxLiquidationIncentive(
+        address vToken,
+        uint256 newMaxLiquidationIncentive
+    ) external returns (uint256);
+
+    function setMarketMaxLiquidationIncentive(
+        uint96 poolId,
+        address vToken,
+        uint256 newMaxLiquidationIncentive
+    ) external returns (uint256);
+
+    function setLiquidationManager(address liquidationManager_) external;
+
     function setWhiteListFlashLoanAccount(address account, bool _isWhiteListed) external;
+
     function setDelegateAuthorizationFlashloan(address market, address delegate, bool approved) external;
+
     function setIsBorrowAllowed(uint96 poolId, address vToken, bool borrowAllowed) external;
 }

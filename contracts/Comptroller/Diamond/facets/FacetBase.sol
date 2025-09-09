@@ -11,6 +11,7 @@ import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
 
@@ -24,12 +25,9 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
+
     // poolId for core Pool
     uint96 public constant corePoolId = 0;
-    // closeFactorMantissa must be strictly greater than this value
-    uint256 internal constant closeFactorMinMantissa = 0.05e18; // 0.05
-    // closeFactorMantissa must not exceed this value
-    uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
 
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
@@ -134,9 +132,9 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
-     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @notice Determine what the liquidity would be if the given amounts were redeemed/borrowed on the basis of liquidation threshold
      * @param account The account to determine liquidity for
+     * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
      * @param weightingStrategy The weighting strategy to use:
@@ -164,6 +162,64 @@ contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, Com
             weightingStrategy
         );
         return (Error(err), liquidity, shortfall);
+    }
+
+    /**
+     * @notice Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,
+     *          and average liquidation incentive
+     * @param account The account to get the health snapshot for
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param redeemTokens The number of tokens to hypothetically redeem
+     * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
+     * @return err Error code
+     * @return snapshot Snapshot of the account's health and collateral status
+     * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
+     *  without calculating accumulated interest.
+     */
+    function getHypotheticalHealthSnapshot(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
+        return
+            getHypotheticalHealthSnapshotInternal(account, vTokenModify, redeemTokens, borrowAmount, weightingStrategy);
+    }
+
+    /**
+     * @notice Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,
+     *          and average liquidation incentive
+     * @param account The account to get the health snapshot for
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param redeemTokens The number of tokens to hypothetically redeem
+     * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
+     * @return err Error code
+     * @return snapshot Snapshot of the account's health and collateral status
+     * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
+     *  without calculating accumulated interest.
+     */
+    function getHypotheticalHealthSnapshotInternal(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
+    ) internal view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
+        (err, snapshot) = comptrollerLens.getAccountHealthSnapshot(
+            address(this),
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount,
+            weightingStrategy
+        );
     }
 
     /**

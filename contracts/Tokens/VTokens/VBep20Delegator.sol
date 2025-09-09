@@ -5,6 +5,7 @@ pragma solidity 0.8.25;
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VTokenInterface, VBep20Interface, VDelegatorInterface } from "./VTokenInterfaces.sol";
+import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title Venus's VBep20Delegator Contract
@@ -185,10 +186,17 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external returns (uint) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("liquidateBorrow(address,uint256,address)", borrower, repayAmount, vTokenCollateral)
+            abi.encodeWithSignature(
+                "liquidateBorrow(address,uint256,address)",
+                borrower,
+                repayAmount,
+                vTokenCollateral,
+                snapshot
+            )
         );
         return abi.decode(data, (uint));
     }

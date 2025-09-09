@@ -94,6 +94,7 @@ contract ComptrollerInterface {
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
+        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint repayAmount
@@ -102,6 +103,7 @@ contract ComptrollerInterface {
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
 
     function liquidateVAICalculateSeizeTokens(
+        address borrower,
         address vTokenCollateral,
         uint repayAmount
     ) external view returns (uint, uint);

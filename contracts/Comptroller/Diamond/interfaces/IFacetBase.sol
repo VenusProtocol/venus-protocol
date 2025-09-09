@@ -5,6 +5,10 @@ pragma solidity 0.8.25;
 import { Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { Action } from "../../../Comptroller/ComptrollerInterface.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
+
 enum WeightFunction {
     /// @notice Use the collateral factor of the asset for weighting
     USE_COLLATERAL_FACTOR,
@@ -30,6 +34,14 @@ interface IFacetBase {
      * @return The address of XVS token
      */
     function getXVSAddress() external view returns (address);
+
+    function getHypotheticalHealthSnapshot(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot);
 
     function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (PoolMarketId);
 

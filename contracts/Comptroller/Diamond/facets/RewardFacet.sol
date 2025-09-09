@@ -7,6 +7,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
+import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { WeightFunction } from "../interfaces/IFacetBase.sol";

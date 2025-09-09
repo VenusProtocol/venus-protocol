@@ -137,7 +137,7 @@ contract VenusLens is ExponentialNoError {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
         address comptrollerAddress = address(vToken.comptroller());
         ComptrollerInterface comptroller = ComptrollerInterface(comptrollerAddress);
-        (bool isListed, uint collateralFactorMantissa) = comptroller.markets(address(vToken));
+        (bool isListed, uint collateralFactorMantissa, , , ) = comptroller.markets(address(vToken));
         address underlyingAssetAddress;
         uint underlyingDecimals;
 

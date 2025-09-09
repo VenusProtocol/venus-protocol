@@ -6,6 +6,8 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { LiquidationManager } from "../LiquidationManager.sol";
+import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
 import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
 
 enum Action {
@@ -77,6 +79,15 @@ interface ComptrollerInterface {
         uint repayAmount
     ) external returns (uint);
 
+    function liquidateBorrowAllowed(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        address liquidator,
+        address borrower,
+        uint repayAmount,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) external returns (uint);
+
     function liquidateBorrowVerify(
         address vTokenBorrowed,
         address vTokenCollateral,
@@ -109,30 +120,40 @@ interface ComptrollerInterface {
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
-        address vTokenBorrowed,
-        address vTokenCollateral,
-        uint repayAmount
-    ) external view returns (uint, uint);
-
-    function liquidateCalculateSeizeTokens(
         address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint repayAmount
     ) external view returns (uint, uint);
 
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint repayAmount,
+        uint liquidationIncentiveMantissa
+    ) external view returns (uint, uint);
+
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
 
     function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint repayAmount,
+        uint liquidationIncentiveMantissa
+    ) external view returns (uint, uint);
+
+    function liquidateVAICalculateSeizeTokens(
+        address borrower,
         address vTokenCollateral,
         uint repayAmount
     ) external view returns (uint, uint);
 
     function getXVSAddress() external view returns (address);
 
-    function markets(address) external view returns (bool, uint);
+    function markets(address) external view returns (bool, uint, bool, uint, uint);
 
     function oracle() external view returns (ResilientOracleInterface);
+
+    function liquidationManager() external view returns (LiquidationManager);
 
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
 
@@ -172,7 +193,27 @@ interface ComptrollerInterface {
 
     function vaiMintRate() external view returns (uint);
 
+    function getDynamicLiquidationIncentive(address borrower, address market) external view returns (uint256);
+
+    function getDynamicLiquidationIncentive(
+        address market,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256);
+
+    function getCollateralFactor(address vToken) external view returns (uint256);
+
+    function getLiquidationThreshold(address vToken) external view returns (uint256);
+
+    function getHypotheticalHealthSnapshot(
+        address account,
+        VToken vTokenModify,
+        uint redeemTokens,
+        uint borrowAmount
+    ) external view returns (uint256, ComptrollerLensInterface.AccountSnapshot memory);
+
     function authorizedFlashLoan(address account) external view returns (bool);
+
     function delegateAuthorizationFlashloan(
         address account,
         address market,

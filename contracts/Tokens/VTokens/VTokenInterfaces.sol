@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
 
 contract VTokenStorageBase {
     /**
@@ -415,7 +416,8 @@ interface VBep20Interface {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external returns (uint);
 
     /*** Admin Functions ***/

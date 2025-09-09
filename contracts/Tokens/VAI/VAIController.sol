@@ -12,6 +12,7 @@ import { VAIControllerInterface } from "./VAIControllerInterface.sol";
 import { IVAI } from "./IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
 import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
+import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
 import { VAIControllerStorageG4 } from "./VAIControllerStorage.sol";
 
 /**
@@ -248,15 +249,17 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     /**
      * @notice The sender liquidates the vai minters collateral. The collateral seized is transferred to the liquidator.
      * @param borrower The borrower of vai to be liquidated
-     * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @param repayAmount The amount of the underlying borrowed asset to repay
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param snapshot The account snapshot of the borrower
      * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
      * @return Actual repayment amount
      */
     function liquidateVAI(
         address borrower,
         uint256 repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external nonReentrant returns (uint256, uint256) {
         _ensureNotPaused();
 
@@ -267,7 +270,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         }
 
         // liquidateVAIFresh emits borrow-specific logs on errors, so we don't need to
-        return liquidateVAIFresh(msg.sender, borrower, repayAmount, vTokenCollateral);
+        return liquidateVAIFresh(msg.sender, borrower, repayAmount, vTokenCollateral, snapshot);
     }
 
     /**
@@ -276,8 +279,9 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @dev If the Comptroller address is not set, liquidation is a no-op and the function returns the success code.
      * @param liquidator The address repaying the VAI and seizing collateral
      * @param borrower The borrower of this VAI to be liquidated
-     * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @param repayAmount The amount of the VAI to repay
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param snapshot The account snapshot of the borrower
      * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
      * @return Actual repayment amount
      */
@@ -285,7 +289,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         address liquidator,
         address borrower,
         uint256 repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) internal returns (uint256, uint256) {
         if (address(comptroller) != address(0)) {
             accrueVAIInterest();
@@ -296,7 +301,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 address(vTokenCollateral),
                 liquidator,
                 borrower,
-                repayAmount
+                repayAmount,
+                snapshot
             );
             if (allowed != 0) {
                 return (failOpaque(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
@@ -324,9 +330,11 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             }
 
             /* Fail if repayVAI fails */
-            (uint256 repayBorrowError, uint256 actualRepayAmount) = repayVAIFresh(liquidator, borrower, repayAmount);
-            if (repayBorrowError != uint256(Error.NO_ERROR)) {
-                return (fail(Error(repayBorrowError), FailureInfo.VAI_LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
+            uint256 errorCode;
+            uint256 actualRepayAmount;
+            (errorCode, actualRepayAmount) = repayVAIFresh(liquidator, borrower, repayAmount);
+            if (errorCode != uint256(Error.NO_ERROR)) {
+                return (fail(Error(errorCode), FailureInfo.VAI_LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
             }
 
             /////////////////////////
@@ -334,23 +342,21 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             // (No safe failures beyond this point)
 
             /* We calculate the number of collateral tokens that will be seized */
-            (uint256 amountSeizeError, uint256 seizeTokens) = comptroller.liquidateVAICalculateSeizeTokens(
+            uint256 seizeTokens;
+            (errorCode, seizeTokens) = comptroller.liquidateVAICalculateSeizeTokens(
                 address(vTokenCollateral),
-                actualRepayAmount
+                actualRepayAmount,
+                snapshot.dynamicLiquidationIncentiveMantissa
             );
-            require(
-                amountSeizeError == uint256(Error.NO_ERROR),
-                "VAI_LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED"
-            );
+            require(errorCode == uint256(Error.NO_ERROR), "VAI_LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
             /* Revert if borrower collateral token balance < seizeTokens */
             require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "VAI_LIQUIDATE_SEIZE_TOO_MUCH");
 
-            uint256 seizeError;
-            seizeError = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
+            errorCode = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
 
             /* Revert if seize tokens fails (since we cannot be sure of side effects) */
-            require(seizeError == uint256(Error.NO_ERROR), "token seizure failed");
+            require(errorCode == uint256(Error.NO_ERROR), "token seizure failed");
 
             /* We emit a LiquidateBorrow event */
             emit LiquidateVAI(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
@@ -497,7 +503,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 return (uint256(Error.MATH_ERROR), 0);
             }
 
-            (, uint256 collateralFactorMantissa) = comptroller.markets(address(enteredMarkets[i]));
+            (, uint256 collateralFactorMantissa, , , ) = comptroller.markets(address(enteredMarkets[i]));
             (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint256(Error.MATH_ERROR), 0);

@@ -26,7 +26,6 @@ export async function deployFacets() {
     await facet.deployed();
 
     const FacetInterface = await ethers.getContractAt(`I${FacetName}`, facet.address);
-
     cut.push({
       facetAddress: facet.address,
       action: FacetCutAction.Add,

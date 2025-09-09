@@ -7,6 +7,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt, convertToUnit } from "../../../helpers/utils";
 import {
+  ComptrollerLens,
   ComptrollerMock,
   FaucetToken,
   FaucetToken__factory,
@@ -28,11 +29,12 @@ const seizeTokens = 1000n * 4n;
 const minLiquidatableVAI = convertToBigInt("500", 0);
 const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
-const mantisaOne = convertToBigInt("1", 18);
 // const effectiveIncentive = convertToBigInt("0.1", 18);
 
-const incentiveAmount = 363n; //seizeTokens * effectiveIncentive / announcedIncentive
-const treasuryShare = 18n; // incentiveAmount * effectiveIncentive
+const MANTISSA_ONE = convertToBigInt("1", 18);
+
+const treasuryShare =
+  (seizeTokens * (announcedIncentive - MANTISSA_ONE) * treasuryPercent) / (announcedIncentive * MANTISSA_ONE);
 const liquidatorShare = seizeTokens - treasuryShare;
 
 type LiquidatorFixture = {
@@ -59,13 +61,17 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const wBnb = await smock.fake<WBNB>("WBNB");
+  const comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
+
   const collateralUnderlying = await smock.fake<FaucetToken>("FaucetToken");
   collateralUnderlying.balanceOf.returns(convertToUnit(1, 10));
   collateralUnderlying.transfer.returns(true);
   vTokenCollateral.underlying.returns(collateralUnderlying.address);
-  comptroller.getEffectiveLiquidationIncentive.returns(announcedIncentive);
+
   comptroller.vaiController.returns(vaiController.address);
+  comptroller.comptrollerLens.returns(comptrollerLens.address);
   comptroller.markets.returns([true, convertToUnit(5, 17), true, 0, 0, 0, false]);
+
   vaiController.getVAIAddress.returns(vai.address);
 
   const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
@@ -76,9 +82,10 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     Liquidator,
     [treasuryPercent, accessControlManager.address, protocolShareReserve.address],
     {
-      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address, comptrollerLens.address],
     },
   );
+
   await borrowedUnderlying.approve(liquidator.address, repayAmount);
   await vai.approve(liquidator.address, repayAmount);
 
@@ -98,7 +105,14 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
 
 function configure(fixture: LiquidatorFixture) {
   const { comptroller, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, vBnb } = fixture;
-  comptroller.getEffectiveLiquidationIncentive.returns(announcedIncentive);
+
+  comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
+    .whenCalledWith(vTokenBorrowed.address, 0, 0)
+    .returns(announcedIncentive);
+  comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
+    .whenCalledWith(vTokenCollateral.address, 0, 0)
+    .returns(announcedIncentive);
+
   vTokenBorrowed.underlying.returns(borrowedUnderlying.address);
   for (const vToken of [vTokenBorrowed, vTokenCollateral]) {
     vToken.transfer.reset();
@@ -205,6 +219,16 @@ describe("Liquidator", () => {
           borrower.address,
           repayAmount,
           vTokenCollateral.address,
+          {
+            totalCollateral: ethers.BigNumber.from(0),
+            weightedCollateral: ethers.BigNumber.from(0),
+            borrows: ethers.BigNumber.from(0),
+            liquidity: ethers.BigNumber.from(0),
+            shortfall: ethers.BigNumber.from(0),
+            liquidationThresholdAvg: ethers.BigNumber.from(0),
+            healthFactor: ethers.BigNumber.from(0),
+            dynamicLiquidationIncentiveMantissa: ethers.BigNumber.from("0x0f43fc2c04ee0000"),
+          },
         );
       });
 
@@ -253,6 +277,16 @@ describe("Liquidator", () => {
           borrower.address,
           repayAmount,
           vTokenCollateral.address,
+          {
+            totalCollateral: ethers.BigNumber.from(0),
+            weightedCollateral: ethers.BigNumber.from(0),
+            borrows: ethers.BigNumber.from(0),
+            liquidity: ethers.BigNumber.from(0),
+            shortfall: ethers.BigNumber.from(0),
+            liquidationThresholdAvg: ethers.BigNumber.from(0),
+            healthFactor: ethers.BigNumber.from(0),
+            dynamicLiquidationIncentiveMantissa: ethers.BigNumber.from("0x0f43fc2c04ee0000"),
+          },
         );
       });
     });
@@ -296,6 +330,7 @@ describe("Liquidator", () => {
 
     it("calls liquidateBorrow on VBNB", async () => {
       await liquidate();
+      console.log("VBNB address: ", vBnb.address);
       expect(vBnb.liquidateBorrow).to.have.been.calledOnce;
       expect(vBnb.liquidateBorrow).to.have.been.calledWithValue(repayAmount);
       expect(vBnb.liquidateBorrow).to.have.been.calledWith(borrower.address, vTokenCollateral.address);
@@ -330,8 +365,8 @@ describe("Liquidator", () => {
     });
 
     it("fails when the percentage is too high", async () => {
-      const maxPercentage = convertToBigInt("1.0", 18);
-      const tooHighPercentage = convertToBigInt("1.1", 18); // more than 100%,
+      const maxPercentage = convertToBigInt("1", 18); // announced incentive - 1, with 18 decimals
+      const tooHighPercentage = convertToBigInt("1.1", 18);
       await expect(liquidatorContract.setTreasuryPercent(tooHighPercentage))
         .to.be.revertedWithCustomError(liquidatorContract, "TreasuryPercentTooHigh")
         .withArgs(maxPercentage, tooHighPercentage);
@@ -347,7 +382,9 @@ describe("Liquidator", () => {
         vTokenCollateral.address,
       );
 
-      const treasuryDelta = (incentiveAmount * convertToBigInt("0.10", 18)) / mantisaOne;
+      const treasuryDelta =
+        (seizeTokens * (announcedIncentive - MANTISSA_ONE) * convertToBigInt("0.10", 18)) /
+        (announcedIncentive * MANTISSA_ONE);
       const liquidatorDelta = seizeTokens - treasuryDelta;
 
       await expect(tx)

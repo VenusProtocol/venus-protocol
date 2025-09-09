@@ -163,8 +163,8 @@ describe("FlashLoan", async () => {
       await comptroller._supportMarket(vTokenA.address);
       await comptroller._supportMarket(vTokenB.address);
 
-      await comptroller["setLiquidationIncentive(address,uint256)"](vTokenA.address, convertToUnit("1", 18));
-      await comptroller["setLiquidationIncentive(address,uint256)"](vTokenB.address, convertToUnit("1", 18));
+      await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vTokenA.address, convertToUnit("1", 18));
+      await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vTokenB.address, convertToUnit("1", 18));
 
       const MockFlashLoanReceiver =
         await ethers.getContractFactory<MockFlashLoanReceiver__factory>("MockFlashLoanReceiver");
