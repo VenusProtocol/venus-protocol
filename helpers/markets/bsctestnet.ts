@@ -634,4 +634,29 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus WBNB",
+    symbol: "vWBNB",
+    asset: "WBNB",
+    interestRateModel: {
+      model: "two-kinks",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.035",
+      kink: "0.8",
+      baseRatePerYear2: "0",
+      multiplierPerYear2: "1.75",
+      kink2: "0.9",
+      jumpMultiplierPerYear: "3",
+    },
+    riskParameters: {
+      collateralFactor: "0.8",
+      reserveFactor: "0.3",
+      supplyCap: "2672000",
+      borrowCap: "2008000",
+    },
+    initialSupply: {
+      amount: "1",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
