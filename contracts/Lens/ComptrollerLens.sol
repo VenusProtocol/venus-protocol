@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.25;
 
-import "../Tokens/VTokens/VBep20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";

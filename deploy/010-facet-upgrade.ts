@@ -7,6 +7,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
+  await deploy("Diamond", {
+    from: deployer,
+    args: [],
+    log: true,
+    autoMine: true,
+  });
+
   await deploy("PolicyFacet", {
     from: deployer,
     args: [],
@@ -22,6 +29,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   await deploy("MarketFacet", {
+    from: deployer,
+    args: [],
+    log: true,
+    autoMine: true,
+  });
+
+  await deploy("RewardFacet", {
+    from: deployer,
+    args: [],
+    log: true,
+    autoMine: true,
+  });
+
+  await deploy("XVSRewardsHelper", {
     from: deployer,
     args: [],
     log: true,
