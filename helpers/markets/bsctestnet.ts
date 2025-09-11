@@ -641,11 +641,11 @@ export default [
     interestRateModel: {
       model: "two-kinks",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.035",
-      kink: "0.8",
+      multiplierPerYear: "0.045",
+      kink: "0.7",
       baseRatePerYear2: "0",
-      multiplierPerYear2: "1.75",
-      kink2: "0.9",
+      multiplierPerYear2: "1.4",
+      kink2: "0.8",
       jumpMultiplierPerYear: "3",
     },
     riskParameters: {
