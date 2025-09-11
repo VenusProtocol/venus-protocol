@@ -355,6 +355,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
 
+        if (VToken(vTokenCollateral).comptroller() != VToken(vTokenOrExecutor).comptroller()) {
+            return uint256(Error.COMPTROLLER_MISMATCH);
+        }
+
         // Skipped for collateral swapping, the vTokenOrExecutor is the PositionSwapper contract
         if (!whitelistedExecutors[vTokenOrExecutor]) {
             if (!market.accountMembership[borrower]) {
@@ -363,10 +367,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
             if (address(vTokenOrExecutor) != address(vaiController)) {
                 ensureListed(markets[vTokenOrExecutor]);
-            }
-
-            if (VToken(vTokenCollateral).comptroller() != VToken(vTokenOrExecutor).comptroller()) {
-                return uint256(Error.COMPTROLLER_MISMATCH);
             }
         }
 
