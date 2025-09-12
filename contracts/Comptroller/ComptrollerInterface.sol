@@ -152,8 +152,6 @@ interface ComptrollerInterface {
 
     function vaiController() external view returns (VAIControllerInterface);
 
-    function oldLiquidationIncentiveMantissa() external view returns (uint);
-
     function protocolPaused() external view returns (bool);
 
     function actionPaused(address market, Action action) external view returns (bool);
@@ -204,8 +202,6 @@ interface IVAIVault {
 }
 
 interface IComptroller {
-    function liquidationIncentiveMantissa() external view returns (uint);
-
     /*** Treasury Data ***/
     function treasuryAddress() external view returns (address);
 

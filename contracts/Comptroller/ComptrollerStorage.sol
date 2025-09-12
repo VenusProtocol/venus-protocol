@@ -46,7 +46,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
      */
-    uint256 public oldLiquidationIncentiveMantissa;
+    uint256 private _oldLiquidationIncentiveMantissa;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
