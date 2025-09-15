@@ -9,11 +9,11 @@ contract BadFlashLoanReceiver is MockFlashLoanReceiver {
     constructor(ComptrollerInterface comptroller) MockFlashLoanReceiver(comptroller) {}
 
     function executeOperation(
-        VToken[] calldata ,
-        uint256[] calldata ,
-        uint256[] calldata ,
-        address ,
-        bytes calldata 
+        VToken[] calldata,
+        uint256[] calldata,
+        uint256[] calldata,
+        address,
+        bytes calldata
     ) external override returns (bool) {
         return false;
     }

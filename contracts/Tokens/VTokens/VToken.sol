@@ -348,20 +348,19 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Transfers the underlying asset to the specified address.
      * @dev Can only be called by the Comptroller contract. This function performs the actual transfer of the underlying
      *      asset by calling the `doTransferOut` internal function.
+     *      - The caller must be the Comptroller contract.
      * @param to The address to which the underlying asset is to be transferred.
      * @param amount The amount of the underlying asset to transfer.
-     * requirements
-     *      - The caller must be the Comptroller contract.
-     * custom:reverts
-     *      - Reverts with "Invalid Comptroller" if the caller is not the Comptroller.
-     * custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
+     * @return balanceBefore Cash balance after transfer out for comparison in flash loan verification
+     * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
+     * @custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
     function transferOutUnderlying(
         address payable to,
         uint256 amount
     ) external nonReentrant returns (uint256 balanceBefore) {
         if (msg.sender != address(comptroller)) {
-            revert("Invalid comptroller");
+            revert InvalidComptroller();
         }
 
         flashLoanAmount += amount;
@@ -375,15 +374,14 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Transfers the underlying asset from the specified address.
      * @dev Can only be called by the Comptroller contract. This function performs the actual transfer of the underlying
      *      asset by calling the `doTransferIn` internal function.
+     *      - The caller must be the Comptroller contract.
      * @param from The address from which the underlying asset is to be transferred.
      * @param amount The amount of the underlying asset to transfer.
      * @param fee The accrued fee
      * @param balanceBefore Cash before transfer in
-     * requirements
-     *      - The caller must be the Comptroller contract.
-     * custom:reverts
-     *      - Reverts with "Invalid Comptroller" if the caller is not the Comptroller.
-     * custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
+     * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
+     * @custom:error InsufficientRepayment is thrown if the actual repayment is less than the required repayment (amount + fee).
+     * @custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
     function transferInUnderlyingAndVerify(
         address payable from,
@@ -392,14 +390,16 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 balanceBefore
     ) external nonReentrant {
         if (msg.sender != address(comptroller)) {
-            revert("Invalid comptroller");
+            revert InvalidComptroller();
         }
 
         uint256 repayment = amount + fee;
         doTransferIn(from, repayment);
         flashLoanAmount -= amount;
 
-        if ((getCashPrior() - balanceBefore) < repayment) revert("Insufficient reypayment balance");
+        if ((getCashPrior() - balanceBefore) < repayment) {
+            revert InsufficientRepayment();
+        }
 
         emit TransferInUnderlyingAndVerify(underlying, from, repayment);
     }
@@ -410,25 +410,27 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      is returned by the receiver contract after the operation. The function performs checks to ensure the validity
      *      of parameters, that flashLoan is enabled for the given asset, and that the total repayment is sufficient.
      *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
-     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
-     * @param amount The amount of asset to be loaned.
-     * @param param Additional encoded parameters passed with the flash loan.
-     * custom:requirements
+     *      requirements
      *      - The `receiver` address must not be the zero address.
      *      - FlashLoans must be enabled for the asset.
      *      - The `receiver` contract must repay the loan with the appropriate fee.
-     * custom:reverts
-     *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
-     *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
-     *      - Reverts with `Insufficient repayment balance` if the repayment (amount + fee) is insufficient after the operation.
-     * custom:event Emits FlashLoanExecuted event on success
+     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
+     * @param amount The amount of asset to be loaned.
+     * @param param Additional encoded parameters passed with the flash loan.
+     * @custom:error FlashLoanNotEnabled is thrown if flashLoans are disabled for the asset.
+     * @custom:error ExecuteFlashLoanFailed is thrown if the receiver contract fails to execute the operation.
+     * @custom:error InsufficientRepayment is thrown if the repayment (amount + fee) is insufficient after the operation.
+     * @custom:event Emits FlashLoanExecuted event on success
      */
     function executeFlashLoan(
         address payable receiver,
         uint256 amount,
         bytes calldata param
     ) external nonReentrant returns (uint256) {
-        if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
+        if (!isFlashLoanEnabled) {
+            revert FlashLoanNotEnabled();
+        }
+
         ensureNonZeroAddress(receiver);
 
         // Tracks the flashLoan amount before transferring amount to the receiver
@@ -444,14 +446,14 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         // Call the execute operation on receiver contract
         if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, fee, msg.sender, param)) {
-            revert("Execute flashLoan failed");
+            revert ExecuteFlashLoanFailed();
         }
 
         doTransferIn(receiver, repayAmount);
         flashLoanAmount -= amount;
 
         if ((getCashPrior() - balanceBefore) < repayAmount) {
-            revert("Insufficient repayment balance");
+            revert InsufficientRepayment();
         }
 
         // Transfer protocol fee to protocol share reserve
@@ -469,8 +471,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Enable or disable flash loan for the market
-     * custom:access Only Governance
-     * custom:event Emits ToggleFlashLoanEnabled event on success
+     * @custom:access Only Governance
+     * @custom:event Emits ToggleFlashLoanEnabled event on success
      */
     function _toggleFlashLoan() external returns (uint256) {
         ensureAllowed("_toggleFlashLoan()");
@@ -486,8 +488,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param protocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
      * @param supplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
-     * custom:access Only Governance
-     * custom:event Emits FlashLoanFeeUpdated event on success
+     * @custom:access Only Governance
+     * @custom:event Emits FlashLoanFeeUpdated event on success
      */
     function _setFlashLoanFeeMantissa(
         uint256 protocolFeeMantissa_,

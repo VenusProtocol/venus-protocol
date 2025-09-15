@@ -8,7 +8,6 @@ import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
-import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
@@ -391,6 +390,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param modes How each borrowed asset is handled if not repaid immediately (0: flash loan, 1: debt position)
      * @param onBehalfOf The address for whom debt positions will be opened (if mode = 1)
      * @param param The bytes passed in the executeOperation call
+     * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
+     * @custom:error InvalidFlashLoanParams is thrown if the flash loan params are invalid.
+     * @custom:error FlashLoanNotEnabled is thrown if the flash loan is not enabled for the asset.
+     * @custom:event Emits FlashLoanExecuted on success
      */
     function executeFlashLoan(
         address payable initiator,
@@ -401,16 +404,22 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address onBehalfOf,
         bytes calldata param
     ) external {
+        // vTokens array must not be empty
+        if (vTokens.length == 0) {
+            revert NoAssetsRequested();
+        }
+        // All arrays must have the same length and not be zero
+        if (vTokens.length != underlyingAmounts.length || vTokens.length != modes.length) {
+            revert InvalidFlashLoanParams();
+        }
+
         for (uint256 i = 0; i < vTokens.length; i++) {
-            if (!(vTokens[i]).isFlashLoanEnabled()) revert("FlashLoan not enabled");
+            if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
         }
 
         ensureNonzeroAddress(receiver);
         ensureNonzeroAddress(onBehalfOf);
-        // All arrays must have the same length and not be zero
-        if (vTokens.length != underlyingAmounts.length || vTokens.length != modes.length || vTokens.length == 0) {
-            revert("Invalid flashLoan params");
-        }
+
         // Validate parameters and delegation
         _validateFlashLoanParams(initiator, vTokens, modes, onBehalfOf);
 
@@ -434,17 +443,18 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             for (uint256 i = 0; i < vTokens.length; i++) {
                 if (modes[i] == 1) {
                     // Only check delegation for debt-creating modes
-                    require(
-                        delegateAuthorizationFlashloan[onBehalfOf][address(vTokens[i])][initiator],
-                        "Sender not authorized to use flashloan on behalf"
-                    );
+                    if (!delegateAuthorizationFlashloan[onBehalfOf][address(vTokens[i])][initiator]) {
+                        revert SenderNotAuthorizedForFlashLoan();
+                    }
                 }
             }
         }
 
         // Validate modes
         for (uint256 i = 0; i < modes.length; i++) {
-            require(modes[i] <= 1, "Invalid mode");
+            if (modes[i] > 1) {
+                revert InvalidMode();
+            }
         }
     }
 
@@ -508,7 +518,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         bytes memory param
     ) internal {
         if (!IFlashLoanReceiver(receiver).executeOperation(vTokens, underlyingAmounts, totalFees, msg.sender, param)) {
-            revert("Execute flashLoan failed");
+            revert ExecuteFlashLoanFailed();
         }
     }
 
@@ -606,7 +616,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         // If actual repayment is less than required, we create a debt position
         uint256 debtError = vToken.borrowDebtPosition(onBehalfOf, requiredRepayment);
-        require(debtError == 0, "Failed to create debt position");
+        if (debtError != 0) {
+            revert FailedToCreateDebtPosition();
+        }
 
         // Handle fees from actual repayment proportionally
         if (actualRepayment > 0) {

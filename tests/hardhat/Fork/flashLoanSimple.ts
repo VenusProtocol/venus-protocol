@@ -119,7 +119,7 @@ forking(56732787, async () => {
               flashLoanAmount,
               ethers.utils.formatBytes32String(""),
             ),
-        ).to.be.revertedWith("FlashLoan not enabled");
+        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotEnabled");
       });
 
       it("Should revert if receiver is zero address", async () => {

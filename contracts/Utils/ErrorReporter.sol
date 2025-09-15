@@ -43,6 +43,27 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when an invalid weighting strategy is provided
     error InvalidWeightingStrategy(WeightFunction strategy);
 
+    // @notice Thrown when no assets are requested for flash loan
+    error NoAssetsRequested();
+
+    // @notice Thrown when invalid flash loan parameters are provided
+    error InvalidFlashLoanParams();
+
+    // @notice Thrown when flash loan is not enabled on the vToken
+    error FlashLoanNotEnabled();
+
+    // @notice Thrown when the sender is not authorized to use flashloan onBehalfOf
+    error SenderNotAuthorizedForFlashLoan();
+
+    // @notice Thrown when an invalid mode is provided
+    error InvalidMode();
+
+    // @notice Thrown when executeOperation on the receiver contract fails
+    error ExecuteFlashLoanFailed();
+
+    // @notice Thrown when failing to create a debt position in mode 1
+    error FailedToCreateDebtPosition();
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,

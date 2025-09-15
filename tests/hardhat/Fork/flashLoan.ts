@@ -110,15 +110,19 @@ async function deploy(): Promise<SetupProtocolFixture> {
     newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],uint256[],address,bytes)"],
   );
 
-  const addSetCollateralFactorSelector = newSetterFacet.interface.getSighash("setCollateralFactor(address,uint256,uint256)");
+  const addSetCollateralFactorSelector = newSetterFacet.interface.getSighash(
+    "setCollateralFactor(address,uint256,uint256)",
+  );
 
   const addSetDelegateAuthorizationFlashloanFunctionSignature = newSetterFacet.interface.getSighash(
-    newSetterFacet.interface.functions["setDelegateAuthorizationFlashloan(address,address,bool)"]
+    newSetterFacet.interface.functions["setDelegateAuthorizationFlashloan(address,address,bool)"],
   );
 
   const addSetIsBorrowAllowedSelector = newSetterFacet.interface.getSighash("setIsBorrowAllowed(uint96,address,bool)");
 
-  const addGetEffectiveLtvFactorSelector = newMarketFacet.interface.getSighash("getEffectiveLtvFactor(address,address,uint8)");
+  const addGetEffectiveLtvFactorSelector = newMarketFacet.interface.getSighash(
+    "getEffectiveLtvFactor(address,address,uint8)",
+  );
 
   const existingPolicyFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_POLICY_FACET);
   const existingSetterFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_SETTER_FACET);
@@ -160,7 +164,6 @@ async function deploy(): Promise<SetupProtocolFixture> {
       functionSelectors: existingSetterFacetFunctions,
     },
   ];
-
 
   await unitroller.connect(timeLockUser)._setPendingImplementation(diamond.address);
   await diamond.connect(timeLockUser)._become(unitroller.address);
@@ -275,12 +278,15 @@ forking(56732787, () => {
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(setterFacet.address, "setCollateralFactor(address,uint256,uint256)", timeLockUser.address);
+          .giveCallPermission(
+            setterFacet.address,
+            "setCollateralFactor(address,uint256,uint256)",
+            timeLockUser.address,
+          );
 
         await accessControlManager
           .connect(timeLockUser)
           .giveCallPermission(setterFacet.address, "setIsBorrowAllowed(uint96,address,bool)", timeLockUser.address);
-
 
         // ADDED: Set supply caps to allow minting
         await setterFacet.connect(timeLockUser)._setMarketSupplyCaps(
@@ -301,17 +307,13 @@ forking(56732787, () => {
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [2], false); // 2 = borrow action
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [7], false); // 7 = enterMarket action
 
-        await setterFacet.connect(timeLockUser)["setCollateralFactor(address,uint256,uint256)"](
-          vUSDT.address,
-          parseUnits("0.9", 18),
-          parseUnits("0.9", 18),
-        );
+        await setterFacet
+          .connect(timeLockUser)
+          ["setCollateralFactor(address,uint256,uint256)"](vUSDT.address, parseUnits("0.9", 18), parseUnits("0.9", 18));
 
-        await setterFacet.connect(timeLockUser)["setCollateralFactor(address,uint256,uint256)"](
-          vBUSD.address,
-          parseUnits("0.9", 18),
-          parseUnits("0.9", 18),
-        );
+        await setterFacet
+          .connect(timeLockUser)
+          ["setCollateralFactor(address,uint256,uint256)"](vBUSD.address, parseUnits("0.9", 18), parseUnits("0.9", 18));
 
         await setterFacet.connect(timeLockUser).setIsBorrowAllowed(0, vUSDT.address, true);
         await setterFacet.connect(timeLockUser).setIsBorrowAllowed(0, vBUSD.address, true);
@@ -329,7 +331,7 @@ forking(56732787, () => {
             user.address,
             ethers.utils.formatBytes32String(""), // Add the missing `param` argument
           ),
-        ).to.be.revertedWith("FlashLoan not enabled");
+        ).to.be.revertedWithCustomError(policyFacet, "FlashLoanNotEnabled");
       });
 
       it("Should revert if asset and amount arrays are mismatched", async () => {
@@ -347,7 +349,7 @@ forking(56732787, () => {
             user.address,
             ethers.utils.formatBytes32String(""), // Add the missing `param` argument
           ),
-        ).to.be.revertedWith("Invalid flashLoan params");
+        ).to.be.revertedWithCustomError(policyFacet, "InvalidFlashLoanParams");
       });
 
       it("Should revert if receiver is zero address", async () => {
@@ -401,7 +403,7 @@ forking(56732787, () => {
             timeLockUser.address,
             ethers.utils.formatBytes32String(""), // Add the missing `param` argument
           ),
-        ).to.be.revertedWith("Sender not authorized to use flashloan on behalf");
+        ).to.be.revertedWithCustomError(policyFacet, "SenderNotAuthorizedForFlashLoan");
       });
 
       it("Should be able to do flashLoan for USDT & ETH", async () => {

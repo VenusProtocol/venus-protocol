@@ -194,8 +194,9 @@ describe("FlashLoan", async () => {
     });
 
     it("Revert if not comptroller", async () => {
-      await expect(vTokenA.transferOutUnderlying(minter.address, parseUnits("1", 18))).to.be.revertedWith(
-        "Invalid comptroller",
+      await expect(vTokenA.transferOutUnderlying(minter.address, parseUnits("1", 18))).to.be.revertedWithCustomError(
+        vTokenA,
+        "InvalidComptroller",
       );
     });
 
@@ -231,7 +232,7 @@ describe("FlashLoan", async () => {
     it("Should revert if the flashLoan is not enabled", async () => {
       await expect(
         mockReceiverSimple.requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),
-      ).to.be.revertedWith("FlashLoan not enabled");
+      ).to.be.revertedWithCustomError(vTokenA, "FlashLoanNotEnabled");
     });
 
     it("FlashLoan for single underlying", async () => {

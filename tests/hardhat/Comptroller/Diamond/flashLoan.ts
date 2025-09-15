@@ -67,7 +67,6 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
 
-
   return {
     admin,
     oracle,
@@ -183,7 +182,7 @@ describe("FlashLoan", async () => {
           alice.address,
           "0x",
         ),
-      ).to.be.revertedWith("FlashLoan not enabled");
+      ).to.be.revertedWithCustomError(comptroller, "FlashLoanNotEnabled");
     });
 
     it("Should revert if invalid mode is used", async () => {
@@ -199,7 +198,7 @@ describe("FlashLoan", async () => {
           alice.address,
           "0x",
         ),
-      ).to.be.revertedWith("Invalid mode");
+      ).to.be.revertedWithCustomError(comptroller, "InvalidMode");
     });
 
     it("Should revert if onBehalf param is Zero Address", async () => {
@@ -231,7 +230,7 @@ describe("FlashLoan", async () => {
           alice.address,
           "0x",
         ),
-      ).to.be.revertedWith("Invalid flashLoan params");
+      ).to.be.revertedWithCustomError(comptroller, "InvalidFlashLoanParams");
     });
 
     it("Should revert if receiver's executeOperation returns false", async () => {
@@ -252,15 +251,17 @@ describe("FlashLoan", async () => {
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
 
       await expect(
-        badReceiver.connect(alice).requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          badReceiver.address,
-          [0, 0],
-          alice.address,
-          "0x"
-        )
-      ).to.be.revertedWith("Execute flashLoan failed");
+        badReceiver
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            badReceiver.address,
+            [0, 0],
+            alice.address,
+            "0x",
+          ),
+      ).to.be.revertedWithCustomError(comptroller, "ExecuteFlashLoanFailed");
     });
 
     it("FlashLoan for multiple underlying and transfer funds to PSR", async () => {
@@ -345,8 +346,16 @@ describe("FlashLoan", async () => {
       await vTokenB._toggleFlashLoan();
 
       // Set collateral factors for the markets
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenB.address, parseUnits("0.9", 18), parseUnits("1", 18));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
 
       // Set borrow caps to allow borrowing
       await comptroller._setMarketBorrowCaps(
@@ -454,8 +463,16 @@ describe("FlashLoan", async () => {
       await vTokenB._toggleFlashLoan();
 
       // Set collateral factors for the markets
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenA.address, parseUnits("0.9", 18), parseUnits("1", 18));
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](vTokenB.address, parseUnits("0.9", 18), parseUnits("1", 18));
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
 
       // Set borrow caps to allow borrowing
       await comptroller._setMarketBorrowCaps(

@@ -328,6 +328,18 @@ abstract contract VTokenInterface is VTokenStorage {
         uint256 newFlashLoanSupplierFeeMantissa
     );
 
+    // @notice Thrown when comptroller is not valid
+    error InvalidComptroller();
+
+    // @notice Thrown when the repayment amount is insufficient
+    error InsufficientRepayment();
+
+    // @notice Thrown when flashLoan is not enabled
+    error FlashLoanNotEnabled();
+
+    // @notice Thrown when the receiver contract execute operation fails
+    error ExecuteFlashLoanFailed();
+
     /*** User Interface ***/
 
     function transfer(address dst, uint amount) external virtual returns (bool);
