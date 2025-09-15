@@ -430,14 +430,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Determine the current account liquidity wrt collateral requirements
+     * @notice Determine the current account liquidity wrt liquidation threshold requirements
      * @param account The account get liquidity for
      * @return (possible error code (semi-opaque),
-                account liquidity in excess of collateral requirements,
-     *          account shortfall below collateral requirements)
+                account liquidity in excess of liquidation threshold requirements,
+     *          account shortfall below liquidation threshold requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, WeightFunction.USE_COLLATERAL_FACTOR);
+        return _getAccountLiquidity(account, WeightFunction.USE_LIQUIDATION_THRESHOLD);
     }
 
     /**
