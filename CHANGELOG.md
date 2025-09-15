@@ -1,3 +1,11 @@
+## [9.8.0-dev.23](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.22...v9.8.0-dev.23) (2025-09-15)
+
+
+### Features
+
+* add mainnet deployments for vWBNB ([b1cb5e0](https://github.com/VenusProtocol/venus-protocol/commit/b1cb5e0b0ca3bf8f71921581bae967b86beab535))
+* updating deployment files ([d4630d4](https://github.com/VenusProtocol/venus-protocol/commit/d4630d4cc52c2f8dcf71a8de0f74818cd712fbc0))
+
 ## [9.8.0-dev.22](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.21...v9.8.0-dev.22) (2025-09-08)
 
 
