@@ -9,7 +9,7 @@ import { Action } from "../../ComptrollerInterfaceR1.sol";
 import { ComptrollerLensInterfaceR1 } from "../../ComptrollerLensInterfaceR1.sol";
 import { VAIControllerInterface } from "../../../../Tokens/VAI/VAIControllerInterface.sol";
 import { IPrime } from "../../../../Tokens/Prime/IPrime.sol";
-import { ISetterFacetR1 } from "./ISetterFacetR1.sol";
+import { ISetterFacetR1 } from "../interfaces/ISetterFacetR1.sol";
 import { FacetBaseR1 } from "./FacetBaseR1.sol";
 
 /**

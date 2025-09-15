@@ -9,7 +9,7 @@ import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/con
 import { VToken } from "../../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerErrorReporter } from "../../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../../Utils/ExponentialNoError.sol";
-import { IVAIVault, Action } from "../..//ComptrollerInterfaceR1.sol";
+import { IVAIVault, Action } from "../../ComptrollerInterfaceR1.sol";
 import { ComptrollerV16StorageR1 } from "../../ComptrollerStorageR1.sol";
 
 /**
