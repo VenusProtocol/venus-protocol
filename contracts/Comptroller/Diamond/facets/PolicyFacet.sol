@@ -434,26 +434,19 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function _validateFlashLoanParams(
         address payable initiator,
-        VToken[] memory vTokens,
-        uint256[] memory modes,
+        VToken[] calldata vTokens,
+        uint256[] calldata modes,
         address onBehalfOf
     ) internal view {
         // Check delegation if borrowing on behalf of someone else
-        if (onBehalfOf != initiator) {
-            for (uint256 i = 0; i < vTokens.length; i++) {
-                if (modes[i] == 1) {
-                    // Only check delegation for debt-creating modes
-                    if (!delegateAuthorizationFlashloan[onBehalfOf][address(vTokens[i])][initiator]) {
-                        revert SenderNotAuthorizedForFlashLoan();
-                    }
-                }
-            }
-        }
-
-        // Validate modes
         for (uint256 i = 0; i < modes.length; i++) {
-            if (modes[i] > 1) {
-                revert InvalidMode();
+            uint256 mode = modes[i];
+            if (mode > 1) revert InvalidMode();
+
+            if (onBehalfOf != initiator && mode == 1) {
+                if (!delegateAuthorizationFlashloan[onBehalfOf][address(vTokens[i])][initiator]) {
+                    revert SenderNotAuthorizedForFlashLoan();
+                }
             }
         }
     }
@@ -463,9 +456,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function _executeFlashLoanPhases(
         address payable receiver,
-        VToken[] memory vTokens,
-        uint256[] memory underlyingAmounts,
-        uint256[] memory modes,
+        VToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
+        uint256[] calldata modes,
         address onBehalfOf,
         bytes memory param
     ) internal returns (FlashLoanData memory flashLoanData) {
@@ -492,8 +485,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function _executePhase1(
         address payable receiver,
-        VToken[] memory vTokens,
-        uint256[] memory underlyingAmounts,
+        VToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
         FlashLoanData memory flashLoanData
     ) internal {
         for (uint256 j = 0; j < vTokens.length; j++) {
@@ -512,8 +505,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function _executePhase2(
         address payable receiver,
-        VToken[] memory vTokens,
-        uint256[] memory underlyingAmounts,
+        VToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
         uint256[] memory totalFees,
         bytes memory param
     ) internal {
@@ -527,9 +520,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function _executePhase3(
         address payable receiver,
-        VToken[] memory vTokens,
-        uint256[] memory underlyingAmounts,
-        uint256[] memory modes,
+        VToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
+        uint256[] calldata modes,
         address onBehalfOf,
         FlashLoanData memory flashLoanData
     ) internal {
@@ -549,7 +542,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             } else if (modes[k] == 1) {
                 // Mode 1: Can create debt position
                 (flashLoanData.actualRepayments[k], flashLoanData.remainingDebts[k]) = _handleFlashLoanMode1(
-                    address(vTokens[k]),
+                    vTokens[k],
                     onBehalfOf,
                     underlyingAmounts[k],
                     flashLoanData.totalFees[k],
@@ -591,14 +584,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @return remainingDebt The amount that became ongoing debt
      */
     function _handleFlashLoanMode1(
-        address vTokenAddress,
+        VToken vToken,
         address onBehalfOf,
         uint256 amount,
         uint256 totalFee,
         uint256 protocolFee,
         uint256 balanceAfterTransfer
     ) internal returns (uint256 actualRepayment, uint256 remainingDebt) {
-        VToken vToken = VToken(vTokenAddress);
         uint256 requiredRepayment = amount + totalFee;
         uint256 currentBalance = IERC20(vToken.underlying()).balanceOf(onBehalfOf);
 

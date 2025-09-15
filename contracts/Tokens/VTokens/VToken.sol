@@ -755,12 +755,12 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice open a debt position for the borrower
-     * @param borrower The address of the borrower
-     * @param borrowAmount The amount of underlying asset to borrow
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      * @dev This function checks if the borrow is allowed, accrues interest, and updates the borrower's balance.
      *      It also emits a Borrow event and calls the comptroller's borrowVerify function.
      *      It reverts if the borrow is not allowed, if the market's block number is not current, or if the protocol has insufficient cash.
+     * @param borrower The address of the borrower
+     * @param borrowAmount The amount of underlying asset to borrow
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function borrowDebtPosition(address borrower, uint borrowAmount) external override returns (uint256) {
         /* Revert if borrow not allowed */
@@ -815,10 +815,10 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Calculates the protocol fee and supplier fee for a flash loan.
+     * @dev This function reverts if flash loans are not enabled.
      * @param amount The amount of the flash loan.
      * @return protocolFee The portion of the fee allocated to the protocol.
      * @return supplierFee The portion of the fee allocated to the supplier.
-     * @dev This function reverts if flash loans are not enabled.
      */
     function calculateFlashLoanFee(uint256 amount) public view returns (uint256, uint256) {
         MathError mErr;
