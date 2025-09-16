@@ -291,8 +291,9 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
         uint256[] remainingDebts;
     }
     /// @notice Mapping to store delegate authorization for flash loans
-    mapping(address /* delegator */ => mapping(address /* market */ => mapping(address /* sender */ => bool)))
+    mapping(address delegator => mapping(address market => mapping(address sender => bool)))
         public delegateAuthorizationFlashloan;
+
     struct PoolData {
         /// @notice label for the pool
         string label;

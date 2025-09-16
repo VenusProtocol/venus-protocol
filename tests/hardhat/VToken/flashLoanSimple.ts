@@ -167,21 +167,21 @@ describe("FlashLoan", async () => {
     it("Should have access to set fee on flashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(false);
 
-      await expect(vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa)).to.be.revertedWith(
+      await expect(vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa)).to.be.revertedWith(
         "access denied",
       );
     });
 
     it("Set fee on flashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(true);
-      await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
+      await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
 
       expect(await vTokenA.flashLoanProtocolFeeMantissa()).to.be.equal(protocolFeeMantissa);
       expect(await vTokenA.flashLoanSupplierFeeMantissa()).to.be.equal(supplierFeeMantissa);
     });
 
     it("Emit FlashLoanFeeUpdated event on set fee on flashLoan", async () => {
-      const result = await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
+      const result = await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
       await expect(result)
         .to.emit(vTokenA, "FlashLoanFeeUpdated")
         .withArgs(10000000000000000n, protocolFeeMantissa, 10000000000000000n, supplierFeeMantissa);
@@ -223,7 +223,7 @@ describe("FlashLoan", async () => {
         await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>("MockFlashLoanSimpleReceiver");
       mockReceiverSimple = await MockFlashLoanSimpleReceiver.deploy(vTokenA.address);
       await mockReceiverSimple.deployed();
-      await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
+      await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
       await underlyingA.harnessSetBalance(mockReceiverSimple.address, parseUnits("1", 18));
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("10", 18));
       await underlyingA.harnessSetBalance(underlyingA.address, parseUnits("1", 18));

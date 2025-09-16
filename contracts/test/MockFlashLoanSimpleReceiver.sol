@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import { FlashLoanSimpleReceiverBase } from "./FlashLoanSimpleReceiverBase.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
-import { IERC20NonStandard } from "../Tokens/IERC20NonStandard.sol";
+import { IERC20NonStandard } from "../Tokens/test/IERC20NonStandard.sol";
 
 /// @title MockFlashLoanSimpleReceiver
 /// @notice This contract serves as a mock implementation for a flash loan receiver, utilizing the

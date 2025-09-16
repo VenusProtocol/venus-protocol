@@ -420,10 +420,10 @@ forking(56732787, () => {
 
         await vUSDT
           .connect(timeLockUser)
-          ._setFlashLoanFeeMantissa(USDTFlashLoanProtocolFeeMantissa, USDTFlashLoanSupplierFeeMantissa);
+          .setFlashLoanFeeMantissa(USDTFlashLoanProtocolFeeMantissa, USDTFlashLoanSupplierFeeMantissa);
         await vBUSD
           .connect(timeLockUser)
-          ._setFlashLoanFeeMantissa(BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa);
+          .setFlashLoanFeeMantissa(BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa);
 
         // Define the actual flash loan amounts
         const usdtFlashLoanAmount = parseUnits("10", 6); // 10 USDT
@@ -491,10 +491,10 @@ forking(56732787, () => {
 
         await vUSDT
           .connect(timeLockUser)
-          ._setFlashLoanFeeMantissa(USDTFlashLoanProtocolFeeMantissa, USDTFlashLoanSupplierFeeMantissa);
+          .setFlashLoanFeeMantissa(USDTFlashLoanProtocolFeeMantissa, USDTFlashLoanSupplierFeeMantissa);
         await vBUSD
           .connect(timeLockUser)
-          ._setFlashLoanFeeMantissa(BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa);
+          .setFlashLoanFeeMantissa(BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa);
 
         // Define the flash loan amounts (smaller amounts to ensure borrowing limits)
         const usdtFlashLoanAmount = parseUnits("5", 6); // 5 USDT
@@ -594,10 +594,10 @@ forking(56732787, () => {
 
         await vUSDT
           .connect(timeLockUser)
-          ._setFlashLoanFeeMantissa(USDTFlashLoanProtocolFeeMantissa, USDTFlashLoanSupplierFeeMantissa);
+          .setFlashLoanFeeMantissa(USDTFlashLoanProtocolFeeMantissa, USDTFlashLoanSupplierFeeMantissa);
         await vBUSD
           .connect(timeLockUser)
-          ._setFlashLoanFeeMantissa(BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa);
+          .setFlashLoanFeeMantissa(BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa);
 
         // Define the flash loan amounts
         const usdtFlashLoanAmount = parseUnits("10", 6); // 10 USDT (mode 0 - classic)

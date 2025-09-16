@@ -167,10 +167,11 @@ contract VTokenStorage is VTokenStorageBase {
 
     /**
      * @notice Amount of flashLoan taken by the receiver
-     * @dev This is used to track the amount of flashLoan taken in the current transaction
+     * @dev This is used to track the amount of flashLoan taken to correctly calculate the exchange rate
+     *      during the flashLoan process. It is added to the total cash when calculating the exchange rate.
      */
     uint256 public flashLoanAmount;
-    
+
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.

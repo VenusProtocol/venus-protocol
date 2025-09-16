@@ -490,12 +490,12 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @custom:access Only Governance
      * @custom:event Emits FlashLoanFeeUpdated event on success
      */
-    function _setFlashLoanFeeMantissa(
+    function setFlashLoanFeeMantissa(
         uint256 protocolFeeMantissa_,
         uint256 supplierFeeMantissa_
     ) external returns (uint256) {
         // update the signature
-        ensureAllowed("_setFlashLoanFeeMantissa(uint256,uint256)");
+        ensureAllowed("setFlashLoanFeeMantissa(uint256,uint256)");
 
         emit FlashLoanFeeUpdated(
             flashLoanProtocolFeeMantissa,

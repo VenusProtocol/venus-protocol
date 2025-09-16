@@ -146,7 +146,7 @@ forking(56732787, async () => {
         await vUSDT.connect(timeLockUser)._toggleFlashLoan();
         await vUSDT
           .connect(timeLockUser)
-          ._setFlashLoanFeeMantissa(flashLoanProtocolFeeMantissa, flashLoanSupplierFeeMantissa);
+          .setFlashLoanFeeMantissa(flashLoanProtocolFeeMantissa, flashLoanSupplierFeeMantissa);
 
         await vUSDT
           .connect(user)

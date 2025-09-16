@@ -142,8 +142,8 @@ describe("FlashLoan", async () => {
     await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);
     await vTokenB.setProtocolShareReserve(protocolShareReserveMock.address);
 
-    await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissaTokenA, supplierFeeMantissaTokenA);
-    await vTokenB._setFlashLoanFeeMantissa(protocolFeeMantissaTokenB, supplierFeeMantissaTokenB);
+    await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissaTokenA, supplierFeeMantissaTokenA);
+    await vTokenB.setFlashLoanFeeMantissa(protocolFeeMantissaTokenB, supplierFeeMantissaTokenB);
 
     return { ...contracts, vTokenA, vTokenB, underlyingA, underlyingB };
   }
