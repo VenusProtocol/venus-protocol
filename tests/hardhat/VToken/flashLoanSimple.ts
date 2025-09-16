@@ -29,8 +29,8 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 const flashLoanAmount = parseUnits("4", 18);
-const protocolFeeMantissa = parseUnits("0.01", 18);
-const supplierFeeMantissa = parseUnits("0.01", 18);
+const totalFeeMantissa = parseUnits("0.02", 18);
+const protocolShareMantissa = parseUnits("0.01", 18);
 
 // Declare the types here
 type FlashLoanContractsFixture = {
@@ -167,24 +167,24 @@ describe("FlashLoan", async () => {
     it("Should have access to set fee on flashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(false);
 
-      await expect(vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa)).to.be.revertedWith(
+      await expect(vTokenA.setFlashLoanFeeMantissa(totalFeeMantissa, protocolShareMantissa)).to.be.revertedWith(
         "access denied",
       );
     });
 
     it("Set fee on flashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(true);
-      await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
+      await vTokenA.setFlashLoanFeeMantissa(totalFeeMantissa, protocolShareMantissa);
 
-      expect(await vTokenA.flashLoanProtocolFeeMantissa()).to.be.equal(protocolFeeMantissa);
-      expect(await vTokenA.flashLoanSupplierFeeMantissa()).to.be.equal(supplierFeeMantissa);
+      expect(await vTokenA.flashLoanFeeMantissa()).to.be.equal(totalFeeMantissa);
+      expect(await vTokenA.flashLoanProtocolShareMantissa()).to.be.equal(protocolShareMantissa);
     });
 
     it("Emit FlashLoanFeeUpdated event on set fee on flashLoan", async () => {
-      const result = await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
+      const result = await vTokenA.setFlashLoanFeeMantissa(totalFeeMantissa, protocolShareMantissa);
       await expect(result)
         .to.emit(vTokenA, "FlashLoanFeeUpdated")
-        .withArgs(10000000000000000n, protocolFeeMantissa, 10000000000000000n, supplierFeeMantissa);
+        .withArgs(20000000000000000n, totalFeeMantissa, 10000000000000000n, protocolShareMantissa);
     });
   });
 
@@ -223,7 +223,7 @@ describe("FlashLoan", async () => {
         await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>("MockFlashLoanSimpleReceiver");
       mockReceiverSimple = await MockFlashLoanSimpleReceiver.deploy(vTokenA.address);
       await mockReceiverSimple.deployed();
-      await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
+      await vTokenA.setFlashLoanFeeMantissa(totalFeeMantissa, protocolShareMantissa);
       await underlyingA.harnessSetBalance(mockReceiverSimple.address, parseUnits("1", 18));
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("10", 18));
       await underlyingA.harnessSetBalance(underlyingA.address, parseUnits("1", 18));
@@ -249,12 +249,13 @@ describe("FlashLoan", async () => {
       const vTokenBalanceAfter = await underlyingA.balanceOf(vTokenA.address);
       const psrBalanceAfter = await underlyingA.balanceOf(protocolShareReserveMock.address);
 
-      const protocolFee = flashLoanAmount.mul(protocolFeeMantissa).div(parseUnits("1", 18));
-      const supplierFee = flashLoanAmount.mul(supplierFeeMantissa).div(parseUnits("1", 18));
+      const totalFee = flashLoanAmount.mul(totalFeeMantissa).div(parseUnits("1", 18));
+      const protocolFee = totalFee.mul(protocolShareMantissa).div(parseUnits("1", 18));
+      const remainderFee = totalFee.sub(protocolFee);
 
       // Verify balances
-      // 1. vToken should have original balance + supplierFee (since loan is returned and protocolFee is transferred out)
-      expect(vTokenBalanceAfter).to.equal(vTokenBalanceBefore.add(supplierFee));
+      // 1. vToken should have original balance + remainderFee (since loan is returned and protocolFee is transferred out)
+      expect(vTokenBalanceAfter).to.equal(vTokenBalanceBefore.add(remainderFee));
 
       // 2. Protocol Share Reserve should receive the protocolFee
       expect(psrBalanceAfter).to.equal(psrBalanceBefore.add(protocolFee));
@@ -271,7 +272,8 @@ describe("FlashLoan", async () => {
     });
 
     it("Should transfer protocol fees to the protocol share reserve", async () => {
-      const protocolFee = flashLoanAmount.mul(protocolFeeMantissa).div(parseUnits("1", 18));
+      const totalFee = flashLoanAmount.mul(totalFeeMantissa).div(parseUnits("1", 18));
+      const protocolFee = totalFee.mul(protocolShareMantissa).div(parseUnits("1", 18));
       const psrBalanceBefore = await underlyingA.balanceOf(protocolShareReserveMock.address);
 
       // Execute flash loan

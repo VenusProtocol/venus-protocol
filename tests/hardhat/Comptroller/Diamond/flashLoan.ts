@@ -29,10 +29,10 @@ chai.use(smock.matchers);
 
 const flashLoanAmount1 = parseUnits("10", 18);
 const flashLoanAmount2 = parseUnits("10", 18);
-const protocolFeeMantissaTokenA = parseUnits("0.01", 18);
-const protocolFeeMantissaTokenB = parseUnits("0.02", 18);
-const supplierFeeMantissaTokenA = parseUnits("0.01", 18);
-const supplierFeeMantissaTokenB = parseUnits("0.02", 18);
+const totalFeeMantissaTokenA = parseUnits("0.03", 18);
+const totalFeeMantissaTokenB = parseUnits("0.04", 18);
+const protocolShareMantissaTokenA = parseUnits("0.01", 18);
+const protocolShareMantissaTokenB = parseUnits("0.01", 18);
 
 // Declare the types here
 type FlashLoanContractsFixture = {
@@ -142,8 +142,8 @@ describe("FlashLoan", async () => {
     await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);
     await vTokenB.setProtocolShareReserve(protocolShareReserveMock.address);
 
-    await vTokenA.setFlashLoanFeeMantissa(protocolFeeMantissaTokenA, supplierFeeMantissaTokenA);
-    await vTokenB.setFlashLoanFeeMantissa(protocolFeeMantissaTokenB, supplierFeeMantissaTokenB);
+    await vTokenA.setFlashLoanFeeMantissa(totalFeeMantissaTokenA, protocolShareMantissaTokenA);
+    await vTokenB.setFlashLoanFeeMantissa(totalFeeMantissaTokenB, protocolShareMantissaTokenB);
 
     return { ...contracts, vTokenA, vTokenB, underlyingA, underlyingB };
   }
@@ -300,16 +300,20 @@ describe("FlashLoan", async () => {
       const afterBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
       const afterBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
 
-      // Calculate expected fees
-      const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
-      const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
+      // Calculate total fees and protocol fees according to the modified logic
+      // totalFee = flashLoanAmount * totalFeeMantissa
+      // protocolFee = totalFee * (protocolShareMantissa / totalFeeMantissa)
+      const totalFeeA = flashLoanAmount1.mul(totalFeeMantissaTokenA).div(parseUnits("1", 18));
+      const protocolFeeA = totalFeeA.mul(protocolShareMantissaTokenA).div(parseUnits("1", 18));
+      const remainderFeeA = totalFeeA.sub(protocolFeeA);
 
-      const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
-      const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
+      const totalFeeB = flashLoanAmount2.mul(totalFeeMantissaTokenB).div(parseUnits("1", 18));
+      const protocolFeeB = totalFeeB.mul(protocolShareMantissaTokenB).div(parseUnits("1", 18));
+      const remainderFeeB = totalFeeB.sub(protocolFeeB);
 
       // Verify vToken balances
-      expect(afterBalanceVTokenA).to.be.equal(beforeBalanceVTokenA.add(supplierFeeA));
-      expect(afterBalanceVTokenB).to.be.equal(beforeBalanceVTokenB.add(supplierFeeB));
+      expect(afterBalanceVTokenA).to.be.equal(beforeBalanceVTokenA.add(remainderFeeA));
+      expect(afterBalanceVTokenB).to.be.equal(beforeBalanceVTokenB.add(remainderFeeB));
 
       // Verify protocol share reserve balances
       expect(await underlyingA.balanceOf(protocolShareReserveMock.address)).to.equal(
@@ -416,14 +420,11 @@ describe("FlashLoan", async () => {
       const aliceBorrowBalanceAfterA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceAfterB = await vTokenB.borrowBalanceStored(alice.address);
 
-      // Calculate expected fees
-      const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
-      const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
-      const totalFeeA = protocolFeeA.add(supplierFeeA);
+      const totalFeeA = flashLoanAmount1.mul(totalFeeMantissaTokenA).div(parseUnits("1", 18));
+      // const protocolFeeA = totalFeeA.mul(protocolShareMantissaTokenA).div(totalFeeMantissaTokenA);
 
-      const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
-      const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
-      const totalFeeB = protocolFeeB.add(supplierFeeB);
+      const totalFeeB = flashLoanAmount2.mul(totalFeeMantissaTokenB).div(parseUnits("1", 18));
+      // const protocolFeeB = totalFeeB.mul(protocolShareMantissaTokenB).div(totalFeeMantissaTokenB);
 
       // Check if debt positions were created for Alice
       expect(aliceBorrowBalanceAfterA).to.be.gt(aliceBorrowBalanceBeforeA);
@@ -515,9 +516,9 @@ describe("FlashLoan", async () => {
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("100", 18));
 
       // Set mockReceiver balance to cover mode = 0 repayment for tokenA
-      const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
-      const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
-      const totalFeeA = protocolFeeA.add(supplierFeeA);
+      const totalFeeA = flashLoanAmount1.mul(totalFeeMantissaTokenA).div(parseUnits("1", 18));
+      const protocolFeeA = totalFeeA.mul(protocolShareMantissaTokenA).div(parseUnits("1", 18));
+      const remainderFeeA = totalFeeA.sub(protocolFeeA);
       const requiredRepaymentA = flashLoanAmount1.add(totalFeeA);
 
       await underlyingA.harnessSetBalance(mockReceiverContract.address, requiredRepaymentA.add(parseUnits("1", 18)));
@@ -549,13 +550,13 @@ describe("FlashLoan", async () => {
       const aliceBorrowBalanceAfterB = await vTokenB.borrowBalanceStored(alice.address);
 
       // Calculate expected fees
-      const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
-      const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
-      const totalFeeB = protocolFeeB.add(supplierFeeB);
+      const totalFeeB = flashLoanAmount2.mul(totalFeeMantissaTokenB).div(parseUnits("1", 18));
+      const protocolFeeB = totalFeeB.mul(protocolShareMantissaTokenB).div(parseUnits("1", 18));
+      const remainderFeeB = totalFeeB.sub(protocolFeeB);
 
       // Verify TokenA (mode = 0) behavior - classic flash loan
       expect(aliceBorrowBalanceAfterA).to.equal(aliceBorrowBalanceBeforeA); // No debt created for Alice in tokenA
-      expect(afterBalanceVTokenA).to.equal(beforeBalanceVTokenA.add(supplierFeeA)); // vToken keeps supplier fee
+      expect(afterBalanceVTokenA).to.equal(beforeBalanceVTokenA.add(remainderFeeA)); // vToken keeps supplier fee
       expect(await underlyingA.balanceOf(protocolShareReserveMock.address)).to.equal(
         psrABalanceBefore.add(protocolFeeA),
       ); // PSR receives protocol fee
@@ -569,7 +570,7 @@ describe("FlashLoan", async () => {
 
       // ADJUSTED: Use a wider tolerance since there might be interest accrual or other factors
       const actualVTokenBDecrease = beforeBalanceVTokenB.sub(afterBalanceVTokenB);
-      const expectedVTokenBDecrease = flashLoanAmount2.add(totalFeeB);
+      const expectedVTokenBDecrease = flashLoanAmount2.add(remainderFeeB);
 
       // Use a much wider tolerance to accommodate for any interest accrual or rounding
       expect(actualVTokenBDecrease).to.be.closeTo(expectedVTokenBDecrease, parseUnits("10", 18));

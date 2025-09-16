@@ -461,9 +461,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         bytes memory param
     ) internal returns (FlashLoanData memory flashLoanData) {
         // Initialize arrays
-        flashLoanData.protocolFees = new uint256[](vTokens.length);
-        flashLoanData.supplierFees = new uint256[](vTokens.length);
         flashLoanData.totalFees = new uint256[](vTokens.length);
+        flashLoanData.protocolFees = new uint256[](vTokens.length);
         flashLoanData.balanceAfterTransfer = new uint256[](vTokens.length);
         flashLoanData.actualRepayments = new uint256[](vTokens.length);
         flashLoanData.remainingDebts = new uint256[](vTokens.length);
@@ -488,10 +487,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         FlashLoanData memory flashLoanData
     ) internal {
         for (uint256 j = 0; j < vTokens.length; j++) {
-            (flashLoanData.protocolFees[j], flashLoanData.supplierFees[j]) = vTokens[j].calculateFlashLoanFee(
+            (flashLoanData.totalFees[j], flashLoanData.protocolFees[j]) = vTokens[j].calculateFlashLoanFee(
                 underlyingAmounts[j]
             );
-            flashLoanData.totalFees[j] = flashLoanData.protocolFees[j] + flashLoanData.supplierFees[j];
 
             // Transfer the asset to receiver
             flashLoanData.balanceAfterTransfer[j] = vTokens[j].transferOutUnderlying(receiver, underlyingAmounts[j]);

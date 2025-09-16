@@ -439,12 +439,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         doTransferOut(receiver, amount);
 
         uint256 balanceBefore = getCashPrior();
-        (uint256 protocolFee, uint256 supplierFee) = calculateFlashLoanFee(amount);
-        uint256 fee = protocolFee + supplierFee;
-        uint256 repayAmount = amount + fee;
+        (uint256 totalFee, uint256 protocolFee) = calculateFlashLoanFee(amount);
+        uint256 repayAmount = amount + totalFee;
 
         // Call the execute operation on receiver contract
-        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, fee, msg.sender, param)) {
+        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, totalFee, msg.sender, param)) {
             revert ExecuteFlashLoanFailed();
         }
 
@@ -484,27 +483,27 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Update flashLoan fee mantissa
-     * @param protocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
-     * @param supplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
+     * @param flashLoanFeeMantissa_  FlashLoan fee, scaled by 1e18
+     * @param flashLoanProtocolShare_ FlashLoan protocol fee share, transferred to protocol share reserve
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      * @custom:access Only Governance
      * @custom:event Emits FlashLoanFeeUpdated event on success
      */
     function setFlashLoanFeeMantissa(
-        uint256 protocolFeeMantissa_,
-        uint256 supplierFeeMantissa_
+        uint256 flashLoanFeeMantissa_,
+        uint256 flashLoanProtocolShare_
     ) external returns (uint256) {
         // update the signature
         ensureAllowed("setFlashLoanFeeMantissa(uint256,uint256)");
 
         emit FlashLoanFeeUpdated(
-            flashLoanProtocolFeeMantissa,
-            protocolFeeMantissa_,
-            flashLoanSupplierFeeMantissa,
-            supplierFeeMantissa_
+            flashLoanFeeMantissa,
+            flashLoanFeeMantissa_,
+            flashLoanProtocolShareMantissa,
+            flashLoanProtocolShare_
         );
-        flashLoanProtocolFeeMantissa = protocolFeeMantissa_;
-        flashLoanSupplierFeeMantissa = supplierFeeMantissa_;
+        flashLoanFeeMantissa = flashLoanFeeMantissa_;
+        flashLoanProtocolShareMantissa = flashLoanProtocolShare_;
 
         return uint(Error.NO_ERROR);
     }
@@ -775,24 +774,24 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Calculates the protocol fee and supplier fee for a flash loan.
-     * @dev This function reverts if flash loans are not enabled.
+     * @notice Calculates the total fee and protocol fee for a flash loan.
+     * @dev This function reverts if flash loans are not enabled.`1
      * @param amount The amount of the flash loan.
-     * @return protocolFee The portion of the fee allocated to the protocol.
-     * @return supplierFee The portion of the fee allocated to the supplier.
+     * @return totalFee The total fee for the flash loan.
+     * @return protocolFee The portion of the total fee allocated to the protocol.
      */
     function calculateFlashLoanFee(uint256 amount) public view returns (uint256, uint256) {
         MathError mErr;
+        uint256 totalFee;
         uint256 protocolFee;
-        uint256 supplierFee;
 
-        (mErr, protocolFee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanProtocolFeeMantissa);
+        (mErr, totalFee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanFeeMantissa);
         ensureNoMathError(mErr);
 
-        (mErr, supplierFee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanSupplierFeeMantissa);
+        (mErr, protocolFee) = mulScalarTruncate(Exp({ mantissa: totalFee }), flashLoanProtocolShareMantissa);
         ensureNoMathError(mErr);
 
-        return (protocolFee, supplierFee);
+        return (totalFee, protocolFee);
     }
 
     /**

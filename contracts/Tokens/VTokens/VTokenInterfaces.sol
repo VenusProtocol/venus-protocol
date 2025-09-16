@@ -156,14 +156,14 @@ contract VTokenStorage is VTokenStorageBase {
     bool public isFlashLoanEnabled;
 
     /**
-     * @notice fee percentage collected by protocol on flashLoan
+     * @notice total fee percentage collected on flashLoan (scaled by 1e18)
      */
-    uint256 public flashLoanProtocolFeeMantissa;
+    uint256 public flashLoanFeeMantissa;
 
     /**
-     * @notice fee percentage collected by supplier on flashLoan
+     * @notice fee percentage of flashLoan that goes to protocol (scaled by 1e18)
      */
-    uint256 public flashLoanSupplierFeeMantissa;
+    uint256 public flashLoanProtocolShareMantissa;
 
     /**
      * @notice Amount of flashLoan taken by the receiver
@@ -323,10 +323,10 @@ abstract contract VTokenInterface is VTokenStorage {
      * @notice Event emitted when flashLoan fee mantissa is updated
      */
     event FlashLoanFeeUpdated(
-        uint256 oldFlashLoanProtocolFeeMantissa,
-        uint256 newFlashLoanProtocolFeeMantissa,
-        uint256 oldFlashLoanSupplierFeeMantissa,
-        uint256 newFlashLoanSupplierFeeMantissa
+        uint256 oldFlashLoanFeeMantissa,
+        uint256 newFlashLoanFeeMantissa,
+        uint256 oldFlashLoanProtocolShare,
+        uint256 newFlashLoanProtocolShare
     );
 
     // @notice Thrown when comptroller is not valid

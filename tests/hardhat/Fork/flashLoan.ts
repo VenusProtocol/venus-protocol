@@ -270,11 +270,11 @@ forking(56732787, () => {
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(vUSDT.address, "_setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);
+          .giveCallPermission(vUSDT.address, "setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(vBUSD.address, "_setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);
+          .giveCallPermission(vBUSD.address, "setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);
 
         await accessControlManager
           .connect(timeLockUser)

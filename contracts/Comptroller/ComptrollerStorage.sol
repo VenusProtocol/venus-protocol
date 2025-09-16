@@ -284,7 +284,6 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 contract ComptrollerV17Storage is ComptrollerV16Storage {
     struct FlashLoanData {
         uint256[] protocolFees;
-        uint256[] supplierFees;
         uint256[] totalFees;
         uint256[] balanceAfterTransfer;
         uint256[] actualRepayments;
