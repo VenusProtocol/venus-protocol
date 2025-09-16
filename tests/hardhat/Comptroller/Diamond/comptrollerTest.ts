@@ -444,7 +444,7 @@ describe("Comptroller", () => {
 
     beforeEach(async () => {
       ({ comptroller, vToken, accessControl } = await loadFixture(deploy));
-      configureVToken(vToken, comptroller);
+      await configureVToken(vToken, comptroller);
     });
 
     it("fails if asset is not listed", async () => {
@@ -509,7 +509,7 @@ describe("Comptroller", () => {
 
     beforeEach(async () => {
       ({ comptroller, vToken, accessControl } = await loadFixture(deploy));
-      configureVToken(vToken, comptroller);
+      await configureVToken(vToken, comptroller);
     });
 
     it("fails if asset is not listed", async () => {
@@ -583,8 +583,8 @@ describe("Comptroller", () => {
     beforeEach(async () => {
       ({ comptroller, oracle, vToken1, vToken2, token } = await loadFixture(deploy));
       configureOracle(oracle);
-      configureVToken(vToken1, unitroller);
-      configureVToken(vToken2, unitroller);
+      await configureVToken(vToken1, unitroller);
+      await configureVToken(vToken2, unitroller);
     });
 
     it("fails if asset is not a VToken", async () => {
@@ -670,13 +670,13 @@ describe("Comptroller", () => {
 
     beforeEach(async () => {
       ({ comptroller, vToken } = await loadFixture(deploy));
-      configureVToken(vToken, unitroller);
+      await configureVToken(vToken, unitroller);
     });
 
     describe("mintAllowed", () => {
       beforeEach(async () => {
         ({ comptroller, vToken } = await loadFixture(deploy));
-        configureVToken(vToken, unitroller);
+        await configureVToken(vToken, unitroller);
       });
 
       it("allows minting if cap is not reached", async () => {
@@ -905,8 +905,7 @@ describe("Comptroller", () => {
       beforeEach(async () => {
         const contracts = await loadFixture(deploy);
         comptrollerLens = contracts.comptrollerLens;
-        // ({ comptroller, oracle, vToken } = await loadFixture(deploy));
-        configureVToken(contracts.vToken, contracts.unitroller);
+        await configureVToken(contracts.vToken, contracts.unitroller);
         configureOracle(contracts.oracle);
       });
 

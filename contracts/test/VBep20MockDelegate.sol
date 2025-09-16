@@ -1,14 +1,24 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
-import "../Tokens/VTokens/VToken.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { InterestRateModelV8 } from "../InterestRateModels/InterestRateModelV8.sol";
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
+import { IVDelegate } from "../Tokens/VTokens/interfaces/IVDelegate.sol";
 
 /**
  * @title Venus's VBep20 Contract
  * @notice VTokens which wrap an EIP-20 underlying
  * @author Venus
  */
-contract VBep20MockDelegate is VToken, VBep20Interface {
-    address public implementation;
+contract VBep20MockDelegate is VToken, IVBep20, IVDelegate {
+    using SafeERC20 for IERC20;
+
     uint internal blockNumber = 100000;
 
     /**
@@ -23,8 +33,8 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      */
     function initialize(
         address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        IComptroller comptroller_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
@@ -35,7 +45,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
 
         // Set underlying and sanity check it
         underlying = underlying_;
-        EIP20Interface(underlying).totalSupply();
+        IERC20(underlying).totalSupply();
     }
 
     /**
@@ -102,7 +112,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function redeem(uint redeemTokens) external returns (uint) {
-        return redeemInternal(msg.sender, msg.sender, redeemTokens);
+        return redeemInternal(msg.sender, payable(msg.sender), redeemTokens);
     }
 
     /**
@@ -112,7 +122,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function redeemUnderlying(uint redeemAmount) external returns (uint) {
-        return redeemUnderlyingInternal(msg.sender, msg.sender, redeemAmount);
+        return redeemUnderlyingInternal(msg.sender, payable(msg.sender), redeemAmount);
     }
 
     /**
@@ -121,7 +131,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function borrow(uint borrowAmount) external returns (uint) {
-        return borrowInternal(msg.sender, msg.sender, borrowAmount);
+        return borrowInternal(msg.sender, payable(msg.sender), borrowAmount);
     }
 
     /**
@@ -153,11 +163,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function liquidateBorrow(
-        address borrower,
-        uint repayAmount,
-        VTokenInterface vTokenCollateral
-    ) external returns (uint) {
+    function liquidateBorrow(address borrower, uint repayAmount, IVToken vTokenCollateral) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
     }
@@ -178,8 +184,8 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying tokens owned by this contract
      */
-    function getCashPrior() internal view returns (uint) {
-        EIP20Interface token = EIP20Interface(underlying);
+    function getCashPrior() internal view override returns (uint) {
+        IERC20 token = IERC20(underlying);
         return token.balanceOf(address(this));
     }
 
@@ -192,34 +198,13 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
-    function doTransferIn(address from, uint amount) internal returns (uint) {
-        EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying);
-        uint balanceBefore = EIP20Interface(underlying).balanceOf(address(this));
-        token.transferFrom(from, address(this), amount);
-
-        bool success;
-        assembly {
-            switch returndatasize()
-            case 0 {
-                // This is a non-standard BEP-20
-                success := not(0) // set success to true
-            }
-            case 32 {
-                // This is a compliant BEP-20
-                returndatacopy(0, 0, 32)
-                success := mload(0) // Set `success = returndata` of external call
-            }
-            default {
-                // This is an excessively non-compliant BEP-20, revert.
-                revert(0, 0)
-            }
-        }
-        require(success, "TOKEN_TRANSFER_IN_FAILED");
-
+    function doTransferIn(address from, uint amount) internal override returns (uint) {
+        IERC20 token = IERC20(underlying);
+        uint balanceBefore = IERC20(underlying).balanceOf(address(this));
+        token.safeTransferFrom(from, address(this), amount);
         // Calculate the amount that was *actually* transferred
-        uint balanceAfter = EIP20Interface(underlying).balanceOf(address(this));
-        require(balanceAfter >= balanceBefore, "TOKEN_TRANSFER_IN_OVERFLOW");
-        return balanceAfter - balanceBefore; // underflow already checked above, just subtract
+        uint balanceAfter = IERC20(underlying).balanceOf(address(this));
+        return balanceAfter - balanceBefore;
     }
 
     /**
@@ -231,27 +216,8 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
-    function doTransferOut(address payable to, uint amount) internal {
-        EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying);
-        token.transfer(to, amount);
-
-        bool success;
-        assembly {
-            switch returndatasize()
-            case 0 {
-                // This is a non-standard BEP-20
-                success := not(0) // set success to true
-            }
-            case 32 {
-                // This is a complaint BEP-20
-                returndatacopy(0, 0, 32)
-                success := mload(0) // Set `success = returndata` of external call
-            }
-            default {
-                // This is an excessively non-compliant BEP-20, revert.
-                revert(0, 0)
-            }
-        }
-        require(success, "TOKEN_TRANSFER_OUT_FAILED");
+    function doTransferOut(address payable to, uint amount) internal override {
+        IERC20 token = IERC20(underlying);
+        token.safeTransfer(to, amount);
     }
 }

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
+import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
+import { Action } from "../interfaces/IFacetBase.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
 /**
  * @title MarketFacet
@@ -14,10 +15,10 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
  */
 contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when an admin supports a market
-    event MarketListed(VToken indexed vToken);
+    event MarketListed(IVToken indexed vToken);
 
     /// @notice Emitted when an account exits a market
-    event MarketExited(VToken indexed vToken, address indexed account);
+    event MarketExited(IVToken indexed vToken, address indexed account);
 
     /// @notice Emitted when the borrowing or redeeming delegate rights are updated for an account
     event DelegateUpdated(address indexed approver, address indexed delegate, bool approved);
@@ -35,15 +36,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param account The address of the account to pull assets for
      * @return A dynamic list with the assets the account has entered
      */
-    function getAssetsIn(address account) external view returns (VToken[] memory) {
+    function getAssetsIn(address account) external view returns (IVToken[] memory) {
         uint256 len;
-        VToken[] memory _accountAssets = accountAssets[account];
+        IVToken[] memory _accountAssets = accountAssets[account];
         uint256 _accountAssetsLength = _accountAssets.length;
 
-        VToken[] memory assetsIn = new VToken[](_accountAssetsLength);
+        IVToken[] memory assetsIn = new IVToken[](_accountAssetsLength);
 
         for (uint256 i; i < _accountAssetsLength; ++i) {
-            Market memory market = markets[address(_accountAssets[i])];
+            Market storage market = markets[address(_accountAssets[i])];
             if (market.isListed) {
                 assetsIn[len] = _accountAssets[i];
                 ++len;
@@ -62,7 +63,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @dev The automatic getter may be used to access an individual market
      * @return The list of market addresses
      */
-    function getAllMarkets() external view returns (VToken[] memory) {
+    function getAllMarkets() external view returns (IVToken[] memory) {
         return allMarkets;
     }
 
@@ -113,7 +114,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param vToken The vToken to check
      * @return True if the account is in the asset, otherwise false
      */
-    function checkMembership(address account, VToken vToken) external view returns (bool) {
+    function checkMembership(address account, IVToken vToken) external view returns (bool) {
         return markets[address(vToken)].accountMembership[account];
     }
 
@@ -122,7 +123,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param vToken vToken Address for the market to check
      * @return listed True if listed otherwise false
      */
-    function isMarketListed(VToken vToken) external view returns (bool) {
+    function isMarketListed(IVToken vToken) external view returns (bool) {
         return markets[address(vToken)].isListed;
     }
 
@@ -136,7 +137,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         uint256[] memory results = new uint256[](len);
         for (uint256 i; i < len; ++i) {
-            results[i] = uint256(addToMarketInternal(VToken(vTokens[i]), msg.sender));
+            results[i] = uint256(addToMarketInternal(IVToken(vTokens[i]), msg.sender));
         }
 
         return results;
@@ -188,7 +189,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function exitMarket(address vTokenAddress) external returns (uint256) {
         checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
 
-        VToken vToken = VToken(vTokenAddress);
+        IVToken vToken = IVToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
         (uint256 oErr, uint256 tokensHeld, uint256 amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
         require(oErr == 0, "getAccountSnapshot failed"); // semi-opaque error code
@@ -216,13 +217,13 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         /* Delete vToken from the account’s list of assets */
         // In order to delete vToken, copy last item in list to location of item to be removed, reduce length by 1
-        VToken[] storage userAssetList = accountAssets[msg.sender];
+        IVToken[] storage userAssetList = accountAssets[msg.sender];
         uint256 len = userAssetList.length;
         uint256 i;
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
-                userAssetList.length--;
+                userAssetList.pop();
                 break;
             }
         }
@@ -240,7 +241,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
-    function supportMarket(VToken vToken) external returns (uint256) {
+    function supportMarket(IVToken vToken) external returns (uint256) {
         return __supportMarket(vToken);
     }
 
@@ -250,7 +251,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
-    function _supportMarket(VToken vToken) external returns (uint256) {
+    function _supportMarket(IVToken vToken) external returns (uint256) {
         return __supportMarket(vToken);
     }
 
@@ -276,7 +277,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         emit DelegateUpdated(approver, delegate, approved);
     }
 
-    function _addMarketInternal(VToken vToken) internal {
+    function _addMarketInternal(IVToken vToken) internal {
         uint256 allMarketsLength = allMarkets.length;
         for (uint256 i; i < allMarketsLength; ++i) {
             require(allMarkets[i] != vToken, "already added");
@@ -309,7 +310,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         supplyState.block = borrowState.block = blockNumber;
     }
 
-    function __supportMarket(VToken vToken) internal returns (uint256) {
+    function __supportMarket(IVToken vToken) internal returns (uint256) {
         ensureAllowed("_supportMarket(address)");
 
         if (markets[address(vToken)].isListed) {

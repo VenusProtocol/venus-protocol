@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
-pragma solidity 0.5.16;
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
 
-import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
-import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
-import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
-
-import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
+import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
+import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
+import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
+import { IVAIVault } from "../../../VAIVault/IVAIVault.sol";
+import { ComptrollerStorage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { IFacetBase, Action } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title FacetBase
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErrorReporter {
-    using SafeBEP20 for IBEP20;
+contract FacetBase is IFacetBase, ComptrollerStorage, ExponentialNoError, ComptrollerErrorReporter {
+    using SafeERC20 for IERC20;
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -27,7 +30,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
     uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
 
     /// @notice Emitted when an account enters a market
-    event MarketEntered(VToken indexed vToken, address indexed account);
+    event MarketEntered(IVToken indexed vToken, address indexed account);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint256 amount);
@@ -64,7 +67,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
 
     /// @notice Checks the caller is allowed to call the specified fuction
     function ensureAllowed(string memory functionSig) internal view {
-        require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManagerV8(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /**
@@ -79,7 +82,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
     /**
      * @notice Get the latest block number
      */
-    function getBlockNumber() internal view returns (uint256) {
+    function getBlockNumber() internal view virtual returns (uint256) {
         return block.number;
     }
 
@@ -98,7 +101,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
             return;
         }
 
-        IBEP20 xvs_ = IBEP20(xvs);
+        IERC20 xvs_ = IERC20(xvs);
 
         uint256 xvsBalance = xvs_.balanceOf(address(this));
         if (xvsBalance == 0) {
@@ -142,7 +145,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
      */
     function getHypotheticalAccountLiquidityInternal(
         address account,
-        VToken vTokenModify,
+        IVToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
     ) internal view returns (Error, uint256, uint256) {
@@ -162,7 +165,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
      * @param borrower The address of the account to modify
      * @return Success indicator for whether the market was entered
      */
-    function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
+    function addToMarketInternal(IVToken vToken, address borrower) internal returns (Error) {
         checkActionPauseState(address(vToken), Action.ENTER_MARKET);
         Market storage marketToJoin = markets[address(vToken)];
         ensureListed(marketToJoin);
@@ -203,7 +206,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
         (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
-            VToken(vToken),
+            IVToken(vToken),
             redeemTokens,
             0
         );

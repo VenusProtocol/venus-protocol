@@ -1,15 +1,12 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
-import "../Tokens/VTokens/VBep20.sol";
-import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
-import "../Tokens/EIP20Interface.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Utils/ErrorReporter.sol";
-import "../Comptroller/ComptrollerInterface.sol";
-import "../Comptroller/ComptrollerLensInterface.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
+import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { IComptrollerLens } from "./interfaces/IComptrollerLens.sol";
+import { IVAIController } from "../Tokens/VAI/interfaces/IVAIController.sol";
 
 /**
  * @title ComptrollerLens Contract
@@ -17,7 +14,7 @@ import "../Tokens/VAI/VAIControllerInterface.sol";
  * @notice The ComptrollerLens contract has functions to get the number of tokens that
  * can be seized through liquidation, hypothetical account liquidity and shortfall of an account.
  */
-contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {
+contract ComptrollerLens is IComptrollerLens, ComptrollerErrorReporter, ExponentialNoError {
     /**
      * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
      *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
@@ -51,12 +48,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint actualRepayAmount
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenBorrowed)
-        );
-        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenCollateral)
-        );
+        uint priceBorrowedMantissa = IComptroller(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
+        uint priceCollateralMantissa = IComptroller(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -67,14 +60,14 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
          *  seizeTokens = seizeAmount / exchangeRate
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
-        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint exchangeRateMantissa = IVToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
         uint seizeTokens;
         Exp memory numerator;
         Exp memory denominator;
         Exp memory ratio;
 
         numerator = mul_(
-            Exp({ mantissa: ComptrollerInterface(comptroller).liquidationIncentiveMantissa() }),
+            Exp({ mantissa: IComptroller(comptroller).liquidationIncentiveMantissa() }),
             Exp({ mantissa: priceBorrowedMantissa })
         );
         denominator = mul_(Exp({ mantissa: priceCollateralMantissa }), Exp({ mantissa: exchangeRateMantissa }));
@@ -99,9 +92,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = 1e18; // Note: this is VAI
-        uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenCollateral)
-        );
+        uint priceCollateralMantissa = IComptroller(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
         if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -112,14 +103,14 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
          *  seizeTokens = seizeAmount / exchangeRate
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
-        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint exchangeRateMantissa = IVToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
         uint seizeTokens;
         Exp memory numerator;
         Exp memory denominator;
         Exp memory ratio;
 
         numerator = mul_(
-            Exp({ mantissa: ComptrollerInterface(comptroller).liquidationIncentiveMantissa() }),
+            Exp({ mantissa: IComptroller(comptroller).liquidationIncentiveMantissa() }),
             Exp({ mantissa: priceBorrowedMantissa })
         );
         denominator = mul_(Exp({ mantissa: priceCollateralMantissa }), Exp({ mantissa: exchangeRateMantissa }));
@@ -143,7 +134,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,
-        VToken vTokenModify,
+        IVToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount
     ) external view returns (uint, uint, uint) {
@@ -151,10 +142,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint oErr;
 
         // For each asset the account is in
-        VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
+        IVToken[] memory assets = IComptroller(comptroller).getAssetsIn(account);
         uint assetsCount = assets.length;
         for (uint i = 0; i < assetsCount; ++i) {
-            VToken asset = assets[i];
+            IVToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
             (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
@@ -164,12 +155,12 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), 0, 0);
             }
-            (, uint collateralFactorMantissa) = ComptrollerInterface(comptroller).markets(address(asset));
+            (, uint collateralFactorMantissa, ) = IComptroller(comptroller).markets(address(asset));
             vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(asset);
+            vars.oraclePriceMantissa = IComptroller(comptroller).oracle().getUnderlyingPrice(address(asset));
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0, 0);
             }
@@ -208,7 +199,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
         }
 
-        VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
+        IVAIController vaiController = IComptroller(comptroller).vaiController();
 
         if (address(vaiController) != address(0)) {
             vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, vaiController.getVAIRepayAmount(account));

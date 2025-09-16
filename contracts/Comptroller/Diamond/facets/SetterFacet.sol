@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { ISetterFacet } from "../interfaces/ISetterFacet.sol";
-import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
-import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
-import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
-import { FacetBase } from "./FacetBase.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+
+import { IVToken } from "../../../Tokens/VTokens/interfaces/IVToken.sol";
+import { Action } from "../interfaces/IFacetBase.sol";
+import { IComptrollerLens } from "../../../Lens/interfaces/IComptrollerLens.sol";
+import { IVAIController } from "../../../Tokens/VAI/interfaces/IVAIController.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
+import { ISetterFacet } from "../interfaces/ISetterFacet.sol";
+import { FacetBase } from "./FacetBase.sol";
 
 /**
  * @title SetterFacet
@@ -22,7 +24,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when a collateral factor is changed by admin
     event NewCollateralFactor(
-        VToken indexed vToken,
+        IVToken indexed vToken,
         uint256 oldCollateralFactorMantissa,
         uint256 newCollateralFactorMantissa
     );
@@ -31,13 +33,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewLiquidationIncentive(uint256 oldLiquidationIncentiveMantissa, uint256 newLiquidationIncentiveMantissa);
 
     /// @notice Emitted when price oracle is changed
-    event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
+    event NewPriceOracle(ResilientOracleInterface oldPriceOracle, ResilientOracleInterface newPriceOracle);
 
     /// @notice Emitted when borrow cap for a vToken is changed
-    event NewBorrowCap(VToken indexed vToken, uint256 newBorrowCap);
+    event NewBorrowCap(IVToken indexed vToken, uint256 newBorrowCap);
 
     /// @notice Emitted when VAIController is changed
-    event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
+    event NewVAIController(IVAIController oldVAIController, IVAIController newVAIController);
 
     /// @notice Emitted when VAI mint rate is changed by admin
     event NewVAIMintRate(uint256 oldVAIMintRate, uint256 newVAIMintRate);
@@ -61,7 +63,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewComptrollerLens(address oldComptrollerLens, address newComptrollerLens);
 
     /// @notice Emitted when supply cap for a vToken is changed
-    event NewSupplyCap(VToken indexed vToken, uint256 newSupplyCap);
+    event NewSupplyCap(IVToken indexed vToken, uint256 newSupplyCap);
 
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
@@ -70,7 +72,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
 
     /// @notice Emitted when an action is paused on a market
-    event ActionPausedMarket(VToken indexed vToken, Action indexed action, bool pauseState);
+    event ActionPausedMarket(IVToken indexed vToken, Action indexed action, bool pauseState);
 
     /// @notice Emitted when VAI Vault info is changed
     event NewVAIVaultInfo(address indexed vault_, uint256 releaseStartBlock_, uint256 releaseInterval_);
@@ -118,7 +120,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newOracle The new price oracle to set
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function setPriceOracle(PriceOracle newOracle) external returns (uint256) {
+    function setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256) {
         return __setPriceOracle(newOracle);
     }
 
@@ -128,7 +130,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newOracle The new price oracle to set
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPriceOracle(PriceOracle newOracle) external returns (uint256) {
+    function _setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256) {
         return __setPriceOracle(newOracle);
     }
 
@@ -180,7 +182,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function setCollateralFactor(
-        VToken vToken,
+        IVToken vToken,
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256) {
@@ -198,7 +200,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256) {
+    function _setCollateralFactor(IVToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256) {
         return __setCollateralFactor(vToken, newCollateralFactorMantissa);
     }
 
@@ -265,7 +267,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
      */
-    function setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
+    function setMarketBorrowCaps(IVToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
         __setMarketBorrowCaps(vTokens, newBorrowCaps);
     }
 
@@ -275,7 +277,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
      */
-    function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
+    function _setMarketBorrowCaps(IVToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
         __setMarketBorrowCaps(vTokens, newBorrowCaps);
     }
 
@@ -284,7 +286,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
      */
-    function setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
+    function setMarketSupplyCaps(IVToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         __setMarketSupplyCaps(vTokens, newSupplyCaps);
     }
 
@@ -294,7 +296,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
      */
-    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
+    function _setMarketSupplyCaps(IVToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         __setMarketSupplyCaps(vTokens, newSupplyCaps);
     }
 
@@ -342,7 +344,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function setActionPausedInternal(address market, Action action, bool paused) internal {
         ensureListed(markets[market]);
         _actionPaused[market][uint256(action)] = paused;
-        emit ActionPausedMarket(VToken(market), action, paused);
+        emit ActionPausedMarket(IVToken(market), action, paused);
     }
 
     /**
@@ -351,13 +353,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setVAIController(
-        VAIControllerInterface vaiController_
+        IVAIController vaiController_
     ) external compareAddress(address(vaiController), address(vaiController_)) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(vaiController_));
 
-        VAIControllerInterface oldVaiController = vaiController;
+        IVAIController oldVaiController = vaiController;
         vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
 
@@ -442,8 +444,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setComptrollerLens(
-        ComptrollerLensInterface comptrollerLens_
-    ) external compareAddress(address(comptrollerLens), address(comptrollerLens_)) returns (uint256) {
+        IComptrollerLens comptrollerLens_
+    ) external virtual compareAddress(address(comptrollerLens), address(comptrollerLens_)) returns (uint256) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);
@@ -567,7 +569,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         ensureAdmin();
         ensureNonzeroAddress(xvsVToken_);
 
-        address underlying = VToken(xvsVToken_).underlying();
+        address underlying = IVToken(xvsVToken_).underlying();
         require(underlying == xvs, "invalid xvs vtoken address");
 
         emit NewXVSVToken(xvsVToken, xvsVToken_);
@@ -580,14 +582,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise reverted
      */
     function __setPriceOracle(
-        PriceOracle newOracle
+        ResilientOracleInterface newOracle
     ) internal compareAddress(address(oracle), address(newOracle)) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(newOracle));
 
         // Track the old oracle for the comptroller
-        PriceOracle oldOracle = oracle;
+        ResilientOracleInterface oldOracle = oracle;
 
         // Set comptroller's oracle to newOracle
         oracle = newOracle;
@@ -634,7 +636,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise reverted
      */
     function __setCollateralFactor(
-        VToken vToken,
+        IVToken vToken,
         uint256 newCollateralFactorMantissa
     )
         internal
@@ -658,7 +660,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         }
 
         // If collateral factor != 0, fail if price == 0
-        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
+        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(address(vToken)) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 
@@ -700,7 +702,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The markets to set the borrow caps on
      * @param newBorrowCaps The new borrow caps to be set
      */
-    function __setMarketBorrowCaps(VToken[] memory vTokens, uint256[] memory newBorrowCaps) internal {
+    function __setMarketBorrowCaps(IVToken[] memory vTokens, uint256[] memory newBorrowCaps) internal {
         ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
 
         uint256 numMarkets = vTokens.length;
@@ -719,7 +721,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The markets to set the supply caps on
      * @param newSupplyCaps The new supply caps to be set
      */
-    function __setMarketSupplyCaps(VToken[] memory vTokens, uint256[] memory newSupplyCaps) internal {
+    function __setMarketSupplyCaps(IVToken[] memory vTokens, uint256[] memory newSupplyCaps) internal {
         ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
 
         uint256 numMarkets = vTokens.length;

@@ -1,13 +1,18 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
-import "./VTokenInterfaces.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { IVDelegator } from "./interfaces/IVDelegator.sol";
+import { IVToken } from "./interfaces/IVToken.sol";
+import { VTokenStorage } from "./VTokenStorage.sol";
 
 /**
  * @title Venus's VBep20Delegator Contract
  * @notice vTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Venus
  */
-contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
+contract VBep20Delegator is IVDelegator, VTokenStorage {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
@@ -23,8 +28,8 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      */
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        IComptroller comptroller_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
@@ -32,9 +37,9 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         address payable admin_,
         address implementation_,
         bytes memory becomeImplementationData
-    ) public {
+    ) {
         // Creator of the contract is admin during initialization
-        admin = msg.sender;
+        admin = payable(msg.sender);
 
         // First delegate gets to initialize the delegator (i.e. storage contract)
         delegateTo(
@@ -62,22 +67,20 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @notice Delegates execution to an implementation contract
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
      */
-    function() external payable {
-        require(msg.value == 0, "VBep20Delegator:fallback: cannot send value to fallback");
-
+    fallback() external {
         // delegate all other functions to current implementation
         (bool success, ) = implementation.delegatecall(msg.data);
 
         assembly {
             let free_mem_ptr := mload(0x40)
-            returndatacopy(free_mem_ptr, 0, returndatasize)
+            returndatacopy(free_mem_ptr, 0, returndatasize())
 
             switch success
             case 0 {
-                revert(free_mem_ptr, returndatasize)
+                revert(free_mem_ptr, returndatasize())
             }
             default {
-                return(free_mem_ptr, returndatasize)
+                return(free_mem_ptr, returndatasize())
             }
         }
     }
@@ -171,11 +174,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @param repayAmount The amount of the underlying borrowed asset to repay
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function liquidateBorrow(
-        address borrower,
-        uint repayAmount,
-        VTokenInterface vTokenCollateral
-    ) external returns (uint) {
+    function liquidateBorrow(address borrower, uint repayAmount, IVToken vTokenCollateral) external returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("liquidateBorrow(address,uint256,address)", borrower, repayAmount, vTokenCollateral)
         );
@@ -438,7 +437,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @dev Admin function to set a new comptroller
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
+    function _setComptroller(IComptroller newComptroller) public returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("_setComptroller(address)", newComptroller)
         );
@@ -451,7 +450,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @param newInterestRateModel The new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
+    function _setInterestRateModel(InterestRateModelV8 newInterestRateModel) public returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("_setInterestRateModel(address)", newInterestRateModel)
         );
@@ -481,7 +480,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         );
         assembly {
             if eq(success, 0) {
-                revert(add(returnData, 0x20), returndatasize)
+                revert(add(returnData, 0x20), returndatasize())
             }
         }
         return abi.decode(returnData, (bytes));
@@ -520,7 +519,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         (bool success, bytes memory returnData) = callee.delegatecall(data);
         assembly {
             if eq(success, 0) {
-                revert(add(returnData, 0x20), returndatasize)
+                revert(add(returnData, 0x20), returndatasize())
             }
         }
         return returnData;

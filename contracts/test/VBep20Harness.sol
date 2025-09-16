@@ -1,4 +1,5 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
 import "../Tokens/VTokens/VBep20Immutable.sol";
 import "../Tokens/VTokens/VBep20Delegator.sol";
@@ -14,15 +15,14 @@ contract VBep20Harness is VBep20Immutable {
 
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        IComptroller comptroller_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
     )
-        public
         VBep20Immutable(
             underlying_,
             comptroller_,
@@ -35,12 +35,12 @@ contract VBep20Harness is VBep20Immutable {
         )
     {}
 
-    function doTransferOut(address payable to, uint amount) internal {
+    function doTransferOut(address payable to, uint amount) internal override {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         return super.doTransferOut(to, amount);
     }
 
-    function exchangeRateStoredInternal() internal view returns (MathError, uint) {
+    function exchangeRateStoredInternal() internal view override returns (MathError, uint) {
         if (harnessExchangeRateStored) {
             return (MathError.NO_ERROR, harnessExchangeRate);
         }
@@ -142,7 +142,7 @@ contract VBep20Harness is VBep20Immutable {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
@@ -156,12 +156,12 @@ contract VBep20Harness is VBep20Immutable {
         return _setReserveFactorFresh(newReserveFactorMantissa);
     }
 
-    function harnessSetInterestRateModelFresh(InterestRateModel newInterestRateModel) public returns (uint) {
+    function harnessSetInterestRateModelFresh(InterestRateModelV8 newInterestRateModel) public returns (uint) {
         return _setInterestRateModelFresh(newInterestRateModel);
     }
 
     function harnessSetInterestRateModel(address newInterestRateModelAddress) public {
-        interestRateModel = InterestRateModel(newInterestRateModelAddress);
+        interestRateModel = InterestRateModelV8(newInterestRateModelAddress);
     }
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {
@@ -172,15 +172,14 @@ contract VBep20Harness is VBep20Immutable {
 contract VBep20Scenario is VBep20Immutable {
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        IComptroller comptroller_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
     )
-        public
         VBep20Immutable(
             underlying_,
             comptroller_,
@@ -210,15 +209,14 @@ contract VBep20Scenario is VBep20Immutable {
 contract VEvil is VBep20Scenario {
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        IComptroller comptroller_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
     )
-        public
         VBep20Scenario(
             underlying_,
             comptroller_,
@@ -231,7 +229,7 @@ contract VEvil is VBep20Scenario {
         )
     {}
 
-    function evilSeize(VToken treasure, address liquidator, address borrower, uint seizeTokens) public returns (uint) {
+    function evilSeize(IVToken treasure, address liquidator, address borrower, uint seizeTokens) public returns (uint) {
         return treasure.seize(liquidator, borrower, seizeTokens);
     }
 }
@@ -239,8 +237,8 @@ contract VEvil is VBep20Scenario {
 contract VBep20DelegatorScenario is VBep20Delegator {
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        IComptroller comptroller_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
@@ -249,7 +247,6 @@ contract VBep20DelegatorScenario is VBep20Delegator {
         address implementation_,
         bytes memory becomeImplementationData
     )
-        public
         VBep20Delegator(
             underlying_,
             comptroller_,
@@ -283,14 +280,14 @@ contract VBep20DelegateHarness is VBep20Delegate {
 
     mapping(address => bool) public failTransferToAddresses;
 
-    function exchangeRateStoredInternal() internal view returns (MathError, uint) {
+    function exchangeRateStoredInternal() internal view override returns (MathError, uint) {
         if (harnessExchangeRateStored) {
             return (MathError.NO_ERROR, harnessExchangeRate);
         }
         return super.exchangeRateStoredInternal();
     }
 
-    function doTransferOut(address payable to, uint amount) internal {
+    function doTransferOut(address payable to, uint amount) internal override {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         return super.doTransferOut(to, amount);
     }
@@ -394,7 +391,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
@@ -408,12 +405,12 @@ contract VBep20DelegateHarness is VBep20Delegate {
         return _setReserveFactorFresh(newReserveFactorMantissa);
     }
 
-    function harnessSetInterestRateModelFresh(InterestRateModel newInterestRateModel) public returns (uint) {
+    function harnessSetInterestRateModelFresh(InterestRateModelV8 newInterestRateModel) public returns (uint) {
         return _setInterestRateModelFresh(newInterestRateModel);
     }
 
     function harnessSetInterestRateModel(address newInterestRateModelAddress) public {
-        interestRateModel = InterestRateModel(newInterestRateModelAddress);
+        interestRateModel = InterestRateModelV8(newInterestRateModelAddress);
     }
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {
@@ -422,7 +419,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
 }
 
 contract VBep20DelegateScenario is VBep20Delegate {
-    constructor() public {}
+    constructor() {}
 
     function setTotalBorrows(uint totalBorrows_) public {
         totalBorrows = totalBorrows_;
@@ -444,7 +441,7 @@ contract VBep20DelegateScenarioExtra is VBep20DelegateScenario {
     }
 
     function itIsTheWay() public {
-        admin = address(1); // make a change to test effect
+        admin = payable(address(1)); // make a change to test effect
     }
 
     function babyYoda() public pure {

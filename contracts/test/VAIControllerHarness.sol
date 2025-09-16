@@ -1,4 +1,5 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
 import "../Tokens/VAI/VAIController.sol";
 
@@ -6,7 +7,7 @@ contract VAIControllerHarness is VAIController {
     uint public blockNumber;
     uint public blocksPerYear;
 
-    constructor() public VAIController() {
+    constructor() VAIController() {
         admin = msg.sender;
     }
 
@@ -19,7 +20,7 @@ contract VAIControllerHarness is VAIController {
         vai = vaiAddress_;
     }
 
-    function getVAIAddress() public view returns (address) {
+    function getVAIAddress() public view override returns (address) {
         return vai;
     }
 
@@ -32,7 +33,7 @@ contract VAIControllerHarness is VAIController {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
@@ -55,11 +56,11 @@ contract VAIControllerHarness is VAIController {
         blocksPerYear = number;
     }
 
-    function getBlockNumber() internal view returns (uint) {
+    function getBlockNumber() internal view override returns (uint) {
         return blockNumber;
     }
 
-    function getBlocksPerYear() public view returns (uint) {
+    function getBlocksPerYear() public view override returns (uint) {
         return blocksPerYear;
     }
 }

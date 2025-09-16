@@ -1,16 +1,14 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
-import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import { IVToken } from "../Tokens/VTokens/interfaces/IVToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
-import "../Utils/SafeMath.sol";
-import "../Comptroller/ComptrollerInterface.sol";
-import "../Tokens/EIP20Interface.sol";
-import "../Tokens/VTokens/VBep20.sol";
+import { IComptroller } from "../Comptroller/interfaces/IComptroller.sol";
+import { IVBep20 } from "../Tokens/VTokens/interfaces/IVBep20.sol";
 
 contract SnapshotLens is ExponentialNoError {
-    using SafeMath for uint256;
-
     struct AccountSnapshot {
         address account;
         string assetName;
@@ -56,7 +54,7 @@ contract SnapshotLens is ExponentialNoError {
         address comptrollerAddress
     ) public returns (AccountSnapshot[] memory) {
         // For each asset the account is in
-        VToken[] memory assets = ComptrollerInterface(comptrollerAddress).getAllMarkets();
+        IVToken[] memory assets = IComptroller(comptrollerAddress).getAllMarkets();
         AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assets.length);
         for (uint256 i = 0; i < assets.length; ++i) {
             accountSnapshots[i] = getAccountSnapshot(account, comptrollerAddress, assets[i]);
@@ -65,7 +63,7 @@ contract SnapshotLens is ExponentialNoError {
     }
 
     function isACollateral(address account, address asset, address comptrollerAddress) public view returns (bool) {
-        VToken[] memory assetsAsCollateral = ComptrollerInterface(comptrollerAddress).getAssetsIn(account);
+        IVToken[] memory assetsAsCollateral = IComptroller(comptrollerAddress).getAssetsIn(account);
         for (uint256 j = 0; j < assetsAsCollateral.length; ++j) {
             if (address(assetsAsCollateral[j]) == asset) {
                 return true;
@@ -78,7 +76,7 @@ contract SnapshotLens is ExponentialNoError {
     function getAccountSnapshot(
         address payable account,
         address comptrollerAddress,
-        VToken vToken
+        IVToken vToken
     ) public returns (AccountSnapshot memory) {
         AccountSnapshotLocalVars memory vars; // Holds all our calculation results
         uint oErr;
@@ -88,11 +86,11 @@ contract SnapshotLens is ExponentialNoError {
         require(oErr == 0, "Snapshot Error");
         vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-        (, uint collateralFactorMantissa) = ComptrollerInterface(comptrollerAddress).markets(address(vToken));
+        (, uint collateralFactorMantissa, ) = IComptroller(comptrollerAddress).markets(address(vToken));
         vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
         // Get the normalized price of the asset
-        vars.oraclePriceMantissa = ComptrollerInterface(comptrollerAddress).oracle().getUnderlyingPrice(vToken);
+        vars.oraclePriceMantissa = IComptroller(comptrollerAddress).oracle().getUnderlyingPrice(address(vToken));
         vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
         // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
@@ -113,9 +111,9 @@ contract SnapshotLens is ExponentialNoError {
             underlyingAssetAddress = address(0);
             underlyingDecimals = 18;
         } else {
-            VBep20 vBep20 = VBep20(address(vToken));
+            IVBep20 vBep20 = IVBep20(address(vToken));
             underlyingAssetAddress = vBep20.underlying();
-            underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
+            underlyingDecimals = IERC20Metadata(vBep20.underlying()).decimals();
         }
 
         vars.isACollateral = isACollateral(account, address(vToken), comptrollerAddress);

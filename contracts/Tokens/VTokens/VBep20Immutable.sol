@@ -1,6 +1,9 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
-import "./VBep20.sol";
+import { IComptroller } from "../../Comptroller/interfaces/IComptroller.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { VBep20 } from "./VBep20.sol";
 
 /**
  * @title Venus's VBep20Immutable Contract
@@ -21,16 +24,16 @@ contract VBep20Immutable is VBep20 {
      */
     constructor(
         address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        IComptroller comptroller_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
-    ) public {
+    ) {
         // Creator of the contract is admin during initialization
-        admin = msg.sender;
+        admin = payable(msg.sender);
 
         // Initialize the market
         initialize(
