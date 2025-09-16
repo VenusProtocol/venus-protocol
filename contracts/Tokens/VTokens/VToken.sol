@@ -363,7 +363,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert InvalidComptroller();
         }
 
-        flashLoanAmount += amount;
         doTransferOut(to, amount);
 
         balanceBefore = getCashPrior();
@@ -395,7 +394,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         uint256 repayment = amount + fee;
         doTransferIn(from, repayment);
-        flashLoanAmount -= amount;
 
         if ((getCashPrior() - balanceBefore) < repayment) {
             revert InsufficientRepayment();
@@ -433,9 +431,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         ensureNonZeroAddress(receiver);
 
-        // Tracks the flashLoan amount before transferring amount to the receiver
-        flashLoanAmount += amount;
-
         // Transfer the underlying asset to the receiver
         doTransferOut(receiver, amount);
 
@@ -450,7 +445,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         doTransferIn(receiver, repayAmount);
-        flashLoanAmount -= amount;
 
         if ((getCashPrior() - balanceBefore) < repayAmount) {
             revert InsufficientRepayment();
@@ -1827,7 +1821,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         } else {
             /*
              * Otherwise:
-             *  exchangeRate = (totalCash + totalBorrows + flashLoanAmount - totalReserves) / totalSupply
+             *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
              */
             uint totalCash = getCashPrior();
             uint cashPlusBorrowsMinusReserves;
@@ -1835,7 +1829,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             MathError mathErr;
 
             (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(
-                totalCash + flashLoanAmount,
+                totalCash,
                 totalBorrows,
                 totalReserves
             );
