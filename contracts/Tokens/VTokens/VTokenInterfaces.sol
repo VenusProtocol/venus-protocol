@@ -164,6 +164,12 @@ contract VTokenStorage is VTokenStorageBase {
      * @notice fee percentage collected by supplier on flashLoan
      */
     uint256 public flashLoanSupplierFeeMantissa;
+
+    /**
+     * @notice Amount of flashLoan taken by the receiver
+     * @dev This is used to track the amount of flashLoan taken in the current transaction
+     */
+    uint256 public flashLoanAmount;
     
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
