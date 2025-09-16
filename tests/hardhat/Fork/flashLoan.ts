@@ -107,7 +107,7 @@ async function deploy(): Promise<SetupProtocolFixture> {
   await newMarketFacet.deployed();
 
   const addExecuteFlashLoanFunctionSignature = newPolicyFacet.interface.getSighash(
-    newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],uint256[],address,bytes)"],
+    newPolicyFacet.interface.functions["executeFlashLoan(address,address[],uint256[],uint256[],address,bytes)"],
   );
 
   const addSetCollateralFactorSelector = newSetterFacet.interface.getSighash(
@@ -323,7 +323,6 @@ forking(56732787, () => {
         // Attempt to execute a flashLoan when the flashLoan feature is disabled, which should revert
         await expect(
           policyFacet.connect(user).executeFlashLoan(
-            user.address,
             mockFlashLoanReceiver.address,
             [vUSDT.address, vBUSD.address],
             [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
@@ -341,7 +340,6 @@ forking(56732787, () => {
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
-            user.address,
             mockFlashLoanReceiver.address,
             [vUSDT.address], // Only one asset provided
             [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa], // Two loan amounts provided
@@ -359,7 +357,6 @@ forking(56732787, () => {
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
-            user.address,
             AddressZero,
             [vUSDT.address, vBUSD.address], // Zero address as an asset, which is invalid
             [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
@@ -377,7 +374,6 @@ forking(56732787, () => {
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
-            user.address,
             mockFlashLoanReceiver.address,
             [AddressZero, vBUSD.address],
             [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
@@ -395,7 +391,6 @@ forking(56732787, () => {
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
-            user.address,
             mockFlashLoanReceiver.address,
             [vUSDT.address, vBUSD.address],
             [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
@@ -436,7 +431,6 @@ forking(56732787, () => {
 
         // user initiates a flashLoan of USDT and BUSD through the policyFacet contract
         await policyFacet.connect(user).executeFlashLoan(
-          user.address,
           mockFlashLoanReceiver.address,
           [vUSDT.address, vBUSD.address],
           [usdtFlashLoanAmount, busdFlashLoanAmount],
@@ -508,7 +502,6 @@ forking(56732787, () => {
 
         // User initiates a flashLoan with mode = 1 (debt position) for both tokens
         const tx = await policyFacet.connect(timeLockUser).executeFlashLoan(
-          timeLockUser.address, // initiator
           mockFlashLoanReceiver.address, // receiver
           [vUSDT.address, vBUSD.address], // vTokens
           [usdtFlashLoanAmount, busdFlashLoanAmount], // amounts
@@ -636,7 +629,6 @@ forking(56732787, () => {
         const receiverUSDTBefore = await USDT.balanceOf(mockFlashLoanReceiver.address);
 
         const tx = await policyFacet.connect(timeLockUser).executeFlashLoan(
-          timeLockUser.address, // initiator
           mockFlashLoanReceiver.address, // receiver
           [vUSDT.address, vBUSD.address], // vTokens
           [usdtFlashLoanAmount, busdFlashLoanAmount], // amounts

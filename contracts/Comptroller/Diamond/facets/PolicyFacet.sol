@@ -383,7 +383,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @dev Transfer the specified assets to the receiver contract and handles repayment based on modes.
      *      Mode 0: Classic flash loan - must repay everything or revert
      *      Mode 1: Can create debt position for unpaid amounts
-     * @param initiator The address initiating the flash loan
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation
      * @param vTokens The addresses of the vToken assets to be loaned
      * @param underlyingAmounts The amounts of each underlying asset to be loaned
@@ -396,7 +395,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @custom:event Emits FlashLoanExecuted on success
      */
     function executeFlashLoan(
-        address payable initiator,
         address payable receiver,
         VToken[] calldata vTokens,
         uint256[] calldata underlyingAmounts,
@@ -421,7 +419,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         ensureNonzeroAddress(onBehalfOf);
 
         // Validate parameters and delegation
-        _validateFlashLoanParams(initiator, vTokens, modes, onBehalfOf);
+        _validateFlashLoanParams(payable(msg.sender), vTokens, modes, onBehalfOf);
 
         // Execute flash loan phases
         _executeFlashLoanPhases(receiver, vTokens, underlyingAmounts, modes, onBehalfOf, param);

@@ -22,6 +22,8 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
      * @param assets An array of VToken contracts that support flash loans.
      * @param amount An array of amounts to borrow in the flash loan for each corresponding asset.
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
+     * @param modes An array indicating the repayment mode for each asset (0 = no debt, 1 = create debt).
+     * @param onBehalfOf The address that will incur the debt if modes are set to 1.
      * @param param Additional encoded parameters passed with the flash loan.
      */
     function requestFlashLoan(
@@ -33,7 +35,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         bytes calldata param
     ) external {
         // Request the flashLoan from the Comptroller contract
-        COMPTROLLER.executeFlashLoan(payable(msg.sender), receiver, assets, amount, modes, onBehalfOf, param);
+        COMPTROLLER.executeFlashLoan(receiver, assets, amount, modes, onBehalfOf, param);
     }
 
     /**

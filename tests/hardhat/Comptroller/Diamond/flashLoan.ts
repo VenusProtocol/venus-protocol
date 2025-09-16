@@ -372,9 +372,13 @@ describe("FlashLoan", async () => {
       await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
       await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
 
-      // This is needed because onBehalfOf is alice but the caller is bob
-      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenA.address, bob.address, true);
-      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
+      // This is needed because onBehalfOf is alice but the caller is mockReceiverContract
+      await comptroller
+        .connect(alice)
+        .setDelegateAuthorizationFlashloan(vTokenA.address, mockReceiverContract.address, true);
+      await comptroller
+        .connect(alice)
+        .setDelegateAuthorizationFlashloan(vTokenB.address, mockReceiverContract.address, true);
 
       // Alice needs to have collateral to borrow against in mode 1
       // Give Alice some underlying tokens and let her supply as collateral
@@ -488,7 +492,9 @@ describe("FlashLoan", async () => {
       await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
 
       // Set delegation authorization (only needed for mode = 1)
-      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
+      await comptroller
+        .connect(alice)
+        .setDelegateAuthorizationFlashloan(vTokenB.address, mockReceiverContract.address, true);
 
       // Alice needs collateral to borrow against in mode 1 (for tokenB only)
       await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
