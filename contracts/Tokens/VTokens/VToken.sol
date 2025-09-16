@@ -761,56 +761,18 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param borrower The address of the borrower
      * @param borrowAmount The amount of underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      */
     function borrowDebtPosition(address borrower, uint borrowAmount) external override returns (uint256) {
-        /* Revert if borrow not allowed */
-        uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
-        if (allowed != 0) {
-            return failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.BORROW_COMPTROLLER_REJECTION, allowed);
+        // Reverts if the caller is not the comptroller
+        if (msg.sender != address(comptroller)) {
+            revert InvalidComptroller();
         }
 
-        /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != block.number) {
-            return fail(Error.MARKET_NOT_FRESH, FailureInfo.BORROW_FRESHNESS_CHECK);
-        }
+        checkAccrueInterest(FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
 
-        /* Revert if protocol has insufficient underlying cash */
-        if (getCashPrior() < borrowAmount) {
-            return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.BORROW_CASH_NOT_AVAILABLE);
-        }
-
-        BorrowLocalVars memory vars;
-
-        /*
-         * We calculate the new borrower and total borrow balances, failing on overflow:
-         *  accountBorrowsNew = accountBorrows + borrowAmount
-         *  totalBorrowsNew = totalBorrows + borrowAmount
-         */
-        (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
-        ensureNoMathError(vars.mathErr);
-
-        (vars.mathErr, vars.accountBorrowsNew) = addUInt(vars.accountBorrows, borrowAmount);
-        ensureNoMathError(vars.mathErr);
-
-        (vars.mathErr, vars.totalBorrowsNew) = addUInt(totalBorrows, borrowAmount);
-        ensureNoMathError(vars.mathErr);
-
-        /////////////////////////
-        // EFFECTS & INTERACTIONS
-        // (No safe failures beyond this point)
-
-        /* We write the previously calculated values into storage */
-        accountBorrows[borrower].principal = vars.accountBorrowsNew;
-        accountBorrows[borrower].interestIndex = borrowIndex;
-        totalBorrows = vars.totalBorrowsNew;
-
-        /* We emit a Borrow event */
-        emit Borrow(borrower, borrowAmount, vars.accountBorrowsNew, vars.totalBorrowsNew);
-
-        /* We call the defense and prime accrue interest hook */
-        comptroller.borrowVerify(address(this), borrower, borrowAmount);
-
-        return uint(Error.NO_ERROR);
+        // borrowFresh emits borrow-specific logs on errors, so we don't need to
+        return borrowFresh(borrower, payable(address(0)), borrowAmount, false);
     }
 
     /**
@@ -1271,18 +1233,24 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         checkAccrueInterest(FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
 
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
-        return borrowFresh(borrower, receiver, borrowAmount);
+        return borrowFresh(borrower, receiver, borrowAmount, true);
     }
 
     /**
-     * @notice Receiver gets the borrow on behalf of the borrower address
+     * @notice Receiver gets the borrow on behalf of the borrower address, controls whether to do the transfer
      * @dev Before calling this function, ensure that the interest has been accrued
      * @param borrower The borrower, on behalf of whom to borrow
      * @param receiver The account that would receive the funds (can be the same as the borrower)
      * @param borrowAmount The amount of the underlying asset to borrow
+     * @param shouldTransfer Whether to call doTransferOut for the receiver
      * @return uint Returns 0 on success, otherwise revert (see ErrorReporter.sol for details).
      */
-    function borrowFresh(address borrower, address payable receiver, uint borrowAmount) internal returns (uint) {
+    function borrowFresh(
+        address borrower,
+        address payable receiver,
+        uint borrowAmount,
+        bool shouldTransfer
+    ) internal returns (uint) {
         /* Revert if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
 
@@ -1325,13 +1293,15 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows = vars.totalBorrowsNew;
 
-        /*
-         * We invoke doTransferOut for the receiver and the borrowAmount.
-         *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
-         *  On success, the vToken borrowAmount less of cash.
-         *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-         */
-        doTransferOut(receiver, borrowAmount);
+        if (shouldTransfer) {
+            /*
+             * We invoke doTransferOut for the receiver and the borrowAmount.
+             *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
+             *  On success, the vToken borrowAmount less of cash.
+             *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
+             */
+            doTransferOut(receiver, borrowAmount);
+        }
 
         /* We emit a Borrow event */
         emit Borrow(borrower, borrowAmount, vars.accountBorrowsNew, vars.totalBorrowsNew);
