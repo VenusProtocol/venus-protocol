@@ -13,7 +13,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
-    skipIfAlreadyDeployed: true,
   });
 
   await deploy("PolicyFacet", {
@@ -21,7 +20,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
-    skipIfAlreadyDeployed: true,
   });
 
   await deploy("SetterFacet", {
@@ -29,7 +27,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
-    skipIfAlreadyDeployed: true,
   });
 
   await deploy("MarketFacet", {
@@ -37,7 +34,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
-    skipIfAlreadyDeployed: true,
   });
 
   await deploy("RewardFacet", {
@@ -45,7 +41,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
-    skipIfAlreadyDeployed: true,
   });
 };
 

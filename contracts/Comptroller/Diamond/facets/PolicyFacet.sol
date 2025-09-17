@@ -333,7 +333,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
-        Market storage market = _poolMarkets[getCorePoolMarketIndex(vTokenCollateral)];
+        Market storage market = getCorePoolMarket(vTokenCollateral);
 
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
@@ -627,14 +627,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Determine the current account liquidity wrt collateral requirements
+     * @notice Determine the current account liquidity wrt liquidation threshold requirements
      * @param account The account get liquidity for
      * @return (possible error code (semi-opaque),
-                account liquidity in excess of collateral requirements,
-     *          account shortfall below collateral requirements)
+                account liquidity in excess of liquidation threshold requirements,
+     *          account shortfall below liquidation threshold requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, WeightFunction.USE_COLLATERAL_FACTOR);
+        return _getAccountLiquidity(account, WeightFunction.USE_LIQUIDATION_THRESHOLD);
     }
 
     /**
@@ -687,6 +687,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
     }
 
+    /**
+     * @dev Internal function to set XVS speed for a single market
+     * @param vToken The market whose XVS speed to update
+     * @param supplySpeed New XVS speed for supply
+     * @param borrowSpeed New XVS speed for borrow
+     * @custom:event VenusSupplySpeedUpdated Emitted after the venus supply speed for a market is updated
+     * @custom:event VenusBorrowSpeedUpdated Emitted after the venus borrow speed for a market is updated
+     */
     function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {
         ensureListed(getCorePoolMarket(address(vToken)));
 
@@ -714,6 +722,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
     }
 
+    /**
+     * @dev Checks if vToken borrowing is allowed in the account's entered pool
+     *      Reverts if borrowing is not permitted
+     * @param account The address of the account whose borrow permission is being checked
+     * @param vToken The vToken market to check borrowing status for
+     * @custom:error BorrowNotAllowedInPool Reverts if borrowing is not allowed in the account's entered pool
+     */
     function poolBorrowAllowed(address account, address vToken) internal view {
         PoolMarketId index = getPoolMarketIndex(userPoolId[account], vToken);
         if (!_poolMarkets[index].isBorrowAllowed) {

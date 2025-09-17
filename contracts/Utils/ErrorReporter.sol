@@ -13,8 +13,8 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when Switching to this pool would fail the liquidity check or lead to liquidation.
     error LiquidityCheckFailed(uint256 errorCode, uint256 shortfall);
 
-    /// @notice Thrown when trying to modify the core pool (poolId == 0)
-    error CorePoolModificationNotAllowed();
+    /// @notice Thrown when trying to call pool-specific methods on the Core Pool
+    error InvalidOperationForCorePool();
 
     /// @notice Thrown when input array lengths do not match
     error ArrayLengthMismatch();
@@ -63,6 +63,8 @@ contract ComptrollerErrorReporter {
 
     // @notice Thrown when failing to create a debt position in mode 1
     error FailedToCreateDebtPosition();
+    /// @notice Thrown when attempting to interact with an inactive pool
+    error InactivePool(uint96 poolId);
 
     enum Error {
         NO_ERROR,

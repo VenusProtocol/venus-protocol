@@ -23,7 +23,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
 
-    /// @notice Emitted when a collateral factor is changed by admin
+    /// @notice Emitted when a collateral factor for a market in a pool is changed by admin
     event NewCollateralFactor(
         uint96 indexed poolId,
         VToken indexed vToken,
@@ -31,9 +31,10 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa
     );
 
-    /// @notice Emitted when liquidation incentive is changed by admin
+    /// @notice Emitted when liquidation incentive for a market in a pool is changed by admin
     event NewLiquidationIncentive(
         uint96 indexed poolId,
+        address indexed vToken,
         uint256 oldLiquidationIncentiveMantissa,
         uint256 newLiquidationIncentiveMantissa
     );
@@ -109,7 +110,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         bool approved
     );
 
-    /// @notice Emitted when liquidation threshold is changed by admin
+    /// @notice Emitted when liquidation threshold for a market in a pool is changed by admin
     event NewLiquidationThreshold(
         uint96 indexed poolId,
         VToken indexed vToken,
@@ -118,7 +119,10 @@ contract SetterFacet is ISetterFacet, FacetBase {
     );
 
     /// @notice Emitted when the borrowAllowed flag is updated for a market
-    event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool isAllowed);
+    event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool oldStatus, bool newStatus);
+
+    /// @notice Emitted when pool active status changes
+    event PoolActiveStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -201,7 +205,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the collateral factor and liquidation threshold for a market in the Core Pool only.
-     * @dev Alias to _setCollateralFactor to support the Isolated Lending Comptroller Interface
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
@@ -218,7 +221,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the liquidation incentive for a market in the Core Pool only.
-     * @dev Alias to _setLiquidationIncentive to support the Isolated Lending Comptroller Interface
+     * @param vToken The market to set the liquidationIncentive for
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
@@ -251,6 +254,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Sets the liquidation incentive for a market in the specified pool.
      * @param poolId The ID of the pool.
+     * @param vToken The market to set the liquidationIncentive for
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
@@ -632,6 +636,30 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
+     * @notice updates active status for a specific pool (excluding the Core Pool)
+     * @param poolId id of the pool to update
+     * @param active true to enable, false to disable
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
+     * @custom:event PoolActiveStatusUpdated Emitted after the pool active status is updated.
+     */
+    function setPoolActive(uint96 poolId, bool active) external {
+        ensureAllowed("setPoolActive(uint96,bool)");
+
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+
+        PoolData storage newPool = pools[poolId];
+
+        if (newPool.isActive == active) {
+            return;
+        }
+
+        emit PoolActiveStatusUpdated(poolId, newPool.isActive, active);
+        newPool.isActive = active;
+    }
+
+    /**
      * @notice Updates the `isBorrowAllowed` flag for a market in a pool.
      * @param poolId The ID of the pool.
      * @param vToken The address of the market (vToken).
@@ -656,9 +684,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
             return;
         }
 
+        emit BorrowAllowedUpdated(poolId, vToken, m.isBorrowAllowed, borrowAllowed);
         m.isBorrowAllowed = borrowAllowed;
-
-        emit BorrowAllowedUpdated(poolId, vToken, borrowAllowed);
     }
 
     /**
@@ -715,10 +742,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @dev Updates the collateral factor. Used by _setCollateralFactor and setCollateralFactor
+     * @dev Updates the collateral factor and the liquidation threshold. Used by setCollateralFactor
      * @param poolId The ID of the pool.
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor to be set
+     * @param newLiquidationThresholdMantissa The new liquidation threshold to be set
      * @return uint256 0=success, otherwise reverted
      */
     function __setCollateralFactor(
@@ -812,8 +840,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         require(newLiquidationIncentiveMantissa >= mantissaOne, "incentive < 1e18");
 
-        // Emit event with old incentive, new incentive
-        emit NewLiquidationIncentive(poolId, market.liquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
+        emit NewLiquidationIncentive(
+            poolId,
+            vToken,
+            market.liquidationIncentiveMantissa,
+            newLiquidationIncentiveMantissa
+        );
 
         // Set liquidation incentive to new incentive
         market.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;

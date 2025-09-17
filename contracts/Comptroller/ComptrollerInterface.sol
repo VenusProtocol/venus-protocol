@@ -160,8 +160,6 @@ interface ComptrollerInterface {
 
     function vaiController() external view returns (VAIControllerInterface);
 
-    function oldLiquidationIncentiveMantissa() external view returns (uint);
-
     function protocolPaused() external view returns (bool);
 
     function actionPaused(address market, Action action) external view returns (bool);
@@ -189,6 +187,8 @@ interface ComptrollerInterface {
 
     function lastPoolId() external view returns (uint96);
 
+    function corePoolId() external pure returns (uint96);
+
     function pools(uint96 poolId) external view returns (string memory label);
 
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
@@ -204,7 +204,7 @@ interface ComptrollerInterface {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 maxLiquidationIncentiveMantissa,
+            uint256 liquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );
@@ -215,8 +215,6 @@ interface IVAIVault {
 }
 
 interface IComptroller {
-    function liquidationIncentiveMantissa() external view returns (uint);
-
     /*** Treasury Data ***/
     function treasuryAddress() external view returns (address);
 

@@ -33,7 +33,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const comptroller = await ethers.getContractAt("ComptrollerMock", comptrollerDeployment.address);
 
     await accessControlManager.giveCallPermission(ethers.constants.AddressZero, "_supportMarket(address)", deployer);
-
     await comptroller.connect(deployerSigner)._setAccessControl(accessControlManager.address);
   }
 };

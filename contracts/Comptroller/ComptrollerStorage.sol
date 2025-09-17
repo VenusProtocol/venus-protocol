@@ -46,7 +46,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
      */
-    uint256 public oldLiquidationIncentiveMantissa;
+    uint256 private _oldLiquidationIncentiveMantissa;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
@@ -67,7 +67,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
          *  Must be between 0 and 1, and stored as a mantissa.
          */
         uint256 collateralFactorMantissa;
-        /// @notice Per-market mapping of "accounts in this asset"
+        /// @notice Per-market mapping of "accounts in this asset" (used for Core Pool only)
         mapping(address => bool) accountMembership;
         /// @notice Whether or not this market receives XVS
         bool isVenus;
@@ -298,19 +298,22 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
         string label;
         /// @notice List of vToken addresses associated with this pool
         address[] vTokens;
+        /// @notice whether pool is active and can be entered, falls back to core pool values if false
+        bool isActive;
     }
 
     /**
-     * @notice Tracks the selected pool for each user.
+     * @notice Tracks the selected pool for each user
      * @dev
-     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in.
-     * - A value of `0` represents the default core pool (legacy behavior).
+     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in
+     * - A value of `0` represents the default core pool (legacy behavior)
      */
     mapping(address => uint96) public userPoolId;
 
     /**
      * @notice Mapping of pool ID to its corresponding metadata and configuration
-     * @dev Pool IDs are unique and incremented via `nextPoolId` when a new pool is created
+     * @dev Pool IDs are unique and incremented via `lastPoolId` when a new pool is created
+     *      Not updated for the Core Pool (`poolId = 0`)
      */
     mapping(uint96 => PoolData) public pools;
 
