@@ -351,7 +351,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - The caller must be the Comptroller contract.
      * @param to The address to which the underlying asset is to be transferred.
      * @param amount The amount of the underlying asset to transfer.
-     * @return balanceBefore Cash balance after transfer out for comparison in flash loan verification
+     * @return balanceBeforeRepayFlashloan Cash balance after transfer out for comparison in flash loan verification
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      * @custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
