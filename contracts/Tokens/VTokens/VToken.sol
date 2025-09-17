@@ -376,32 +376,20 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      asset by calling the `doTransferIn` internal function.
      *      - The caller must be the Comptroller contract.
      * @param from The address from which the underlying asset is to be transferred.
-     * @param amount The amount of the underlying asset to transfer.
-     * @param fee The accrued fee
-     * @param balanceBefore Cash before transfer in
+     * @param amountRepayed The amount of the underlying asset to transfer.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      * @custom:error InsufficientRepayment is thrown if the actual repayment is less than the required repayment (amount + fee).
      * @custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
-    function transferInUnderlyingAndVerify(
-        address payable from,
-        uint256 amount,
-        uint256 fee,
-        uint256 balanceBefore
-    ) external nonReentrant {
+    function transferInUnderlyingAndVerify(address payable from, uint256 amountRepayed) external nonReentrant {
         if (msg.sender != address(comptroller)) {
             revert InvalidComptroller();
         }
 
-        uint256 repayment = amount + fee;
-        doTransferIn(from, repayment);
-        flashLoanAmount -= amount;
+        doTransferIn(from, amountRepayed);
+        flashLoanAmount = 0;
 
-        if ((getCashPrior() - balanceBefore) < repayment) {
-            revert InsufficientRepayment();
-        }
-
-        emit TransferInUnderlyingAndVerify(underlying, from, repayment);
+        emit TransferInUnderlyingAndVerify(underlying, from, amountRepayed);
     }
 
     /**

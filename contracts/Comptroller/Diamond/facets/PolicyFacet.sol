@@ -13,6 +13,7 @@ import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
 import { IProtocolShareReserve } from "../../../external/IProtocolShareReserve.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /**
  * @title PolicyFacet
  * @author Venus
@@ -379,15 +380,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Executes a flashLoan operation with the specified assets, amounts, and modes.
-     * @dev Transfer the specified assets to the receiver contract and handles repayment based on modes.
-     *      Mode 0: Classic flash loan - must repay everything or revert
-     *      Mode 1: Can create debt position for unpaid amounts
+     * @notice Executes a flashLoan operation with the specified assets, amounts,
+     * @dev Transfer the specified assets to the receiver contract and handles repayment .
+     * @param initiator The address of the EOA who initiated the flash loan
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation
      * @param vTokens The addresses of the vToken assets to be loaned
      * @param underlyingAmounts The amounts of each underlying asset to be loaned
-     * @param modes How each borrowed asset is handled if not repaid immediately (0: flash loan, 1: debt position)
-     * @param onBehalfOf The address for whom debt positions will be opened (if mode = 1)
      * @param param The bytes passed in the executeOperation call
      * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
      * @custom:error InvalidFlashLoanParams is thrown if the flash loan params are invalid.
@@ -395,19 +393,18 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @custom:event Emits FlashLoanExecuted on success
      */
     function executeFlashLoan(
+        address payable initiator,
         address payable receiver,
-        VToken[] calldata vTokens,
-        uint256[] calldata underlyingAmounts,
-        uint256[] calldata modes,
-        address onBehalfOf,
-        bytes calldata param
+        VToken[] memory vTokens,
+        uint256[] memory underlyingAmounts,
+        bytes memory param
     ) external {
         // vTokens array must not be empty
         if (vTokens.length == 0) {
             revert NoAssetsRequested();
         }
         // All arrays must have the same length and not be zero
-        if (vTokens.length != underlyingAmounts.length || vTokens.length != modes.length) {
+        if (vTokens.length != underlyingAmounts.length) {
             revert InvalidFlashLoanParams();
         }
 
@@ -416,48 +413,21 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         ensureNonzeroAddress(receiver);
-        ensureNonzeroAddress(onBehalfOf);
-
-        // Validate parameters and delegation
-        _validateFlashLoanParams(payable(msg.sender), vTokens, modes, onBehalfOf);
 
         // Execute flash loan phases
-        _executeFlashLoanPhases(receiver, vTokens, underlyingAmounts, modes, onBehalfOf, param);
+        _executeFlashLoanPhases(initiator, receiver, vTokens, underlyingAmounts, param);
 
         emit FlashLoanExecuted(receiver, vTokens, underlyingAmounts);
-    }
-
-    /**
-     * @notice Validates flash loan parameters and delegation
-     */
-    function _validateFlashLoanParams(
-        address payable initiator,
-        VToken[] calldata vTokens,
-        uint256[] calldata modes,
-        address onBehalfOf
-    ) internal view {
-        // Check delegation if borrowing on behalf of someone else
-        for (uint256 i = 0; i < modes.length; i++) {
-            uint256 mode = modes[i];
-            if (mode > 1) revert InvalidMode();
-
-            if (onBehalfOf != initiator && mode == 1) {
-                if (!delegateAuthorizationFlashloan[onBehalfOf][address(vTokens[i])][initiator]) {
-                    revert SenderNotAuthorizedForFlashLoan();
-                }
-            }
-        }
     }
 
     /**
      * @notice Executes all flash loan phases
      */
     function _executeFlashLoanPhases(
+        address payable initiator,
         address payable receiver,
-        VToken[] calldata vTokens,
-        uint256[] calldata underlyingAmounts,
-        uint256[] calldata modes,
-        address onBehalfOf,
+        VToken[] memory vTokens,
+        uint256[] memory underlyingAmounts,
         bytes memory param
     ) internal returns (FlashLoanData memory flashLoanData) {
         // Initialize arrays
@@ -470,9 +440,16 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Phase 1: Calculate fees and transfer assets
         _executePhase1(receiver, vTokens, underlyingAmounts, flashLoanData);
         // Phase 2: Execute operation on receiver contract
-        _executePhase2(receiver, vTokens, underlyingAmounts, flashLoanData.totalFees, param);
-        // Phase 3: Handle repayment based on modes
-        _executePhase3(receiver, vTokens, underlyingAmounts, modes, onBehalfOf, flashLoanData);
+        uint256[] memory tokensApproved = _executePhase2(
+            initiator,
+            receiver,
+            vTokens,
+            underlyingAmounts,
+            flashLoanData.totalFees,
+            param
+        );
+        // Phase 3: Handle repayment
+        _executePhase3(initiator, receiver, vTokens, tokensApproved, flashLoanData);
 
         return flashLoanData;
     }
@@ -482,8 +459,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function _executePhase1(
         address payable receiver,
-        VToken[] calldata vTokens,
-        uint256[] calldata underlyingAmounts,
+        VToken[] memory vTokens,
+        uint256[] memory underlyingAmounts,
         FlashLoanData memory flashLoanData
     ) internal {
         for (uint256 j = 0; j < vTokens.length; j++) {
@@ -500,128 +477,94 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @notice Phase 2: Execute operation on receiver contract
      */
     function _executePhase2(
+        address payable initiator,
         address payable receiver,
-        VToken[] calldata vTokens,
-        uint256[] calldata underlyingAmounts,
+        VToken[] memory vTokens,
+        uint256[] memory underlyingAmounts,
         uint256[] memory totalFees,
         bytes memory param
-    ) internal {
-        if (!IFlashLoanReceiver(receiver).executeOperation(vTokens, underlyingAmounts, totalFees, msg.sender, param)) {
+    ) internal returns (uint256[] memory) {
+        (bool success, uint256[] memory tokensApproved) = IFlashLoanReceiver(receiver).executeOperation(
+            vTokens,
+            underlyingAmounts,
+            totalFees,
+            initiator,
+            param
+        );
+
+        if (!success) {
             revert ExecuteFlashLoanFailed();
         }
+        return tokensApproved;
     }
 
     /**
-     * @notice Phase 3: Handle repayment based on modes
+     * @notice Phase 3: Handle repayment based
      */
     function _executePhase3(
+        address payable initiator,
         address payable receiver,
-        VToken[] calldata vTokens,
-        uint256[] calldata underlyingAmounts,
-        uint256[] calldata modes,
-        address onBehalfOf,
+        VToken[] memory vTokens,
+        uint256[] memory underlyingAmounts,
         FlashLoanData memory flashLoanData
     ) internal {
         for (uint256 k = 0; k < vTokens.length; k++) {
-            if (modes[k] == 0) {
-                // Mode 0: Classic flash loan - must repay everything
-                _handleFlashLoanMode0(
-                    vTokens[k],
-                    receiver,
-                    underlyingAmounts[k],
-                    flashLoanData.totalFees[k],
-                    flashLoanData.protocolFees[k],
-                    flashLoanData.balanceAfterTransfer[k]
-                );
-                flashLoanData.actualRepayments[k] = underlyingAmounts[k] + flashLoanData.totalFees[k];
-                flashLoanData.remainingDebts[k] = 0;
-            } else if (modes[k] == 1) {
-                // Mode 1: Can create debt position
-                (flashLoanData.actualRepayments[k], flashLoanData.remainingDebts[k]) = _handleFlashLoanMode1(
-                    vTokens[k],
-                    onBehalfOf,
-                    underlyingAmounts[k],
-                    flashLoanData.totalFees[k],
-                    flashLoanData.protocolFees[k],
-                    flashLoanData.balanceAfterTransfer[k]
-                );
-            }
+            _handleFlashLoan(
+                vTokens[k],
+                initiator,
+                receiver,
+                underlyingAmounts[k],
+                flashLoanData.totalFees[k],
+                flashLoanData.protocolFees[k]
+            );
         }
     }
 
     /**
-     * @notice Handles classic flash loan mode (mode 0) - must repay within transaction
+     * @notice Handles the repayment and fee logic for a flash loan.
+     * @dev Transfers the repaid amount from the receiver, checks if the full amount plus fee is repaid,
+     *      and either settles the protocol fee or creates an ongoing debt position for any unpaid balance.
+     *      Updates the protocol share reserve state if the protocol fee is transferred.
+     * @param vToken The vToken contract for the asset being flash loaned.
+     * @param initiator The address that EOA who initiated the flash loan.
+     * @param receiver The address that received the flash loan and is repaying.
+     * @param amountRepayed The amount repaid by the receiver (principal + fee).
+     * @param totalFee The total fee charged for the flash loan.
+     * @param protocolFee The portion of the fee allocated to the protocol.
      */
-    function _handleFlashLoanMode0(
+    function _handleFlashLoan(
         VToken vToken,
+        address payable initiator,
         address payable receiver,
-        uint256 amount,
+        uint256 amountRepayed,
         uint256 totalFee,
-        uint256 protocolFee,
-        uint256 balanceAfterTransfer
+        uint256 protocolFee
     ) internal {
+        uint256 borrowedFlashLoanAmount = vToken.flashLoanAmount();
         // Must repay full amount + fee
-        vToken.transferInUnderlyingAndVerify(receiver, amount, totalFee, balanceAfterTransfer);
+        vToken.transferInUnderlyingAndVerify(receiver, amountRepayed);
 
-        // Transfer protocol fee to protocol share reserve
-        vToken.transferOutUnderlying(vToken.protocolShareReserve(), protocolFee);
+        if (borrowedFlashLoanAmount + totalFee > amountRepayed) {
+            // If there is any unpaid balance, it becomes an ongoing debt (mode 1)
+            uint256 leftUnpaidBalance = borrowedFlashLoanAmount + totalFee - amountRepayed;
+            uint256 accrueResult = vToken.accrueInterest();
+            require(accrueResult == 0, "Failed to accrue interest");
 
-        // Update protocol share reserve state
-        IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
-            address(vToken.comptroller()),
-            address(vToken.underlying()),
-            IProtocolShareReserve.IncomeType.FLASHLOAN
-        );
-    }
-
-    /**
-     * @notice Handles debt position mode (mode 1) - can create ongoing debt
-     * @return actualRepayment The amount actually repaid
-     * @return remainingDebt The amount that became ongoing debt
-     */
-    function _handleFlashLoanMode1(
-        VToken vToken,
-        address onBehalfOf,
-        uint256 amount,
-        uint256 totalFee,
-        uint256 protocolFee,
-        uint256 balanceAfterTransfer
-    ) internal returns (uint256 actualRepayment, uint256 remainingDebt) {
-        uint256 requiredRepayment = amount + totalFee;
-        uint256 currentBalance = IERC20(vToken.underlying()).balanceOf(onBehalfOf);
-
-        // Calculate actual repayment received
-        if (currentBalance > balanceAfterTransfer) {
-            actualRepayment = currentBalance - balanceAfterTransfer;
-        } else {
-            actualRepayment = 0;
-        }
-
-        // Create debt position by calling VBep20's borrow function
-        // This will handle all the proper borrow logic including state updates
-        uint256 accrueResult = vToken.accrueInterest();
-        require(accrueResult == 0, "Failed to accrue interest");
-
-        // If actual repayment is less than required, we create a debt position
-        uint256 debtError = vToken.borrowDebtPosition(onBehalfOf, requiredRepayment);
-        if (debtError != 0) {
-            revert FailedToCreateDebtPosition();
-        }
-
-        // Handle fees from actual repayment proportionally
-        if (actualRepayment > 0) {
-            uint256 feeFromRepayment = (actualRepayment * protocolFee) / requiredRepayment;
-            if (feeFromRepayment > 0) {
-                vToken.transferOutUnderlying(vToken.protocolShareReserve(), feeFromRepayment);
-                IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
-                    address(vToken.comptroller()),
-                    address(vToken.underlying()),
-                    IProtocolShareReserve.IncomeType.FLASHLOAN
-                );
+            uint256 debtError = vToken.borrowDebtPosition(initiator, leftUnpaidBalance);
+            if (debtError != 0) {
+                revert FailedToCreateDebtPosition();
             }
-        }
+        } else {
+            // Transfer protocol fee to protocol share reserve
+            vToken.transferOutUnderlying(vToken.protocolShareReserve(), protocolFee);
 
-        return (actualRepayment, requiredRepayment);
+            // Update protocol share reserve state
+            IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
+                address(vToken.comptroller()),
+                address(vToken.underlying()),
+                IProtocolShareReserve.IncomeType.FLASHLOAN
+            );
+        }
     }
 
     /**

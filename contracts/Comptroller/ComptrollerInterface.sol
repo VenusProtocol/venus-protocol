@@ -45,11 +45,10 @@ interface ComptrollerInterface {
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
     function executeFlashLoan(
+        address payable initiator,
         address payable receiver,
         VToken[] calldata assets,
         uint256[] calldata amounts,
-        uint256[] calldata modes,
-        address onBehalfOf,
         bytes calldata param
     ) external;
 

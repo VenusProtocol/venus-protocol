@@ -24,5 +24,5 @@ interface IFlashLoanReceiver {
         uint256[] calldata premiums,
         address initiator,
         bytes calldata param
-    ) external returns (bool);
+    ) external returns (bool, uint256[] memory);
 }
