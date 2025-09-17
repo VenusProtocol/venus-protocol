@@ -399,6 +399,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) external {
+        for (uint256 i; i < vTokens.length; i++) {
+            if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
+            if (underlyingAmounts[i] == 0) revert("Invalid amount");
+        }
         // vTokens array must not be empty
         if (vTokens.length == 0) {
             revert NoAssetsRequested();
@@ -408,12 +412,11 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             revert InvalidFlashLoanParams();
         }
 
-        for (uint256 i = 0; i < vTokens.length; i++) {
-            if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
-        }
-
         ensureNonzeroAddress(receiver);
 
+        if (!authorizedFlashLoan[initiator]) {
+            revert("Flash loan not authorized for this account");
+        }
         // Execute flash loan phases
         _executeFlashLoanPhases(initiator, receiver, vTokens, underlyingAmounts, param);
 

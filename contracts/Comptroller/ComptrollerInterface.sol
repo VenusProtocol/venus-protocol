@@ -168,6 +168,7 @@ interface ComptrollerInterface {
 
     function vaiMintRate() external view returns (uint);
 
+    function authorizedFlashLoan(address account) external view returns (bool);
     function delegateAuthorizationFlashloan(
         address account,
         address market,

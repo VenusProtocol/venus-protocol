@@ -473,6 +473,25 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedFlashLoan",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "borrowCapGuardian",
       "outputs": [
@@ -597,6 +616,35 @@
         }
       ],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "delegateAuthorizationFlashloan",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -2162,6 +2210,9 @@
       "approvedDelegates(address,address)": {
         "notice": "Whether the delegate is allowed to borrow or redeem on behalf of the user"
       },
+      "authorizedFlashLoan(address)": {
+        "notice": "Mapping of accounts authorized to execute flash loans"
+      },
       "borrowCapGuardian()": {
         "notice": "The borrowCapGuardian can set borrowCaps to any number for any market. Lowering the borrow cap could disable borrowing on the given market."
       },
@@ -2179,6 +2230,9 @@
       },
       "createPool(string)": {
         "notice": "Creates a new pool with the given label."
+      },
+      "delegateAuthorizationFlashloan(address,address,address)": {
+        "notice": "Mapping to store delegate authorization for flash loans"
       },
       "enterMarkets(address[])": {
         "notice": "Add assets to be included in account liquidity calculation"
@@ -2843,6 +2897,22 @@
         "offset": 0,
         "slot": "55",
         "type": "t_uint96"
+      },
+      {
+        "astId": 2024,
+        "contract": "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
+        "label": "authorizedFlashLoan",
+        "offset": 0,
+        "slot": "56",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 2052,
+        "contract": "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
+        "label": "delegateAuthorizationFlashloan",
+        "offset": 0,
+        "slot": "57",
+        "type": "t_mapping(t_address,t_mapping(t_address,t_mapping(t_address,t_bool)))"
       }
     ],
     "types": {
@@ -2924,6 +2994,13 @@
         "label": "mapping(address => mapping(address => bool))",
         "numberOfBytes": "32",
         "value": "t_mapping(t_address,t_bool)"
+      },
+      "t_mapping(t_address,t_mapping(t_address,t_mapping(t_address,t_bool)))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(address => mapping(address => bool)))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_mapping(t_address,t_bool))"
       },
       "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
         "encoding": "mapping",

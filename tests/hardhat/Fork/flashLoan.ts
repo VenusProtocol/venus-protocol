@@ -12,7 +12,8 @@ import {
   BorrowDebtFlashLoanReceiver,
   BorrowDebtFlashLoanReceiver__factory,
   Diamond,
-  IAccessControlManagerV5,
+  IAccessControlManagerV8,
+  IAccessControlManagerV8__factory,
   IERC20,
   InterestRateModel,
   MarketFacet,
@@ -45,9 +46,9 @@ const USDT_HOLDER = "0xbEe5b9859B03FEefd5Ae3ce7C5d92f3b09a55149";
 const vBUSD_ADDRESS = "0x08e0A5575De71037aE36AbfAfb516595fE68e5e4";
 const BUSD_ADDRESS = "0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47";
 const BUSD_HOLDER = "0x72253172CECFb70561b73FCF3Fa77A52a1D035c7";
-const OLD_POLICY_FACET = "0x085C8d0133291348004AabFfbE7CAc2097aF2aa1";
-const OLD_SETTER_FACET = "0x490DFD07f592452307817C4283866035BDb3b275";
-const OLD_MARKET_FACET = "0x00a949FfDa9B216fBA9C4E5b40ef561Af0FDb723";
+const OLD_POLICY_FACET = "0x671B787AEDB6769972f081C6ee4978146F7D92E6";
+const OLD_SETTER_FACET = "0xb619F7ce96c0a6E3F0b44e993f663522F79f294A";
+const OLD_MARKET_FACET = "0x377c2E7CE08B4cc7033EDF678EE1224A290075Fd";
 const COMPTROLLER_ADDRESS = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
 const USER = "0x4C45758bF15AF0714E4CC44C4EFd177e209C2890";
 const ACM = "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA";
@@ -61,7 +62,7 @@ type SetupProtocolFixture = {
   diamond: Diamond;
   admin: SignerWithAddress;
   oracle: FakeContract<PriceOracle>;
-  accessControlManager: FakeContract<IAccessControlManagerV5>;
+  accessControlManager: IAccessControlManagerV8;
   interestRateModel: FakeContract<InterestRateModel>;
   timeLockUser: SignerWithAddress;
   USDT: IERC20;
@@ -80,7 +81,7 @@ async function deploy(): Promise<SetupProtocolFixture> {
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
   oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
 
-  const accessControlManager = await ethers.getContractAt("IAccessControlManagerV5", ACM);
+  const accessControlManager = await ethers.getContractAt("IAccessControlManagerV8", ACM);
 
   const interestRateModel = await smock.fake<InterestRateModel>("InterestRateModel");
   interestRateModel.isInterestRateModel.returns(true);
@@ -104,16 +105,16 @@ async function deploy(): Promise<SetupProtocolFixture> {
   const newPolicyFacet = await policyFacetFactory.deploy();
   await newPolicyFacet.deployed();
 
+  const addSetWhiteListFlashLoanAccountFunctionSignature = newSetterFacet.interface.getSighash(
+    newSetterFacet.interface.functions["setWhiteListFlashLoanAccount(address,bool)"],
+  );
+
   const marketFacetFactory = await ethers.getContractFactory("MarketFacet");
   const newMarketFacet = await marketFacetFactory.deploy();
   await newMarketFacet.deployed();
 
   const addExecuteFlashLoanFunctionSignature = newPolicyFacet.interface.getSighash(
     newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],bytes)"],
-  );
-
-  const addSetCollateralFactorSelector = newSetterFacet.interface.getSighash(
-    "setCollateralFactor(address,uint256,uint256)",
   );
 
   const addSetDelegateAuthorizationFlashloanFunctionSignature = newSetterFacet.interface.getSighash(
@@ -155,8 +156,8 @@ async function deploy(): Promise<SetupProtocolFixture> {
       facetAddress: newSetterFacet.address,
       action: FacetCutAction.Add,
       functionSelectors: [
+        addSetWhiteListFlashLoanAccountFunctionSignature,
         addSetDelegateAuthorizationFlashloanFunctionSignature,
-        addSetCollateralFactorSelector,
         addSetIsBorrowAllowedSelector,
       ],
     },
@@ -223,7 +224,7 @@ async function deploy(): Promise<SetupProtocolFixture> {
   };
 }
 
-forking(56732787, () => {
+forking(64048894, () => {
   if (FORK_TESTNET) {
     describe("FlashLoan Fork Test", async () => {
       let usdtHolder: SignerWithAddress;
@@ -239,7 +240,7 @@ forking(56732787, () => {
       let policyFacet: PolicyFacet;
       let setterFacet: SetterFacet;
       let marketFacet: MarketFacet;
-      let accessControlManager: FakeContract<IAccessControlManagerV5>;
+      let accessControlManager: IAccessControlManagerV8;
 
       beforeEach(async () => {
         ({ marketFacet, setterFacet, policyFacet, vUSDT, vBUSD, USDT, BUSD, timeLockUser, accessControlManager } =
@@ -251,6 +252,8 @@ forking(56732787, () => {
         user = await initMainnetUser(USER, parseUnits("2"));
         user = await initMainnetUser(USER, parseUnits("2"));
 
+        accessControlManager = IAccessControlManagerV8__factory.connect(ACM, timeLockUser);
+
         const MockFlashLoanReceiver =
           await ethers.getContractFactory<MockFlashLoanReceiver__factory>("MockFlashLoanReceiver");
         mockFlashLoanReceiver = await MockFlashLoanReceiver.deploy(policyFacet.address);
@@ -258,6 +261,10 @@ forking(56732787, () => {
         const BorrowDebtFlashLoanReceiver =
           await ethers.getContractFactory<BorrowDebtFlashLoanReceiver__factory>("BorrowDebtFlashLoanReceiver");
         borrowDebtFlashLoanReceiver = await BorrowDebtFlashLoanReceiver.deploy(policyFacet.address);
+
+        await accessControlManager
+          .connect(timeLockUser)
+          .giveCallPermission(setterFacet.address, "setWhiteListFlashLoanAccount(address,bool)", timeLockUser.address);
 
         await accessControlManager
           .connect(timeLockUser)
@@ -296,20 +303,18 @@ forking(56732787, () => {
           .giveCallPermission(setterFacet.address, "setIsBorrowAllowed(uint96,address,bool)", timeLockUser.address);
 
         // ADDED: Set supply caps to allow minting
-        await setterFacet.connect(timeLockUser)._setMarketSupplyCaps(
+        await setterFacet.connect(timeLockUser).setMarketSupplyCaps(
           [vUSDT.address, vBUSD.address],
           [ethers.constants.MaxUint256.div(2), ethers.constants.MaxUint256.div(2)], // Large supply caps
         );
-
         // ADDED: Set borrow caps to allow borrowing in mode 1
-        await setterFacet.connect(timeLockUser)._setMarketBorrowCaps(
+        await setterFacet.connect(timeLockUser).setMarketBorrowCaps(
           [vUSDT.address, vBUSD.address],
           [ethers.constants.MaxUint256.div(2), ethers.constants.MaxUint256.div(2)], // Large borrow caps
         );
 
         // Unpause mint actions
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [0], false); // 0 = mint action
-
         // ADDED: Unpause borrow actions (needed for mode 1)
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [2], false); // 2 = borrow action
         await setterFacet.connect(timeLockUser)._setActionsPaused([vUSDT.address, vBUSD.address], [7], false); // 7 = enterMarket action
@@ -327,6 +332,7 @@ forking(56732787, () => {
       });
 
       it("Should revert if flashLoan not enabled", async () => {
+        await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(user.address, true);
         // Attempt to execute a flashLoan when the flashLoan feature is disabled, which should revert
         await expect(
           policyFacet.connect(user).executeFlashLoan(
@@ -371,8 +377,30 @@ forking(56732787, () => {
         ).to.be.revertedWith("can't be zero address");
       });
 
+      it("Should revert if user is not whitelisted", async () => {
+        await vUSDT.connect(timeLockUser)._toggleFlashLoan();
+        await vBUSD.connect(timeLockUser)._toggleFlashLoan();
+
+        await expect(
+          policyFacet.connect(user).executeFlashLoan(
+            user.address,
+            mockFlashLoanReceiver.address,
+            [vUSDT.address, vBUSD.address], // Zero address as an asset, which is invalid
+            [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
+            [0, 0],
+            user.address,
+            ethers.utils.formatBytes32String(""), // Add the missing `param` argument
+          ),
+        ).to.be.revertedWith("Flash loan not authorized for this account");
+      });
+
+      it("Should revert if whitelisting is done by non-authorized account", async () => {
+        await expect(setterFacet.connect(user).setWhiteListFlashLoanAccount(user.address, true)).to.be.revertedWith(
+          "access denied",
+        );
+      });
+
       it("Should revert if VToken address is Invalid", async () => {
-        // Attempt to execute a flashLoan with a zero address as the receiver, which should revert
         await vUSDT.connect(timeLockUser)._toggleFlashLoan();
         await vBUSD.connect(timeLockUser)._toggleFlashLoan();
 
@@ -388,6 +416,7 @@ forking(56732787, () => {
       });
 
       it("Should be able to do flashLoan for USDT & ETH", async () => {
+        await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(user.address, true);
         // Transfer USDT and BUSD tokens to Alice to set up initial balances
         await USDT.connect(usdtHolder).transfer(vUSDT.address, parseUnits("100", 6));
         await USDT.connect(usdtHolder).transfer(mockFlashLoanReceiver.address, parseUnits("50", 6));
@@ -445,6 +474,8 @@ forking(56732787, () => {
       });
 
       it("Should be able to do flashLoan for USDT & BUSD with debt position", async () => {
+        await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(timeLockUser.address, true);
+
         await setterFacet.connect(user).setDelegateAuthorizationFlashloan(
           vUSDT.address,
           timeLockUser.address,

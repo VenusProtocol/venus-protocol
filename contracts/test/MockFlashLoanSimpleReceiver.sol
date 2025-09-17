@@ -25,7 +25,7 @@ contract MockFlashLoanSimpleReceiver is FlashLoanSimpleReceiverBase {
      */
     function requestFlashLoan(uint256 amount, address payable receiver, bytes calldata param) external {
         // Request the flashLoan from the VToken contract
-        VTOKEN.executeFlashLoan(receiver, amount, param);
+        VTOKEN.executeFlashLoan(msg.sender, receiver, amount, param);
     }
 
     /**

@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
@@ -172,6 +172,37 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if flashLoan is not enabled", async () => {
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.false;
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            [0, 0],
+            alice.address,
+            "0x",
+          ),
+      ).to.be.revertedWith("FlashLoan not enabled");
+    });
+
+    it("Should revert if the user is zero address", async () => {
+      // whitelist alice for flashLoan
+
+      await expect(comptroller.setWhiteListFlashLoanAccount(ethers.constants.AddressZero, true)).to.be.revertedWith(
+        "can't be zero address",
+      );
+    });
+
+    it("Should revert if user is not whitelisted", async () => {
+      await vTokenA._toggleFlashLoan();
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       await expect(
         mockReceiverContract.requestFlashLoan(
           [vTokenA.address, vTokenB.address],
@@ -196,10 +227,65 @@ describe("FlashLoan", async () => {
       ).to.be.revertedWithCustomError(comptroller, "InvalidFlashLoanParams");
     });
 
+    it("should revert when requested flash loan amount is zero", async () => {
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+
+      // Execute the flashLoan from the mockReceiverContract
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [0, 0],
+          mockReceiverContract.address,
+          [0, 0],
+          alice.address,
+          "0x",
+        ),
+      ).to.be.revertedWith("Invalid amount");
+    });
+
+    it("should revert if repayment is insufficient", async () => {
+      await vTokenA._toggleFlashLoan();
+      await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+
+      // Execute the flashLoan from the mockReceiverContract
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          [0, 0],
+          alice.address,
+          "0x",
+        ),
+      ).to.be.revertedWith("Insufficient balance");
+    });
+
     it("Should revert if receiver's executeOperation returns false", async () => {
       // Enable flashLoan for vTokens
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
 
       // Deploy the bad receiver contract
       const BadFlashLoanReceiver = await ethers.getContractFactory("BadFlashLoanReceiver");
@@ -225,10 +311,14 @@ describe("FlashLoan", async () => {
       ).to.be.revertedWithCustomError(comptroller, "ExecuteFlashLoanFailed");
     });
 
-    it("FlashLoan for multiple underlying and transfer funds to PSR", async () => {
+    it("FlashLoan for multiple underlying and transfer funds to PSR (mode = 0)", async () => {
       // Enable flashLoan for multiple vToken
       await vTokenA._toggleFlashLoan();
       await vTokenB._toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
 
@@ -386,6 +476,20 @@ describe("FlashLoan", async () => {
       // Set the balance of mockReceiver in order to pay for flashLoan fee
       await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
       await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      // whitelist bob for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));

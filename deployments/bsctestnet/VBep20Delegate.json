@@ -7,6 +7,26 @@
       "type": "constructor"
     },
     {
+      "inputs": [],
+      "name": "ExecuteFlashLoanFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FlashLoanNotAuthorized",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FlashLoanNotEnabled",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientRepaymentBalance",
+      "type": "error"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {
@@ -116,6 +136,62 @@
         }
       ],
       "name": "Failure",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "underlying",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "FlashLoanExecuted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldFlashLoanProtocolFeeMantissa",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newFlashLoanProtocolFeeMantissa",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldFlashLoanSupplierFeeMantissa",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newFlashLoanSupplierFeeMantissa",
+          "type": "uint256"
+        }
+      ],
+      "name": "FlashLoanFeeUpdated",
       "type": "event"
     },
     {
@@ -522,6 +598,25 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "previousStatus",
+          "type": "bool"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "newStatus",
+          "type": "bool"
+        }
+      ],
+      "name": "ToggleFlashLoanEnabled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": true,
           "internalType": "address",
           "name": "from",
@@ -541,6 +636,56 @@
         }
       ],
       "name": "Transfer",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "TransferInUnderlyingAndVerify",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "TransferOutUnderlying",
       "type": "event"
     },
     {
@@ -636,6 +781,30 @@
     {
       "inputs": [
         {
+          "internalType": "uint256",
+          "name": "protocolFeeMantissa_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "supplierFeeMantissa_",
+          "type": "uint256"
+        }
+      ],
+      "name": "_setFlashLoanFeeMantissa",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "contract InterestRateModelV8",
           "name": "newInterestRateModel_",
           "type": "address"
@@ -680,6 +849,19 @@
         }
       ],
       "name": "_setReserveFactor",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "_toggleFlashLoan",
       "outputs": [
         {
           "internalType": "uint256",
@@ -910,6 +1092,30 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "borrowAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "borrowDebtPosition",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "borrowIndex",
       "outputs": [
@@ -926,6 +1132,30 @@
       "inputs": [],
       "name": "borrowRatePerBlock",
       "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "calculateFlashLoanFee",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
         {
           "internalType": "uint256",
           "name": "",
@@ -977,6 +1207,79 @@
     {
       "inputs": [],
       "name": "exchangeRateStored",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "initiator",
+          "type": "address"
+        },
+        {
+          "internalType": "address payable",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "param",
+          "type": "bytes"
+        }
+      ],
+      "name": "executeFlashLoan",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "flashLoanAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "flashLoanProtocolFeeMantissa",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "flashLoanSupplierFeeMantissa",
       "outputs": [
         {
           "internalType": "uint256",
@@ -1136,6 +1439,19 @@
           "internalType": "contract InterestRateModelV8",
           "name": "",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "isFlashLoanEnabled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -1639,6 +1955,58 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address payable",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "balanceBefore",
+          "type": "uint256"
+        }
+      ],
+      "name": "transferInUnderlyingAndVerify",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address payable",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "transferOutUnderlying",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "balanceBeforeRepayFlashloan",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "underlying",
       "outputs": [
@@ -1658,7 +2026,7 @@
     "from": "0xe2a089cA69a90f1E27E723EFD339Cff4c4701AcC",
     "contractAddress": "0x9c824EDa64aF04D160F9cB835C6AC95606077db0",
     "transactionIndex": 0,
-    "gasUsed": "4819918",
+    "gasUsed": "5339527",
     "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
     "blockHash": "0xbb1dfc0d11a251ec8f4b5503dd0364d7771c487325eca275886ecd06819ea78f",
     "transactionHash": "0x3bcd2d1872bdeba9d928fe84fa4ef2c97d07f772e4b654075122ad54db8db587",
@@ -1714,6 +2082,15 @@
         "details": "Admin function to set a new comptroller",
         "returns": {
           "_0": "uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details)."
+        }
+      },
+      "_setFlashLoanFeeMantissa(uint256,uint256)": {
+        "params": {
+          "protocolFeeMantissa_": "FlashLoan protocol fee mantissa, transferred to protocol share reserve",
+          "supplierFeeMantissa_": "FlashLoan supplier fee mantissa, transferred to the supplier of the asset"
+        },
+        "returns": {
+          "_0": "uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details). custom:access Only Governance custom:event Emits FlashLoanFeeUpdated event on success"
         }
       },
       "_setInterestRateModel(address)": {
@@ -1812,9 +2189,29 @@
           "_0": "uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details)."
         }
       },
+      "borrowDebtPosition(address,uint256)": {
+        "details": "This function checks if the borrow is allowed, accrues interest, and updates the borrower's balance.      It also emits a Borrow event and calls the comptroller's borrowVerify function.      It reverts if the borrow is not allowed, if the market's block number is not current, or if the protocol has insufficient cash.",
+        "params": {
+          "borrowAmount": "The amount of underlying asset to borrow",
+          "borrower": "The address of the borrower"
+        },
+        "returns": {
+          "_0": "uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details)."
+        }
+      },
       "borrowRatePerBlock()": {
         "returns": {
           "_0": "The borrow interest rate per block, scaled by 1e18"
+        }
+      },
+      "calculateFlashLoanFee(uint256)": {
+        "details": "This function reverts if flash loans are not enabled.",
+        "params": {
+          "amount": "The amount of the flash loan."
+        },
+        "returns": {
+          "_0": "protocolFee The portion of the fee allocated to the protocol.",
+          "_1": "supplierFee The portion of the fee allocated to the supplier."
         }
       },
       "exchangeRateCurrent()": {
@@ -1826,6 +2223,15 @@
         "details": "This function does not accrue interest before calculating the exchange rate",
         "returns": {
           "_0": "Calculated exchange rate scaled by 1e18"
+        }
+      },
+      "executeFlashLoan(address,address,uint256,bytes)": {
+        "details": "Transfers the amount to the receiver contract and ensures that the total repayment (amount + fee)      is returned by the receiver contract after the operation. The function performs checks to ensure the validity      of parameters, that flashLoan is enabled for the given asset, and that the total repayment is sufficient.      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.",
+        "params": {
+          "amount": "The amount of asset to be loaned.",
+          "initiator": "The address that initiated the flash loan.",
+          "param": "Additional encoded parameters passed with the flash loan. custom:requirements      - The `receiver` address must not be the zero address.      - FlashLoans must be enabled for the asset.      - The `receiver` contract must repay the loan with the appropriate fee. custom:reverts      - Reverts with `Flash loan not authorized for this account` if the initiator is not authorized for flash loans.      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.      - Reverts with `Insufficient repayment balance` if the repayment (amount + fee) is insufficient after the operation. custom:event Emits FlashLoanExecuted event on success",
+          "receiver": "The address of the contract that will receive the flashLoan and execute the operation."
         }
       },
       "getAccountSnapshot(address)": {
@@ -2005,6 +2411,22 @@
         "returns": {
           "_0": "Whether or not the transfer succeeded"
         }
+      },
+      "transferInUnderlyingAndVerify(address,uint256,uint256,uint256)": {
+        "details": "Can only be called by the Comptroller contract. This function performs the actual transfer of the underlying      asset by calling the `doTransferIn` internal function.",
+        "params": {
+          "amount": "The amount of the underlying asset to transfer.",
+          "balanceBefore": "Cash before transfer in requirements      - The caller must be the Comptroller contract. custom:reverts      - Reverts with \"Invalid Comptroller\" if the caller is not the Comptroller. custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver",
+          "fee": "The accrued fee",
+          "from": "The address from which the underlying asset is to be transferred."
+        }
+      },
+      "transferOutUnderlying(address,uint256)": {
+        "details": "Can only be called by the Comptroller contract. This function performs the actual transfer of the underlying      asset by calling the `doTransferOut` internal function.",
+        "params": {
+          "amount": "The amount of the underlying asset to transfer. requirements      - The caller must be the Comptroller contract. custom:reverts      - Reverts with \"Invalid Comptroller\" if the caller is not the Comptroller. custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver",
+          "to": "The address to which the underlying asset is to be transferred."
+        }
       }
     },
     "title": "Venus's VBep20Delegate Contract",
@@ -2020,6 +2442,12 @@
       },
       "Borrow(address,uint256,uint256,uint256)": {
         "notice": "Event emitted when underlying is borrowed"
+      },
+      "FlashLoanExecuted(address,address,uint256)": {
+        "notice": "Event emitted when flashLoan is executed"
+      },
+      "FlashLoanFeeUpdated(uint256,uint256,uint256,uint256)": {
+        "notice": "Event emitted when flashLoan fee mantissa is updated"
       },
       "LiquidateBorrow(address,address,uint256,address,uint256)": {
         "notice": "Event emitted when a borrow is liquidated"
@@ -2069,8 +2497,17 @@
       "ReservesReduced(address,uint256,uint256)": {
         "notice": "Event emitted when the reserves are reduced"
       },
+      "ToggleFlashLoanEnabled(bool,bool)": {
+        "notice": "Event emitted when flashLoanEnabled status is changed"
+      },
       "Transfer(address,address,uint256)": {
         "notice": "EIP20 Transfer event"
+      },
+      "TransferInUnderlyingAndVerify(address,address,uint256)": {
+        "notice": "Event emitted when asset is transferred from sender and verified"
+      },
+      "TransferOutUnderlying(address,address,uint256)": {
+        "notice": "Event emitted when asset is transferred to receiver"
       }
     },
     "kind": "user",
@@ -2093,6 +2530,9 @@
       "_setComptroller(address)": {
         "notice": "Sets a new comptroller for the market"
       },
+      "_setFlashLoanFeeMantissa(uint256,uint256)": {
+        "notice": "Update flashLoan fee mantissa"
+      },
       "_setInterestRateModel(address)": {
         "notice": "Accrues interest and updates the interest rate model using _setInterestRateModelFresh"
       },
@@ -2101,6 +2541,9 @@
       },
       "_setReserveFactor(uint256)": {
         "notice": "accrues interest and sets a new reserve factor for the protocol using `_setReserveFactorFresh`"
+      },
+      "_toggleFlashLoan()": {
+        "notice": "Enable or disable flash loan for the market custom:access Only Governance custom:event Emits ToggleFlashLoanEnabled event on success"
       },
       "accessControlManager()": {
         "notice": "address of accessControlManager"
@@ -2138,11 +2581,17 @@
       "borrowBehalf(address,uint256)": {
         "notice": "Sender borrows assets on behalf of some other address. This function is only available   for senders, explicitly marked as delegates of the borrower using `comptroller.updateDelegate`"
       },
+      "borrowDebtPosition(address,uint256)": {
+        "notice": "open a debt position for the borrower"
+      },
       "borrowIndex()": {
         "notice": "Accumulator of the total earned interest rate since the opening of the market"
       },
       "borrowRatePerBlock()": {
         "notice": "Returns the current per-block borrow interest rate for this vToken"
+      },
+      "calculateFlashLoanFee(uint256)": {
+        "notice": "Calculates the protocol fee and supplier fee for a flash loan."
       },
       "comptroller()": {
         "notice": "Contract which oversees inter-vToken operations"
@@ -2158,6 +2607,18 @@
       },
       "exchangeRateStored()": {
         "notice": "Calculates the exchange rate from the underlying to the VToken"
+      },
+      "executeFlashLoan(address,address,uint256,bytes)": {
+        "notice": "Executes a flashLoan operation."
+      },
+      "flashLoanAmount()": {
+        "notice": "Amount of flashLoan taken by the receiver"
+      },
+      "flashLoanProtocolFeeMantissa()": {
+        "notice": "fee percentage collected by protocol on flashLoan"
+      },
+      "flashLoanSupplierFeeMantissa()": {
+        "notice": "fee percentage collected by supplier on flashLoan"
       },
       "getAccountSnapshot(address)": {
         "notice": "Get a snapshot of the account's balances, and the cached exchange rate"
@@ -2176,6 +2637,9 @@
       },
       "interestRateModel()": {
         "notice": "Model which tells what the current interest rate should be"
+      },
+      "isFlashLoanEnabled()": {
+        "notice": "flashLoan is enabled for this market or not"
       },
       "isVToken()": {
         "notice": "Indicator that this is a vToken contract (for inspection)"
@@ -2260,6 +2724,12 @@
       },
       "transferFrom(address,address,uint256)": {
         "notice": "Transfer `amount` tokens from `src` to `dst`"
+      },
+      "transferInUnderlyingAndVerify(address,uint256,uint256,uint256)": {
+        "notice": "Transfers the underlying asset from the specified address."
+      },
+      "transferOutUnderlying(address,uint256)": {
+        "notice": "Transfers the underlying asset to the specified address."
       },
       "underlying()": {
         "notice": "Underlying asset for this VToken"
@@ -2465,10 +2935,42 @@
       {
         "astId": 33942,
         "contract": "contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate",
-        "label": "__gap",
+        "label": "isFlashLoanEnabled",
+        "offset": 20,
+        "slot": "22",
+        "type": "t_bool"
+      },
+      {
+        "astId": 24614,
+        "contract": "contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate",
+        "label": "flashLoanProtocolFeeMantissa",
         "offset": 0,
         "slot": "23",
-        "type": "t_array(t_uint256)50_storage"
+        "type": "t_uint256"
+      },
+      {
+        "astId": 24617,
+        "contract": "contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate",
+        "label": "flashLoanSupplierFeeMantissa",
+        "offset": 0,
+        "slot": "24",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 24620,
+        "contract": "contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate",
+        "label": "flashLoanAmount",
+        "offset": 0,
+        "slot": "25",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 24625,
+        "contract": "contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "26",
+        "type": "t_array(t_uint256)46_storage"
       }
     ],
     "types": {
@@ -2482,11 +2984,11 @@
         "label": "address payable",
         "numberOfBytes": "20"
       },
-      "t_array(t_uint256)50_storage": {
+      "t_array(t_uint256)46_storage": {
         "base": "t_uint256",
         "encoding": "inplace",
-        "label": "uint256[50]",
-        "numberOfBytes": "1600"
+        "label": "uint256[46]",
+        "numberOfBytes": "1472"
       },
       "t_bool": {
         "encoding": "inplace",

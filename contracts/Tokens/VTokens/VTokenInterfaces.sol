@@ -332,14 +332,17 @@ abstract contract VTokenInterface is VTokenStorage {
     // @notice Thrown when comptroller is not valid
     error InvalidComptroller();
 
-    // @notice Thrown when the repayment amount is insufficient
-    error InsufficientRepayment();
-
     // @notice Thrown when flashLoan is not enabled
     error FlashLoanNotEnabled();
 
     // @notice Thrown when the receiver contract execute operation fails
     error ExecuteFlashLoanFailed();
+
+    // @notice Thrown when flashloan is not authorized for a user
+    error FlashLoanNotAuthorized();
+
+    // @notice Thrown when insufficient balance to repay flashLoan
+    error InsufficientRepaymentBalance();
 
     /*** User Interface ***/
 

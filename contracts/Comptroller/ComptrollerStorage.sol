@@ -282,17 +282,6 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 }
 
 contract ComptrollerV17Storage is ComptrollerV16Storage {
-    struct FlashLoanData {
-        uint256[] protocolFees;
-        uint256[] totalFees;
-        uint256[] balanceAfterTransfer;
-        uint256[] actualRepayments;
-        uint256[] remainingDebts;
-    }
-    /// @notice Mapping to store delegate authorization for flash loans
-    mapping(address delegator => mapping(address market => mapping(address sender => bool)))
-        public delegateAuthorizationFlashloan;
-
     struct PoolData {
         /// @notice label for the pool
         string label;
@@ -322,4 +311,19 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
      * @dev Increments each time a pool is created; `poolId = 0` is reserved for the core pool
      */
     uint96 public lastPoolId;
+
+    /// @notice Mapping of accounts authorized to execute flash loans
+    mapping(address => bool) public authorizedFlashLoan;
+
+    struct FlashLoanData {
+        uint256[] protocolFees;
+        uint256[] supplierFees;
+        uint256[] totalFees;
+        uint256[] balanceAfterTransfer;
+        uint256[] actualRepayments;
+        uint256[] remainingDebts;
+    }
+    /// @notice Mapping to store delegate authorization for flash loans
+    mapping(address /* delegator */ => mapping(address /* market */ => mapping(address /* sender */ => bool)))
+        public delegateAuthorizationFlashloan;
 }
