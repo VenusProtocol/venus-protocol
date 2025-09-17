@@ -414,9 +414,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         ensureNonzeroAddress(receiver);
 
-        if (!authorizedFlashLoan[initiator]) {
-            revert("Flash loan not authorized for this account");
-        }
+        if (!authorizedFlashLoan[initiator]) revert("Flash loan not authorized for this account");
         // Execute flash loan phases
         _executeFlashLoanPhases(initiator, receiver, vTokens, underlyingAmounts, param);
 

@@ -635,20 +635,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit IsAccountFlashLoanWhitelisted(account, _isWhiteListed);
     }
 
-    /**
-     * @notice Set or revoke delegate authorization for flash loans
-     * @dev Allows users to authorize delegates to execute flash loans on their behalf
-     * @param delegate The address to authorize or revoke as delegate
-     * @param approved True to authorize, false to revoke
-     */
-    function setDelegateAuthorizationFlashloan(address market, address delegate, bool approved) external {
-        ensureNonzeroAddress(delegate);
-
-        // Only allow users to set authorization for themselves
-        delegateAuthorizationFlashloan[msg.sender][market][delegate] = approved;
-
-        emit DelegateAuthorizationFlashloanChanged(msg.sender, market, delegate, approved);
-    }
 
     /**
      * @notice updates active status for a specific pool (excluding the Core Pool)

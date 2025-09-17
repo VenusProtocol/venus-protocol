@@ -117,10 +117,6 @@ async function deploy(): Promise<SetupProtocolFixture> {
     newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],bytes)"],
   );
 
-  const addSetDelegateAuthorizationFlashloanFunctionSignature = newSetterFacet.interface.getSighash(
-    newSetterFacet.interface.functions["setDelegateAuthorizationFlashloan(address,address,bool)"],
-  );
-
   const addSetIsBorrowAllowedSelector = newSetterFacet.interface.getSighash("setIsBorrowAllowed(uint96,address,bool)");
 
   const addGetEffectiveLtvFactorSelector = newMarketFacet.interface.getSighash(
@@ -157,7 +153,6 @@ async function deploy(): Promise<SetupProtocolFixture> {
       action: FacetCutAction.Add,
       functionSelectors: [
         addSetWhiteListFlashLoanAccountFunctionSignature,
-        addSetDelegateAuthorizationFlashloanFunctionSignature,
         addSetIsBorrowAllowedSelector,
       ],
     },
@@ -265,14 +260,6 @@ forking(64048894, () => {
         await accessControlManager
           .connect(timeLockUser)
           .giveCallPermission(setterFacet.address, "setWhiteListFlashLoanAccount(address,bool)", timeLockUser.address);
-
-        await accessControlManager
-          .connect(timeLockUser)
-          .giveCallPermission(
-            setterFacet.address,
-            "setDelegateAuthorizationFlashloan(address,address,bool)",
-            timeLockUser.address,
-          );
 
         await accessControlManager
           .connect(timeLockUser)
@@ -386,9 +373,7 @@ forking(64048894, () => {
             user.address,
             mockFlashLoanReceiver.address,
             [vUSDT.address, vBUSD.address], // Zero address as an asset, which is invalid
-            [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
-            [0, 0],
-            user.address,
+            [BUSDFlashLoanTotalFeeMantissa, BUSDFlashLoanProtocolShareMantissa],
             ethers.utils.formatBytes32String(""), // Add the missing `param` argument
           ),
         ).to.be.revertedWith("Flash loan not authorized for this account");
@@ -474,15 +459,8 @@ forking(64048894, () => {
       });
 
       it("Should be able to do flashLoan for USDT & BUSD with debt position", async () => {
-        await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(timeLockUser.address, true);
+        await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(user.address, true);
 
-        await setterFacet.connect(user).setDelegateAuthorizationFlashloan(
-          vUSDT.address,
-          timeLockUser.address,
-          true, // Allow flash loan
-        );
-
-        await setterFacet.connect(user).setDelegateAuthorizationFlashloan(vBUSD.address, timeLockUser.address, true); // Allow flash loan
         // Transfer USDT and BUSD tokens to provide liquidity to vTokens
         await USDT.connect(usdtHolder).transfer(vUSDT.address, parseUnits("100", 6));
         await BUSD.connect(busdHolder).transfer(vBUSD.address, parseUnits("100", 18));
@@ -523,7 +501,7 @@ forking(64048894, () => {
         const busdFlashLoanAmount = parseUnits("5", 18); // 5 BUSD
 
         // User initiates a flashLoan with mode = 1 (debt position) for both tokens
-        const tx = await policyFacet.connect(timeLockUser).executeFlashLoan(
+        const tx = await policyFacet.connect(user).executeFlashLoan(
           user.address,
           borrowDebtFlashLoanReceiver.address, // receiver
           [vUSDT.address, vBUSD.address], // vTokens
