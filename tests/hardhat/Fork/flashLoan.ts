@@ -151,10 +151,7 @@ async function deploy(): Promise<SetupProtocolFixture> {
     {
       facetAddress: newSetterFacet.address,
       action: FacetCutAction.Add,
-      functionSelectors: [
-        addSetWhiteListFlashLoanAccountFunctionSignature,
-        addSetIsBorrowAllowedSelector,
-      ],
+      functionSelectors: [addSetWhiteListFlashLoanAccountFunctionSignature, addSetIsBorrowAllowedSelector],
     },
     {
       facetAddress: newSetterFacet.address,

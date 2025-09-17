@@ -193,7 +193,7 @@ forking(64048894, async () => {
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(vUSDT.address, "setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);  
+          .giveCallPermission(vUSDT.address, "setFlashLoanFeeMantissa(uint256,uint256)", timeLockUser.address);
       });
 
       it("Should revert if flashLoan not enabled", async () => {

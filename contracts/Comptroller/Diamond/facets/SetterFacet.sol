@@ -635,7 +635,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit IsAccountFlashLoanWhitelisted(account, _isWhiteListed);
     }
 
-
     /**
      * @notice updates active status for a specific pool (excluding the Core Pool)
      * @param poolId id of the pool to update
