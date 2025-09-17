@@ -1403,6 +1403,18 @@ describe("Comptroller", () => {
       });
     });
 
+    describe("setPoolLabel", () => {
+      it("should update the pool label", async () => {
+        const newPoolLabel = "stablecoins e-mode";
+        await expect(comptroller.setPoolLabel(poolId, newPoolLabel))
+          .to.emit(comptroller, "PoolLabelUpdated")
+          .withArgs(poolId, "e-mode", newPoolLabel);
+
+        const pool = await comptroller.pools(poolId);
+        expect(pool.label).to.equal(newPoolLabel);
+      });
+    });
+
     describe("Market Getters", () => {
       it("returns correct key for core pool", async () => {
         const key = await comptroller.getPoolMarketIndex(corePoolId, vToken.address);
