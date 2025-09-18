@@ -487,7 +487,7 @@ describe("Prime Token", () => {
       expect(interestForUser3ForUsdt).to.be.equal(0);
       expect(interestForUser3ForEth).to.be.equal(0);
 
-      // Transfering funds to primeLiquidityProvider
+      // Transferring funds to primeLiquidityProvider
       await usdt.transfer(primeLiquidityProvider.address, convertToUnit("1", 10));
       await eth.transfer(primeLiquidityProvider.address, convertToUnit("1", 10));
 
