@@ -126,6 +126,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when pool active status changes
     event PoolActiveStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
 
+    /// @notice Emitted when pool label is updated
+    event PoolLabelUpdated(uint96 indexed poolId, string oldLabel, string newLabel);
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -633,6 +636,29 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         authorizedFlashLoan[account] = _isWhiteListed;
         emit IsAccountFlashLoanWhitelisted(account, _isWhiteListed);
+     * @notice Updates the label for a specific pool (excluding the Core Pool)
+     * @param poolId ID of the pool to update
+     * @param newLabel The new label for the pool
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist
+     * @custom:error EmptyPoolLabel Reverts if the provided label is an empty string
+     * @custom:event PoolLabelUpdated Emitted after the pool label is updated
+     */
+    function setPoolLabel(uint96 poolId, string calldata newLabel) external {
+        ensureAllowed("setPoolLabel(uint96,string)");
+
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+        if (bytes(newLabel).length == 0) revert EmptyPoolLabel();
+
+        PoolData storage pool = pools[poolId];
+
+        if (keccak256(bytes(pool.label)) == keccak256(bytes(newLabel))) {
+            return;
+        }
+
+        emit PoolLabelUpdated(poolId, pool.label, newLabel);
+        pool.label = newLabel;
     }
 
     /**

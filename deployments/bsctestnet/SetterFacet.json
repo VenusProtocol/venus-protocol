@@ -809,6 +809,31 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint96",
+          "name": "poolId",
+          "type": "uint96"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "oldLabel",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "newLabel",
+          "type": "string"
+        }
+      ],
+      "name": "PoolLabelUpdated",
+      "type": "event"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -2014,6 +2039,24 @@
     {
       "inputs": [
         {
+          "internalType": "uint96",
+          "name": "poolId",
+          "type": "uint96"
+        },
+        {
+          "internalType": "string",
+          "name": "newLabel",
+          "type": "string"
+        }
+      ],
+      "name": "setPoolLabel",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "contract ResilientOracleInterface",
           "name": "newOracle",
           "type": "address"
@@ -2672,6 +2715,14 @@
           "poolId": "id of the pool to update"
         }
       },
+      "setPoolLabel(uint96,string)": {
+        "custom:error": "InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core PoolPoolDoesNotExist Reverts if the target pool ID does not existEmptyPoolLabel Reverts if the provided label is an empty string",
+        "custom:event": "PoolLabelUpdated Emitted after the pool label is updated",
+        "params": {
+          "newLabel": "The new label for the pool",
+          "poolId": "ID of the pool to update"
+        }
+      },
       "setPriceOracle(address)": {
         "params": {
           "newOracle": "The new price oracle to set"
@@ -2864,6 +2915,9 @@
       },
       "PoolActiveStatusUpdated(uint96,bool,bool)": {
         "notice": "Emitted when pool active status changes"
+      },
+      "PoolLabelUpdated(uint96,string,string)": {
+        "notice": "Emitted when pool label is updated"
       }
     },
     "kind": "user",
@@ -3041,6 +3095,9 @@
       },
       "setPoolActive(uint96,bool)": {
         "notice": "updates active status for a specific pool (excluding the Core Pool)"
+      },
+      "setPoolLabel(uint96,string)": {
+        "notice": "Updates the label for a specific pool (excluding the Core Pool)"
       },
       "setPriceOracle(address)": {
         "notice": "Alias to _setPriceOracle to support the Isolated Lending Comptroller Interface"
@@ -3918,7 +3975,7 @@
             "type": "t_array(t_address)dyn_storage"
           },
           {
-            "astId": 4823,
+            "astId": 1938,
             "contract": "contracts/Comptroller/Diamond/facets/SetterFacet.sol:SetterFacet",
             "label": "isActive",
             "offset": 0,
