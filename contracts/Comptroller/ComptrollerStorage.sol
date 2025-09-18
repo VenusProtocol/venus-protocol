@@ -287,8 +287,16 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
         string label;
         /// @notice List of vToken addresses associated with this pool
         address[] vTokens;
-        /// @notice whether pool is active and can be entered, falls back to core pool values if false
+        /**
+         * @notice Whether the pool is active and can be entered. If set to false,
+         * new entries are disabled and existing accounts fall back to core pool values
+         */
         bool isActive;
+        /**
+         * @notice Whether core pool risk factors can be used as fallback when the market
+         * is not configured in the specific pool, falls back when set to true
+         */
+        bool allowCorePoolFallback;
     }
 
     /**
