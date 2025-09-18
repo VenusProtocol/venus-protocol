@@ -250,30 +250,6 @@ describe("FlashLoan", async () => {
       ).to.be.revertedWithCustomError(comptroller, "InvalidAmount");
     });
 
-    it("should revert if repayment is insufficient", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
-
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
-
-      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
-      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
-
-      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
-      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
-
-      // Execute the flashLoan from the mockReceiverContract
-      await expect(
-        mockReceiverContract.requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          mockReceiverContract.address,
-          "0x",
-        ),
-      ).to.be.revertedWith("Insufficient balance");
-    });
-
     it("Should revert if receiver's executeOperation returns false", async () => {
       // Enable flashLoan for vTokens
       await vTokenA.toggleFlashLoan();
@@ -306,7 +282,124 @@ describe("FlashLoan", async () => {
       ).to.be.revertedWithCustomError(comptroller, "ExecuteFlashLoanFailed");
     });
 
-    it("Should create debt position if receiver repays less than required", async () => {
+    it("User has not supplied in venus - Should not create debt position if receiver repays full amount + fee", async () => {
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
+
+      // Set the balance of mockReceiver in order to pay for flashLoan fee
+      await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.not.be.reverted;
+
+      // Check that no debt position was created
+      const debtA = await vTokenA.borrowBalanceStored(alice.address);
+      const debtB = await vTokenB.borrowBalanceStored(alice.address);
+      expect(debtA).to.equal(0);
+      expect(debtB).to.equal(0);
+    });
+
+    it("User has not supplied in venus - should revert if repayment is insufficient", async () => {
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+
+      // Execute the flashLoan from the mockReceiverContract
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          "0x",
+        ),
+      ).to.be.revertedWith("Insufficient balance");
+    });
+
+    it("User has supplied in venus - Should not create debt position if repays full amount + fee", async () => {
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
+
+      // Set the balance of mockReceiver in order to pay for flashLoan fee
+      await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+
+      await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("1000", 18));
+      await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("1000", 18));
+      await vTokenA.connect(alice).mint(parseUnits("500", 18)); // Alice supplies 500 tokens as collateral
+      await vTokenB.connect(alice).mint(parseUnits("500", 18)); // Alice supplies 500 tokens as collateral
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.not.be.reverted;
+
+      // Check that no debt position was created
+      const debtA = await vTokenA.borrowBalanceStored(alice.address);
+      const debtB = await vTokenB.borrowBalanceStored(alice.address);
+      expect(debtA).to.equal(0);
+      expect(debtB).to.equal(0);
+    });
+
+    it("User has supplied in venus - Should create debt position if repays less than required", async () => {
       await vTokenA.toggleFlashLoan();
       await vTokenB.toggleFlashLoan();
 
@@ -385,30 +478,28 @@ describe("FlashLoan", async () => {
       expect(aliceBorrowBalanceAfterB).to.be.gt(aliceBorrowBalanceBeforeB);
     });
 
-    it("Should not create debt position if receiver repays full amount + fee", async () => {
+    it("User has not enough supply in Venus and repays lesser amount (should revert)", async () => {
       await vTokenA.toggleFlashLoan();
       await vTokenB.toggleFlashLoan();
 
-      // Set the balance of mockReceiver in order to pay for flashLoan fee
-      await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
-      await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
 
-      // Set collateral factors for the markets
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](
-        vTokenA.address,
-        parseUnits("0.9", 18),
-        parseUnits("1", 18),
-      );
-      await comptroller["setCollateralFactor(address,uint256,uint256)"](
-        vTokenB.address,
-        parseUnits("0.9", 18),
-        parseUnits("1", 18),
-      );
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
 
-      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
-      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+      // alice supplies insufficient collateral
+      await underlyingA.harnessSetBalance(alice.address, parseUnits("10", 18));
+      await underlyingB.harnessSetBalance(alice.address, parseUnits("10", 18));
+      await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("10", 18));
+      await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("10", 18));
+      await vTokenA.connect(alice).mint(parseUnits("5", 18));
+      await vTokenB.connect(alice).mint(parseUnits("5", 18));
+      await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
+
+      // Only repay principal, not fee
+      await underlyingA.harnessSetBalance(mockReceiverContract.address, flashLoanAmount1);
+      await underlyingB.harnessSetBalance(mockReceiverContract.address, flashLoanAmount2);
 
       await expect(
         mockReceiverContract
@@ -419,13 +510,7 @@ describe("FlashLoan", async () => {
             mockReceiverContract.address,
             "0x",
           ),
-      ).to.not.be.reverted;
-
-      // Check that no debt position was created
-      const debtA = await vTokenA.borrowBalanceStored(alice.address);
-      const debtB = await vTokenB.borrowBalanceStored(alice.address);
-      expect(debtA).to.equal(0);
-      expect(debtB).to.equal(0);
+      ).to.be.revertedWith("Insufficient balance");
     });
   });
 });
