@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
 /**
  * @title MarketFacet
@@ -43,7 +44,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         VToken[] memory assetsIn = new VToken[](_accountAssetsLength);
 
         for (uint256 i; i < _accountAssetsLength; ++i) {
-            Market memory market = markets[address(_accountAssets[i])];
+            Market storage market = markets[address(_accountAssets[i])];
             if (market.isListed) {
                 assetsIn[len] = _accountAssets[i];
                 ++len;
@@ -222,7 +223,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
-                userAssetList.length--;
+                userAssetList.pop();
                 break;
             }
         }

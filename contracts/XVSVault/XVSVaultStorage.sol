@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
 
-import "../Utils/SafeMath.sol";
-import "../Utils/IBEP20.sol";
-import "../Tokens/Prime/IPrime.sol";
+import { SafeMath } from "../Utils/SafeMath.sol";
+import { IBEP20 } from "../Utils/IBEP20.sol";
+import { IPrimeV5 } from "../Tokens/Prime/IPrimeV5.sol";
 
 contract XVSVaultAdminStorage {
     /**
@@ -124,7 +125,7 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     mapping(address => mapping(address => uint256)) public pendingRewardTransfers;
 
     /// @notice Prime token contract address
-    IPrime public primeToken;
+    IPrimeV5 public primeToken;
 
     /// @notice Reward token for which prime token is issued for staking
     address public primeRewardToken;

@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
+
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { ISetterFacet } from "../interfaces/ISetterFacet.sol";
-import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
-import { FacetBase } from "./FacetBase.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
+import { ISetterFacet } from "../interfaces/ISetterFacet.sol";
+import { FacetBase } from "./FacetBase.sol";
 
 /**
  * @title SetterFacet
@@ -31,7 +33,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewLiquidationIncentive(uint256 oldLiquidationIncentiveMantissa, uint256 newLiquidationIncentiveMantissa);
 
     /// @notice Emitted when price oracle is changed
-    event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
+    event NewPriceOracle(ResilientOracleInterface oldPriceOracle, ResilientOracleInterface newPriceOracle);
 
     /// @notice Emitted when borrow cap for a vToken is changed
     event NewBorrowCap(VToken indexed vToken, uint256 newBorrowCap);
@@ -118,7 +120,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newOracle The new price oracle to set
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function setPriceOracle(PriceOracle newOracle) external returns (uint256) {
+    function setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256) {
         return __setPriceOracle(newOracle);
     }
 
@@ -128,7 +130,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newOracle The new price oracle to set
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPriceOracle(PriceOracle newOracle) external returns (uint256) {
+    function _setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256) {
         return __setPriceOracle(newOracle);
     }
 
@@ -443,7 +445,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      */
     function _setComptrollerLens(
         ComptrollerLensInterface comptrollerLens_
-    ) external compareAddress(address(comptrollerLens), address(comptrollerLens_)) returns (uint256) {
+    ) external virtual compareAddress(address(comptrollerLens), address(comptrollerLens_)) returns (uint256) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);
@@ -580,14 +582,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise reverted
      */
     function __setPriceOracle(
-        PriceOracle newOracle
+        ResilientOracleInterface newOracle
     ) internal compareAddress(address(oracle), address(newOracle)) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(newOracle));
 
         // Track the old oracle for the comptroller
-        PriceOracle oldOracle = oracle;
+        ResilientOracleInterface oldOracle = oracle;
 
         // Set comptroller's oracle to newOracle
         oracle = newOracle;
@@ -658,7 +660,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         }
 
         // If collateral factor != 0, fail if price == 0
-        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
+        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(address(vToken)) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 

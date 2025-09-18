@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import { IProtocolShareReserve, IWBNB, VBNBAdminStorage, VTokenInterface } from "./VBNBAdminStorage.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IProtocolShareReserve } from "../external/IProtocolShareReserve.sol";
+import { IWBNB } from "../external/IWBNB.sol";
+import { VBNBAdminStorage, VTokenInterface } from "./VBNBAdminStorage.sol";
 
 /**
  * @title VBNBAdmin

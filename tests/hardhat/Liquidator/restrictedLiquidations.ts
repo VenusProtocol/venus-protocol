@@ -35,9 +35,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-    "contracts/InterfacesV8.sol:IProtocolShareReserve",
-  );
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const wBnb = await smock.fake<WBNB>("WBNB");
   const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControlManager.isAllowedToCall.returns(true);

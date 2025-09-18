@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
@@ -126,7 +127,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             }
         }
 
-        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (oracle.getUnderlyingPrice(vToken) == 0) {
             return uint256(Error.PRICE_ERROR);
         }
 
