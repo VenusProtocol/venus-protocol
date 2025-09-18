@@ -658,14 +658,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
         if (poolId == corePoolId) revert InvalidOperationForCorePool();
 
-        PoolData storage newPool = pools[poolId];
+        PoolData storage pool = pools[poolId];
 
-        if (newPool.isActive == active) {
+        if (pool.isActive == active) {
             return;
         }
 
-        emit PoolActiveStatusUpdated(poolId, newPool.isActive, active);
-        newPool.isActive = active;
+        emit PoolActiveStatusUpdated(poolId, pool.isActive, active);
+        pool.isActive = active;
     }
 
     /**
