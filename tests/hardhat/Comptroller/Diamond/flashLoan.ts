@@ -105,13 +105,10 @@ describe("FlashLoan", async () => {
   async function deploy(): Promise<Contracts> {
     const contracts = await flashLoanTestFixture();
     const underlyingA = await mockUnderlying("TokenA", "TKNA");
+    const underlyingB = await mockUnderlying("TokenB", "TKNB");
 
-    protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
-      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
-    );
-
-    const vTokenAFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
-    const vTokenA = await vTokenAFactory.deploy(
+    const vTokenFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
+    const vTokenA = await vTokenFactory.deploy(
       underlyingA.address,
       contracts.comptroller.address,
       contracts.interestRateModel.address,
@@ -122,11 +119,7 @@ describe("FlashLoan", async () => {
       contracts.admin.address,
     );
 
-    vTokenA.setAccessControlManager(contracts.accessControlManager.address);
-
-    const underlyingB = await mockUnderlying("TokenB", "TKNB");
-    const vTokenBFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
-    const vTokenB = await vTokenBFactory.deploy(
+    const vTokenB = await vTokenFactory.deploy(
       underlyingB.address,
       contracts.comptroller.address,
       contracts.interestRateModel.address,
@@ -137,6 +130,10 @@ describe("FlashLoan", async () => {
       contracts.admin.address,
     );
 
+    protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
+      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
+    );
+    vTokenA.setAccessControlManager(contracts.accessControlManager.address);
     vTokenB.setAccessControlManager(contracts.accessControlManager.address);
     await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);
     await vTokenB.setProtocolShareReserve(protocolShareReserveMock.address);
@@ -199,8 +196,8 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if user is not whitelisted", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
       await expect(
@@ -210,12 +207,14 @@ describe("FlashLoan", async () => {
           mockReceiverContract.address,
           "0x",
         ),
-      ).to.be.revertedWith("Flash loan not authorized for this account");
+      )
+        .to.be.revertedWithCustomError(comptroller, "SenderNotAuthorizedForFlashLoan")
+        .withArgs(alice.address);
     });
 
     it("Should revert if array params are unequal", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
 
       await expect(
         mockReceiverContract.requestFlashLoan(
@@ -228,8 +227,8 @@ describe("FlashLoan", async () => {
     });
 
     it("should revert when requested flash loan amount is zero", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -248,12 +247,12 @@ describe("FlashLoan", async () => {
           mockReceiverContract.address,
           "0x",
         ),
-      ).to.be.revertedWith("Invalid amount");
+      ).to.be.revertedWithCustomError(comptroller, "InvalidAmount");
     });
 
     it("should revert if repayment is insufficient", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -277,8 +276,8 @@ describe("FlashLoan", async () => {
 
     it("Should revert if receiver's executeOperation returns false", async () => {
       // Enable flashLoan for vTokens
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -308,8 +307,8 @@ describe("FlashLoan", async () => {
     });
 
     it("Should create debt position if receiver repays less than required", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -387,8 +386,8 @@ describe("FlashLoan", async () => {
     });
 
     it("Should not create debt position if receiver repays full amount + fee", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
+      await vTokenB.toggleFlashLoan();
 
       // Set the balance of mockReceiver in order to pay for flashLoan fee
       await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));

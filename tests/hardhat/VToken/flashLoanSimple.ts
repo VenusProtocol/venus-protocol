@@ -137,28 +137,28 @@ describe("FlashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(false);
 
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
-      await expect(vTokenA._toggleFlashLoan()).to.be.revertedWith("access denied");
+      await expect(vTokenA.toggleFlashLoan()).to.be.revertedWith("access denied");
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
     });
 
     it("Enable flashLoan feature", async () => {
       accessControlManager.isAllowedToCall.returns(true);
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
-      await vTokenA._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
     });
 
     it("Disable flashLoan feature", async () => {
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
-      await vTokenA._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
     });
 
-    it("Emit _ToggleFlashLoanEnabled event on toggle flashLoan feature", async () => {
-      let result = await vTokenA._toggleFlashLoan();
+    it("Emit toggleFlashLoanEnabled event on toggle flashLoan feature", async () => {
+      let result = await vTokenA.toggleFlashLoan();
       await expect(result).to.emit(vTokenA, "ToggleFlashLoanEnabled").withArgs(false, true);
 
-      result = await vTokenA._toggleFlashLoan();
+      result = await vTokenA.toggleFlashLoan();
       await expect(result).to.emit(vTokenA, "ToggleFlashLoanEnabled").withArgs(true, false);
     });
   });
@@ -238,7 +238,7 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if user is not whitelisted", async () => {
-      await vTokenA._toggleFlashLoan();
+      await vTokenA.toggleFlashLoan();
 
       await expect(
         mockReceiverSimple.connect(alice).requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),

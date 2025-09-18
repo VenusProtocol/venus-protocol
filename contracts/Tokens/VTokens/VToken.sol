@@ -464,8 +464,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @custom:access Only Governance
      * @custom:event Emits ToggleFlashLoanEnabled event on success
      */
-    function _toggleFlashLoan() external returns (uint256) {
-        ensureAllowed("_toggleFlashLoan()");
+    function toggleFlashLoan() external returns (uint256) {
+        ensureAllowed("toggleFlashLoan()");
         isFlashLoanEnabled = !isFlashLoanEnabled;
 
         emit ToggleFlashLoanEnabled(!isFlashLoanEnabled, isFlashLoanEnabled);

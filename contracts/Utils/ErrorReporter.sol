@@ -53,13 +53,16 @@ contract ComptrollerErrorReporter {
     error FlashLoanNotEnabled();
 
     // @notice Thrown when the sender is not authorized to use flashloan onBehalfOf
-    error SenderNotAuthorizedForFlashLoan();
+    error SenderNotAuthorizedForFlashLoan(address sender);
 
     // @notice Thrown when an invalid mode is provided
     error InvalidMode();
 
     // @notice Thrown when executeOperation on the receiver contract fails
     error ExecuteFlashLoanFailed();
+
+    // @notice Thrown when the requested amount is zero
+    error InvalidAmount();
 
     // @notice Thrown when failing to create a debt position in mode 1
     error FailedToCreateDebtPosition();

@@ -636,6 +636,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         authorizedFlashLoan[account] = _isWhiteListed;
         emit IsAccountFlashLoanWhitelisted(account, _isWhiteListed);
+    }
+
+    /**
      * @notice Updates the label for a specific pool (excluding the Core Pool)
      * @param poolId ID of the pool to update
      * @param newLabel The new label for the pool

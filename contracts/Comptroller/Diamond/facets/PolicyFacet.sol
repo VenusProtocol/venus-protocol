@@ -387,9 +387,11 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param vTokens The addresses of the vToken assets to be loaned
      * @param underlyingAmounts The amounts of each underlying asset to be loaned
      * @param param The bytes passed in the executeOperation call
+     * @custom:error FlashLoanNotEnabled is thrown if the flash loan is not enabled for the asset.
+     * @custom:error InvalidAmount is thrown if the requested amount is zero.
      * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
      * @custom:error InvalidFlashLoanParams is thrown if the flash loan params are invalid.
-     * @custom:error FlashLoanNotEnabled is thrown if the flash loan is not enabled for the asset.
+     * @custom:error SenderNotAuthorizedForFlashLoan is thrown if the sender is not authorized to use flashloan.
      * @custom:event Emits FlashLoanExecuted on success
      */
     function executeFlashLoan(
@@ -401,7 +403,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) external {
         for (uint256 i; i < vTokens.length; i++) {
             if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
-            if (underlyingAmounts[i] == 0) revert("Invalid amount");
+            if (underlyingAmounts[i] == 0) revert InvalidAmount();
         }
         // vTokens array must not be empty
         if (vTokens.length == 0) {
@@ -414,7 +416,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         ensureNonzeroAddress(receiver);
 
-        if (!authorizedFlashLoan[initiator]) revert("Flash loan not authorized for this account");
+        if (!authorizedFlashLoan[initiator]) {
+            revert SenderNotAuthorizedForFlashLoan(initiator);
+        }
+
         // Execute flash loan phases
         _executeFlashLoanPhases(initiator, receiver, vTokens, underlyingAmounts, param);
 
