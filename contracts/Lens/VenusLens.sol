@@ -42,6 +42,10 @@ contract VenusLens is ExponentialNoError {
         uint dailySupplyXvs;
         uint dailyBorrowXvs;
         uint pausedActions;
+        uint liquidationThresholdMantissa;
+        uint liquidationIncentiveMantissa;
+        bool isBorrowAllowed;
+        uint96 poolId;
     }
 
     struct VTokenBalances {
@@ -108,7 +112,7 @@ contract VenusLens is ExponentialNoError {
         PendingReward[] pendingRewards;
     }
 
-    /// @notice Holds full market information for a single vToken within a specific pool (excluding the Core Pool)
+    /// @notice Holds full market information for a single vToken within a specific pool
     struct MarketData {
         uint96 poolId;
         string poolLabel;
@@ -121,11 +125,24 @@ contract VenusLens is ExponentialNoError {
         bool isBorrowAllowed;
     }
 
-    /// @notice Struct representing a pool (excluding the Core Pool) and its associated markets
+    /// @notice Struct representing a pool and its associated markets
     struct PoolWithMarkets {
         uint96 poolId;
         string label;
+        bool isActive;
+        bool allowCorePoolFallback;
         MarketData[] markets;
+    }
+
+    /// @notice Struct representing comptroller markets mapping return type
+    struct MarketsInfo {
+        bool isListed;
+        uint collateralFactorMantissa;
+        bool isVenus;
+        uint liquidationThresholdMantissa;
+        uint liquidationIncentiveMantissa;
+        uint96 poolId;
+        bool isBorrowAllowed;
     }
 
     /// @notice Thrown when a given pool ID does not exist
@@ -143,7 +160,16 @@ contract VenusLens is ExponentialNoError {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
         address comptrollerAddress = address(vToken.comptroller());
         ComptrollerInterface comptroller = ComptrollerInterface(comptrollerAddress);
-        (bool isListed, uint collateralFactorMantissa) = comptroller.markets(address(vToken));
+        MarketsInfo memory market;
+        (
+            market.isListed,
+            market.collateralFactorMantissa,
+            market.isVenus,
+            market.liquidationThresholdMantissa,
+            market.liquidationIncentiveMantissa,
+            market.poolId,
+            market.isBorrowAllowed
+        ) = comptroller.markets(address(vToken));
         address underlyingAssetAddress;
         uint underlyingDecimals;
 
@@ -177,8 +203,8 @@ contract VenusLens is ExponentialNoError {
                 totalReserves: vToken.totalReserves(),
                 totalSupply: vToken.totalSupply(),
                 totalCash: vToken.getCash(),
-                isListed: isListed,
-                collateralFactorMantissa: collateralFactorMantissa,
+                isListed: market.isListed,
+                collateralFactorMantissa: market.collateralFactorMantissa,
                 underlyingAssetAddress: underlyingAssetAddress,
                 vTokenDecimals: vToken.decimals(),
                 underlyingDecimals: underlyingDecimals,
@@ -186,7 +212,11 @@ contract VenusLens is ExponentialNoError {
                 venusBorrowSpeed: venusBorrowSpeedPerBlock,
                 dailySupplyXvs: venusSupplySpeedPerBlock * BLOCKS_PER_DAY,
                 dailyBorrowXvs: venusBorrowSpeedPerBlock * BLOCKS_PER_DAY,
-                pausedActions: pausedActions
+                pausedActions: pausedActions,
+                liquidationThresholdMantissa: market.liquidationThresholdMantissa,
+                liquidationIncentiveMantissa: market.liquidationIncentiveMantissa,
+                isBorrowAllowed: market.isBorrowAllowed,
+                poolId: market.poolId
             });
     }
 
@@ -578,7 +608,7 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
-     * @notice Returns all pools (excluding the Core Pool) along with their associated market data
+     * @notice Returns all pools (including the Core Pool) along with their associated market data
      * @param comptroller The Comptroller contract to query
      * @return poolsData An array of PoolWithMarkets structs, each containing pool info and its markets
      */
@@ -586,12 +616,24 @@ contract VenusLens is ExponentialNoError {
         ComptrollerInterface comptroller
     ) external view returns (PoolWithMarkets[] memory poolsData) {
         uint96 lastPoolId = comptroller.lastPoolId();
-        poolsData = new PoolWithMarkets[](lastPoolId);
+        poolsData = new PoolWithMarkets[](lastPoolId + 1);
+
+        poolsData[0] = PoolWithMarkets({
+            poolId: 0,
+            label: "Core Pool",
+            isActive: true, // dummy value — not applicable to core pool
+            allowCorePoolFallback: true, // dummy value — not applicable to core pool
+            markets: getCorePoolMarketsData(comptroller)
+        });
 
         for (uint96 i = 1; i <= lastPoolId; ++i) {
-            poolsData[i - 1] = PoolWithMarkets({
+            (string memory label, bool isActive, bool allowCorePoolFallback) = comptroller.pools(i);
+
+            poolsData[i] = PoolWithMarkets({
                 poolId: i,
-                label: comptroller.pools(i),
+                label: label,
+                isActive: isActive,
+                allowCorePoolFallback: allowCorePoolFallback,
                 markets: getMarketsDataByPool(i, comptroller)
             });
         }
@@ -616,7 +658,7 @@ contract VenusLens is ExponentialNoError {
         uint256 length = vTokens.length;
         result = new MarketData[](length);
 
-        string memory label = comptroller.pools(poolId);
+        (string memory label, , ) = comptroller.pools(poolId);
 
         for (uint256 i; i < length; ++i) {
             (
@@ -633,6 +675,43 @@ contract VenusLens is ExponentialNoError {
                 poolId: marketPoolId,
                 poolLabel: label,
                 vToken: vTokens[i],
+                isListed: isListed,
+                collateralFactor: collateralFactor,
+                isVenus: isVenus,
+                liquidationThreshold: liquidationThreshold,
+                liquidationIncentive: liquidationIncentive,
+                isBorrowAllowed: isBorrowAllowed
+            });
+        }
+    }
+
+    /**
+     * @notice Retrieves full market data for all vTokens in the Core Pool (poolId 0)
+     * @param comptroller The address of the Comptroller contract
+     * @return result An array of MarketData structs containing detailed market info for the core pool
+     */
+    function getCorePoolMarketsData(ComptrollerInterface comptroller) public view returns (MarketData[] memory result) {
+        VToken[] memory vTokens = comptroller.getAllMarkets();
+        uint256 length = vTokens.length;
+        result = new MarketData[](length);
+
+        string memory label = "Core Pool";
+
+        for (uint256 i; i < length; ++i) {
+            (
+                bool isListed,
+                uint256 collateralFactor,
+                bool isVenus,
+                uint256 liquidationThreshold,
+                uint256 liquidationIncentive,
+                uint96 marketPoolId,
+                bool isBorrowAllowed
+            ) = comptroller.markets(address(vTokens[i]));
+
+            result[i] = MarketData({
+                poolId: marketPoolId,
+                poolLabel: label,
+                vToken: address(vTokens[i]),
                 isListed: isListed,
                 collateralFactor: collateralFactor,
                 isVenus: isVenus,

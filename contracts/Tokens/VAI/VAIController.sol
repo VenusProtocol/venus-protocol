@@ -497,7 +497,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 return (uint256(Error.MATH_ERROR), 0);
             }
 
-            (, uint256 collateralFactorMantissa) = comptroller.markets(address(enteredMarkets[i]));
+            (, uint256 collateralFactorMantissa, , , , , ) = comptroller.markets(address(enteredMarkets[i]));
             (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint256(Error.MATH_ERROR), 0);
