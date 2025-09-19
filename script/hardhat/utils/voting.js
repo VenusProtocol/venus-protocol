@@ -52,7 +52,7 @@ async function proposeAndVote({ gov, proposal, proposer, supporter }) {
   await advanceTime(172801);
   const tx = await gov.methods.execute(proposalId).send({ from: proposer });
 
-  console.log("Exeution logs:", tx.events);
+  console.log("Execution logs:", tx.events);
 }
 
 module.exports = {
