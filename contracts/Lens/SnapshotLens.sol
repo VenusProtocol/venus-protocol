@@ -8,6 +8,7 @@ import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { VBep20 } from "../Tokens/VTokens/VBep20.sol";
+import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 contract SnapshotLens is ExponentialNoError {
     struct AccountSnapshot {
@@ -87,7 +88,11 @@ contract SnapshotLens is ExponentialNoError {
         require(oErr == 0, "Snapshot Error");
         vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-        (, uint collateralFactorMantissa, , , , , ) = ComptrollerInterface(comptrollerAddress).markets(address(vToken));
+        uint collateralFactorMantissa = ComptrollerInterface(comptrollerAddress).getEffectiveLtvFactor(
+            account,
+            address(vToken),
+            WeightFunction.USE_COLLATERAL_FACTOR
+        );
         vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
         // Get the normalized price of the asset
