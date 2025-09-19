@@ -695,7 +695,7 @@ contract VenusLens is ExponentialNoError {
         uint256 length = vTokens.length;
         result = new MarketData[](length);
 
-        string memory label = "Core Pool";
+        string memory label = "Core";
 
         for (uint256 i; i < length; ++i) {
             (
