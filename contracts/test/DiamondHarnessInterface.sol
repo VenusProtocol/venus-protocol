@@ -1,7 +1,6 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.25;
 
-contract DiamondHarnessInterface {
+interface DiamondHarnessInterface {
     enum FacetCutAction {
         Add,
         Replace,
@@ -24,7 +23,7 @@ contract DiamondHarnessInterface {
         bytes4[] functionSelectors;
     }
 
-    function getFacetAddress(bytes4 sig) public view returns (address);
+    function getFacetAddress(bytes4 sig) external view returns (address);
 
     function diamondCut(FacetCut[] calldata _diamondCut) external;
 

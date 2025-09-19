@@ -1,7 +1,8 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: BSD-3-Clause
 
-import "../Tokens/VTokens/VToken.sol";
+pragma solidity 0.8.25;
+
+import { VToken } from "../Tokens/VTokens/VToken.sol";
 
 interface ComptrollerLensInterface {
     function liquidateCalculateSeizeTokens(

@@ -268,9 +268,14 @@ describe("Prime Token", () => {
     let prime: Prime;
     let xvsVault: XVSVault;
     let xvs: XVS;
+    let comptroller: MockContract<ComptrollerMock>;
 
     beforeEach(async () => {
-      ({ prime, xvsVault, xvs } = await loadFixture(deployProtocol));
+      ({ prime, xvsVault, xvs, comptroller } = await loadFixture(deployProtocol));
+    });
+
+    it("should alias setPrimeToken to _setPrimeToken", async () => {
+      await expect(comptroller.setPrimeToken(prime.address)).to.emit(comptroller, "NewPrimeToken");
     });
 
     it("stake and mint", async () => {
@@ -482,7 +487,7 @@ describe("Prime Token", () => {
       expect(interestForUser3ForUsdt).to.be.equal(0);
       expect(interestForUser3ForEth).to.be.equal(0);
 
-      // Transfering funds to primeLiquidityProvider
+      // Transferring funds to primeLiquidityProvider
       await usdt.transfer(primeLiquidityProvider.address, convertToUnit("1", 10));
       await eth.transfer(primeLiquidityProvider.address, convertToUnit("1", 10));
 

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
 /**
  * @title MarketFacet
@@ -43,7 +44,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         VToken[] memory assetsIn = new VToken[](_accountAssetsLength);
 
         for (uint256 i; i < _accountAssetsLength; ++i) {
-            Market memory market = markets[address(_accountAssets[i])];
+            Market storage market = markets[address(_accountAssets[i])];
             if (market.isListed) {
                 assetsIn[len] = _accountAssets[i];
                 ++len;
@@ -115,6 +116,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
      */
     function checkMembership(address account, VToken vToken) external view returns (bool) {
         return markets[address(vToken)].accountMembership[account];
+    }
+
+    /**
+     * @notice Check if a market is marked as listed (active)
+     * @param vToken vToken Address for the market to check
+     * @return listed True if listed otherwise false
+     */
+    function isMarketListed(VToken vToken) external view returns (bool) {
+        return markets[address(vToken)].isListed;
     }
 
     /**
@@ -227,7 +237,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
-                userAssetList.length--;
+                userAssetList.pop();
                 break;
             }
         }
@@ -241,32 +251,22 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Alias to _supportMarket to support the Isolated Lending Comptroller Interface
+     * @param vToken The address of the market (token) to list
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
+     */
+    function supportMarket(VToken vToken) external returns (uint256) {
+        return __supportMarket(vToken);
+    }
+
+    /**
      * @notice Add the market to the markets mapping and set it as listed
      * @dev Allows a privileged role to add and list markets to the Comptroller
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function _supportMarket(VToken vToken) external returns (uint256) {
-        ensureAllowed("_supportMarket(address)");
-
-        if (markets[address(vToken)].isListed) {
-            return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
-        }
-
-        vToken.isVToken(); // Sanity check to make sure its really a VToken
-
-        // Note that isVenus is not in active use anymore
-        Market storage newMarket = markets[address(vToken)];
-        newMarket.isListed = true;
-        newMarket.isVenus = false;
-        newMarket.collateralFactorMantissa = 0;
-
-        _addMarketInternal(vToken);
-        _initializeMarket(address(vToken));
-
-        emit MarketListed(vToken);
-
-        return uint256(Error.NO_ERROR);
+        return __supportMarket(vToken);
     }
 
     /**
@@ -322,5 +322,28 @@ contract MarketFacet is IMarketFacet, FacetBase {
          * Update market state block numbers
          */
         supplyState.block = borrowState.block = blockNumber;
+    }
+
+    function __supportMarket(VToken vToken) internal returns (uint256) {
+        ensureAllowed("_supportMarket(address)");
+
+        if (markets[address(vToken)].isListed) {
+            return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
+        }
+
+        vToken.isVToken(); // Sanity check to make sure its really a VToken
+
+        // Note that isVenus is not in active use anymore
+        Market storage newMarket = markets[address(vToken)];
+        newMarket.isListed = true;
+        newMarket.isVenus = false;
+        newMarket.collateralFactorMantissa = 0;
+
+        _addMarketInternal(vToken);
+        _initializeMarket(address(vToken));
+
+        emit MarketListed(vToken);
+
+        return uint256(Error.NO_ERROR);
     }
 }

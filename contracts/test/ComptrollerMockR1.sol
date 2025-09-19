@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import "../Comptroller/Diamond/facets/MarketFacet.sol";
 import "../Comptroller/Diamond/facets/PolicyFacet.sol";
@@ -14,7 +14,7 @@ contract ComptrollerMockR1 is MarketFacet, PolicyFacet, RewardFacet, SetterFacet
     event MarketEntered(address vToken, address account);
     event MarketExited(address vToken, address account);
 
-    constructor() public {
+    constructor() {
         admin = msg.sender;
     }
 
@@ -23,7 +23,7 @@ contract ComptrollerMockR1 is MarketFacet, PolicyFacet, RewardFacet, SetterFacet
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
-    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external returns (uint) {
+    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external override returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);

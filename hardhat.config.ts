@@ -1,7 +1,6 @@
 import "module-alias/register";
 
 import "@nomicfoundation/hardhat-chai-matchers";
-import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
@@ -158,7 +157,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          evmVersion: "paris",
+          evmVersion: "cancun",
           outputSelection: {
             "*": {
               "*": ["storageLayout"],
@@ -258,12 +257,6 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
-    berachainbepolia: {
-      url: process.env.ARCHIVE_NODE_berachainbepolia || "https://bepolia.rpc.berachain.com",
-      chainId: 80069,
-      live: true,
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
-    },
   },
   etherscan: {
     apiKey: {
@@ -281,7 +274,6 @@ const config: HardhatUserConfig = {
       basemainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainsepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
-      berachainbepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
@@ -394,14 +386,6 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://api.uniscan.xyz/api/`,
           browserURL: "https://uniscan.xyz/",
-        },
-      },
-      {
-        network: "berachainbepolia",
-        chainId: 80069,
-        urls: {
-          apiURL: "https://api.routescan.io/v2/network/testnet/evm/80069/etherscan",
-          browserURL: "https://bepolia.beratrail.io",
         },
       },
     ],

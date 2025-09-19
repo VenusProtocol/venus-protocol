@@ -275,6 +275,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x77734e70b6E88b4d82fE632a168EDf6e700912b6",
   },
+  {
+    isMock: false,
+    name: "Wrapped BNB",
+    symbol: "WBNB",
+    decimals: 18,
+    tokenAddress: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

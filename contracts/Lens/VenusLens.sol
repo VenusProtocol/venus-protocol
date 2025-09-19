@@ -1,18 +1,16 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
 
-import "../Tokens/VTokens/VBep20.sol";
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/EIP20Interface.sol";
-import "../Tokens/XVS/XVS.sol";
-import "../Comptroller/ComptrollerInterface.sol";
-import "../Utils/SafeMath.sol";
-import { ComptrollerTypes } from "../Comptroller/ComptrollerStorage.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+
+import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
+import { VBep20 } from "../Tokens/VTokens/VBep20.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { ComptrollerInterface, Action } from "../Comptroller/ComptrollerInterface.sol";
+import { IXVS } from "../Tokens/XVS/IXVS.sol";
 
 contract VenusLens is ExponentialNoError {
-    using SafeMath for uint;
-
     /// @notice Blocks Per Day
     uint public constant BLOCKS_PER_DAY = 28800;
 
@@ -129,7 +127,7 @@ contract VenusLens is ExponentialNoError {
         } else {
             VBep20 vBep20 = VBep20(address(vToken));
             underlyingAssetAddress = vBep20.underlying();
-            underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
+            underlyingDecimals = IERC20Metadata(vBep20.underlying()).decimals();
         }
 
         uint venusSupplySpeedPerBlock = comptroller.venusSupplySpeeds(address(vToken));
@@ -138,7 +136,7 @@ contract VenusLens is ExponentialNoError {
         uint256 pausedActions;
 
         for (uint8 i; i <= VTOKEN_ACTIONS; ++i) {
-            uint256 paused = comptroller.actionPaused(address(vToken), ComptrollerTypes.Action(i)) ? 1 : 0;
+            uint256 paused = comptroller.actionPaused(address(vToken), Action(i)) ? 1 : 0;
             pausedActions |= paused << i;
         }
 
@@ -160,8 +158,8 @@ contract VenusLens is ExponentialNoError {
                 underlyingDecimals: underlyingDecimals,
                 venusSupplySpeed: venusSupplySpeedPerBlock,
                 venusBorrowSpeed: venusBorrowSpeedPerBlock,
-                dailySupplyXvs: venusSupplySpeedPerBlock.mul(BLOCKS_PER_DAY),
-                dailyBorrowXvs: venusBorrowSpeedPerBlock.mul(BLOCKS_PER_DAY),
+                dailySupplyXvs: venusSupplySpeedPerBlock * BLOCKS_PER_DAY,
+                dailyBorrowXvs: venusBorrowSpeedPerBlock * BLOCKS_PER_DAY,
                 pausedActions: pausedActions
             });
     }
@@ -206,11 +204,11 @@ contract VenusLens is ExponentialNoError {
                 //get dailyXvsSupplyMarket
                 uint dailyXvsSupplyMarket = 0;
                 uint supplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, vTokenBalanceInfo.balanceOfUnderlying);
-                uint marketTotalSupply = (metaDataItem.totalSupply.mul(metaDataItem.exchangeRateCurrent)).div(1e18);
+                uint marketTotalSupply = (metaDataItem.totalSupply * metaDataItem.exchangeRateCurrent) / 1e18;
                 uint marketTotalSupplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, marketTotalSupply);
 
                 if (marketTotalSupplyInUsd > 0) {
-                    dailyXvsSupplyMarket = (metaDataItem.dailySupplyXvs.mul(supplyInUsd)).div(marketTotalSupplyInUsd);
+                    dailyXvsSupplyMarket = (metaDataItem.dailySupplyXvs * supplyInUsd) / marketTotalSupplyInUsd;
                 }
 
                 //get dailyXvsBorrowMarket
@@ -219,7 +217,7 @@ contract VenusLens is ExponentialNoError {
                 uint marketTotalBorrowsInUsd = mul_ScalarTruncate(underlyingPriceMantissa, metaDataItem.totalBorrows);
 
                 if (marketTotalBorrowsInUsd > 0) {
-                    dailyXvsBorrowMarket = (metaDataItem.dailyBorrowXvs.mul(borrowsInUsd)).div(marketTotalBorrowsInUsd);
+                    dailyXvsBorrowMarket = (metaDataItem.dailyBorrowXvs * borrowsInUsd) / marketTotalBorrowsInUsd;
                 }
 
                 dailyXvsPerAccount += dailyXvsSupplyMarket + dailyXvsBorrowMarket;
@@ -247,7 +245,7 @@ contract VenusLens is ExponentialNoError {
             tokenAllowance = account.balance;
         } else {
             VBep20 vBep20 = VBep20(address(vToken));
-            EIP20Interface underlying = EIP20Interface(vBep20.underlying());
+            IERC20Metadata underlying = IERC20Metadata(vBep20.underlying());
             tokenBalance = underlying.balanceOf(account);
             tokenAllowance = underlying.allowance(account, address(vToken));
         }
@@ -288,10 +286,13 @@ contract VenusLens is ExponentialNoError {
      */
     function vTokenUnderlyingPrice(VToken vToken) public view returns (VTokenUnderlyingPrice memory) {
         ComptrollerInterface comptroller = ComptrollerInterface(address(vToken.comptroller()));
-        PriceOracle priceOracle = comptroller.oracle();
+        ResilientOracleInterface priceOracle = comptroller.oracle();
 
         return
-            VTokenUnderlyingPrice({ vToken: address(vToken), underlyingPrice: priceOracle.getUnderlyingPrice(vToken) });
+            VTokenUnderlyingPrice({
+                vToken: address(vToken),
+                underlyingPrice: priceOracle.getUnderlyingPrice(address(vToken))
+            });
     }
 
     /**
@@ -332,7 +333,7 @@ contract VenusLens is ExponentialNoError {
      * @param account Account address
      * @return Struct with XVS balance and voter details
      */
-    function getXVSBalanceMetadata(XVS xvs, address account) external view returns (XVSBalanceMetadata memory) {
+    function getXVSBalanceMetadata(IXVS xvs, address account) external view returns (XVSBalanceMetadata memory) {
         return
             XVSBalanceMetadata({
                 balance: xvs.balanceOf(account),
@@ -349,7 +350,7 @@ contract VenusLens is ExponentialNoError {
      * @return Struct with XVS balance and voter details and XVS allocation
      */
     function getXVSBalanceMetadataExt(
-        XVS xvs,
+        IXVS xvs,
         ComptrollerInterface comptroller,
         address account
     ) external returns (XVSBalanceMetadataExt memory) {
@@ -377,7 +378,7 @@ contract VenusLens is ExponentialNoError {
      * @return Array of VenusVotes structs with block number and vote count
      */
     function getVenusVotes(
-        XVS xvs,
+        IXVS xvs,
         address account,
         uint32[] calldata blockNumbers
     ) external view returns (VenusVotes[] memory) {

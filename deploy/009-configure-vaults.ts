@@ -46,7 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     basemainnet: basemainnetGovernanceDeployments.contracts.NormalTimelock.address,
     unichainsepolia: unichainsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
     unichainmainnet: unichainmainnetGovernanceDeployments.contracts.NormalTimelock.address,
-    berachainbepolia: "0xAb3DBA18664B96AD54459D06Ca8BD18C9146d5CE", // berachainbepoliaGovernanceDeployments.contracts.NormalTimelock.address
     hardhat: deployer,
   };
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import "../Tokens/VTokens/VBep20Immutable.sol";
 import "../Tokens/VTokens/VBep20Delegator.sol";
@@ -10,14 +10,13 @@ contract VBep20Scenario is VBep20Immutable {
     constructor(
         address underlying_,
         ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
     )
-        public
         VBep20Immutable(
             underlying_,
             comptroller_,
@@ -63,14 +62,14 @@ contract EvilXToken is VBep20Delegate {
         comptrollerAddress = _comptrollerAddress;
     }
 
-    function exchangeRateStoredInternal() internal view returns (MathError, uint) {
+    function exchangeRateStoredInternal() internal view override returns (MathError, uint) {
         if (harnessExchangeRateStored) {
             return (MathError.NO_ERROR, harnessExchangeRate);
         }
         return super.exchangeRateStoredInternal();
     }
 
-    function doTransferOut(address payable to, uint amount) internal {
+    function doTransferOut(address payable to, uint amount) internal override {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         super.doTransferOut(to, amount);
 
@@ -196,12 +195,12 @@ contract EvilXToken is VBep20Delegate {
         return _setReserveFactorFresh(newReserveFactorMantissa);
     }
 
-    function harnessSetInterestRateModelFresh(InterestRateModel newInterestRateModel) public returns (uint) {
+    function harnessSetInterestRateModelFresh(InterestRateModelV8 newInterestRateModel) public returns (uint) {
         return _setInterestRateModelFresh(newInterestRateModel);
     }
 
     function harnessSetInterestRateModel(address newInterestRateModelAddress) public {
-        interestRateModel = InterestRateModel(newInterestRateModelAddress);
+        interestRateModel = InterestRateModelV8(newInterestRateModelAddress);
     }
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {

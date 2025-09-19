@@ -1,26 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
+
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
-import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
 import { IPrime } from "../Tokens/Prime/IPrime.sol";
-
-interface ComptrollerTypes {
-    enum Action {
-        MINT,
-        REDEEM,
-        BORROW,
-        REPAY,
-        SEIZE,
-        LIQUIDATE,
-        TRANSFER,
-        ENTER_MARKET,
-        EXIT_MARKET
-    }
-}
 
 contract UnitrollerAdminStorage {
     /**
@@ -44,11 +31,11 @@ contract UnitrollerAdminStorage {
     address public pendingComptrollerImplementation;
 }
 
-contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
+contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice Oracle which gives the price of any given asset
      */
-    PriceOracle public oracle;
+    ResilientOracleInterface public oracle;
 
     /**
      * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow
@@ -270,7 +257,7 @@ contract ComptrollerV14Storage is ComptrollerV13Storage {
 
 contract ComptrollerV15Storage is ComptrollerV14Storage {
     /// @notice Whether forced liquidation is enabled for the borrows of a user in a market
-    mapping(address /* user */ => mapping(address /* market */ => bool)) public isForcedLiquidationEnabledForUser;
+    mapping(address user => mapping(address market => bool)) public isForcedLiquidationEnabledForUser;
 }
 
 contract ComptrollerV16Storage is ComptrollerV15Storage {

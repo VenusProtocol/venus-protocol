@@ -1,7 +1,6 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import "./ComptrollerMock.sol";
-import "../Oracle/PriceOracle.sol";
 import "../Comptroller/Unitroller.sol";
 
 contract ComptrollerHarness is ComptrollerMock {
@@ -9,7 +8,7 @@ contract ComptrollerHarness is ComptrollerMock {
     address internal vXVSAddress;
     uint public blockNumber;
 
-    constructor() public ComptrollerMock() {}
+    constructor() ComptrollerMock() {}
 
     function setVenusSupplyState(address vToken, uint224 index, uint32 blockNumber_) public {
         venusSupplyState[vToken].index = index;
@@ -59,7 +58,7 @@ contract ComptrollerHarness is ComptrollerMock {
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
             if (venusSpeeds[address(vToken)] > 0) {
-                Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(vToken) });
+                Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(address(vToken)) });
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
                 utilities[i] = utility;
                 totalUtility = add_(totalUtility, utility);
@@ -138,7 +137,7 @@ contract ComptrollerHarness is ComptrollerMock {
         blockNumber = number;
     }
 
-    function getBlockNumber() internal view returns (uint) {
+    function getBlockNumber() internal view override returns (uint) {
         return blockNumber;
     }
 
@@ -166,7 +165,7 @@ contract ComptrollerHarness is ComptrollerMock {
     }
 
     function harnessAddVtoken(address vToken) external {
-        markets[vToken] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
+        markets[vToken].isListed = true;
     }
 }
 

@@ -1,13 +1,27 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
 
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
-import { ComptrollerTypes } from "./ComptrollerStorage.sol";
+pragma solidity 0.8.25;
 
-contract ComptrollerInterface {
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+
+enum Action {
+    MINT,
+    REDEEM,
+    BORROW,
+    REPAY,
+    SEIZE,
+    LIQUIDATE,
+    TRANSFER,
+    ENTER_MARKET,
+    EXIT_MARKET
+}
+
+interface ComptrollerInterface {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
-    bool public constant isComptroller = true;
+    function isComptroller() external pure returns (bool);
 
     /*** Assets You Are In ***/
 
@@ -105,11 +119,11 @@ contract ComptrollerInterface {
         uint repayAmount
     ) external view returns (uint, uint);
 
-    function getXVSAddress() public view returns (address);
+    function getXVSAddress() external view returns (address);
 
     function markets(address) external view returns (bool, uint);
 
-    function oracle() external view returns (PriceOracle);
+    function oracle() external view returns (ResilientOracleInterface);
 
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
 
@@ -143,7 +157,7 @@ contract ComptrollerInterface {
 
     function protocolPaused() external view returns (bool);
 
-    function actionPaused(address market, ComptrollerTypes.Action action) public view returns (bool);
+    function actionPaused(address market, Action action) external view returns (bool);
 
     function mintedVAIs(address user) external view returns (uint);
 
