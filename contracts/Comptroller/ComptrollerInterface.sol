@@ -27,6 +27,8 @@ interface ComptrollerInterface {
 
     function enterMarkets(address[] calldata vTokens) external returns (uint[] memory);
 
+    function enterMarket(address user, address vToken) external returns (uint256);
+
     function exitMarket(address vToken) external returns (uint);
 
     /*** Policy Hooks ***/
@@ -40,6 +42,13 @@ interface ComptrollerInterface {
     function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external;
 
     function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint);
+
+    function borrowAllowed(
+        address vToken,
+        address borrower,
+        address receiver,
+        uint borrowAmount
+    ) external returns (uint);
 
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
@@ -77,7 +86,7 @@ interface ComptrollerInterface {
 
     function seizeAllowed(
         address vTokenCollateral,
-        address vTokenBorrowed,
+        address vTokenOrExecutor,
         address liquidator,
         address borrower,
         uint seizeTokens

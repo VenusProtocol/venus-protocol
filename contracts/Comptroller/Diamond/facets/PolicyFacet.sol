@@ -108,6 +108,40 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function borrowAllowed(address vToken, address borrower, uint256 borrowAmount) external returns (uint256) {
+        return _borrowAllowed(vToken, borrower, address(0), borrowAmount);
+    }
+
+    /**
+     * @notice Checks if the account should be allowed to borrow the underlying asset of the given market
+     * @param vToken The market to verify the borrow against
+     * @param borrower The account which would borrow the asset
+     * @param receiver The account which would receive the borrowed asset
+     * @param borrowAmount The amount of underlying the account would borrow
+     * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
+     */
+    function borrowAllowed(
+        address vToken,
+        address borrower,
+        address receiver,
+        uint256 borrowAmount
+    ) external returns (uint256) {
+        return _borrowAllowed(vToken, borrower, receiver, borrowAmount);
+    }
+
+    /**
+     * @notice Checks if the account should be allowed to borrow the underlying asset of the given market
+     * @param vToken The market to verify the borrow against
+     * @param borrower The account which would borrow the asset
+     * @param receiver The account which would receive the borrowed asset or address(0) when receiver is not specified
+     * @param borrowAmount The amount of underlying the account would borrow
+     * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
+     */
+    function _borrowAllowed(
+        address vToken,
+        address borrower,
+        address receiver,
+        uint256 borrowAmount
+    ) internal returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
@@ -134,17 +168,20 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            borrower,
-            VToken(vToken),
-            0,
-            borrowAmount
-        );
-        if (err != Error.NO_ERROR) {
-            return uint256(err);
-        }
-        if (shortfall != 0) {
-            return uint256(Error.INSUFFICIENT_LIQUIDITY);
+        // Skipped for debt swapping, the receiver is the PositionSwapper contract
+        if (!whitelistedExecutors[receiver]) {
+            (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+                borrower,
+                VToken(vToken),
+                0,
+                borrowAmount
+            );
+            if (err != Error.NO_ERROR) {
+                return uint256(err);
+            }
+            if (shortfall != 0) {
+                return uint256(Error.INSUFFICIENT_LIQUIDITY);
+            }
         }
 
         // Keep the flywheel moving
@@ -298,14 +335,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
      * @param vTokenCollateral Asset which was used as collateral and will be seized
-     * @param vTokenBorrowed Asset which was borrowed by the borrower
+     * @param vTokenOrExecutor Asset which was borrowed by the borrower or a whitelisted executor
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
      */
     function seizeAllowed(
         address vTokenCollateral,
-        address vTokenBorrowed,
+        address vTokenOrExecutor,
         address liquidator,
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
@@ -319,16 +356,19 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
 
-        if (!market.accountMembership[borrower]) {
-            return uint256(Error.MARKET_NOT_COLLATERAL);
-        }
+        // Skipped for collateral swapping, the vTokenOrExecutor is the PositionSwapper contract
+        if (!whitelistedExecutors[vTokenOrExecutor]) {
+            if (!market.accountMembership[borrower]) {
+                return uint256(Error.MARKET_NOT_COLLATERAL);
+            }
 
-        if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
-        }
+            if (address(vTokenOrExecutor) != address(vaiController)) {
+                ensureListed(markets[vTokenOrExecutor]);
+            }
 
-        if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
-            return uint256(Error.COMPTROLLER_MISMATCH);
+            if (VToken(vTokenCollateral).comptroller() != VToken(vTokenOrExecutor).comptroller()) {
+                return uint256(Error.COMPTROLLER_MISMATCH);
+            }
         }
 
         // Keep the flywheel moving
@@ -342,14 +382,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /**
      * @notice Validates seize, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vTokenCollateral Asset which was used as collateral and will be seized
-     * @param vTokenBorrowed Asset which was borrowed by the borrower
+     * @param vTokenOrExecutor Asset which was borrowed by the borrower or a whitelisted executor
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
      */
     function seizeVerify(
         address vTokenCollateral,
-        address vTokenBorrowed, // solhint-disable-line no-unused-vars
+        address vTokenOrExecutor, // solhint-disable-line no-unused-vars
         address liquidator,
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars

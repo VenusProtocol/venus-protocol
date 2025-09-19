@@ -136,7 +136,9 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Transfers collateral tokens (this market) to the liquidator.
-     * @dev Will fail unless called by another vToken during the process of liquidation.
+     * @dev Will fail unless:
+     *     - Called by another vToken during the liquidation process, OR
+     *     - Called directly by a whitelisted executor.
      *  Its absolutely critical to use msg.sender as the borrowed vToken and not a parameter.
      * @param liquidator The account receiving seized collateral
      * @param borrower The account having collateral seized
@@ -1059,7 +1061,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function borrowFresh(address borrower, address payable receiver, uint borrowAmount) internal returns (uint) {
         /* Revert if borrow not allowed */
-        uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
+        uint allowed = comptroller.borrowAllowed(address(this), borrower, receiver, borrowAmount);
         if (allowed != 0) {
             revert("math error");
         }
@@ -1364,7 +1366,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Transfers collateral tokens (this market) to the liquidator.
-     * @dev Called only during an in-kind liquidation, or by liquidateBorrow during the liquidation of another vToken.
+     * @dev May be called in the following cases:
+     *    - During an in-kind liquidation,
+     *    - By `liquidateBorrow` during the liquidation of another vToken,
+     *    - During a position swap, or
+     *    - By a whitelisted executor through a call to `seize()`.
      *  Its absolutely critical to use msg.sender as the seizer vToken and not a parameter.
      * @param seizerToken The contract seizing the collateral (i.e. borrowed vToken)
      * @param liquidator The account receiving seized collateral

@@ -922,7 +922,9 @@ describe("Comptroller", () => {
         expect(
           await comptroller
             .connect(vToken.wallet)
-            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+            .callStatic[
+              "borrowAllowed(address,address,uint256)"
+            ](vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.equal(0); // 0 means "no error"
       });
 
@@ -938,7 +940,9 @@ describe("Comptroller", () => {
         await expect(
           comptroller
             .connect(vToken.wallet)
-            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+            .callStatic[
+              "borrowAllowed(address,address,uint256)"
+            ](vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.be.revertedWith("market borrow cap reached");
       });
 
@@ -954,12 +958,32 @@ describe("Comptroller", () => {
         await expect(
           comptroller
             .connect(vToken.wallet)
-            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+            .callStatic[
+              "borrowAllowed(address,address,uint256)"
+            ](vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.be.revertedWith("market borrow cap is 0");
       });
 
+      it("allows borrowing for error if borrower is whitelisted", async () => {
+        const cap = convertToUnit("1000", 18);
+        const currentVTokenBorrows = convertToUnit("500", 18);
+
+        vToken.totalBorrows.returns(currentVTokenBorrows);
+        vToken.borrowIndex.returns(1);
+        comptrollerLens.getHypotheticalAccountLiquidity.returns([1, 0, 0]);
+        await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
+        await comptroller._setWhitelistedExecutor(root.address, true);
+
+        expect(
+          await comptroller
+            .connect(vToken.wallet)
+            .callStatic[
+              "borrowAllowed(address,address,address,uint256)"
+            ](vToken.address, root.address, root.address, convertToUnit("0.9999", 18)),
+        ).to.be.equal(0);
+      });
+
       it("getBorrowingPower is an alias for getAccountLiquidity", async () => {
-        console.log(vToken.wallet._address);
         const accountLiquidity = await comptroller.getAccountLiquidity(vToken.wallet._address);
         const borrowingPower = await comptroller.getBorrowingPower(vToken.wallet._address);
 

@@ -95,6 +95,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when XVS vToken address is changed
     event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
+    /// @notice Emitted when whitelisted executors are updated
+    event WhitelistedExecutorsUpdated(address indexed executor, bool status);
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -547,6 +550,19 @@ contract SetterFacet is ISetterFacet, FacetBase {
         }
         isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed] = enable;
         emit IsForcedLiquidationEnabledForUserUpdated(borrower, vTokenBorrowed, enable);
+    }
+
+    /**
+     * @notice Set the whitelisted executor
+     * @param executor The address of the executor to be set
+     * @param status The status of the executor (true=whitelisted, false=not whitelisted)
+     */
+    function _setWhitelistedExecutor(address executor, bool status) external {
+        ensureAllowed("_setWhitelistedExecutor(address,bool)");
+        ensureNonzeroAddress(executor);
+
+        whitelistedExecutors[executor] = status;
+        emit WhitelistedExecutorsUpdated(executor, status);
     }
 
     /**

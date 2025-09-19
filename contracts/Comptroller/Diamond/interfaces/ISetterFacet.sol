@@ -81,4 +81,6 @@ interface ISetterFacet {
     function _setXVSToken(address xvs_) external;
 
     function _setXVSVToken(address xvsVToken_) external;
+
+    function _setWhitelistedExecutor(address executor, bool status) external;
 }

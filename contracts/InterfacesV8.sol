@@ -18,6 +18,12 @@ interface IVToken is IERC20Upgradeable {
     function comptroller() external view returns (IComptroller);
 
     function borrowBalanceStored(address account) external view returns (uint256);
+
+    function seize(address liquidator, address borrower, uint seizeTokens) external returns (uint);
+
+    function underlying() external view returns (address);
+
+    function mintBehalf(address receiver, uint mintAmount) external returns (uint);
 }
 
 interface IVBep20 is IVToken {
@@ -84,6 +90,14 @@ interface IComptroller {
     function markets(address) external view returns (bool, uint256, bool);
 
     function isForcedLiquidationEnabled(address) external view returns (bool);
+
+    function approvedDelegates(address borrower, address delegate) external view returns (bool);
+
+    function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256);
+
+    function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory);
+
+    function enterMarket(address user, address vToken) external returns (uint256);
 }
 
 interface ILiquidator {
