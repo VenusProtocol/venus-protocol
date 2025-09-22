@@ -12,7 +12,6 @@ import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
 import { IProtocolShareReserve } from "../../../external/IProtocolShareReserve.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title PolicyFacet
@@ -380,13 +379,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Executes a flashLoan operation with the specified assets, amounts,
-     * @dev Transfer the specified assets to the receiver contract and handles repayment .
-     * @param initiator The address of the EOA who initiated the flash loan
-     * @param receiver The address of the contract that will receive the flashLoan and execute the operation
-     * @param vTokens The addresses of the vToken assets to be loaned
-     * @param underlyingAmounts The amounts of each underlying asset to be loaned
-     * @param param The bytes passed in the executeOperation call
+     * @notice Executes a flashLoan operation with the requested assets.
+     * @dev Transfer the specified assets to the receiver contract and handles repayment.
+     * @param initiator The address of the EOA who initiated the flash loan.
+     * @param receiver The address of the contract that will receive the flashLoan amount and execute the operation.
+     * @param vTokens The addresses of the vToken assets to be loaned.
+     * @param underlyingAmounts The amounts of each underlying assets to be loaned.
+     * @param param The bytes passed in the executeOperation call.
      * @custom:error FlashLoanNotEnabled is thrown if the flash loan is not enabled for the asset.
      * @custom:error InvalidAmount is thrown if the requested amount is zero.
      * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
@@ -445,7 +444,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         // Phase 1: Calculate fees and transfer assets
         _executePhase1(receiver, vTokens, underlyingAmounts, flashLoanData);
-        // Phase 2: Execute operation on receiver contract
+        // Phase 2: Execute operations on receiver contract
         uint256[] memory tokensApproved = _executePhase2(
             initiator,
             receiver,
@@ -454,7 +453,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             flashLoanData.totalFees,
             param
         );
-        // Phase 3: Handle repayment
+        // Phase 3: Handles repayment
         _executePhase3(initiator, receiver, vTokens, tokensApproved, flashLoanData);
 
         return flashLoanData;
@@ -480,7 +479,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Phase 2: Execute operation on receiver contract
+     * @notice Phase 2: Execute operations on receiver contract
      */
     function _executePhase2(
         address payable initiator,
@@ -505,7 +504,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Phase 3: Handle repayment based
+     * @notice Phase 3: Handles repayment based on full or partial repayment
+     * @dev If full repayment is made, transfer protocol fee to protocol share reserve and update state.
+     *      If partial repayment is made, create an ongoing debt position for the unpaid balance.
      */
     function _executePhase3(
         address payable initiator,
@@ -532,11 +533,11 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      and either settles the protocol fee or creates an ongoing debt position for any unpaid balance.
      *      Updates the protocol share reserve state if the protocol fee is transferred.
      * @param vToken The vToken contract for the asset being flash loaned.
-     * @param initiator The address that EOA who initiated the flash loan.
+     * @param initiator The address of the EOA who initiated the flash loan.
      * @param receiver The address that received the flash loan and is repaying.
      * @param amountRepayed The amount repaid by the receiver (principal + fee).
      * @param totalFee The total fee charged for the flash loan.
-     * @param protocolFee The portion of the fee allocated to the protocol.
+     * @param protocolFee The portion of the total fee allocated to the protocol.
      */
     function _handleFlashLoan(
         VToken vToken,
@@ -551,8 +552,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         vToken.transferInUnderlyingAndVerify(receiver, amountRepayed);
 
         if (borrowedFlashLoanAmount + totalFee > amountRepayed) {
-            // If there is any unpaid balance, it becomes an ongoing debt (mode 1)
-            uint256 leftUnpaidBalance = borrowedFlashLoanAmount + totalFee - amountRepayed;
+            // If there is any unpaid balance, it becomes an ongoing debt
+            uint256 leftUnpaidBalance = (borrowedFlashLoanAmount + totalFee) - amountRepayed;
             uint256 accrueResult = vToken.accrueInterest();
             require(accrueResult == 0, "Failed to accrue interest");
 

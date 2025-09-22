@@ -66,6 +66,7 @@ contract ComptrollerErrorReporter {
 
     // @notice Thrown when failing to create a debt position in mode 1
     error FailedToCreateDebtPosition();
+
     /// @notice Thrown when attempting to interact with an inactive pool
     error InactivePool(uint96 poolId);
 

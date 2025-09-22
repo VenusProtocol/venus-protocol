@@ -47,7 +47,7 @@ interface ComptrollerInterface {
     function executeFlashLoan(
         address payable initiator,
         address payable receiver,
-        VToken[] calldata assets,
+        VToken[] calldata vTokens,
         uint256[] calldata amounts,
         bytes calldata param
     ) external;
@@ -169,11 +169,7 @@ interface ComptrollerInterface {
     function vaiMintRate() external view returns (uint);
 
     function authorizedFlashLoan(address account) external view returns (bool);
-    function delegateAuthorizationFlashloan(
-        address account,
-        address market,
-        address delegate
-    ) external view returns (bool);
+
     function userPoolId(address account) external view returns (uint96);
 
     function getLiquidationIncentive(address vToken) external view returns (uint256);

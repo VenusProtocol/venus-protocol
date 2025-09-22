@@ -242,7 +242,9 @@ describe("FlashLoan", async () => {
 
       await expect(
         mockReceiverSimple.connect(alice).requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),
-      ).to.be.revertedWithCustomError(vTokenA, "FlashLoanNotAuthorized");
+      )
+        .to.be.revertedWithCustomError(vTokenA, "SenderNotAuthorized")
+        .withArgs(alice.address);
     });
 
     it("FlashLoan for single underlying", async () => {

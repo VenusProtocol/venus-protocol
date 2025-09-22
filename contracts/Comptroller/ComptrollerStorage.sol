@@ -316,9 +316,8 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
     mapping(address => bool) public authorizedFlashLoan;
 
     struct FlashLoanData {
-        uint256[] protocolFees;
-        uint256[] supplierFees;
         uint256[] totalFees;
+        uint256[] protocolFees;
         uint256[] balanceAfterTransfer;
         uint256[] actualRepayments;
         uint256[] remainingDebts;

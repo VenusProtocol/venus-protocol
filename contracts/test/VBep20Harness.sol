@@ -244,10 +244,7 @@ abstract contract VBep20DelegatorScenario is VBep20Delegator {
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData,
-        bool flashLoanEnabled_,
-        uint256 flashLoantotalFeeMantissa_,
-        uint256 flashLoanProtocolShareMantissa_
+        bytes memory becomeImplementationData
     )
         VBep20Delegator(
             underlying_,
@@ -259,10 +256,7 @@ abstract contract VBep20DelegatorScenario is VBep20Delegator {
             decimals_,
             admin_,
             implementation_,
-            becomeImplementationData,
-            flashLoanEnabled_,
-            flashLoantotalFeeMantissa_,
-            flashLoanProtocolShareMantissa_
+            becomeImplementationData
         )
     {}
 

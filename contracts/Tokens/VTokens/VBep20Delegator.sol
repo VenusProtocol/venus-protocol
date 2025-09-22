@@ -24,9 +24,6 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
      * @param admin_ Address of the administrator of this token
      * @param implementation_ The address of the implementation the contract delegates to
      * @param becomeImplementationData The encoded args for becomeImplementation
-     * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoantotalFeeMantissa_ FlashLoan total fee mantissa, charged to the borrower
-     * @param flashLoanProtocolShareMantissa_ FlashLoan protocol share mantissa, transferred to the protocol reserves
      */
     constructor(
         address underlying_,
@@ -38,10 +35,7 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData,
-        bool flashLoanEnabled_,
-        uint256 flashLoantotalFeeMantissa_,
-        uint256 flashLoanProtocolShareMantissa_
+        bytes memory becomeImplementationData
     ) {
         // Creator of the contract is admin during initialization
         admin = payable(msg.sender);
@@ -50,17 +44,14 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
         delegateTo(
             implementation_,
             abi.encodeWithSignature(
-                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256,uint256)",
+                "initialize(address,address,address,uint256,string,string,uint8)",
                 underlying_,
                 comptroller_,
                 interestRateModel_,
                 initialExchangeRateMantissa_,
                 name_,
                 symbol_,
-                decimals_,
-                flashLoanEnabled_,
-                flashLoantotalFeeMantissa_,
-                flashLoanProtocolShareMantissa_
+                decimals_
             )
         );
 

@@ -92,10 +92,11 @@ interface IPolicyFacet {
     function executeFlashLoan(
         address payable initiator,
         address payable receiver,
-        VToken[] calldata assets,
+        VToken[] calldata vTokens,
         uint256[] calldata amounts,
         bytes calldata param
     ) external;
+
     function getBorrowingPower(
         address account
     ) external view returns (uint256 error, uint256 liquidity, uint256 shortfall);

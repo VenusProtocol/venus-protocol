@@ -104,13 +104,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when an account's flash loan whitelist status is updated
     event IsAccountFlashLoanWhitelisted(address indexed account, bool indexed isWhitelisted);
-    /// @notice Emitted when delegate authorization for flash loans is changed
-    event DelegateAuthorizationFlashloanChanged(
-        address indexed user,
-        address indexed market,
-        address indexed delegate,
-        bool approved
-    );
 
     /// @notice Emitted when liquidation threshold for a market in a pool is changed by admin
     event NewLiquidationThreshold(

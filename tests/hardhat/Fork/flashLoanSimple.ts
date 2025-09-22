@@ -223,7 +223,9 @@ forking(64048894, async () => {
               flashLoanAmount.toString(),
               ethers.utils.hexlify([]),
             ),
-        ).to.be.revertedWithCustomError(vUSDT, "FlashLoanNotAuthorized");
+        )
+          .to.be.revertedWithCustomError(vUSDT, "SenderNotAuthorized")
+          .withArgs(user.address);
       });
 
       it("Should revert if receiver is zero address", async () => {

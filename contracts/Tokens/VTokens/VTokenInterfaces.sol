@@ -338,11 +338,11 @@ abstract contract VTokenInterface is VTokenStorage {
     // @notice Thrown when the receiver contract execute operation fails
     error ExecuteFlashLoanFailed();
 
-    // @notice Thrown when flashloan is not authorized for a user
-    error FlashLoanNotAuthorized();
+    // @notice Thrown when the sender is not authorized to do flash loan
+    error SenderNotAuthorized(address sender);
 
-    // @notice Thrown when insufficient balance to repay flashLoan
-    error InsufficientRepaymentBalance();
+    // @notice Thrown when the repayment is insufficient
+    error InsufficientRepayment();
 
     /*** User Interface ***/
 
