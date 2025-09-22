@@ -12,7 +12,7 @@ import { IXVS } from "../Tokens/XVS/IXVS.sol";
 
 contract VenusLens is ExponentialNoError {
     /// @notice Blocks Per Day
-    uint public constant BLOCKS_PER_DAY = 28800;
+    uint public constant BLOCKS_PER_DAY = 115200;
 
     /// @notice Total actions available on VToken
     uint public constant VTOKEN_ACTIONS = 8;
