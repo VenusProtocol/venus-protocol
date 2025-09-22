@@ -57,7 +57,7 @@ contract SnapshotLens is ExponentialNoError {
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptrollerAddress).getAllMarkets();
         AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assets.length);
-        for (uint256 i; i < assets.length; ++i) {
+        for (uint256 i = 0; i < assets.length; ++i) {
             accountSnapshots[i] = getAccountSnapshot(account, comptrollerAddress, assets[i]);
         }
         return accountSnapshots;
