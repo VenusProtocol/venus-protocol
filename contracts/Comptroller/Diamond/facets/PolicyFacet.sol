@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
-
+import { IKeyringChecker } from "../../../KeyringChecker/IKeyringChecker.sol";
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 
 /**
@@ -15,11 +15,30 @@ import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
  * @notice This facet contract contains all the external pre-hook functions related to vToken
  */
 contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
+    /// @notice The address of the Keyring contract.
+    /// @dev This could have been immutable, but not possible in upgradeable contracts.
+    /// @dev Consumes one storage slot.
+    IKeyringChecker public keyringChecker;
+
+    /// @notice The policyId to use with the Keyring contract.
+    /// @dev This could have been immutable, but not possible in upgradeable contracts.
+    /// @dev Consumes one storage slot.
+    uint32 public keyringPolicyId;
+
+    /// @notice Whether the keyring guard is enabled.
+    bool public keyringGuardEnabled;
+
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint256 newSpeed);
 
     /// @notice Emitted when a new supply-side XVS speed is calculated for a market
     event VenusSupplySpeedUpdated(VToken indexed vToken, uint256 newSpeed);
+
+    /// @notice Emitted when the keyring configuration is updated.
+    event KeyringConfigurationUpdated(address keyringChecker, uint32 keyringPolicyId);
+
+    /// @notice Emitted when the keyring guard is enabled.
+    event KeyringGuardEnabled(bool enabled);
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
@@ -29,6 +48,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function mintAllowed(address vToken, address minter, uint256 mintAmount) external returns (uint256) {
+        ensureUserAllowed(minter);
+
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.MINT);
@@ -58,6 +79,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     // solhint-disable-next-line no-unused-vars
     function mintVerify(address vToken, address minter, uint256 actualMintAmount, uint256 mintTokens) external {
+        ensureUserAllowed(minter);
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(minter, vToken);
         }
@@ -71,6 +93,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function redeemAllowed(address vToken, address redeemer, uint256 redeemTokens) external returns (uint256) {
+        ensureUserAllowed(redeemer);
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REDEEM);
 
@@ -94,6 +117,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param redeemTokens The number of tokens being redeemed
      */
     function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external {
+        ensureUserAllowed(redeemer);
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(redeemer, vToken);
@@ -108,6 +132,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function borrowAllowed(address vToken, address borrower, uint256 borrowAmount) external returns (uint256) {
+        ensureUserAllowed(borrower);
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
@@ -163,6 +188,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     // solhint-disable-next-line no-unused-vars
     function borrowVerify(address vToken, address borrower, uint256 borrowAmount) external {
+        ensureUserAllowed(borrower);
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vToken);
         }
@@ -182,6 +208,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 repayAmount // solhint-disable-line no-unused-vars
     ) external returns (uint256) {
+        ensureUserAllowed(payer);
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
         ensureListed(markets[vToken]);
@@ -208,6 +235,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 actualRepayAmount, // solhint-disable-line no-unused-vars
         uint256 borrowerIndex // solhint-disable-line no-unused-vars
     ) external {
+        ensureUserAllowed(payer);
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vToken);
         }
@@ -228,6 +256,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 repayAmount
     ) external view returns (uint256) {
+        ensureUserAllowed(liquidator);
         checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
@@ -289,6 +318,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 actualRepayAmount, // solhint-disable-line no-unused-vars
         uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external {
+        ensureUserAllowed(liquidator);
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vTokenBorrowed);
             prime.accrueInterestAndUpdateScore(liquidator, vTokenBorrowed);
@@ -310,6 +340,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external returns (uint256) {
+        ensureUserAllowed(liquidator);
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
@@ -354,6 +385,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external {
+        ensureUserAllowed(liquidator);
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);
             prime.accrueInterestAndUpdateScore(liquidator, vTokenCollateral);
@@ -374,6 +406,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address dst,
         uint256 transferTokens
     ) external returns (uint256) {
+        ensureUserAllowed(dst);
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.TRANSFER);
@@ -402,6 +435,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     // solhint-disable-next-line no-unused-vars
     function transferVerify(address vToken, address src, address dst, uint256 transferTokens) external {
+        ensureUserAllowed(dst);
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(src, vToken);
             prime.accrueInterestAndUpdateScore(dst, vToken);
@@ -515,5 +549,37 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             venusBorrowSpeeds[address(vToken)] = borrowSpeed;
             emit VenusBorrowSpeedUpdated(vToken, borrowSpeed);
         }
+    }
+    /// @notice Sets the keyring configuration.
+    /// @param _keyringChecker The address of the keyring checker.
+    /// @param _keyringPolicyId The policy id of the keyring.
+    function setKeyringConfiguration(address _keyringChecker, uint32 _keyringPolicyId) public {
+        ensureAdmin(msg.sender);
+        if (address(_keyringChecker) == address(0) || _keyringPolicyId == 0) {
+            revert InvalidKeyringConfiguration(address(_keyringChecker), _keyringPolicyId);
+        }
+        keyringChecker = IKeyringChecker(_keyringChecker);
+        keyringPolicyId = _keyringPolicyId;
+        emit KeyringConfigurationUpdated(address(_keyringChecker), _keyringPolicyId);
+    }
+
+    /// @notice Enables or disables the keyring guard.
+    /// @param _enabled Whether to enable or disable the keyring guard.
+    function enableKeyringGuard(bool _enabled) public {
+        ensureAdmin(msg.sender);
+        keyringGuardEnabled = _enabled;
+        emit KeyringGuardEnabled(_enabled);
+    }
+
+    /// @notice Checks if the user satisfies the policy.
+    /// @param _entity The address of the entity to check.
+    /// @return result True if the user satisfies the policy, false otherwise.
+    function isUserAllowed(address _entity) public view returns (bool) {
+        return !keyringGuardEnabled || keyringChecker.checkCredential(keyringPolicyId, _entity);
+    }
+
+    /// @notice Ensures that the user satisfies the policy.
+    function ensureUserAllowed(address _entity) public view {
+        require(isUserAllowed(_entity), "User does not have Keyring credential");
     }
 }
