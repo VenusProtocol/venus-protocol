@@ -311,10 +311,9 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
      * @dev Increments each time a pool is created; `poolId = 0` is reserved for the core pool
      */
     uint96 public lastPoolId;
+}
 
-    /// @notice Mapping of accounts authorized to execute flash loans
-    mapping(address => bool) public authorizedFlashLoan;
-
+contract ComptrollerV18Storage is ComptrollerV17Storage {
     struct FlashLoanData {
         uint256[] totalFees;
         uint256[] protocolFees;
@@ -322,4 +321,7 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
         uint256[] actualRepayments;
         uint256[] remainingDebts;
     }
+
+    /// @notice Mapping of accounts authorized to execute flash loans
+    mapping(address => bool) public authorizedFlashLoan;
 }
