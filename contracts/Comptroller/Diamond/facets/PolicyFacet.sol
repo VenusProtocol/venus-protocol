@@ -539,7 +539,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         if (!_poolMarkets[index].isBorrowAllowed) {
             revert BorrowNotAllowedInPool();
         }
-        if (!pools[userPool].isActive) {
+        if (userPool != corePoolId && !pools[userPool].isActive) {
             revert InactivePool(userPool);
         }
     }
