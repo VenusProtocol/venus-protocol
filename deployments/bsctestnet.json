@@ -3247,8 +3247,129 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0x3ec96D6a9a14ee57aB83F81BB7386EBE515936D1",
+      "address": "0xACbc75C2D0438722c75D9BD20844b5aFda4155ea",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "InactivePool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidOperationForCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -3300,6 +3421,11 @@
               "internalType": "uint256",
               "name": "borrowAmount",
               "type": "uint256"
+            },
+            {
+              "internalType": "enum WeightFunction",
+              "name": "weightingStrategy",
+              "type": "uint8"
             }
           ],
           "name": "getHypotheticalAccountLiquidity",
@@ -3325,6 +3451,50 @@
         },
         {
           "inputs": [
+            {
+              "internalType": "address",
+              "name": "comptroller",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenBorrowed",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenCollateral",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "actualRepayAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "liquidateCalculateSeizeTokens",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
             {
               "internalType": "address",
               "name": "comptroller",
@@ -13985,7 +14155,7 @@
       ]
     },
     "Liquidator_Implementation": {
-      "address": "0xe442A62E3B1956EC5B42e06aA0E293A0cB300406",
+      "address": "0x91070E5b5Ff60a6c122740EB326D1f80E9f470e7",
       "abi": [
         {
           "inputs": [
@@ -15092,8 +15262,129 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x1c7B1e28A43619123F0bF9DB8aeEc64aA535b9EC",
+      "address": "0xD3D5f6c68677051e6855Fa38dca0cD6D56ED0c4f",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "InactivePool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidOperationForCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -15222,6 +15513,88 @@
           "type": "event"
         },
         {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "name": "PoolCreated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketInitialized",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketRemoved",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint96",
+              "name": "previousPoolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "newPoolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolSelected",
+          "type": "event"
+        },
+        {
           "inputs": [
             {
               "internalType": "contract VToken",
@@ -15286,6 +15659,24 @@
             }
           ],
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96[]",
+              "name": "poolIds",
+              "type": "uint96[]"
+            },
+            {
+              "internalType": "address[]",
+              "name": "vTokens",
+              "type": "address[]"
+            }
+          ],
+          "name": "addPoolMarkets",
+          "outputs": [],
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
@@ -15440,6 +15831,38 @@
           "type": "function"
         },
         {
+          "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            }
+          ],
+          "name": "createPool",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address[]",
@@ -15455,6 +15878,19 @@
               "type": "uint256[]"
             }
           ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "enterPool",
+          "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
         },
@@ -15510,6 +15946,159 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getCollateralFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getEffectiveLiquidationIncentive",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "enum WeightFunction",
+              "name": "weightingStrategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "getEffectiveLtvFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getLiquidationIncentive",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getLiquidationThreshold",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "getPoolVTokens",
+          "outputs": [
+            {
+              "internalType": "address[]",
+              "name": "",
+              "type": "address[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
@@ -15517,6 +16106,30 @@
               "internalType": "address",
               "name": "",
               "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "internalType": "uint96",
+              "name": "targetPoolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "hasValidPoolBorrows",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -15598,6 +16211,58 @@
           "type": "function"
         },
         {
+          "inputs": [],
+          "name": "lastPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenBorrowed",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenCollateral",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "actualRepayAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "liquidateCalculateSeizeTokens",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -15662,19 +16327,6 @@
         },
         {
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
           "name": "liquidatorContract",
           "outputs": [
             {
@@ -15690,7 +16342,7 @@
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "vToken",
               "type": "address"
             }
           ],
@@ -15709,6 +16361,26 @@
             {
               "internalType": "bool",
               "name": "isVenus",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint96",
+              "name": "marketPoolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bool",
+              "name": "isBorrowAllowed",
               "type": "bool"
             }
           ],
@@ -15826,6 +16498,89 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "poolMarkets",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "isListed",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "collateralFactorMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isVenus",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint96",
+              "name": "marketPoolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bool",
+              "name": "isBorrowAllowed",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            },
+            {
+              "internalType": "bool",
+              "name": "isActive",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "allowCorePoolFallback",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -15862,6 +16617,24 @@
             }
           ],
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "removePoolMarket",
+          "outputs": [],
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
@@ -15989,6 +16762,25 @@
           "name": "updateDelegate",
           "outputs": [],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -20832,8 +21624,129 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0x642EE02aFBE47C69c0980Ea61131cD97884058a7",
+      "address": "0x4211061Bd8a648e62673681884C9D97B4A1aBB02",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "InactivePool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidOperationForCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -21242,6 +22155,19 @@
           "type": "function"
         },
         {
+          "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -21344,6 +22270,30 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
@@ -21394,6 +22344,19 @@
               "internalType": "bool",
               "name": "",
               "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "lastPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -21478,54 +22441,12 @@
         },
         {
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
           "name": "liquidatorContract",
           "outputs": [
             {
               "internalType": "address",
               "name": "",
               "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -21693,6 +22614,35 @@
               "internalType": "address",
               "name": "",
               "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            },
+            {
+              "internalType": "bool",
+              "name": "isActive",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "allowCorePoolFallback",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -22061,6 +23011,25 @@
               "internalType": "uint256",
               "name": "",
               "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -29925,8 +30894,129 @@
       ]
     },
     "RewardFacet": {
-      "address": "0x1C10F03827530f514Ba14065ec3D5f1496f35418",
+      "address": "0xDD150De13849fB0776B466114b95770714c8Cc9d",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "InactivePool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidOperationForCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -30384,6 +31474,43 @@
         },
         {
           "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
             {
@@ -30453,12 +31580,12 @@
         },
         {
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
+          "name": "lastPoolId",
           "outputs": [
             {
-              "internalType": "uint256",
+              "internalType": "uint96",
               "name": "",
-              "type": "uint256"
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -30472,35 +31599,6 @@
               "internalType": "address",
               "name": "",
               "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -30611,6 +31709,35 @@
               "internalType": "address",
               "name": "",
               "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            },
+            {
+              "internalType": "bool",
+              "name": "isActive",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "allowCorePoolFallback",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -30745,6 +31872,25 @@
               "internalType": "uint256",
               "name": "",
               "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -31280,8 +32426,129 @@
       ]
     },
     "SetterFacet": {
-      "address": "0xeD1fd1D134b10dF8F84BbC3C89881A929B0c6F47",
+      "address": "0x3CCC9fC2fDA021ADb9C9FB0493C1a4a9357f4064",
       "abi": [
+        {
+          "inputs": [],
+          "name": "AlreadyInSelectedPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ArrayLengthMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BorrowNotAllowedInPool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "EmptyPoolLabel",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "InactivePool",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "IncompatibleBorrowedAssets",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidOperationForCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "enum WeightFunction",
+              "name": "strategy",
+              "type": "uint8"
+            }
+          ],
+          "name": "InvalidWeightingStrategy",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "shortfall",
+              "type": "uint256"
+            }
+          ],
+          "name": "LiquidityCheckFailed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketAlreadyListed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "MarketNotListedInCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "PoolMarketNotFound",
+          "type": "error"
+        },
         {
           "anonymous": false,
           "inputs": [
@@ -31318,6 +32585,37 @@
             }
           ],
           "name": "ActionProtocolPaused",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "oldStatus",
+              "type": "bool"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "newStatus",
+              "type": "bool"
+            }
+          ],
+          "name": "BorrowAllowedUpdated",
           "type": "event"
         },
         {
@@ -31483,6 +32781,12 @@
           "inputs": [
             {
               "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
               "internalType": "contract VToken",
               "name": "vToken",
               "type": "address"
@@ -31526,6 +32830,18 @@
           "anonymous": false,
           "inputs": [
             {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
               "indexed": false,
               "internalType": "uint256",
               "name": "oldLiquidationIncentiveMantissa",
@@ -31539,6 +32855,37 @@
             }
           ],
           "name": "NewLiquidationIncentive",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": true,
+              "internalType": "contract VToken",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "oldLiquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "newLiquidationThresholdMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "NewLiquidationThreshold",
           "type": "event"
         },
         {
@@ -31814,6 +33161,81 @@
           "type": "event"
         },
         {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "oldStatus",
+              "type": "bool"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "newStatus",
+              "type": "bool"
+            }
+          ],
+          "name": "PoolActiveStatusUpdated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "oldStatus",
+              "type": "bool"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "newStatus",
+              "type": "bool"
+            }
+          ],
+          "name": "PoolFallbackStatusUpdated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "oldLabel",
+              "type": "string"
+            },
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "newLabel",
+              "type": "string"
+            }
+          ],
+          "name": "PoolLabelUpdated",
+          "type": "event"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -31864,30 +33286,6 @@
             }
           ],
           "name": "_setCloseFactor",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "contract VToken",
-              "name": "vToken",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "newCollateralFactorMantissa",
-              "type": "uint256"
-            }
-          ],
-          "name": "_setCollateralFactor",
           "outputs": [
             {
               "internalType": "uint256",
@@ -31955,25 +33353,6 @@
           ],
           "name": "_setForcedLiquidationForUser",
           "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "newLiquidationIncentiveMantissa",
-              "type": "uint256"
-            }
-          ],
-          "name": "_setLiquidationIncentive",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
           "stateMutability": "nonpayable",
           "type": "function"
         },
@@ -32408,6 +33787,43 @@
         },
         {
           "inputs": [],
+          "name": "corePoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "getPoolMarketIndex",
+          "outputs": [
+            {
+              "internalType": "PoolMarketId",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "getXVSAddress",
           "outputs": [
             {
@@ -32464,12 +33880,12 @@
         },
         {
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
+          "name": "lastPoolId",
           "outputs": [
             {
-              "internalType": "uint256",
+              "internalType": "uint96",
               "name": "",
-              "type": "uint256"
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -32483,35 +33899,6 @@
               "internalType": "address",
               "name": "",
               "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -32628,6 +34015,35 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            },
+            {
+              "internalType": "bool",
+              "name": "isActive",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "allowCorePoolFallback",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -32705,6 +34121,24 @@
         {
           "inputs": [
             {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bool",
+              "name": "allowFallback",
+              "type": "bool"
+            }
+          ],
+          "name": "setAllowCorePoolFallback",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
               "internalType": "uint256",
               "name": "newCloseFactorMantissa",
               "type": "uint256"
@@ -32753,6 +34187,40 @@
         {
           "inputs": [
             {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "contract VToken",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "newCollateralFactorMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "newLiquidationThresholdMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "setCollateralFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
               "internalType": "address",
               "name": "vTokenBorrowed",
               "type": "address"
@@ -32770,6 +34238,63 @@
         },
         {
           "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "borrowAllowed",
+              "type": "bool"
+            }
+          ],
+          "name": "setIsBorrowAllowed",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "newLiquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "setLiquidationIncentive",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
             {
               "internalType": "uint256",
               "name": "newLiquidationIncentiveMantissa",
@@ -32844,6 +34369,42 @@
               "type": "uint256"
             }
           ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bool",
+              "name": "active",
+              "type": "bool"
+            }
+          ],
+          "name": "setPoolActive",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "string",
+              "name": "newLabel",
+              "type": "string"
+            }
+          ],
+          "name": "setPoolLabel",
+          "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
         },
@@ -32938,6 +34499,25 @@
               "internalType": "uint256",
               "name": "",
               "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -33164,7 +34744,7 @@
       ]
     },
     "SnapshotLens": {
-      "address": "0x1718EBc576b4C30CF455B44c11249452bBf649aE",
+      "address": "0xBe9174A13577B016280aEc20a3b369C5BA272241",
       "abi": [
         {
           "inputs": [
@@ -47119,7 +48699,7 @@
       ]
     },
     "Unitroller_Implementation": {
-      "address": "0x649616739bab52E2A98BC74d93c896Ca45944359",
+      "address": "0xCe314cA8be79435FB0E4ffc102DAcA172B676a47",
       "abi": [
         {
           "anonymous": false,
@@ -47501,12 +49081,12 @@
         },
         {
           "inputs": [],
-          "name": "liquidationIncentiveMantissa",
+          "name": "lastPoolId",
           "outputs": [
             {
-              "internalType": "uint256",
+              "internalType": "uint96",
               "name": "",
-              "type": "uint256"
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -47520,35 +49100,6 @@
               "internalType": "address",
               "name": "",
               "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "markets",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isListed",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralFactorMantissa",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVenus",
-              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -47665,6 +49216,35 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "name": "pools",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "label",
+              "type": "string"
+            },
+            {
+              "internalType": "bool",
+              "name": "isActive",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "allowCorePoolFallback",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "prime",
           "outputs": [
@@ -47769,6 +49349,25 @@
               "internalType": "uint256",
               "name": "",
               "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "userPoolId",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
             }
           ],
           "stateMutability": "view",
@@ -51387,7 +52986,7 @@
       ]
     },
     "VBep20Delegate": {
-      "address": "0x585C508aF088123d990182a19e655ebB0e540CA1",
+      "address": "0x9c824EDa64aF04D160F9cB835C6AC95606077db0",
       "abi": [
         {
           "inputs": [],
@@ -57889,7 +59488,7 @@
       ]
     },
     "VaiUnitroller_Implementation": {
-      "address": "0x5864e8BE0d4AD825feD65115a4f109f850A65aF7",
+      "address": "0xA8122Fe0F9db39E266DE7A5BF953Cd72a87fe345",
       "abi": [
         {
           "anonymous": false,
@@ -58243,6 +59842,19 @@
           ],
           "name": "RepayVAI",
           "type": "event"
+        },
+        {
+          "inputs": [],
+          "name": "CORE_POOL_ID",
+          "outputs": [
+            {
+              "internalType": "uint96",
+              "name": "",
+              "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
         },
         {
           "inputs": [],
@@ -59219,8 +60831,24 @@
       ]
     },
     "VenusLens": {
-      "address": "0xf93F3e35aDfbb4eE2E6558E6c7808977D1802Fe1",
+      "address": "0x01c4Ef2dD3327eee5F8dd29D825aDe730f225680",
       "abi": [
+        {
+          "inputs": [],
+          "name": "InvalidOperationForCorePool",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            }
+          ],
+          "name": "PoolDoesNotExist",
+          "type": "error"
+        },
         {
           "inputs": [],
           "name": "BLOCKS_PER_DAY",
@@ -59291,6 +60919,165 @@
         {
           "inputs": [
             {
+              "internalType": "contract ComptrollerInterface",
+              "name": "comptroller",
+              "type": "address"
+            }
+          ],
+          "name": "getAllPoolsData",
+          "outputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint96",
+                  "name": "poolId",
+                  "type": "uint96"
+                },
+                {
+                  "internalType": "string",
+                  "name": "label",
+                  "type": "string"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isActive",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "allowCorePoolFallback",
+                  "type": "bool"
+                },
+                {
+                  "components": [
+                    {
+                      "internalType": "uint96",
+                      "name": "poolId",
+                      "type": "uint96"
+                    },
+                    {
+                      "internalType": "string",
+                      "name": "poolLabel",
+                      "type": "string"
+                    },
+                    {
+                      "internalType": "address",
+                      "name": "vToken",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "bool",
+                      "name": "isListed",
+                      "type": "bool"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "collateralFactor",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "bool",
+                      "name": "isVenus",
+                      "type": "bool"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "liquidationThreshold",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "liquidationIncentive",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "bool",
+                      "name": "isBorrowAllowed",
+                      "type": "bool"
+                    }
+                  ],
+                  "internalType": "struct VenusLens.MarketData[]",
+                  "name": "markets",
+                  "type": "tuple[]"
+                }
+              ],
+              "internalType": "struct VenusLens.PoolWithMarkets[]",
+              "name": "poolsData",
+              "type": "tuple[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "contract ComptrollerInterface",
+              "name": "comptroller",
+              "type": "address"
+            }
+          ],
+          "name": "getCorePoolMarketsData",
+          "outputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint96",
+                  "name": "poolId",
+                  "type": "uint96"
+                },
+                {
+                  "internalType": "string",
+                  "name": "poolLabel",
+                  "type": "string"
+                },
+                {
+                  "internalType": "address",
+                  "name": "vToken",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isListed",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "collateralFactor",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isVenus",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationThreshold",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationIncentive",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isBorrowAllowed",
+                  "type": "bool"
+                }
+              ],
+              "internalType": "struct VenusLens.MarketData[]",
+              "name": "result",
+              "type": "tuple[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
               "internalType": "address payable",
               "name": "account",
               "type": "address"
@@ -59310,6 +61097,77 @@
             }
           ],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint96",
+              "name": "poolId",
+              "type": "uint96"
+            },
+            {
+              "internalType": "contract ComptrollerInterface",
+              "name": "comptroller",
+              "type": "address"
+            }
+          ],
+          "name": "getMarketsDataByPool",
+          "outputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint96",
+                  "name": "poolId",
+                  "type": "uint96"
+                },
+                {
+                  "internalType": "string",
+                  "name": "poolLabel",
+                  "type": "string"
+                },
+                {
+                  "internalType": "address",
+                  "name": "vToken",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isListed",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "collateralFactor",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isVenus",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationThreshold",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationIncentive",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isBorrowAllowed",
+                  "type": "bool"
+                }
+              ],
+              "internalType": "struct VenusLens.MarketData[]",
+              "name": "result",
+              "type": "tuple[]"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -59721,6 +61579,26 @@
                   "internalType": "uint256",
                   "name": "pausedActions",
                   "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationThresholdMantissa",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationIncentiveMantissa",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isBorrowAllowed",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint96",
+                  "name": "poolId",
+                  "type": "uint96"
                 }
               ],
               "internalType": "struct VenusLens.VTokenMetadata",
@@ -59837,6 +61715,26 @@
                   "internalType": "uint256",
                   "name": "pausedActions",
                   "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationThresholdMantissa",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "liquidationIncentiveMantissa",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "isBorrowAllowed",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint96",
+                  "name": "poolId",
+                  "type": "uint96"
                 }
               ],
               "internalType": "struct VenusLens.VTokenMetadata[]",
