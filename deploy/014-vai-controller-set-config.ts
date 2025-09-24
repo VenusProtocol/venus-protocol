@@ -4,7 +4,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { skipRemoteNetworks } from "../helpers/deploymentConfig";
 
 const func: DeployFunction = async function () {
-  const vaiController = await ethers.getContract("VaiController");
+  const vaiController = await ethers.getContract("VaiUnitroller_Implementation");
 
   let vaiUnitroller = await ethers.getContract("VaiUnitroller");
 

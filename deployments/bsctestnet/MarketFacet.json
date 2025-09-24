@@ -1372,6 +1372,11 @@
           "internalType": "bool",
           "name": "isActive",
           "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "allowCorePoolFallback",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -1922,7 +1927,7 @@
         }
       },
       "getEffectiveLiquidationIncentive(address,address)": {
-        "details": "The incentive is determined by the pool entered by the account and the specified vToken      If the pool is inactive or the vToken is not part of the account's pool,      the core pool (poolId = 0) is used as a fallback via `getLiquidationParams()`",
+        "details": "The incentive is determined by the pool entered by the account and the specified vToken via      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used",
         "params": {
           "account": "The account whose pool is used to determine the market's risk parameters",
           "vToken": "The address of the vToken market"
@@ -1932,7 +1937,7 @@
         }
       },
       "getEffectiveLtvFactor(address,address,uint8)": {
-        "details": "This value should be used when calculating account liquidity and during liquidation checks.",
+        "details": "The value is determined by the pool entered by the account and the specified vToken via      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used.      This value is used for account liquidity calculations and liquidation checks.",
         "params": {
           "account": "The account whose pool is used to determine the market's risk parameters.",
           "vToken": "The address of the vToken market.",
@@ -2267,10 +2272,10 @@
         "notice": "Get the core pool collateral factor for a vToken"
       },
       "getEffectiveLiquidationIncentive(address,address)": {
-        "notice": "Get the Effective liquidation Incentive for a given account and market"
+        "notice": "Get the Effective Liquidation Incentive for a given account and market"
       },
       "getEffectiveLtvFactor(address,address,uint8)": {
-        "notice": "Returns the effective loan-to-value factor (collateral factor or liquidation threshold) for a given account and market."
+        "notice": "Get the effective loan-to-value factor (collateral factor or liquidation threshold) for a given account and market."
       },
       "getLiquidationIncentive(address)": {
         "notice": "Get the core pool liquidation Incentive for a vToken"
@@ -3218,6 +3223,14 @@
             "contract": "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
             "label": "isActive",
             "offset": 0,
+            "slot": "2",
+            "type": "t_bool"
+          },
+          {
+            "astId": 7649,
+            "contract": "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
+            "label": "allowCorePoolFallback",
+            "offset": 1,
             "slot": "2",
             "type": "t_bool"
           }

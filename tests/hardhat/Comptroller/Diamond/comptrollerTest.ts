@@ -1359,11 +1359,34 @@ describe("Comptroller", () => {
         lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
         expect(cf).to.equal(defaultCF);
         expect(lt).to.equal(defaultLT);
+      });
+    });
 
-        // Remove market from pool → fallback to core pool params
+    describe("setAllowCorePoolFallback", () => {
+      it("should update the AllowCorePoolFallback", async () => {
+        await expect(comptroller.setAllowCorePoolFallback(poolId, true))
+          .to.emit(comptroller, "PoolFallbackStatusUpdated")
+          .withArgs(poolId, false, true);
+
+        const pool = await comptroller.pools(poolId);
+        expect(pool.allowCorePoolFallback).to.equal(true);
+      });
+
+      it("should use risk factors as zero if market not configured in the pool", async () => {
         await comptroller.removePoolMarket(poolId, vToken.address);
-        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
-        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        await comptroller.enterPool(poolId);
+        const cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        const lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        expect(cf).to.equal(0);
+        expect(lt).to.equal(0);
+      });
+
+      it("should use core pool risk factors if market not configured in the pool and allowCorePoolFallback is true", async () => {
+        await comptroller.setAllowCorePoolFallback(poolId, true);
+        await comptroller.removePoolMarket(poolId, vToken.address);
+        await comptroller.enterPool(poolId);
+        const cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        const lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
         expect(cf).to.equal(coreCF);
         expect(lt).to.equal(coreLT);
       });

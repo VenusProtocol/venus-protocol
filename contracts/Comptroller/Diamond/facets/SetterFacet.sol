@@ -116,11 +116,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when the borrowAllowed flag is updated for a market
     event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool oldStatus, bool newStatus);
 
-    /// @notice Emitted when pool active status changes
+    /// @notice Emitted when pool active status updated
     event PoolActiveStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
 
     /// @notice Emitted when pool label is updated
     event PoolLabelUpdated(uint96 indexed poolId, string oldLabel, string newLabel);
+
+    /// @notice Emitted when pool Fallback status is updated
+    event PoolFallbackStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -671,14 +674,38 @@ contract SetterFacet is ISetterFacet, FacetBase {
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
         if (poolId == corePoolId) revert InvalidOperationForCorePool();
 
-        PoolData storage newPool = pools[poolId];
+        PoolData storage pool = pools[poolId];
 
-        if (newPool.isActive == active) {
+        if (pool.isActive == active) {
             return;
         }
 
-        emit PoolActiveStatusUpdated(poolId, newPool.isActive, active);
-        newPool.isActive = active;
+        emit PoolActiveStatusUpdated(poolId, pool.isActive, active);
+        pool.isActive = active;
+    }
+
+    /**
+     * @notice Updates the `allowCorePoolFallback` flag for a specific pool (excluding the Core Pool).
+     * @param poolId ID of the pool to update.
+     * @param allowFallback True to allow fallback to Core Pool, false to disable.
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
+     * @custom:event PoolFallbackStatusUpdated Emitted after the pool fallback flag is updated.
+     */
+    function setAllowCorePoolFallback(uint96 poolId, bool allowFallback) external {
+        ensureAllowed("setAllowCorePoolFallback(uint96,bool)");
+
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+
+        PoolData storage pool = pools[poolId];
+
+        if (pool.allowCorePoolFallback == allowFallback) {
+            return;
+        }
+
+        emit PoolFallbackStatusUpdated(poolId, pool.allowCorePoolFallback, allowFallback);
+        pool.allowCorePoolFallback = allowFallback;
     }
 
     /**

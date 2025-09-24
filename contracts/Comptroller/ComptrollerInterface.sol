@@ -128,7 +128,7 @@ interface ComptrollerInterface {
 
     function getXVSAddress() external view returns (address);
 
-    function markets(address) external view returns (bool, uint);
+    function markets(address) external view returns (bool, uint, bool, uint, uint, uint96, bool);
 
     function oracle() external view returns (ResilientOracleInterface);
 
@@ -186,7 +186,9 @@ interface ComptrollerInterface {
 
     function corePoolId() external pure returns (uint96);
 
-    function pools(uint96 poolId) external view returns (string memory label);
+    function pools(
+        uint96 poolId
+    ) external view returns (string memory label, bool isActive, bool allowCorePoolFallback);
 
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
 

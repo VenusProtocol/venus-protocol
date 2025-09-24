@@ -834,6 +834,31 @@
         },
         {
           "indexed": false,
+          "internalType": "bool",
+          "name": "oldStatus",
+          "type": "bool"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "newStatus",
+          "type": "bool"
+        }
+      ],
+      "name": "PoolFallbackStatusUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint96",
+          "name": "poolId",
+          "type": "uint96"
+        },
+        {
+          "indexed": false,
           "internalType": "string",
           "name": "oldLabel",
           "type": "string"
@@ -1665,6 +1690,11 @@
           "internalType": "bool",
           "name": "isActive",
           "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "allowCorePoolFallback",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -1741,6 +1771,24 @@
         }
       ],
       "name": "setActionsPaused",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint96",
+          "name": "poolId",
+          "type": "uint96"
+        },
+        {
+          "internalType": "bool",
+          "name": "allowFallback",
+          "type": "bool"
+        }
+      ],
+      "name": "setAllowCorePoolFallback",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -2579,6 +2627,14 @@
           "paused_": "The new paused state (true=paused, false=unpaused)"
         }
       },
+      "setAllowCorePoolFallback(uint96,bool)": {
+        "custom:error": "InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.PoolDoesNotExist Reverts if the target pool ID does not exist.",
+        "custom:event": "PoolFallbackStatusUpdated Emitted after the pool fallback flag is updated.",
+        "params": {
+          "allowFallback": "True to allow fallback to Core Pool, false to disable.",
+          "poolId": "ID of the pool to update."
+        }
+      },
       "setCloseFactor(uint256)": {
         "params": {
           "newCloseFactorMantissa": "New close factor, scaled by 1e18"
@@ -2867,7 +2923,10 @@
         "notice": "Emitted when XVS vToken address is changed"
       },
       "PoolActiveStatusUpdated(uint96,bool,bool)": {
-        "notice": "Emitted when pool active status changes"
+        "notice": "Emitted when pool active status updated"
+      },
+      "PoolFallbackStatusUpdated(uint96,bool,bool)": {
+        "notice": "Emitted when pool Fallback status is updated"
       },
       "PoolLabelUpdated(uint96,string,string)": {
         "notice": "Emitted when pool label is updated"
@@ -3009,6 +3068,9 @@
       },
       "setActionsPaused(address[],uint8[],bool)": {
         "notice": "Alias to _setActionsPaused to support the Isolated Lending Comptroller Interface"
+      },
+      "setAllowCorePoolFallback(uint96,bool)": {
+        "notice": "Updates the `allowCorePoolFallback` flag for a specific pool (excluding the Core Pool)."
       },
       "setCloseFactor(uint256)": {
         "notice": "Alias to _setCloseFactor to support the Isolated Lending Comptroller Interface"
@@ -3911,6 +3973,14 @@
             "contract": "contracts/Comptroller/Diamond/facets/SetterFacet.sol:SetterFacet",
             "label": "isActive",
             "offset": 0,
+            "slot": "2",
+            "type": "t_bool"
+          },
+          {
+            "astId": 7649,
+            "contract": "contracts/Comptroller/Diamond/facets/SetterFacet.sol:SetterFacet",
+            "label": "allowCorePoolFallback",
+            "offset": 1,
             "slot": "2",
             "type": "t_bool"
           }

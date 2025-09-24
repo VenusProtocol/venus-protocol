@@ -735,11 +735,16 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param account The address of the account whose borrow permission is being checked
      * @param vToken The vToken market to check borrowing status for
      * @custom:error BorrowNotAllowedInPool Reverts if borrowing is not allowed in the account's entered pool
+     * @custom:error InactivePool Reverts if borrowing in an inactive pool.
      */
     function poolBorrowAllowed(address account, address vToken) internal view {
-        PoolMarketId index = getPoolMarketIndex(userPoolId[account], vToken);
+        uint96 userPool = userPoolId[account];
+        PoolMarketId index = getPoolMarketIndex(userPool, vToken);
         if (!_poolMarkets[index].isBorrowAllowed) {
             revert BorrowNotAllowedInPool();
+        }
+        if (userPool != corePoolId && !pools[userPool].isActive) {
+            revert InactivePool(userPool);
         }
     }
 }

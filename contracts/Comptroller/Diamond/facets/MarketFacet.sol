@@ -463,8 +463,11 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Returns the effective loan-to-value factor (collateral factor or liquidation threshold) for a given account and market.
-     * @dev This value should be used when calculating account liquidity and during liquidation checks.
+     * @notice Get the effective loan-to-value factor (collateral factor or liquidation threshold) for a given account and market.
+     * @dev The value is determined by the pool entered by the account and the specified vToken via
+     *      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the
+     *      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used.
+     *      This value is used for account liquidity calculations and liquidation checks.
      * @param account The account whose pool is used to determine the market's risk parameters.
      * @param vToken The address of the vToken market.
      * @param weightingStrategy The weighting strategy to use:
@@ -484,10 +487,10 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the Effective liquidation Incentive for a given account and market
-     * @dev The incentive is determined by the pool entered by the account and the specified vToken
-     *      If the pool is inactive or the vToken is not part of the account's pool,
-     *      the core pool (poolId = 0) is used as a fallback via `getLiquidationParams()`
+     * @notice Get the Effective Liquidation Incentive for a given account and market
+     * @dev The incentive is determined by the pool entered by the account and the specified vToken via
+     *      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the
+     *      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used
      * @param account The account whose pool is used to determine the market's risk parameters
      * @param vToken The address of the vToken market
      * @return The liquidation Incentive for the vToken, scaled by 1e18
@@ -696,8 +699,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.
-     * @dev If the pool is inactive or the vToken is not configured in the given pool,
-     *      falls back to the core pool (poolId = 0).
+     * @dev If the pool is inactive, or if the vToken is not configured in the given pool and
+     *      `allowCorePoolFallback` is enabled, falls back to the core pool (poolId = 0) values.
      * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
      * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
      * @return liquidationIncentiveMantissa The liquidation incentive allowed for this market, in mantissa.
@@ -714,14 +717,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
             uint256 liquidationIncentiveMantissa
         )
     {
+        PoolData storage pool = pools[poolId];
         Market storage market;
 
-        if (poolId == corePoolId || !pools[poolId].isActive) {
+        if (poolId == corePoolId || !pool.isActive) {
             market = getCorePoolMarket(vToken);
         } else {
             PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
             Market storage poolMarket = _poolMarkets[poolKey];
-            market = poolMarket.isListed ? poolMarket : getCorePoolMarket(vToken);
+            market = (!poolMarket.isListed && pool.allowCorePoolFallback) ? getCorePoolMarket(vToken) : poolMarket;
         }
 
         return (
