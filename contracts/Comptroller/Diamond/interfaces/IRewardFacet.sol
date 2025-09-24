@@ -3,10 +3,8 @@
 pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { Action } from "../../ComptrollerInterface.sol";
-import { IFacetBase } from "./IFacetBase.sol";
 
-interface IRewardFacet is IFacetBase {
+interface IRewardFacet {
     function claimVenus(address holder) external;
 
     function claimVenus(address holder, VToken[] calldata vTokens) external;

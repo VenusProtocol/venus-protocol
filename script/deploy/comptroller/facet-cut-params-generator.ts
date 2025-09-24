@@ -1,5 +1,5 @@
 import fs from "fs";
-import { ethers } from "hardhat";
+import { deployments, ethers, network } from "hardhat";
 
 import { FacetCutAction, getSelectors } from "./diamond";
 
@@ -8,21 +8,13 @@ import { FacetCutAction, getSelectors } from "./diamond";
  * to add diamond facets
  */
 
-// Insert the addresses of the deployed facets to generate thecut params according for the same.
-const facetsAddresses = {
+// Insert the addresses of the deployed facets to generate the cut params, do not change the order.
+const newFacetAddresses = {
   MarketFacet: "",
   PolicyFacet: "",
   RewardFacet: "",
   SetterFacet: "",
-};
-
-// Set actions to the cut params to perform
-// i.e. Add, Remove, Replace function selectors in the mapping.
-const facetsActions = {
-  MarketFacet: FacetCutAction.Add,
-  PolicyFacet: FacetCutAction.Add,
-  RewardFacet: FacetCutAction.Add,
-  SetterFacet: FacetCutAction.Add,
+  FacetBase: "*FacetBase",
 };
 
 // Set interfaces for the setters to generate function selectors from
@@ -31,73 +23,72 @@ const FacetsInterfaces = {
   PolicyFacet: "IPolicyFacet",
   RewardFacet: "IRewardFacet",
   SetterFacet: "ISetterFacet",
+  FacetBase: "IFacetBase",
 };
 
-// Facets for which cute params need to generate
-const FacetNames = ["MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet"];
+// Facets for which cut params need to generate
+const FacetNames = ["MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet", "FacetBase"];
 
 // Name of the file to write the cut-params
-const jsonFileName = "cur-params-test";
+const jsonFileName = `cut-params-${network.name}`;
 
 async function generateCutParams() {
-  const cut: any = [];
+  const comptrollerDeployment = await deployments.get("Unitroller");
+  const diamondAddress = comptrollerDeployment.address;
+  const diamond = await ethers.getContractAt("Diamond", diamondAddress);
+  const currentFacets = await diamond.facets();
 
-  for (const FacetName of FacetNames) {
-    const FacetInterface = await ethers.getContractAt(FacetsInterfaces[FacetName], facetsAddresses[FacetName]);
-
-    switch (facetsActions[FacetName]) {
-      case FacetCutAction.Add:
-        cut.push({
-          facetAddress: facetsAddresses[FacetName],
-          action: FacetCutAction.Add,
-          functionSelectors: getSelectors(FacetInterface),
-        });
-        break;
-      case FacetCutAction.Remove:
-        cut.push({
-          facetAddress: ethers.constants.AddressZero,
-          action: FacetCutAction.Remove,
-          functionSelectors: getSelectors(FacetInterface),
-        });
-        break;
-      case FacetCutAction.Replace:
-        cut.push({
-          facetAddress: facetsAddresses[FacetName],
-          action: FacetCutAction.Replace,
-          functionSelectors: getSelectors(FacetInterface),
-        });
-        break;
-      default:
-        break;
+  // Build a global set of all selectors currently in the diamond to filter out redundent selectors
+  const globalReplaced = new Set<string>();
+  for (const f of currentFacets) {
+    for (const sel of f.functionSelectors) {
+      globalReplaced.add(sel.toLowerCase());
     }
   }
 
-  function getFunctionSelector(selectors: any) {
-    const functionSelector: any = [];
-    for (let i = 0; i < selectors.length; i++) {
-      if (selectors[i][0] == "0") {
-        functionSelector.push(selectors[i]);
-      } else {
-        break;
-      }
+  const cut: any[] = [];
+
+  for (let i = 0; i < FacetNames.length; i++) {
+    const facetName = FacetNames[i];
+    const newFacetAddress = newFacetAddresses[facetName];
+
+    // Current facet selectors (from diamond, assuming the facet addresses in the same order as newFacetAddresses)
+    const currentSelectors: string[] = facetName === "FacetBase" ? [] : currentFacets[i].functionSelectors;
+
+    // New facet selectors (from interface)
+    const newFacetInterface = await ethers.getContractAt(FacetsInterfaces[facetName], newFacetAddress);
+    const newSelectors: string[] = getSelectors(newFacetInterface);
+
+    const currentSet = new Set(currentSelectors.map(s => s.toLowerCase()));
+
+    // Replace = already in this facet
+    const replaceSelectors = [...currentSet];
+
+    // Add = not in current facet AND not globally occupied already
+    const addSelectors = newSelectors.filter(
+      s => !currentSet.has(s.toLowerCase()) && !globalReplaced.has(s.toLowerCase()),
+    );
+
+    // Update global registry only for selectors that are being added
+    for (const s of addSelectors) {
+      globalReplaced.add(s.toLowerCase());
     }
-    return functionSelector;
+
+    if (replaceSelectors.length > 0) {
+      cut.push([newFacetAddress, FacetCutAction.Replace, replaceSelectors]);
+    }
+
+    if (addSelectors.length > 0) {
+      cut.push([newFacetAddress, FacetCutAction.Add, addSelectors]);
+    }
   }
 
-  function makeCutParam(cut: any) {
-    const cutParams = [];
-    for (let i = 0; i < cut.length; i++) {
-      const arr: any = new Array(3);
-      arr[0] = cut[i].facetAddress;
-      arr[1] = cut[i].action;
-      arr[2] = getFunctionSelector(cut[i].functionSelectors);
-      cutParams.push(arr);
-    }
-    return cutParams;
-  }
-  const cutParams = { cutParams: makeCutParam(cut) };
-
+  // Write to file
+  const cutParams = { cutParams: cut };
   fs.writeFileSync(`./${jsonFileName}.json`, JSON.stringify(cutParams, null, 4));
+
+  console.log("Cut params generated:");
+  console.log("Note: New FacetBase selectors should be manually assigned to their respective setter facets.");
   return cutParams;
 }
 
