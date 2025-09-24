@@ -280,7 +280,7 @@ describe("FlashLoan", async () => {
       expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
         comptroller.address,
         underlyingA.address,
-        2,
+        3,
       );
     });
 
@@ -296,7 +296,7 @@ describe("FlashLoan", async () => {
       expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
         comptroller.address,
         underlyingA.address,
-        2,
+        3,
       );
 
       expect(psrBalanceAfter).to.equal(psrBalanceBefore.add(protocolFee));
