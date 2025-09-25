@@ -366,7 +366,10 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         if (to != protocolShareReserve) {
-            flashLoanAmount += amount;
+            if (flashLoanAmount > 0) {
+                revert FlashLoanAlreadyActive();
+            }
+            flashLoanAmount = amount;
         }
         doTransferOut(to, amount);
 
@@ -381,18 +384,23 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - The caller must be the Comptroller contract.
      * @param from The address from which the underlying asset is to be transferred.
      * @param amountRepayed The amount of the underlying asset to transfer.
+     * @return actualAmountTransferred The actual amount transferred in.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      * @custom:event Emits TransferInUnderlyingFlashloan event on successful transfer of amount from the receiver to the vToken
      */
-    function transferInUnderlyingFlashloan(address payable from, uint256 amountRepayed) external nonReentrant {
+    function transferInUnderlyingFlashloan(
+        address payable from,
+        uint256 amountRepayed
+    ) external nonReentrant returns (uint256) {
         if (msg.sender != address(comptroller)) {
             revert InvalidComptroller();
         }
 
-        doTransferIn(from, amountRepayed);
+        uint256 actualAmountTransferred = doTransferIn(from, amountRepayed);
         flashLoanAmount = 0;
 
-        emit TransferInUnderlyingFlashloan(underlying, from, amountRepayed);
+        emit TransferInUnderlyingFlashloan(underlying, from, actualAmountTransferred);
+        return actualAmountTransferred;
     }
 
     /**
@@ -1259,7 +1267,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Revert if protocol has insufficient underlying cash */
-        if (getCashPrior() < borrowAmount) {
+        if (shouldTransfer && getCashPrior() < borrowAmount) {
             return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.BORROW_CASH_NOT_AVAILABLE);
         }
 
@@ -1873,7 +1881,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function checkAccrueInterest(FailureInfo info) private returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
+            // accrueInterest emits logs on errors.
             return fail(Error(error), info);
         }
     }

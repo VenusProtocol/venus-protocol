@@ -439,7 +439,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Initialize arrays
         flashLoanData.totalFees = new uint256[](vTokens.length);
         flashLoanData.protocolFees = new uint256[](vTokens.length);
-        flashLoanData.balanceAfterTransfer = new uint256[](vTokens.length);
         flashLoanData.actualRepayments = new uint256[](vTokens.length);
         flashLoanData.remainingDebts = new uint256[](vTokens.length);
 
@@ -473,7 +472,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             );
 
             // Transfer the asset to receiver
-            flashLoanData.balanceAfterTransfer[j] = vTokens[j].transferOutUnderlyingFlashloan(receiver, underlyingAmounts[j]);
+            vTokens[j].transferOutUnderlyingFlashloan(receiver, underlyingAmounts[j]);
         }
     }
 
@@ -547,12 +546,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 protocolFee
     ) internal {
         uint256 borrowedFlashLoanAmount = vToken.flashLoanAmount();
+        uint256 expectedRepayment = borrowedFlashLoanAmount + totalFee;
+        uint256 actualRepayment = amountRepaid > expectedRepayment ? expectedRepayment : amountRepaid;
 
-        vToken.transferInUnderlyingFlashloan(receiver, amountRepaid);
+        uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashloan(receiver, actualRepayment);
 
-        if (borrowedFlashLoanAmount + totalFee > amountRepaid) {
+        if (expectedRepayment > actualAmountTransferred) {
             // If there is any unpaid balance, it becomes an ongoing debt
-            uint256 leftUnpaidBalance = (borrowedFlashLoanAmount + totalFee) - amountRepaid;
+            uint256 leftUnpaidBalance = expectedRepayment - actualAmountTransferred;
 
             uint256 debtError = vToken.borrowDebtPosition(initiator, leftUnpaidBalance);
             if (debtError != 0) {

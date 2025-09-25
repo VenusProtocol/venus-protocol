@@ -194,10 +194,9 @@ describe("FlashLoan", async () => {
     });
 
     it("Revert if not comptroller", async () => {
-      await expect(vTokenA.transferOutUnderlyingFlashloan(minter.address, parseUnits("1", 18))).to.be.revertedWithCustomError(
-        vTokenA,
-        "InvalidComptroller",
-      );
+      await expect(
+        vTokenA.transferOutUnderlyingFlashloan(minter.address, parseUnits("1", 18)),
+      ).to.be.revertedWithCustomError(vTokenA, "InvalidComptroller");
     });
 
     it("Only comptroller can transfer underlying assets to receiver contract", async () => {
