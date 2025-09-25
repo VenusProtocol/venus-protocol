@@ -34,7 +34,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) external {
-        for (uint256 i; i < vTokens.length; i++) {
+        for (uint256 i; i < vTokens.length; ++i) {
             if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
             if (underlyingAmounts[i] == 0) revert InvalidAmount();
         }
@@ -104,13 +104,13 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         uint256[] memory underlyingAmounts,
         FlashLoanData memory flashLoanData
     ) internal {
-        for (uint256 j; j < vTokens.length; ++j) {
-            (flashLoanData.totalFees[j], flashLoanData.protocolFees[j]) = vTokens[j].calculateFlashLoanFee(
-                underlyingAmounts[j]
+        for (uint256 i; i < vTokens.length; ++i) {
+            (flashLoanData.totalFees[i], flashLoanData.protocolFees[i]) = vTokens[i].calculateFlashLoanFee(
+                underlyingAmounts[i]
             );
 
             // Transfer the asset to receiver
-            vTokens[j].transferOutUnderlyingFlashloan(receiver, underlyingAmounts[j]);
+            vTokens[i].transferOutUnderlyingFlashloan(receiver, underlyingAmounts[i]);
         }
     }
 
@@ -151,14 +151,14 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         uint256[] memory underlyingAmountsToRepay,
         FlashLoanData memory flashLoanData
     ) internal {
-        for (uint256 k = 0; k < vTokens.length; k++) {
+        for (uint256 i; i < vTokens.length; ++i) {
             _handleFlashLoan(
-                vTokens[k],
+                vTokens[i],
                 onBehalf,
                 receiver,
-                underlyingAmountsToRepay[k],
-                flashLoanData.totalFees[k],
-                flashLoanData.protocolFees[k]
+                underlyingAmountsToRepay[i],
+                flashLoanData.totalFees[i],
+                flashLoanData.protocolFees[i]
             );
         }
     }

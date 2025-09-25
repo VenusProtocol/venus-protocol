@@ -147,8 +147,8 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         uint256 totalHoldings;
 
         updateAndDistributeRewardsInternal(holders, allMarkets, true, true);
-        for (uint256 j; j < holdersLength; ++j) {
-            address holder = holders[j];
+        for (uint256 i; i < holdersLength; ++i) {
+            address holder = holders[i];
             uint256 userHolding = venusAccrued[holder];
 
             if (userHolding != 0) {

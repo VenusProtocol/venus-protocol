@@ -394,7 +394,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             revert ArrayLengthMismatch();
         }
 
-        for (uint256 i; i < len; i++) {
+        for (uint256 i; i < len; ++i) {
             _addPoolMarket(poolIds[i], vTokens[i]);
         }
     }
@@ -419,7 +419,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address[] storage assets = pools[poolId].vTokens;
 
         uint256 length = assets.length;
-        for (uint256 i; i < length; i++) {
+        for (uint256 i; i < length; ++i) {
             if (assets[i] == vToken) {
                 assets[i] = assets[length - 1];
                 assets.pop();
@@ -601,7 +601,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             return false;
         }
 
-        for (uint256 i; i < assets.length; i++) {
+        for (uint256 i; i < assets.length; ++i) {
             VToken vToken = assets[i];
             PoolMarketId index = getPoolMarketIndex(targetPoolId, address(vToken));
 
