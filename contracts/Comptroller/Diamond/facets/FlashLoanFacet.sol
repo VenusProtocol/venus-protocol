@@ -104,7 +104,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         uint256[] memory underlyingAmounts,
         FlashLoanData memory flashLoanData
     ) internal {
-        for (uint256 j = 0; j < vTokens.length; j++) {
+        for (uint256 j; j < vTokens.length; ++j) {
             (flashLoanData.totalFees[j], flashLoanData.protocolFees[j]) = vTokens[j].calculateFlashLoanFee(
                 underlyingAmounts[j]
             );
