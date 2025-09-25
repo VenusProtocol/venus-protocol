@@ -213,7 +213,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits NewReserveFactor event
     function _setReserveFactor(uint newReserveFactorMantissa_) external override nonReentrant returns (uint) {
         ensureAllowed("_setReserveFactor(uint256)");
-        checkAccrueInterest(FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors.
+            return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
+        }
 
         // _setReserveFactorFresh emits reserve-factor-specific logs on errors, so we don't need to.
         return _setReserveFactorFresh(newReserveFactorMantissa_);
@@ -245,7 +249,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits ReservesReduced event
     function _reduceReserves(uint reduceAmount_) external virtual override nonReentrant returns (uint) {
         ensureAllowed("_reduceReserves(uint256)");
-        checkAccrueInterest(FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors.
+            return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
+        }
 
         // If reserves were reduced in accrueInterest
         if (reduceReservesBlockNumber == block.number) return (uint(Error.NO_ERROR));
@@ -730,7 +738,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function _setInterestRateModel(InterestRateModelV8 newInterestRateModel_) public override returns (uint) {
         ensureAllowed("_setInterestRateModel(address)");
-        checkAccrueInterest(FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors.
+            return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
+        }
 
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
         return _setInterestRateModelFresh(newInterestRateModel_);
@@ -774,7 +786,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert InvalidComptroller();
         }
 
-        checkAccrueInterest(FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors.
+            return fail(Error(error), FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
+        }
 
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
         return borrowFresh(borrower, payable(address(0)), borrowAmount, false);
@@ -877,7 +893,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
     function mintInternal(uint mintAmount) internal nonReentrant returns (uint, uint) {
-        checkAccrueInterest(FailureInfo.MINT_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mint failed
+            return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
+        }
 
         // mintFresh emits the actual Mint event if successful and logs on errors, so we don't need to
         return mintFresh(msg.sender, mintAmount);
@@ -966,9 +986,13 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
     function mintBehalfInternal(address receiver, uint mintAmount) internal nonReentrant returns (uint, uint) {
-        checkAccrueInterest(FailureInfo.MINT_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mintBehalf failed
+            return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
+        }
 
-        // mintBelahfFresh emits the actual Mint event if successful and logs on errors, so we don't need to
+        // mintBehalfFresh emits the actual Mint event if successful and logs on errors, so we don't need to
         return mintBehalfFresh(msg.sender, receiver, mintAmount);
     }
 
@@ -1064,7 +1088,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address payable receiver,
         uint redeemTokens
     ) internal nonReentrant returns (uint) {
-        checkAccrueInterest(FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
+            return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
+        }
 
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
         return redeemFresh(redeemer, receiver, redeemTokens, 0);
@@ -1084,7 +1112,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address payable receiver,
         uint redeemAmount
     ) internal nonReentrant returns (uint) {
-        checkAccrueInterest(FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
+            return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
+        }
 
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
         return redeemFresh(redeemer, receiver, 0, redeemAmount);
@@ -1234,7 +1266,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address payable receiver,
         uint borrowAmount
     ) internal nonReentrant returns (uint) {
-        checkAccrueInterest(FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
+            return fail(Error(error), FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
+        }
 
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
         return borrowFresh(borrower, receiver, borrowAmount, true);
@@ -1322,7 +1358,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function repayBorrowInternal(uint repayAmount) internal nonReentrant returns (uint, uint) {
-        checkAccrueInterest(FailureInfo.REPAY_BORROW_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
+            return (fail(Error(error), FailureInfo.REPAY_BORROW_ACCRUE_INTEREST_FAILED), 0);
+        }
 
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
         return repayBorrowFresh(msg.sender, msg.sender, repayAmount);
@@ -1335,7 +1375,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function repayBorrowBehalfInternal(address borrower, uint repayAmount) internal nonReentrant returns (uint, uint) {
-        checkAccrueInterest(FailureInfo.REPAY_BEHALF_ACCRUE_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
+            return (fail(Error(error), FailureInfo.REPAY_BEHALF_ACCRUE_INTEREST_FAILED), 0);
+        }
 
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
         return repayBorrowFresh(msg.sender, borrower, repayAmount);
@@ -1430,9 +1474,13 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint repayAmount,
         VTokenInterface vTokenCollateral
     ) internal nonReentrant returns (uint, uint) {
-        checkAccrueInterest(FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED);
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
+            return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
+        }
 
-        uint error = vTokenCollateral.accrueInterest();
+        error = vTokenCollateral.accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
             return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
@@ -1639,8 +1687,11 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _addReservesInternal(uint addAmount) internal nonReentrant returns (uint) {
-        checkAccrueInterest(FailureInfo.ADD_RESERVES_ACCRUE_INTEREST_FAILED);
-        uint error;
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
+            return fail(Error(error), FailureInfo.ADD_RESERVES_ACCRUE_INTEREST_FAILED);
+        }
 
         // _addReservesFresh emits reserve-addition-specific logs on errors, so we don't need to.
         (error, ) = _addReservesFresh(addAmount);
@@ -1877,14 +1928,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function ensureAccrueInterest() private {
         require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
-    }
-
-    function checkAccrueInterest(FailureInfo info) private returns (uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors.
-            return fail(Error(error), info);
-        }
     }
 
     /*** Safe Token ***/
