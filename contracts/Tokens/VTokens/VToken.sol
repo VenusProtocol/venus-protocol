@@ -354,10 +354,10 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param amount The amount of the underlying asset to transfer.
      * @return balanceBeforeRepayFlashloan Cash balance after transfer out for comparison in flash loan verification.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
-     * @custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
+     * @custom:event Emits TransferOutUnderlyingFlashloan event on successful transfer of amount to receiver
      */
 
-    function transferOutUnderlying(
+    function transferOutUnderlyingFlashloan(
         address payable to,
         uint256 amount
     ) external nonReentrant returns (uint256 balanceBeforeRepayFlashloan) {
@@ -371,7 +371,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         doTransferOut(to, amount);
 
         balanceBeforeRepayFlashloan = getCashPrior();
-        emit TransferOutUnderlying(underlying, to, amount);
+        emit TransferOutUnderlyingFlashloan(underlying, to, amount);
     }
 
     /**
@@ -382,9 +382,9 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param from The address from which the underlying asset is to be transferred.
      * @param amountRepayed The amount of the underlying asset to transfer.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
-     * @custom:event Emits TransferInUnderlyingAndVerify event on successful transfer of amount from the receiver to the vToken
+     * @custom:event Emits TransferInUnderlyingFlashloan event on successful transfer of amount from the receiver to the vToken
      */
-    function transferInUnderlyingAndVerify(address payable from, uint256 amountRepayed) external nonReentrant {
+    function transferInUnderlyingFlashloan(address payable from, uint256 amountRepayed) external nonReentrant {
         if (msg.sender != address(comptroller)) {
             revert InvalidComptroller();
         }
@@ -392,7 +392,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         doTransferIn(from, amountRepayed);
         flashLoanAmount = 0;
 
-        emit TransferInUnderlyingAndVerify(underlying, from, amountRepayed);
+        emit TransferInUnderlyingFlashloan(underlying, from, amountRepayed);
     }
 
     /**

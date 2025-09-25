@@ -17,6 +17,7 @@ interface IFlashLoanReceiver {
      * @param initiator The address that initiated the flashLoan operation.
      * @param param Additional parameters encoded as bytes. These can be used to pass custom data to the receiver contract.
      * @return True if the operation succeeds and the borrowed amount plus the premium is repaid, false otherwise.
+     * @return array of uint256 representing the amounts to be repaid for each asset.
      */
     function executeOperation(
         VToken[] calldata assets,

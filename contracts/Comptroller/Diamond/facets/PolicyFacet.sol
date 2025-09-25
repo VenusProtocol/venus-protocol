@@ -26,8 +26,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /// @notice Emitted when a new supply-side XVS speed is calculated for a market
     event VenusSupplySpeedUpdated(VToken indexed vToken, uint256 newSpeed);
 
-    // @notice Emitted When the flash loan is successfully executed
-    event FlashLoanExecuted(address receiver, VToken[] assets, uint256[] amounts);
+    /// @notice Emitted when the flash loan is successfully executed
+    event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
@@ -380,7 +380,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
     /**
      * @notice Executes a flashLoan operation with the requested assets.
-     * @dev Transfer the specified assets to the receiver contract and handles repayment.
+     * @dev Transfers the specified assets to the receiver contract and handles repayment.
      * @param initiator The address of the EOA who initiated the flash loan.
      * @param receiver The address of the contract that will receive the flashLoan amount and execute the operation.
      * @param vTokens The addresses of the vToken assets to be loaned.
@@ -434,7 +434,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
         bytes memory param
-    ) internal returns (FlashLoanData memory flashLoanData) {
+    ) internal {
+        FlashLoanData memory flashLoanData;
         // Initialize arrays
         flashLoanData.totalFees = new uint256[](vTokens.length);
         flashLoanData.protocolFees = new uint256[](vTokens.length);
@@ -455,8 +456,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         );
         // Phase 3: Handles repayment
         _executePhase3(initiator, receiver, vTokens, tokensApproved, flashLoanData);
-
-        return flashLoanData;
     }
 
     /**
@@ -474,7 +473,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             );
 
             // Transfer the asset to receiver
-            flashLoanData.balanceAfterTransfer[j] = vTokens[j].transferOutUnderlying(receiver, underlyingAmounts[j]);
+            flashLoanData.balanceAfterTransfer[j] = vTokens[j].transferOutUnderlyingFlashloan(receiver, underlyingAmounts[j]);
         }
     }
 
@@ -512,7 +511,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address payable initiator,
         address payable receiver,
         VToken[] memory vTokens,
-        uint256[] memory underlyingAmounts,
+        uint256[] memory underlyingAmountsToRepay,
         FlashLoanData memory flashLoanData
     ) internal {
         for (uint256 k = 0; k < vTokens.length; k++) {
@@ -520,7 +519,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
                 vTokens[k],
                 initiator,
                 receiver,
-                underlyingAmounts[k],
+                underlyingAmountsToRepay[k],
                 flashLoanData.totalFees[k],
                 flashLoanData.protocolFees[k]
             );
@@ -535,7 +534,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param vToken The vToken contract for the asset being flash loaned.
      * @param initiator The address of the EOA who initiated the flash loan.
      * @param receiver The address that received the flash loan and is repaying.
-     * @param amountRepayed The amount repaid by the receiver (principal + fee).
+     * @param amountRepaid The amount repaid by the receiver (principal + fee).
      * @param totalFee The total fee charged for the flash loan.
      * @param protocolFee The portion of the total fee allocated to the protocol.
      */
@@ -543,19 +542,17 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         VToken vToken,
         address payable initiator,
         address payable receiver,
-        uint256 amountRepayed,
+        uint256 amountRepaid,
         uint256 totalFee,
         uint256 protocolFee
     ) internal {
         uint256 borrowedFlashLoanAmount = vToken.flashLoanAmount();
-        // Must repay full amount + fee
-        vToken.transferInUnderlyingAndVerify(receiver, amountRepayed);
 
-        if (borrowedFlashLoanAmount + totalFee > amountRepayed) {
+        vToken.transferInUnderlyingFlashloan(receiver, amountRepaid);
+
+        if (borrowedFlashLoanAmount + totalFee > amountRepaid) {
             // If there is any unpaid balance, it becomes an ongoing debt
-            uint256 leftUnpaidBalance = (borrowedFlashLoanAmount + totalFee) - amountRepayed;
-            uint256 accrueResult = vToken.accrueInterest();
-            require(accrueResult == 0, "Failed to accrue interest");
+            uint256 leftUnpaidBalance = (borrowedFlashLoanAmount + totalFee) - amountRepaid;
 
             uint256 debtError = vToken.borrowDebtPosition(initiator, leftUnpaidBalance);
             if (debtError != 0) {
@@ -563,7 +560,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             }
         } else {
             // Transfer protocol fee to protocol share reserve
-            vToken.transferOutUnderlying(vToken.protocolShareReserve(), protocolFee);
+            vToken.transferOutUnderlyingFlashloan(vToken.protocolShareReserve(), protocolFee);
 
             // Update protocol share reserve state
             IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
