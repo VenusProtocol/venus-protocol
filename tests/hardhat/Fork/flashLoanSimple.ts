@@ -202,7 +202,6 @@ forking(64048894, async () => {
           vUSDT
             .connect(user)
             .executeFlashLoan(
-              user.address,
               mockReceiverSimpleFlashLoan.address,
               flashLoanAmount.toString(),
               ethers.utils.hexlify([]),
@@ -218,7 +217,6 @@ forking(64048894, async () => {
           vUSDT
             .connect(user)
             .executeFlashLoan(
-              user.address,
               mockReceiverSimpleFlashLoan.address,
               flashLoanAmount.toString(),
               ethers.utils.hexlify([]),
@@ -233,9 +231,7 @@ forking(64048894, async () => {
         await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
         // Attempt to take a flashLoan with zero address as receiver should fail
         await expect(
-          vUSDT
-            .connect(user)
-            .executeFlashLoan(user.address, AddressZero, flashLoanAmount.toString(), ethers.utils.hexlify([])),
+          vUSDT.connect(user).executeFlashLoan(AddressZero, flashLoanAmount.toString(), ethers.utils.hexlify([])),
         ).to.be.revertedWith("zero address");
       });
 
@@ -259,12 +255,7 @@ forking(64048894, async () => {
 
         await vUSDT
           .connect(user)
-          .executeFlashLoan(
-            user.address,
-            mockReceiverSimpleFlashLoan.address,
-            flashLoanAmount.toString(),
-            ethers.utils.hexlify([]),
-          );
+          .executeFlashLoan(mockReceiverSimpleFlashLoan.address, flashLoanAmount.toString(), ethers.utils.hexlify([]));
 
         // Check if the USDT balance in vUSDT increased, validating flashLoan repayment with fees
         const balanceAfter = await USDT.balanceOf(vUSDT.address);

@@ -237,12 +237,12 @@ describe("FlashLoan", async () => {
         mockReceiverSimple.connect(alice).requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),
       )
         .to.be.revertedWithCustomError(vTokenA, "SenderNotAuthorized")
-        .withArgs(alice.address);
+        .withArgs(mockReceiverSimple.address);
     });
 
     it("FlashLoan for single underlying", async () => {
       // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverSimple.address, true);
 
       const vTokenBalanceBefore = await underlyingA.balanceOf(vTokenA.address);
       const psrBalanceBefore = await underlyingA.balanceOf(protocolShareReserveMock.address);

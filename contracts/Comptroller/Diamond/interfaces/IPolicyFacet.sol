@@ -90,7 +90,7 @@ interface IPolicyFacet {
     ) external;
 
     function executeFlashLoan(
-        address payable initiator,
+        address payable onBehalf,
         address payable receiver,
         VToken[] calldata vTokens,
         uint256[] calldata amounts,

@@ -413,18 +413,16 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - The `receiver` address must not be the zero address.
      *      - FlashLoans must be enabled for the asset.
      *      - The `receiver` contract must repay the loan with the appropriate fee.
-     * @param initiator The address that initiated the flash loan.
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
      * @param amount The amount of asset to be loaned.
      * @param param Additional encoded parameters passed with the flash loan.
      * @custom:error FlashLoanNotEnabled is thrown if flash loans are disabled for the asset.
-     * @custom:error SenderNotAuthorized is thrown if the initiator is not authorized to execute flash loan.
+     * @custom:error SenderNotAuthorized is thrown if the 'msg.sender' is not authorized to execute flash loan.
      * @custom:error ExecuteFlashLoanFailed is thrown if the receiver contract fails to execute the operation.
      * @custom:error InsufficientRepayment is thrown if the repayment (amount + fee) is insufficient after the operation.
      * @custom:event Emits FlashLoanExecuted event on success
      */
     function executeFlashLoan(
-        address initiator,
         address payable receiver,
         uint256 amount,
         bytes calldata param
@@ -436,8 +434,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureNonZeroAddress(receiver);
 
         // Check if the caller is authorized to execute flash loans
-        if (!comptroller.authorizedFlashLoan(initiator)) {
-            revert SenderNotAuthorized(initiator);
+        if (!comptroller.authorizedFlashLoan(msg.sender)) {
+            revert SenderNotAuthorized(msg.sender);
         }
 
         // Tracks the flashLoan amount before transferring amount to the receiver

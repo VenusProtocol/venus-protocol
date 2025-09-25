@@ -55,6 +55,9 @@ contract ComptrollerErrorReporter {
     // @notice Thrown when the sender is not authorized to use flashloan onBehalfOf
     error SenderNotAuthorizedForFlashLoan(address sender);
 
+    // @notice Thrown when the onBehalfOf didn't approve the contract that receives flashloan
+    error NotAnApprovedDelegate();
+
     // @notice Thrown when an invalid mode is provided
     error InvalidMode();
 

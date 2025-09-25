@@ -13,7 +13,7 @@ interface IFlashLoanSimpleReceiver {
      * @param asset The address of the flash-borrowed asset
      * @param amount The amount of the flash-borrowed asset
      * @param premium The premium (fee) associated with flash-borrowed asset
-     * @param initiator The address that initiated the flashLoan operation
+     * @param onBehalf The address of the user whose debt position will be used for the flashLoan.
      * @param param The byte-encoded param passed when initiating the flashLoan
      * @return True if the execution of the operation succeeds, false otherwise
      */
@@ -21,7 +21,7 @@ interface IFlashLoanSimpleReceiver {
         address asset,
         uint256 amount,
         uint256 premium,
-        address initiator,
+        address onBehalf,
         bytes calldata param
     ) external returns (bool);
 }

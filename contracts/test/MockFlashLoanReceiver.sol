@@ -41,7 +41,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
      * @param assets The VToken contracts for the flash-borrowed assets.
      * @param amounts The amounts of each asset borrowed.
      * @param premiums The fees for each flash-borrowed asset.
-     * @param initiator The address that initiated the flash loan.
+     * @param onBehalf The address of the user whose debt position will be used for the flashLoan.
      * @param param Additional encoded parameters passed with the flash loan.
      * @return True if the operation succeeds and the debt plus premium is repaid, false otherwise.
      */
@@ -49,12 +49,12 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         VToken[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata premiums,
-        address initiator,
+        address onBehalf,
         bytes calldata param
     ) external virtual returns (bool, uint256[] memory) {
         // 👇 Your custom logic for the flash loan should be implemented here 👇
         /** YOUR CUSTOM LOGIC HERE */
-        initiator;
+        onBehalf;
         param;
         // 👆 Your custom logic for the flash loan should be implemented above here 👆
 

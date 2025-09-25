@@ -401,6 +401,8 @@ forking(64048894, () => {
 
       it("Should be able to do flashLoan for USDT & ETH", async () => {
         await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(user.address, true);
+        await marketFacet.connect(user).updateDelegate(user.address, true);
+
         // Transfer USDT and BUSD tokens to Alice to set up initial balances
         await USDT.connect(usdtHolder).transfer(vUSDT.address, parseUnits("100", 6));
         await USDT.connect(usdtHolder).transfer(mockFlashLoanReceiver.address, parseUnits("50", 6));
@@ -459,6 +461,7 @@ forking(64048894, () => {
 
       it("Should be able to do flashLoan for USDT & BUSD with debt position", async () => {
         await setterFacet.connect(timeLockUser).setWhiteListFlashLoanAccount(user.address, true);
+        await marketFacet.connect(user).updateDelegate(user.address, true);
 
         // Transfer USDT and BUSD tokens to provide liquidity to vTokens
         await USDT.connect(usdtHolder).transfer(vUSDT.address, parseUnits("100", 6));

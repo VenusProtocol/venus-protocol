@@ -188,14 +188,12 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if the user is zero address", async () => {
-      // whitelist alice for flashLoan
-
       await expect(comptroller.setWhiteListFlashLoanAccount(ethers.constants.AddressZero, true)).to.be.revertedWith(
         "can't be zero address",
       );
     });
 
-    it("Should revert if user is not whitelisted", async () => {
+    it("Should revert if contract is not whitelisted", async () => {
       await vTokenA.setFlashLoanEnabled(true);
       await vTokenB.setFlashLoanEnabled(true);
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
@@ -209,7 +207,7 @@ describe("FlashLoan", async () => {
         ),
       )
         .to.be.revertedWithCustomError(comptroller, "SenderNotAuthorizedForFlashLoan")
-        .withArgs(alice.address);
+        .withArgs(mockReceiverContract.address);
     });
 
     it("Should revert if array params are unequal", async () => {
@@ -255,13 +253,16 @@ describe("FlashLoan", async () => {
       await vTokenA.setFlashLoanEnabled(true);
       await vTokenB.setFlashLoanEnabled(true);
 
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
-
       // Deploy the bad receiver contract
       const BadFlashLoanReceiver = await ethers.getContractFactory("BadFlashLoanReceiver");
       const badReceiver = await BadFlashLoanReceiver.deploy(unitroller.address);
       await badReceiver.deployed();
+
+      // whitelist badReceiver contract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(badReceiver.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(badReceiver.address, true);
 
       // Set the balance of badReceiver to cover full repayment for both tokens
       await underlyingA.harnessSetBalance(badReceiver.address, parseUnits("20", 18));
@@ -289,8 +290,11 @@ describe("FlashLoan", async () => {
       // Set the balance of mockReceiver in order to pay for flashLoan fee
       await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
       await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
 
       // Set collateral factors for the markets
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
@@ -329,8 +333,8 @@ describe("FlashLoan", async () => {
       await vTokenA.setFlashLoanEnabled(true);
       await vTokenB.setFlashLoanEnabled(true);
 
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
 
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
@@ -338,14 +342,18 @@ describe("FlashLoan", async () => {
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
 
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
+
       // Execute the flashLoan from the mockReceiverContract
       await expect(
-        mockReceiverContract.requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          mockReceiverContract.address,
-          "0x",
-        ),
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
       ).to.be.revertedWith("Insufficient balance");
     });
 
@@ -356,8 +364,11 @@ describe("FlashLoan", async () => {
       // Set the balance of mockReceiver in order to pay for flashLoan fee
       await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
       await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
 
       // Set collateral factors for the markets
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
@@ -403,13 +414,16 @@ describe("FlashLoan", async () => {
       await vTokenA.setFlashLoanEnabled(true);
       await vTokenB.setFlashLoanEnabled(true);
 
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
-
       // Deploy the bad receiver contract
       const BorrowDebtFlashLoanReceiver = await ethers.getContractFactory("BorrowDebtFlashLoanReceiver");
       const borrowDebtReceiver = await BorrowDebtFlashLoanReceiver.deploy(unitroller.address);
       await borrowDebtReceiver.deployed();
+
+      // whitelist borrowDebtReceiver for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(borrowDebtReceiver.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(borrowDebtReceiver.address, true);
 
       // Set collateral factors for the markets
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
@@ -470,7 +484,7 @@ describe("FlashLoan", async () => {
           ),
       ).to.not.be.reverted;
 
-      // Check that debt position was created for the initiator
+      // Check that debt position was created for the onBehalf
       const aliceBorrowBalanceAfterA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceAfterB = await vTokenB.borrowBalanceStored(alice.address);
 
@@ -482,8 +496,11 @@ describe("FlashLoan", async () => {
       await vTokenA.setFlashLoanEnabled(true);
       await vTokenB.setFlashLoanEnabled(true);
 
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
 
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;

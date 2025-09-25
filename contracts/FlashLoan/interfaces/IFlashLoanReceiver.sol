@@ -14,7 +14,7 @@ interface IFlashLoanReceiver {
      * @param assets The assets that were flash-borrowed.
      * @param amounts The amounts of each of the flash-borrowed assets.
      * @param premiums The premiums (fees) associated with each flash-borrowed asset.
-     * @param initiator The address that initiated the flashLoan operation.
+     * @param onBehalf The address of the user whose debt position will be used for the flashLoan.
      * @param param Additional parameters encoded as bytes. These can be used to pass custom data to the receiver contract.
      * @return True if the operation succeeds and the borrowed amount plus the premium is repaid, false otherwise.
      * @return array of uint256 representing the amounts to be repaid for each asset.
@@ -23,7 +23,7 @@ interface IFlashLoanReceiver {
         VToken[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata premiums,
-        address initiator,
+        address onBehalf,
         bytes calldata param
     ) external returns (bool, uint256[] memory);
 }

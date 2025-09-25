@@ -381,7 +381,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /**
      * @notice Executes a flashLoan operation with the requested assets.
      * @dev Transfers the specified assets to the receiver contract and handles repayment.
-     * @param initiator The address of the EOA who initiated the flash loan.
+     * @param onBehalf The address of the user whose debt position will be used for the flashLoan.
      * @param receiver The address of the contract that will receive the flashLoan amount and execute the operation.
      * @param vTokens The addresses of the vToken assets to be loaned.
      * @param underlyingAmounts The amounts of each underlying assets to be loaned.
@@ -394,7 +394,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @custom:event Emits FlashLoanExecuted on success
      */
     function executeFlashLoan(
-        address payable initiator,
+        address payable onBehalf,
         address payable receiver,
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
@@ -415,12 +415,16 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         ensureNonzeroAddress(receiver);
 
-        if (!authorizedFlashLoan[initiator]) {
-            revert SenderNotAuthorizedForFlashLoan(initiator);
+        if (!authorizedFlashLoan[msg.sender]) {
+            revert SenderNotAuthorizedForFlashLoan(msg.sender);
+        }
+
+        if (!approvedDelegates[onBehalf][msg.sender]) {
+            revert NotAnApprovedDelegate();
         }
 
         // Execute flash loan phases
-        _executeFlashLoanPhases(initiator, receiver, vTokens, underlyingAmounts, param);
+        _executeFlashLoanPhases(onBehalf, receiver, vTokens, underlyingAmounts, param);
 
         emit FlashLoanExecuted(receiver, vTokens, underlyingAmounts);
     }
@@ -429,7 +433,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @notice Executes all flash loan phases
      */
     function _executeFlashLoanPhases(
-        address payable initiator,
+        address payable onBehalf,
         address payable receiver,
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
@@ -446,7 +450,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         _executePhase1(receiver, vTokens, underlyingAmounts, flashLoanData);
         // Phase 2: Execute operations on receiver contract
         uint256[] memory tokensApproved = _executePhase2(
-            initiator,
+            onBehalf,
             receiver,
             vTokens,
             underlyingAmounts,
@@ -454,7 +458,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             param
         );
         // Phase 3: Handles repayment
-        _executePhase3(initiator, receiver, vTokens, tokensApproved, flashLoanData);
+        _executePhase3(onBehalf, receiver, vTokens, tokensApproved, flashLoanData);
     }
 
     /**
@@ -480,7 +484,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @notice Phase 2: Execute operations on receiver contract
      */
     function _executePhase2(
-        address payable initiator,
+        address payable onBehalf,
         address payable receiver,
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
@@ -491,7 +495,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             vTokens,
             underlyingAmounts,
             totalFees,
-            initiator,
+            onBehalf,
             param
         );
 
@@ -507,7 +511,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      If partial repayment is made, create an ongoing debt position for the unpaid balance.
      */
     function _executePhase3(
-        address payable initiator,
+        address payable onBehalf,
         address payable receiver,
         VToken[] memory vTokens,
         uint256[] memory underlyingAmountsToRepay,
@@ -516,7 +520,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         for (uint256 k = 0; k < vTokens.length; k++) {
             _handleFlashLoan(
                 vTokens[k],
-                initiator,
+                onBehalf,
                 receiver,
                 underlyingAmountsToRepay[k],
                 flashLoanData.totalFees[k],
@@ -531,7 +535,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      and either settles the protocol fee or creates an ongoing debt position for any unpaid balance.
      *      Updates the protocol share reserve state if the protocol fee is transferred.
      * @param vToken The vToken contract for the asset being flash loaned.
-     * @param initiator The address of the EOA who initiated the flash loan.
+     * @param onBehalf The address of the EOA who initiated the flash loan.
      * @param receiver The address that received the flash loan and is repaying.
      * @param amountRepaid The amount repaid by the receiver (principal + fee).
      * @param totalFee The total fee charged for the flash loan.
@@ -539,7 +543,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function _handleFlashLoan(
         VToken vToken,
-        address payable initiator,
+        address payable onBehalf,
         address payable receiver,
         uint256 amountRepaid,
         uint256 totalFee,
@@ -555,7 +559,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             // If there is any unpaid balance, it becomes an ongoing debt
             uint256 leftUnpaidBalance = expectedRepayment - actualAmountTransferred;
 
-            uint256 debtError = vToken.borrowDebtPosition(initiator, leftUnpaidBalance);
+            uint256 debtError = vToken.borrowDebtPosition(onBehalf, leftUnpaidBalance);
             if (debtError != 0) {
                 revert FailedToCreateDebtPosition();
             }
