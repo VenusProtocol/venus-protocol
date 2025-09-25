@@ -189,7 +189,7 @@ forking(64048894, async () => {
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(vUSDT.address, "toggleFlashLoan()", timeLockUser.address);
+          .giveCallPermission(vUSDT.address, "setFlashLoanEnabled(bool)", timeLockUser.address);
 
         await accessControlManager
           .connect(timeLockUser)
@@ -212,7 +212,7 @@ forking(64048894, async () => {
 
       it("Should revert if user is not whitelisted", async () => {
         // Enable flashLoan feature for testing
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
 
         await expect(
           vUSDT
@@ -230,7 +230,7 @@ forking(64048894, async () => {
 
       it("Should revert if receiver is zero address", async () => {
         // Enable flashLoan feature for testing
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
         // Attempt to take a flashLoan with zero address as receiver should fail
         await expect(
           vUSDT
@@ -252,7 +252,7 @@ forking(64048894, async () => {
         await mine(blocksToMine);
 
         // Enable flashLoan feature by the admin
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
         await vUSDT
           .connect(timeLockUser)
           .setFlashLoanFeeMantissa(flashLoanProtocolFeeMantissa, flashLoanSupplierFeeMantissa);

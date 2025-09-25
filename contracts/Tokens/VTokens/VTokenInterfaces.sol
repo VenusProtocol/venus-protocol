@@ -302,7 +302,7 @@ abstract contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when flashLoanEnabled status is changed
      */
-    event ToggleFlashLoanEnabled(bool previousStatus, bool newStatus);
+    event FlashLoanStatusChanged(bool previousStatus, bool newStatus);
 
     /**
      * @notice Event emitted when flashLoan is executed

@@ -260,11 +260,11 @@ forking(64048894, () => {
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(vUSDT.address, "toggleFlashLoan()", timeLockUser.address);
+          .giveCallPermission(vUSDT.address, "setFlashLoanEnabled(bool)", timeLockUser.address);
 
         await accessControlManager
           .connect(timeLockUser)
-          .giveCallPermission(vBUSD.address, "toggleFlashLoan()", timeLockUser.address);
+          .giveCallPermission(vBUSD.address, "setFlashLoanEnabled(bool)", timeLockUser.address);
 
         await accessControlManager
           .connect(timeLockUser)
@@ -331,8 +331,8 @@ forking(64048894, () => {
 
       it("Should revert if asset and amount arrays are mismatched", async () => {
         // Attempt to execute a flashLoan with mismatched arrays for assets and amounts, which should revert
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
-        await vBUSD.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
+        await vBUSD.connect(timeLockUser).setFlashLoanEnabled(true);
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
@@ -347,8 +347,8 @@ forking(64048894, () => {
 
       it("Should revert if receiver is zero address", async () => {
         // Attempt to execute a flashLoan with a zero address as the receiver, which should revert
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
-        await vBUSD.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
+        await vBUSD.connect(timeLockUser).setFlashLoanEnabled(true);
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
@@ -362,8 +362,8 @@ forking(64048894, () => {
       });
 
       it("Should revert if user is not whitelisted", async () => {
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
-        await vBUSD.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
+        await vBUSD.connect(timeLockUser).setFlashLoanEnabled(true);
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
@@ -385,8 +385,8 @@ forking(64048894, () => {
       });
 
       it("Should revert if VToken address is Invalid", async () => {
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
-        await vBUSD.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
+        await vBUSD.connect(timeLockUser).setFlashLoanEnabled(true);
 
         await expect(
           policyFacet.connect(user).executeFlashLoan(
@@ -414,8 +414,8 @@ forking(64048894, () => {
         const balanceBeforeBUSD = await BUSD.balanceOf(vBUSD.address);
 
         // Enable the flashLoan and set fee mantissa on vUSDT and vBUSD contracts
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
-        await vBUSD.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
+        await vBUSD.connect(timeLockUser).setFlashLoanEnabled(true);
 
         await vUSDT
           .connect(timeLockUser)
@@ -483,8 +483,8 @@ forking(64048894, () => {
         const userBorrowBalanceBeforeBUSD = await vBUSD.borrowBalanceStored(user.address);
 
         // Enable the flashLoan and set fee mantissa on vUSDT and vBUSD contracts
-        await vUSDT.connect(timeLockUser).toggleFlashLoan();
-        await vBUSD.connect(timeLockUser).toggleFlashLoan();
+        await vUSDT.connect(timeLockUser).setFlashLoanEnabled(true);
+        await vBUSD.connect(timeLockUser).setFlashLoanEnabled(true);
 
         await marketFacet.connect(user).enterMarkets([vUSDT.address, vBUSD.address]);
 

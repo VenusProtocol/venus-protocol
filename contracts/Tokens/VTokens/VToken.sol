@@ -474,15 +474,18 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Enables or disables flash loan for the market
+     * @notice Sets flash loan status for the market
+     * @param enabled True to enable flash loans, false to disable
      * @custom:access Only Governance
-     * @custom:event Emits ToggleFlashLoanEnabled event on success
+     * @custom:event Emits FlashLoanStatusChanged event on success
      */
-    function toggleFlashLoan() external returns (uint256) {
-        ensureAllowed("toggleFlashLoan()");
-        isFlashLoanEnabled = !isFlashLoanEnabled;
+    function setFlashLoanEnabled(bool enabled) external returns (uint256) {
+        ensureAllowed("setFlashLoanEnabled(bool)");
 
-        emit ToggleFlashLoanEnabled(!isFlashLoanEnabled, isFlashLoanEnabled);
+        if (isFlashLoanEnabled != enabled) {
+            emit FlashLoanStatusChanged(isFlashLoanEnabled, enabled);
+            isFlashLoanEnabled = enabled;
+        }
 
         return uint(Error.NO_ERROR);
     }

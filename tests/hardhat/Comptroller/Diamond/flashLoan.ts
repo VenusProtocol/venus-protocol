@@ -196,8 +196,8 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if user is not whitelisted", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
       await expect(
@@ -213,8 +213,8 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if array params are unequal", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       await expect(
         mockReceiverContract.requestFlashLoan(
@@ -227,8 +227,8 @@ describe("FlashLoan", async () => {
     });
 
     it("should revert when requested flash loan amount is zero", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -252,8 +252,8 @@ describe("FlashLoan", async () => {
 
     it("Should revert if receiver's executeOperation returns false", async () => {
       // Enable flashLoan for vTokens
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -283,8 +283,8 @@ describe("FlashLoan", async () => {
     });
 
     it("User has not supplied in venus - Should not create debt position if receiver repays full amount + fee", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // Set the balance of mockReceiver in order to pay for flashLoan fee
       await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
@@ -326,8 +326,8 @@ describe("FlashLoan", async () => {
     });
 
     it("User has not supplied in venus - should revert if repayment is insufficient", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -350,8 +350,8 @@ describe("FlashLoan", async () => {
     });
 
     it("User has supplied in venus - Should not create debt position if repays full amount + fee", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // Set the balance of mockReceiver in order to pay for flashLoan fee
       await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
@@ -400,8 +400,8 @@ describe("FlashLoan", async () => {
     });
 
     it("User has supplied in venus - Should create debt position if repays less than required", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
@@ -479,8 +479,8 @@ describe("FlashLoan", async () => {
     });
 
     it("User has not enough supply in Venus and repays lesser amount (should revert)", async () => {
-      await vTokenA.toggleFlashLoan();
-      await vTokenB.toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // whitelist alice for flashLoan
       await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
