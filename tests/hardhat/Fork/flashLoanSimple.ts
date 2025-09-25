@@ -10,12 +10,12 @@ import { ethers } from "hardhat";
 import { convertToUnit } from "../../../helpers/utils";
 import {
   Diamond,
+  FlashLoanFacet,
   IAccessControlManagerV5,
   IERC20,
   InterestRateModel,
   MockFlashLoanSimpleReceiver,
   MockFlashLoanSimpleReceiver__factory,
-  PolicyFacet,
   PriceOracle,
   SetterFacet,
   Unitroller__factory,
@@ -59,7 +59,7 @@ type SetupProtocolFixture = {
   USDT: IERC20;
   vUSDT: VBep20Delegate;
   vUSDTProxy: VBep20Delegator;
-  policyFacet: PolicyFacet;
+  flashLoanFacet: FlashLoanFacet;
   setterFacet: SetterFacet;
 };
 
@@ -83,35 +83,29 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   // Get the existing Unitroller
   const unitroller = Unitroller__factory.connect(COMPTROLLER_ADDRESS, timeLockUser);
 
-  const policyFacetFactory = await ethers.getContractFactory("PolicyFacet");
-  const newPolicyFacet = await policyFacetFactory.deploy();
-  await newPolicyFacet.deployed();
+  const flashLoanFacetFactory = await ethers.getContractFactory("FlashLoanFacet");
+  const newFlashLoanFacet = await flashLoanFacetFactory.deploy();
+  await newFlashLoanFacet.deployed();
 
   const setterFacetFactory = await ethers.getContractFactory("SetterFacet");
   const newSetterFacet = await setterFacetFactory.deploy();
   await newSetterFacet.deployed();
 
-  const addExecuteFlashLoanFunctionSignature = newPolicyFacet.interface.getSighash(
-    newPolicyFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],bytes)"],
+  const addExecuteFlashLoanFunctionSignature = newFlashLoanFacet.interface.getSighash(
+    newFlashLoanFacet.interface.functions["executeFlashLoan(address,address,address[],uint256[],bytes)"],
   );
 
   const addSetWhiteListFlashLoanAccountFunctionSignature = newSetterFacet.interface.getSighash(
     newSetterFacet.interface.functions["setWhiteListFlashLoanAccount(address,bool)"],
   );
 
-  const existingPolicyFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_POLICY_FACET);
   const existingSetterFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_SETTER_FACET);
 
   const cut = [
     {
-      facetAddress: newPolicyFacet.address,
+      facetAddress: newFlashLoanFacet.address,
       action: FacetCutAction.Add,
       functionSelectors: [addExecuteFlashLoanFunctionSignature],
-    },
-    {
-      facetAddress: newPolicyFacet.address,
-      action: FacetCutAction.Replace,
-      functionSelectors: existingPolicyFacetFunctions,
     },
     {
       facetAddress: newSetterFacet.address,
@@ -132,7 +126,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const diamondCut = await ethers.getContractAt("IDiamondCut", unitroller.address);
   await diamondCut.connect(timeLockUser).diamondCut(cut);
 
-  const policyFacet = await ethers.getContractAt("PolicyFacet", COMPTROLLER_ADDRESS);
+  const flashLoanFacet = await ethers.getContractAt("FlashLoanFacet", COMPTROLLER_ADDRESS);
   const setterFacet = await ethers.getContractAt("SetterFacet", COMPTROLLER_ADDRESS);
 
   const USDT = await ethers.getContractAt("VBep20", USDT_ADDRESS);
@@ -155,7 +149,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     vUSDT,
     vUSDTProxy,
     diamond,
-    policyFacet,
+    flashLoanFacet,
     setterFacet,
   };
 }
