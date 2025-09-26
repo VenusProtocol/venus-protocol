@@ -391,20 +391,31 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      asset by calling the `doTransferIn` internal function.
      *      - The caller must be the Comptroller contract.
      * @param from The address from which the underlying asset is to be transferred.
-     * @param amountRepayed The amount of the underlying asset to transfer.
+     * @param amountRepaid The amount of the underlying asset to transfer.
+     * @param protocolFee The protocol fee amount to be transferred to the protocol share reserve.
      * @return actualAmountTransferred The actual amount transferred in.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      * @custom:event Emits TransferInUnderlyingFlashloan event on successful transfer of amount from the receiver to the vToken
      */
     function transferInUnderlyingFlashloan(
         address payable from,
-        uint256 amountRepayed
+        uint256 amountRepaid,
+        uint256 protocolFee
     ) external nonReentrant returns (uint256) {
         if (msg.sender != address(comptroller)) {
             revert InvalidComptroller();
         }
 
-        uint256 actualAmountTransferred = doTransferIn(from, amountRepayed);
+        uint256 actualAmountTransferred = doTransferIn(from, amountRepaid);
+
+        // Transfer protocol fee to protocol share reserve
+        doTransferOut(protocolShareReserve, protocolFee);
+
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            underlying,
+            IProtocolShareReserve.IncomeType.FLASHLOAN
+        );
         flashLoanAmount = 0;
 
         emit TransferInUnderlyingFlashloan(underlying, from, actualAmountTransferred);

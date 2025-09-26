@@ -464,12 +464,29 @@ describe("FlashLoan", async () => {
       await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
 
       // Set receiver balance to less than required repayment
-      await underlyingA.harnessSetBalance(mockReceiverContract.address, flashLoanAmount1); // No fee
-      await underlyingB.harnessSetBalance(mockReceiverContract.address, flashLoanAmount2); // No fee
+      await underlyingA.harnessSetBalance(borrowDebtReceiver.address, flashLoanAmount1); // No fee
+      await underlyingB.harnessSetBalance(borrowDebtReceiver.address, flashLoanAmount2); // No fee
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
 
+      // Calculate expected protocol fees
+      const expectedProtocolFeeA = flashLoanAmount1
+        .mul(totalFeeMantissaTokenA)
+        .mul(protocolShareMantissaTokenA)
+        .div(parseUnits("1", 36));
+      const expectedProtocolFeeB = flashLoanAmount2
+        .mul(totalFeeMantissaTokenB)
+        .mul(protocolShareMantissaTokenB)
+        .div(parseUnits("1", 36));
+
+      // Get protocol share reserve address
+      const protocolShareReserveA = await vTokenA.protocolShareReserve();
+      const protocolShareReserveB = await vTokenB.protocolShareReserve();
+
+      // Get protocol share reserve balances before flash loan
+      const protocolReserveBalanceBeforeA = await underlyingA.balanceOf(protocolShareReserveA);
+      const protocolReserveBalanceBeforeB = await underlyingB.balanceOf(protocolShareReserveB);
       const aliceBorrowBalanceBeforeA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceBeforeB = await vTokenB.borrowBalanceStored(alice.address);
 
@@ -490,6 +507,25 @@ describe("FlashLoan", async () => {
 
       expect(aliceBorrowBalanceAfterA).to.be.gt(aliceBorrowBalanceBeforeA);
       expect(aliceBorrowBalanceAfterB).to.be.gt(aliceBorrowBalanceBeforeB);
+
+      // Check that protocol share reserve received the expected fees
+      const protocolReserveBalanceAfterA = await underlyingA.balanceOf(protocolShareReserveA);
+      const protocolReserveBalanceAfterB = await underlyingB.balanceOf(protocolShareReserveB);
+
+      expect(protocolReserveBalanceAfterA).to.equal(protocolReserveBalanceBeforeA.add(expectedProtocolFeeA));
+      expect(protocolReserveBalanceAfterB).to.equal(protocolReserveBalanceBeforeB.add(expectedProtocolFeeB));
+
+      // Verify that updateAssetsState was called on protocol share reserve
+      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
+        comptroller.address,
+        underlyingA.address,
+        3, // IProtocolShareReserve.IncomeType.FLASHLOAN
+      );
+      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
+        comptroller.address,
+        underlyingB.address,
+        3, // IProtocolShareReserve.IncomeType.FLASHLOAN
+      );
     });
 
     it("User has not enough supply in Venus and repays lesser amount (should revert)", async () => {
@@ -528,6 +564,68 @@ describe("FlashLoan", async () => {
             "0x",
           ),
       ).to.be.revertedWith("Insufficient balance");
+    });
+
+    it("Should revert with NotEnoughRepayment when repayment is less than total fee", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+
+      // Deploy the insufficient repayment receiver
+      const InsufficientRepaymentReceiver = await ethers.getContractFactory("InsufficientRepaymentFlashLoanReceiver");
+      const insufficientReceiver = await InsufficientRepaymentReceiver.deploy(comptroller.address);
+
+      // whitelist insufficientReceiver for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(insufficientReceiver.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(insufficientReceiver.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+
+      // Set borrow caps to allow borrowing
+      await comptroller._setMarketBorrowCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
+
+      await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
+      await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+
+      // Calculate expected fees
+      const expectedFeeA = flashLoanAmount1.mul(totalFeeMantissaTokenA).div(parseUnits("1", 18));
+      const expectedFeeB = flashLoanAmount2.mul(totalFeeMantissaTokenB).div(parseUnits("1", 18));
+
+      // Give the receiver exactly half of each fee (insufficient)
+      const amountA = expectedFeeA;
+      const amountB = expectedFeeB;
+
+      await underlyingA.harnessSetBalance(insufficientReceiver.address, amountA);
+      await underlyingB.harnessSetBalance(insufficientReceiver.address, amountB);
+
+      // Execute the flashLoan - should revert with NotEnoughRepayment
+      await expect(
+        insufficientReceiver
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            insufficientReceiver.address,
+            "0x",
+          ),
+      ).to.be.revertedWithCustomError(comptroller, "NotEnoughRepayment");
     });
   });
 });

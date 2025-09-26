@@ -184,29 +184,24 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         uint256 protocolFee
     ) internal {
         uint256 borrowedFlashLoanAmount = vToken.flashLoanAmount();
-        uint256 expectedRepayment = borrowedFlashLoanAmount + totalFee;
-        uint256 actualRepayment = amountRepaid > expectedRepayment ? expectedRepayment : amountRepaid;
+        uint256 MaxExpectedRepayment = borrowedFlashLoanAmount + totalFee;
+        uint256 actualRepayment = amountRepaid > MaxExpectedRepayment ? MaxExpectedRepayment : amountRepaid;
 
-        uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashloan(receiver, actualRepayment);
+        if (actualRepayment < totalFee) {
+            revert NotEnoughRepayment(actualRepayment, totalFee);
+        }
 
-        if (expectedRepayment > actualAmountTransferred) {
+        // Transfer reapayment (this will handle the protocol fee as well)
+        uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashloan(receiver, actualRepayment, protocolFee);
+
+        if (MaxExpectedRepayment > actualAmountTransferred) {
             // If there is any unpaid balance, it becomes an ongoing debt
-            uint256 leftUnpaidBalance = expectedRepayment - actualAmountTransferred;
+            uint256 leftUnpaidBalance = MaxExpectedRepayment - actualAmountTransferred;
 
             uint256 debtError = vToken.borrowDebtPosition(onBehalf, leftUnpaidBalance);
             if (debtError != 0) {
                 revert FailedToCreateDebtPosition();
             }
-        } else {
-            // Transfer protocol fee to protocol share reserve
-            vToken.transferOutUnderlyingFlashloan(vToken.protocolShareReserve(), protocolFee);
-
-            // Update protocol share reserve state
-            IProtocolShareReserve(vToken.protocolShareReserve()).updateAssetsState(
-                address(vToken.comptroller()),
-                address(vToken.underlying()),
-                IProtocolShareReserve.IncomeType.FLASHLOAN
-            );
         }
     }
 }

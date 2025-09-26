@@ -73,6 +73,9 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when attempting to interact with an inactive pool
     error InactivePool(uint96 poolId);
 
+    /// @notice Thrown when repayment amount is insufficient to cover the fee
+    error NotEnoughRepayment(uint256 repaid, uint256 required);
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
