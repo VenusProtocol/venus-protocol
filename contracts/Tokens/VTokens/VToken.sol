@@ -360,15 +360,15 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - If the `to` address is not the protocol share reserve, the flashLoanAmount is incremented by the amount transferred out.
      * @param to The address to which the underlying asset is to be transferred.
      * @param amount The amount of the underlying asset to transfer.
-     * @return balanceBeforeRepayFlashloan Cash balance after transfer out for comparison in flash loan verification.
+     * @return balanceBeforeRepayFlashLoan Cash balance after transfer out for comparison in flash loan verification.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
-     * @custom:event Emits TransferOutUnderlyingFlashloan event on successful transfer of amount to receiver
+     * @custom:event Emits TransferOutUnderlyingFlashLoan event on successful transfer of amount to receiver
      */
 
-    function transferOutUnderlyingFlashloan(
+    function transferOutUnderlyingFlashLoan(
         address payable to,
         uint256 amount
-    ) external nonReentrant returns (uint256 balanceBeforeRepayFlashloan) {
+    ) external nonReentrant returns (uint256 balanceBeforeRepayFlashLoan) {
         if (msg.sender != address(comptroller)) {
             revert InvalidComptroller();
         }
@@ -381,8 +381,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
         doTransferOut(to, amount);
 
-        balanceBeforeRepayFlashloan = getCashPrior();
-        emit TransferOutUnderlyingFlashloan(underlying, to, amount);
+        balanceBeforeRepayFlashLoan = getCashPrior();
+        emit TransferOutUnderlyingFlashLoan(underlying, to, amount);
     }
 
     /**
@@ -395,9 +395,9 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param protocolFee The protocol fee amount to be transferred to the protocol share reserve.
      * @return actualAmountTransferred The actual amount transferred in.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
-     * @custom:event Emits TransferInUnderlyingFlashloan event on successful transfer of amount from the receiver to the vToken
+     * @custom:event Emits TransferInUnderlyingFlashLoan event on successful transfer of amount from the receiver to the vToken
      */
-    function transferInUnderlyingFlashloan(
+    function transferInUnderlyingFlashLoan(
         address payable from,
         uint256 amountRepaid,
         uint256 protocolFee
@@ -418,7 +418,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         );
         flashLoanAmount = 0;
 
-        emit TransferInUnderlyingFlashloan(underlying, from, actualAmountTransferred);
+        emit TransferInUnderlyingFlashLoan(underlying, from, actualAmountTransferred);
         return actualAmountTransferred;
     }
 

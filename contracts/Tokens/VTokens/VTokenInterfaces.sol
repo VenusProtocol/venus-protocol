@@ -312,12 +312,12 @@ abstract contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when asset is transferred to receiver
      */
-    event TransferOutUnderlyingFlashloan(address asset, address receiver, uint256 amount);
+    event TransferOutUnderlyingFlashLoan(address asset, address receiver, uint256 amount);
 
     /**
      * @notice Event emitted when asset is transferred from sender and verified
      */
-    event TransferInUnderlyingFlashloan(address asset, address sender, uint256 amount);
+    event TransferInUnderlyingFlashLoan(address asset, address sender, uint256 amount);
 
     /**
      * @notice Event emitted when flashLoan fee mantissa is updated
