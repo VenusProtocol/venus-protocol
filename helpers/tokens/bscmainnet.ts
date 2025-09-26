@@ -275,6 +275,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x77734e70b6E88b4d82fE632a168EDf6e700912b6",
   },
+  {
+    isMock: false,
+    name: "PT Ethena USDe 30OCT2025",
+    symbol: "PT-USDe-30OCT2025",
+    decimals: 18,
+    tokenAddress: "0x607c834cfb7fcbbb341cbe23f77a6e83bcf3f55c",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
