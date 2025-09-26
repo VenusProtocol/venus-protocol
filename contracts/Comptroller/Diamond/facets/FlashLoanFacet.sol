@@ -191,7 +191,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
             revert NotEnoughRepayment(actualRepayment, totalFee);
         }
 
-        // Transfer reapayment (this will handle the protocol fee as well)
+        // Transfer repayment (this will handle the protocol fee as well)
         uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashLoan(receiver, actualRepayment, protocolFee);
 
         if (MaxExpectedRepayment > actualAmountTransferred) {

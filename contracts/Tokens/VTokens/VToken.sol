@@ -360,28 +360,20 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - If the `to` address is not the protocol share reserve, the flashLoanAmount is incremented by the amount transferred out.
      * @param to The address to which the underlying asset is to be transferred.
      * @param amount The amount of the underlying asset to transfer.
-     * @return balanceBeforeRepayFlashLoan Cash balance after transfer out for comparison in flash loan verification.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      * @custom:event Emits TransferOutUnderlyingFlashLoan event on successful transfer of amount to receiver
      */
 
-    function transferOutUnderlyingFlashLoan(
-        address payable to,
-        uint256 amount
-    ) external nonReentrant returns (uint256 balanceBeforeRepayFlashLoan) {
+    function transferOutUnderlyingFlashLoan(address payable to, uint256 amount) external nonReentrant {
         if (msg.sender != address(comptroller)) {
             revert InvalidComptroller();
         }
 
-        if (to != protocolShareReserve) {
-            if (flashLoanAmount > 0) {
-                revert FlashLoanAlreadyActive();
-            }
-            flashLoanAmount = amount;
+        if (flashLoanAmount > 0) {
+            revert FlashLoanAlreadyActive();
         }
+        flashLoanAmount = amount;
         doTransferOut(to, amount);
-
-        balanceBeforeRepayFlashLoan = getCashPrior();
         emit TransferOutUnderlyingFlashLoan(underlying, to, amount);
     }
 
