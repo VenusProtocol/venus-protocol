@@ -184,8 +184,8 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         uint256 protocolFee
     ) internal {
         uint256 borrowedFlashLoanAmount = vToken.flashLoanAmount();
-        uint256 MaxExpectedRepayment = borrowedFlashLoanAmount + totalFee;
-        uint256 actualRepayment = amountRepaid > MaxExpectedRepayment ? MaxExpectedRepayment : amountRepaid;
+        uint256 maxExpectedRepayment = borrowedFlashLoanAmount + totalFee;
+        uint256 actualRepayment = amountRepaid > maxExpectedRepayment ? maxExpectedRepayment : amountRepaid;
 
         if (actualRepayment < totalFee) {
             revert NotEnoughRepayment(actualRepayment, totalFee);
@@ -194,9 +194,9 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         // Transfer repayment (this will handle the protocol fee as well)
         uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashLoan(receiver, actualRepayment, protocolFee);
 
-        if (MaxExpectedRepayment > actualAmountTransferred) {
+        if (maxExpectedRepayment > actualAmountTransferred) {
             // If there is any unpaid balance, it becomes an ongoing debt
-            uint256 leftUnpaidBalance = MaxExpectedRepayment - actualAmountTransferred;
+            uint256 leftUnpaidBalance = maxExpectedRepayment - actualAmountTransferred;
 
             uint256 debtError = vToken.borrowDebtPosition(onBehalf, leftUnpaidBalance);
             if (debtError != 0) {
