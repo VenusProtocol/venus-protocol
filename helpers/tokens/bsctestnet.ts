@@ -226,8 +226,8 @@ const tokens = [
   },
   {
     isMock: true,
-    name: "PT Ethena USDe 30Oct2025",
-    symbol: "PT-USDe-30Oct2025",
+    name: "PT Ethena USDe 30OCT2025",
+    symbol: "PT-USDe-30OCT2025",
     decimals: 18,
   },
 ] as const satisfies readonly TokenConfig[];

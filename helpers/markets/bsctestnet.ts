@@ -635,9 +635,9 @@ export default [
     },
   },
   {
-    name: "Venus PT-USDe-30Oct2025",
-    symbol: "vPT-USDe-30Oct2025",
-    asset: "PT-USDe-30Oct2025",
+    name: "Venus PT-USDe-30OCT2025",
+    symbol: "vPT-USDe-30OCT2025",
+    asset: "PT-USDe-30OCT2025",
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
