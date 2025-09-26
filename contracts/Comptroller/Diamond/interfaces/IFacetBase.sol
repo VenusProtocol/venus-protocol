@@ -3,6 +3,14 @@
 pragma solidity 0.8.25;
 
 import { Action } from "../../../Comptroller/ComptrollerInterface.sol";
+import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
+
+enum WeightFunction {
+    /// @notice Use the collateral factor of the asset for weighting
+    USE_COLLATERAL_FACTOR,
+    /// @notice Use the liquidation threshold of the asset for weighting
+    USE_LIQUIDATION_THRESHOLD
+}
 
 interface IFacetBase {
     /**
@@ -22,4 +30,8 @@ interface IFacetBase {
      * @return The address of XVS token
      */
     function getXVSAddress() external view returns (address);
+
+    function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (PoolMarketId);
+
+    function corePoolId() external pure returns (uint96);
 }

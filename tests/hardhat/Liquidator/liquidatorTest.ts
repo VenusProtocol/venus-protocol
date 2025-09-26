@@ -28,8 +28,11 @@ const seizeTokens = 1000n * 4n;
 const minLiquidatableVAI = convertToBigInt("500", 0);
 const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
+const mantisaOne = convertToBigInt("1", 18);
+// const effectiveIncentive = convertToBigInt("0.1", 18);
 
-const treasuryShare = 181n; // seizeTokens * treasuryPercent / announcedIncentive
+const incentiveAmount = 363n; //seizeTokens * effectiveIncentive / announcedIncentive
+const treasuryShare = 18n; // incentiveAmount * effectiveIncentive
 const liquidatorShare = seizeTokens - treasuryShare;
 
 type LiquidatorFixture = {
@@ -60,14 +63,9 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   collateralUnderlying.balanceOf.returns(convertToUnit(1, 10));
   collateralUnderlying.transfer.returns(true);
   vTokenCollateral.underlying.returns(collateralUnderlying.address);
-  comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
+  comptroller.getEffectiveLiquidationIncentive.returns(announcedIncentive);
   comptroller.vaiController.returns(vaiController.address);
-  comptroller.markets.returns({
-    isListed: true,
-    collateralFactorMantissa: convertToUnit(5, 17),
-    accountMembership: true,
-    isVenus: true,
-  });
+  comptroller.markets.returns([true, convertToUnit(5, 17), true, 0, 0, 0, false]);
   vaiController.getVAIAddress.returns(vai.address);
 
   const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
@@ -100,7 +98,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
 
 function configure(fixture: LiquidatorFixture) {
   const { comptroller, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, vBnb } = fixture;
-  comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
+  comptroller.getEffectiveLiquidationIncentive.returns(announcedIncentive);
   vTokenBorrowed.underlying.returns(borrowedUnderlying.address);
   for (const vToken of [vTokenBorrowed, vTokenCollateral]) {
     vToken.transfer.reset();
@@ -332,15 +330,15 @@ describe("Liquidator", () => {
     });
 
     it("fails when the percentage is too high", async () => {
-      const maxPercentage = convertToBigInt("0.1", 18); // announced incentive - 1, with 18 decimals
-      const tooHighPercentage = convertToBigInt("0.1000000000001", 18);
+      const maxPercentage = convertToBigInt("1.0", 18);
+      const tooHighPercentage = convertToBigInt("1.1", 18); // more than 100%,
       await expect(liquidatorContract.setTreasuryPercent(tooHighPercentage))
         .to.be.revertedWithCustomError(liquidatorContract, "TreasuryPercentTooHigh")
         .withArgs(maxPercentage, tooHighPercentage);
     });
 
     it("uses the new treasury percent during distributions", async () => {
-      await liquidatorContract.setTreasuryPercent(convertToBigInt("0.08", 18));
+      await liquidatorContract.setTreasuryPercent(convertToBigInt("0.10", 18)); // for 10%
 
       const tx = await liquidatorContract.liquidateBorrow(
         vTokenBorrowed.address,
@@ -349,7 +347,7 @@ describe("Liquidator", () => {
         vTokenCollateral.address,
       );
 
-      const treasuryDelta = (seizeTokens * convertToBigInt("0.08", 18)) / announcedIncentive;
+      const treasuryDelta = (incentiveAmount * convertToBigInt("0.10", 18)) / mantisaOne;
       const liquidatorDelta = seizeTokens - treasuryDelta;
 
       await expect(tx)

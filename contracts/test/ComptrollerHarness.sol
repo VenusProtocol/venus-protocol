@@ -165,7 +165,7 @@ contract ComptrollerHarness is ComptrollerMock {
     }
 
     function harnessAddVtoken(address vToken) external {
-        markets[vToken].isListed = true;
+        getCorePoolMarket(vToken).isListed = true;
     }
 }
 

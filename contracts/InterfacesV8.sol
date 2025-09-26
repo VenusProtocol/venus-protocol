@@ -71,8 +71,6 @@ interface IComptroller {
 
     function _setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external;
 
-    function liquidationIncentiveMantissa() external view returns (uint256);
-
     function vaiController() external view returns (IVAIController);
 
     function liquidatorContract() external view returns (address);
@@ -84,6 +82,8 @@ interface IComptroller {
     function markets(address) external view returns (bool, uint256, bool);
 
     function isForcedLiquidationEnabled(address) external view returns (bool);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
 }
 
 interface ILiquidator {

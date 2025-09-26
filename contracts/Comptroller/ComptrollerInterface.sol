@@ -6,6 +6,7 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { WeightFunction } from "./Diamond/interfaces/IFacetBase.sol";
 
 enum Action {
     MINT,
@@ -103,6 +104,13 @@ interface ComptrollerInterface {
         uint repayAmount
     ) external view returns (uint, uint);
 
+    function liquidateCalculateSeizeTokens(
+        address borrower,
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint repayAmount
+    ) external view returns (uint, uint);
+
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
 
     function liquidateVAICalculateSeizeTokens(
@@ -112,7 +120,7 @@ interface ComptrollerInterface {
 
     function getXVSAddress() external view returns (address);
 
-    function markets(address) external view returns (bool, uint);
+    function markets(address) external view returns (bool, uint, bool, uint, uint, uint96, bool);
 
     function oracle() external view returns (ResilientOracleInterface);
 
@@ -144,8 +152,6 @@ interface ComptrollerInterface {
 
     function vaiController() external view returns (VAIControllerInterface);
 
-    function liquidationIncentiveMantissa() external view returns (uint);
-
     function protocolPaused() external view returns (bool);
 
     function actionPaused(address market, Action action) external view returns (bool);
@@ -153,6 +159,44 @@ interface ComptrollerInterface {
     function mintedVAIs(address user) external view returns (uint);
 
     function vaiMintRate() external view returns (uint);
+
+    function userPoolId(address account) external view returns (uint96);
+
+    function getLiquidationIncentive(address vToken) external view returns (uint256);
+
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
+    function getEffectiveLtvFactor(
+        address account,
+        address vToken,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256);
+
+    function lastPoolId() external view returns (uint96);
+
+    function corePoolId() external pure returns (uint96);
+
+    function pools(
+        uint96 poolId
+    ) external view returns (string memory label, bool isActive, bool allowCorePoolFallback);
+
+    function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
+
+    function poolMarkets(
+        uint96 poolId,
+        address vToken
+    )
+        external
+        view
+        returns (
+            bool isListed,
+            uint256 collateralFactorMantissa,
+            bool isVenus,
+            uint256 liquidationThresholdMantissa,
+            uint256 liquidationIncentiveMantissa,
+            uint96 marketPoolId,
+            bool isBorrowAllowed
+        );
 }
 
 interface IVAIVault {
@@ -160,8 +204,6 @@ interface IVAIVault {
 }
 
 interface IComptroller {
-    function liquidationIncentiveMantissa() external view returns (uint);
-
     /*** Treasury Data ***/
     function treasuryAddress() external view returns (address);
 

@@ -19,6 +19,7 @@ export namespace ComptrollerErrorReporter {
     TOO_MANY_ASSETS,
     TOO_MUCH_REPAY,
     INSUFFICIENT_BALANCE_FOR_VAI,
+    MARKET_NOT_COLLATERAL,
   }
 
   export enum FailureInfo {
@@ -46,6 +47,8 @@ export namespace ComptrollerErrorReporter {
     SET_VAICONTROLLER_OWNER_CHECK,
     SET_MINTED_VAI_REJECTION,
     SET_TREASURY_OWNER_CHECK,
+    SET_LIQUIDATION_THRESHOLD_VALIDATION,
+    COLLATERAL_FACTOR_GREATER_THAN_LIQUIDATION_THRESHOLD,
   }
 }
 

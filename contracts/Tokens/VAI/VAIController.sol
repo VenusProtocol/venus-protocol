@@ -23,6 +23,9 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     /// @notice Initial index used in interest computations
     uint256 public constant INITIAL_VAI_MINT_INDEX = 1e18;
 
+    /// poolId for core Pool
+    uint96 public constant CORE_POOL_ID = 0;
+
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
 
@@ -105,6 +108,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         if (address(comptroller) == address(0)) {
             return uint256(Error.NO_ERROR);
         }
+
+        require(comptroller.userPoolId(msg.sender) == CORE_POOL_ID, "VAI mint only allowed in the core Pool");
 
         _ensureNonzeroAmount(mintVAIAmount);
         _ensureNotPaused();
@@ -492,7 +497,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 return (uint256(Error.MATH_ERROR), 0);
             }
 
-            (, uint256 collateralFactorMantissa) = comptroller.markets(address(enteredMarkets[i]));
+            (, uint256 collateralFactorMantissa, , , , , ) = comptroller.markets(address(enteredMarkets[i]));
             (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint256(Error.MATH_ERROR), 0);

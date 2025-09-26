@@ -7,7 +7,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
-  await deploy("Diamond", {
+  await deploy("Unitroller_Implementation", {
+    contract: "Diamond",
     from: deployer,
     args: [],
     log: true,

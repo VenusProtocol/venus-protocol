@@ -58,7 +58,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(
@@ -119,6 +118,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     wallet.address,
   )) as VBep20Harness;
 
+  await comptroller._supportMarket(vusdt.address);
+  await comptroller._supportMarket(veth.address);
+  await comptroller._supportMarket(vbnb.address);
+  await comptroller["setLiquidationIncentive(address,uint256)"](vusdt.address, convertToUnit("1", 18));
+  await comptroller["setLiquidationIncentive(address,uint256)"](veth.address, convertToUnit("1", 18));
+  await comptroller["setLiquidationIncentive(address,uint256)"](vbnb.address, convertToUnit("1", 18));
+
   //0.2 reserve factor
   await veth.harnessSetReserveFactorFresh(bigNumber16.mul(20));
   await vusdt.harnessSetReserveFactorFresh(bigNumber16.mul(20));
@@ -139,9 +145,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const half = convertToUnit("0.5", 18);
   await comptroller._supportMarket(vusdt.address);
-  await comptroller._setCollateralFactor(vusdt.address, half);
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](vusdt.address, half, half);
   await comptroller._supportMarket(veth.address);
-  await comptroller._setCollateralFactor(veth.address, half);
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](veth.address, half, half);
 
   await eth.transfer(user1.address, bigNumber18.mul(100));
   await usdt.transfer(user2.address, bigNumber18.mul(10000));
@@ -411,6 +417,8 @@ describe("Prime Token", () => {
       await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
 
       await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.setIsBorrowAllowed(0, vusdt.address, true);
+      await comptroller.setIsBorrowAllowed(0, veth.address, true);
 
       await vusdt.connect(user1).borrow(bigNumber18.mul(5));
       await veth.connect(user2).borrow(bigNumber18.mul(1));

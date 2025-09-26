@@ -439,6 +439,14 @@ const config: HardhatUserConfig = {
 function isFork() {
   return process.env.FORKED_NETWORK
     ? {
+        chains: {
+          56: {
+            hardforkHistory: {
+              berlin: 0,
+              london: 13000000,
+            },
+          },
+        },
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {
