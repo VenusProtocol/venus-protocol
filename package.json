@@ -105,5 +105,8 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "resolutions": {
+    "hardhat": "2.22.18"
   }
 }
