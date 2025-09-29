@@ -60,25 +60,24 @@ describe("Comptroller", () => {
     describe("setCollateralFactor", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user)._setCollateralFactor(ethers.constants.AddressZero, 1),
+          comptroller.connect(user)["setCollateralFactor(address,uint256,uint256)"](ethers.constants.AddressZero, 1, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setCollateralFactor(address,uint256)",
-        );
-      });
-
-      it("Should revert for same values", async () => {
-        await expect(comptroller._setCollateralFactor(ethers.constants.AddressZero, 0)).to.be.revertedWith(
-          "old value is same as new value",
+          "setCollateralFactor(address,uint256,uint256)",
         );
       });
     });
 
     describe("setLiquidationIncentive", () => {
       it("Should have AccessControl", async () => {
-        await expect(comptroller.connect(user)._setLiquidationIncentive(1)).to.be.revertedWith("access denied");
-        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setLiquidationIncentive(uint256)");
+        await expect(
+          comptroller.connect(user)["setLiquidationIncentive(address,uint256)"](ethers.constants.AddressZero, 1),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "setLiquidationIncentive(address,uint256)",
+        );
       });
     });
 
@@ -116,7 +115,7 @@ describe("Comptroller", () => {
         );
       });
     });
-    describe("supportMarket", () => {
+    describe("_supportMarket", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._supportMarket(ethers.constants.AddressZero)).to.be.revertedWith(
           "access denied",
@@ -124,6 +123,16 @@ describe("Comptroller", () => {
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_supportMarket(address)");
       });
     });
+
+    describe("supportMarket", () => {
+      it("Should have AccessControl", async () => {
+        await expect(comptroller.connect(user).supportMarket(ethers.constants.AddressZero)).to.be.revertedWith(
+          "access denied",
+        );
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_supportMarket(address)");
+      });
+    });
+
     describe("seizeVenus", () => {
       it("Should have AccessControl", async () => {
         await expect(

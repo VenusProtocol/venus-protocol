@@ -29,9 +29,8 @@ async function deployVaultFixture(): Promise<VaultFixture> {
   const vrtVault: VRTVault = await vrtVaultFactory.deploy();
   await vrtVault.initialize(vrt.address, bigNumber18);
 
-  const accessControl: FakeContract<IAccessControlManager> = await smock.fake<IAccessControlManager>(
-    "AccessControlManager",
-  );
+  const accessControl: FakeContract<IAccessControlManager> =
+    await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
 
   await vrtVault.setAccessControl(accessControl.address);

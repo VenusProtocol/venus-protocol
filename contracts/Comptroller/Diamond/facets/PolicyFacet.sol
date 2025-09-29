@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
+import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
+import { WeightFunction } from "../interfaces/IFacetBase.sol";
 
 /**
  * @title PolicyFacet
@@ -31,7 +34,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.MINT);
-        ensureListed(markets[vToken]);
+        ensureListed(getCorePoolMarket(vToken));
 
         uint256 supplyCap = supplyCaps[vToken];
         require(supplyCap != 0, "market supply cap is 0");
@@ -110,12 +113,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
-        ensureListed(markets[vToken]);
+        ensureListed(getCorePoolMarket(vToken));
+        poolBorrowAllowed(borrower, vToken);
 
         uint256 borrowCap = borrowCaps[vToken];
         require(borrowCap != 0, "market borrow cap is 0");
 
-        if (!markets[vToken].accountMembership[borrower]) {
+        if (!getCorePoolMarket(vToken).accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
             require(msg.sender == vToken, "sender must be vToken");
 
@@ -126,7 +130,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             }
         }
 
-        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (oracle.getUnderlyingPrice(vToken) == 0) {
             return uint256(Error.PRICE_ERROR);
         }
 
@@ -137,7 +141,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             borrower,
             VToken(vToken),
             0,
-            borrowAmount
+            borrowAmount,
+            WeightFunction.USE_COLLATERAL_FACTOR
         );
         if (err != Error.NO_ERROR) {
             return uint256(err);
@@ -183,7 +188,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) external returns (uint256) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
-        ensureListed(markets[vToken]);
+        ensureListed(getCorePoolMarket(vToken));
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
@@ -236,11 +241,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.UNAUTHORIZED);
         }
 
-        ensureListed(markets[vTokenCollateral]);
-
+        ensureListed(getCorePoolMarket(vTokenCollateral));
         uint256 borrowBalance;
         if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
+            ensureListed(getCorePoolMarket(vTokenBorrowed));
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
             borrowBalance = vaiController.getVAIRepayAmount(borrower);
@@ -254,7 +258,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            borrower,
+            VToken(address(0)),
+            0,
+            0,
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
+        );
+
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
@@ -313,7 +324,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
-        Market storage market = markets[vTokenCollateral];
+        Market storage market = getCorePoolMarket(vTokenCollateral);
 
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(market);
@@ -323,7 +334,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
+            ensureListed(getCorePoolMarket(vTokenBorrowed));
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
@@ -408,20 +419,25 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Determine the current account liquidity wrt collateral requirements
+     * @notice Alias to getAccountLiquidity to support the Isolated Lending Comptroller Interface
+     * @param account The account get liquidity for
      * @return (possible error code (semi-opaque),
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
-    function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            account,
-            VToken(address(0)),
-            0,
-            0
-        );
+    function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
+        return _getAccountLiquidity(account, WeightFunction.USE_COLLATERAL_FACTOR);
+    }
 
-        return (uint256(err), liquidity, shortfall);
+    /**
+     * @notice Determine the current account liquidity wrt liquidation threshold requirements
+     * @param account The account get liquidity for
+     * @return (possible error code (semi-opaque),
+                account liquidity in excess of liquidation threshold requirements,
+     *          account shortfall below liquidation threshold requirements)
+     */
+    function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
+        return _getAccountLiquidity(account, WeightFunction.USE_LIQUIDATION_THRESHOLD);
     }
 
     /**
@@ -444,7 +460,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             account,
             VToken(vTokenModify),
             redeemTokens,
-            borrowAmount
+            borrowAmount,
+            WeightFunction.USE_COLLATERAL_FACTOR
         );
         return (uint256(err), liquidity, shortfall);
     }
@@ -473,8 +490,16 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
     }
 
+    /**
+     * @dev Internal function to set XVS speed for a single market
+     * @param vToken The market whose XVS speed to update
+     * @param supplySpeed New XVS speed for supply
+     * @param borrowSpeed New XVS speed for borrow
+     * @custom:event VenusSupplySpeedUpdated Emitted after the venus supply speed for a market is updated
+     * @custom:event VenusBorrowSpeedUpdated Emitted after the venus borrow speed for a market is updated
+     */
     function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {
-        ensureListed(markets[address(vToken)]);
+        ensureListed(getCorePoolMarket(address(vToken)));
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
@@ -497,6 +522,25 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             // Update speed and emit event
             venusBorrowSpeeds[address(vToken)] = borrowSpeed;
             emit VenusBorrowSpeedUpdated(vToken, borrowSpeed);
+        }
+    }
+
+    /**
+     * @dev Checks if vToken borrowing is allowed in the account's entered pool
+     *      Reverts if borrowing is not permitted
+     * @param account The address of the account whose borrow permission is being checked
+     * @param vToken The vToken market to check borrowing status for
+     * @custom:error BorrowNotAllowedInPool Reverts if borrowing is not allowed in the account's entered pool
+     * @custom:error InactivePool Reverts if borrowing in an inactive pool.
+     */
+    function poolBorrowAllowed(address account, address vToken) internal view {
+        uint96 userPool = userPoolId[account];
+        PoolMarketId index = getPoolMarketIndex(userPool, vToken);
+        if (!_poolMarkets[index].isBorrowAllowed) {
+            revert BorrowNotAllowedInPool();
+        }
+        if (userPool != corePoolId && !pools[userPool].isActive) {
+            revert InactivePool(userPool);
         }
     }
 }

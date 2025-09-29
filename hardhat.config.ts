@@ -1,7 +1,6 @@
 import "module-alias/register";
 
 import "@nomicfoundation/hardhat-chai-matchers";
-import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
@@ -158,7 +157,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          evmVersion: "paris",
+          evmVersion: "cancun",
           outputSelection: {
             "*": {
               "*": ["storageLayout"],
@@ -173,6 +172,7 @@ const config: HardhatUserConfig = {
     bsctestnet: {
       url: process.env.ARCHIVE_NODE_bsctestnet || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
+      live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
       gasPrice: 10000000000, // 10 gwei
       gasMultiplier: 10,
@@ -181,6 +181,7 @@ const config: HardhatUserConfig = {
     bscmainnet: {
       url: process.env.ARCHIVE_NODE_bscmainnet || "https://bsc-dataseed.binance.org/",
       chainId: 56,
+      live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     sepolia: {
@@ -438,6 +439,14 @@ const config: HardhatUserConfig = {
 function isFork() {
   return process.env.FORKED_NETWORK
     ? {
+        chains: {
+          56: {
+            hardforkHistory: {
+              berlin: 0,
+              london: 13000000,
+            },
+          },
+        },
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {

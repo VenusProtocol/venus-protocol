@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import "../Comptroller/Diamond/facets/MarketFacet.sol";
 import "../Comptroller/Diamond/facets/PolicyFacet.sol";
@@ -9,7 +9,7 @@ import "../Comptroller/Unitroller.sol";
 // This contract contains all methods of Comptroller implementation in different facets at one place for testing purpose
 // This contract does not have diamond functionality(i.e delegate call to facets methods)
 contract ComptrollerMock is MarketFacet, PolicyFacet, RewardFacet, SetterFacet {
-    constructor() public {
+    constructor() {
         admin = msg.sender;
     }
 
@@ -18,7 +18,7 @@ contract ComptrollerMock is MarketFacet, PolicyFacet, RewardFacet, SetterFacet {
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
-    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external returns (uint) {
+    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external override returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);

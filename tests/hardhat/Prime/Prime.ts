@@ -4,6 +4,7 @@ import chai from "chai";
 import { BigNumber, Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
+import { DEFAULT_BLOCKS_PER_YEAR } from "../../../helpers/deploymentConfig.ts";
 import { convertToUnit } from "../../../helpers/utils";
 import {
   BEP20Harness,
@@ -59,7 +60,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(
@@ -120,6 +120,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     wallet.address,
   )) as VBep20Harness;
 
+  await comptroller._supportMarket(vusdt.address);
+  await comptroller._supportMarket(veth.address);
+  await comptroller._supportMarket(vbnb.address);
+  await comptroller["setLiquidationIncentive(address,uint256)"](vusdt.address, convertToUnit("1", 18));
+  await comptroller["setLiquidationIncentive(address,uint256)"](veth.address, convertToUnit("1", 18));
+  await comptroller["setLiquidationIncentive(address,uint256)"](vbnb.address, convertToUnit("1", 18));
+
   //0.2 reserve factor
   await veth.harnessSetReserveFactorFresh(bigNumber16.mul(20));
   await vusdt.harnessSetReserveFactorFresh(bigNumber16.mul(20));
@@ -140,9 +147,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const half = convertToUnit("0.5", 18);
   await comptroller._supportMarket(vusdt.address);
-  await comptroller._setCollateralFactor(vusdt.address, half);
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](vusdt.address, half, half);
   await comptroller._supportMarket(veth.address);
-  await comptroller._setCollateralFactor(veth.address, half);
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](veth.address, half, half);
 
   await eth.transfer(user1.address, bigNumber18.mul(100));
   await usdt.transfer(user2.address, bigNumber18.mul(10000));
@@ -159,7 +166,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
   const xvsVault: XVSVaultScenario = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
-  await xvsVault.initializeTimeManager(false, 10512000);
+  await xvsVault.initializeTimeManager(false, DEFAULT_BLOCKS_PER_YEAR);
 
   await xvsStore.setNewOwner(xvsVault.address);
   await xvsVault.setXvsStore(xvs.address, xvsStore.address);
@@ -189,7 +196,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       10,
     ],
     {
-      constructorArgs: [false, 10512000],
+      constructorArgs: [false, DEFAULT_BLOCKS_PER_YEAR],
       // To allow the usage constructor & internal functions that might change storage
       unsafeAllow: ["constructor", "internal-function-storage"],
     },
@@ -217,7 +224,15 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       10,
     ],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
+      constructorArgs: [
+        wbnb.address,
+        vbnb.address,
+        DEFAULT_BLOCKS_PER_YEAR,
+        stakingPeriod,
+        minimumXVS,
+        maximumXVSCap,
+        false,
+      ],
       // To allow the usage constructor & internal functions that might change storage
       unsafeAllow: ["constructor", "internal-function-storage"],
     },
@@ -319,7 +334,8 @@ describe("PrimeScenario Token", () => {
 
       await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
       await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
-
+      await comptroller.setIsBorrowAllowed(0, vusdt.address, true);
+      await comptroller.setIsBorrowAllowed(0, veth.address, true);
       await vusdt.connect(user1).borrow(bigNumber18.mul(5));
       await veth.connect(user2).borrow(bigNumber18.mul(1));
     });
@@ -604,6 +620,8 @@ describe("PrimeScenario Token", () => {
       await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
 
       await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.setIsBorrowAllowed(0, vusdt.address, true);
+      await comptroller.setIsBorrowAllowed(0, veth.address, true);
 
       await vusdt.connect(user1).borrow(bigNumber18.mul(5));
       await veth.connect(user2).borrow(bigNumber18.mul(1));
@@ -740,7 +758,8 @@ describe("PrimeScenario Token", () => {
 
         const half = convertToUnit("0.5", 8);
         await comptroller._supportMarket(vbnb.address);
-        await comptroller._setCollateralFactor(vbnb.address, half);
+        await comptroller.setIsBorrowAllowed(0, vbnb.address, true);
+        await comptroller["setCollateralFactor(address,uint256,uint256)"](vbnb.address, half, half);
 
         await bnb.transfer(user3.getAddress(), bigNumber18.mul(100));
 
@@ -931,9 +950,8 @@ describe("PrimeScenario Token", () => {
     beforeEach(async () => {
       const [wallet, user1] = await ethers.getSigners();
 
-      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, _primeLiquidityProvider } = await loadFixture(
-        deployProtocol,
-      ));
+      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, _primeLiquidityProvider } =
+        await loadFixture(deployProtocol));
 
       const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
       accessControl.isAllowedToCall.returns(true);
@@ -981,7 +999,7 @@ describe("PrimeScenario Token", () => {
         }
       });
 
-      await comptroller._setCollateralFactor(vmatic.address, half);
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](vmatic.address, half, half);
 
       await comptroller._setMarketSupplyCaps([vmatic.address], [bigNumber18.mul(10000)]);
       await comptroller._setMarketBorrowCaps([vmatic.address], [bigNumber18.mul(10000)]);
@@ -1046,7 +1064,7 @@ describe("PrimeScenario Token", () => {
 
     it("APR Estimation", async () => {
       const apr = await prime.calculateAPR(vmatic.address, user1.getAddress());
-      expect(apr.supplyAPR.toString()).to.be.equal("1168000000");
+      expect(apr.supplyAPR.toString()).to.be.equal("4672000000");
     });
 
     it("Hypothetical APR Estimation", async () => {
@@ -1057,8 +1075,8 @@ describe("PrimeScenario Token", () => {
         bigNumber18.mul(100),
         bigNumber18.mul(1000000),
       );
-      expect(apr.supplyAPR.toString()).to.be.equal("525600000");
-      expect(apr.borrowAPR.toString()).to.be.equal("525600000");
+      expect(apr.supplyAPR.toString()).to.be.equal("2102400000");
+      expect(apr.borrowAPR.toString()).to.be.equal("2102400000");
 
       apr = await prime.estimateAPR(
         vmatic.address,
@@ -1067,8 +1085,8 @@ describe("PrimeScenario Token", () => {
         bigNumber18.mul(50),
         bigNumber18.mul(1000000),
       );
-      expect(apr.supplyAPR.toString()).to.be.equal("700800000");
-      expect(apr.borrowAPR.toString()).to.be.equal("700800000");
+      expect(apr.supplyAPR.toString()).to.be.equal("2803200000");
+      expect(apr.borrowAPR.toString()).to.be.equal("2803200000");
 
       apr = await prime.estimateAPR(
         vmatic.address,
@@ -1078,7 +1096,7 @@ describe("PrimeScenario Token", () => {
         bigNumber18.mul(1000000),
       );
       expect(apr.supplyAPR.toString()).to.be.equal("0");
-      expect(apr.borrowAPR.toString()).to.be.equal("1051200000");
+      expect(apr.borrowAPR.toString()).to.be.equal("4204800000");
     });
   });
 });

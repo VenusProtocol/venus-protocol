@@ -1,16 +1,16 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: BSD-3-Clause
+
+pragma solidity 0.8.25;
+
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
-import "../Utils/SafeMath.sol";
-import "../Comptroller/ComptrollerInterface.sol";
-import "../Tokens/EIP20Interface.sol";
-import "../Tokens/VTokens/VBep20.sol";
+import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
+import { VBep20 } from "../Tokens/VTokens/VBep20.sol";
+import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 contract SnapshotLens is ExponentialNoError {
-    using SafeMath for uint256;
-
     struct AccountSnapshot {
         address account;
         string assetName;
@@ -88,11 +88,17 @@ contract SnapshotLens is ExponentialNoError {
         require(oErr == 0, "Snapshot Error");
         vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-        (, uint collateralFactorMantissa) = ComptrollerInterface(comptrollerAddress).markets(address(vToken));
+        uint collateralFactorMantissa = ComptrollerInterface(comptrollerAddress).getEffectiveLtvFactor(
+            account,
+            address(vToken),
+            WeightFunction.USE_COLLATERAL_FACTOR
+        );
         vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
         // Get the normalized price of the asset
-        vars.oraclePriceMantissa = ComptrollerInterface(comptrollerAddress).oracle().getUnderlyingPrice(vToken);
+        vars.oraclePriceMantissa = ComptrollerInterface(comptrollerAddress).oracle().getUnderlyingPrice(
+            address(vToken)
+        );
         vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
         // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
@@ -115,7 +121,7 @@ contract SnapshotLens is ExponentialNoError {
         } else {
             VBep20 vBep20 = VBep20(address(vToken));
             underlyingAssetAddress = vBep20.underlying();
-            underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
+            underlyingDecimals = IERC20Metadata(vBep20.underlying()).decimals();
         }
 
         vars.isACollateral = isACollateral(account, address(vToken), comptrollerAddress);

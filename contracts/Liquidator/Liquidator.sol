@@ -6,9 +6,11 @@ import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/acc
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
-import "./LiquidatorStorage.sol";
-import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController, IProtocolShareReserve, IWBNB } from "../InterfacesV8.sol";
+import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { IProtocolShareReserve } from "../external/IProtocolShareReserve.sol";
+import { IWBNB } from "../external/IWBNB.sol";
+import { LiquidatorStorage } from "./LiquidatorStorage.sol";
+import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.
@@ -265,7 +267,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
         uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
-        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(vTokenCollateral, seizedAmount);
+        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(borrower, vTokenCollateral, seizedAmount);
         _reduceReservesInternal();
         emit LiquidateBorrowedTokens(
             msg.sender,
@@ -353,10 +355,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
+        address borrower,
         IVToken vTokenCollateral,
         uint256 seizedAmount
     ) internal returns (uint256 ours, uint256 theirs) {
-        (ours, theirs) = _splitLiquidationIncentive(seizedAmount);
+        (ours, theirs) = _splitLiquidationIncentive(borrower, address(vTokenCollateral), seizedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
@@ -436,9 +439,18 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
-    function _splitLiquidationIncentive(uint256 seizedAmount) internal view returns (uint256 ours, uint256 theirs) {
-        uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
-        ours = (seizedAmount * treasuryPercentMantissa) / totalIncentive;
+    function _splitLiquidationIncentive(
+        address borrower,
+        address vTokenCollateral,
+        uint256 seizedAmount
+    ) internal view returns (uint256 ours, uint256 theirs) {
+        uint256 totalIncentive = comptroller.getEffectiveLiquidationIncentive(borrower, vTokenCollateral);
+        uint256 bonusMantissa = totalIncentive - MANTISSA_ONE;
+
+        // Our share is % of bonus portion only
+        uint256 bonusAmount = (seizedAmount * bonusMantissa) / totalIncentive;
+        ours = (bonusAmount * treasuryPercentMantissa) / MANTISSA_ONE;
+
         theirs = seizedAmount - ours;
     }
 
@@ -457,9 +469,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     function validateTreasuryPercentMantissa(uint256 treasuryPercentMantissa_) internal view {
-        uint256 maxTreasuryPercentMantissa = comptroller.liquidationIncentiveMantissa() - MANTISSA_ONE;
-        if (treasuryPercentMantissa_ > maxTreasuryPercentMantissa) {
-            revert TreasuryPercentTooHigh(maxTreasuryPercentMantissa, treasuryPercentMantissa_);
+        if (treasuryPercentMantissa_ > MANTISSA_ONE) {
+            revert TreasuryPercentTooHigh(MANTISSA_ONE, treasuryPercentMantissa_);
         }
     }
 

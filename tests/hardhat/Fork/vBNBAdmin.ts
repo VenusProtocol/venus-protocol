@@ -40,9 +40,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const vBNB = MockVBNB__factory.connect(vBNB_ADDRESS, admin);
   const WBNB = WBNB__factory.connect(WBNB_ADDRESS, admin);
 
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-    "contracts/InterfacesV8.sol:IProtocolShareReserve",
-  );
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
 
   const accessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
   accessControl.isAllowedToCall.returns(true);
@@ -83,9 +81,8 @@ if (FORK_MAINNET) {
       let normalTimelock: Signer;
 
       beforeEach(async () => {
-        ({ vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB, normalTimelock } = await loadFixture(
-          setupMarketFixture,
-        ));
+        ({ vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB, normalTimelock } =
+          await loadFixture(setupMarketFixture));
       });
 
       it("set VBNBAdmin as vBNB admin", async () => {
