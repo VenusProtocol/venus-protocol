@@ -392,6 +392,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function transferInUnderlyingFlashLoan(
         address payable from,
         uint256 amountRepaid,
+        uint256 totalFee,
         uint256 protocolFee
     ) external nonReentrant returns (uint256) {
         if (msg.sender != address(comptroller)) {
@@ -410,7 +411,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         );
         flashLoanAmount = 0;
 
-        emit TransferInUnderlyingFlashLoan(underlying, from, actualAmountTransferred);
+        emit TransferInUnderlyingFlashLoan(underlying, from, actualAmountTransferred, totalFee, protocolFee);
         return actualAmountTransferred;
     }
 

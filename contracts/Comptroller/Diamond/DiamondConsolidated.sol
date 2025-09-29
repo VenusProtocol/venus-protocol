@@ -6,6 +6,7 @@ import { MarketFacet } from "./facets/MarketFacet.sol";
 import { PolicyFacet } from "./facets/PolicyFacet.sol";
 import { RewardFacet } from "./facets/RewardFacet.sol";
 import { SetterFacet } from "./facets/SetterFacet.sol";
+import { FlashLoanFacet } from "./facets/FlashLoanFacet.sol";
 import { Diamond } from "./Diamond.sol";
 
 /**
@@ -15,4 +16,4 @@ import { Diamond } from "./Diamond.sol";
  * This contract cannot be deployed, due to its size. Its main purpose is to allow the easy generation of an ABI and the typechain to interact with the
  * Unitroller contract in a simple way
  */
-contract DiamondConsolidated is Diamond, MarketFacet, PolicyFacet, RewardFacet, SetterFacet {}
+contract DiamondConsolidated is Diamond, MarketFacet, PolicyFacet, RewardFacet, SetterFacet, FlashLoanFacet {}

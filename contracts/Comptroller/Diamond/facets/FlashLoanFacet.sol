@@ -192,7 +192,12 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         }
 
         // Transfer repayment (this will handle the protocol fee as well)
-        uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashLoan(receiver, actualRepayment, protocolFee);
+        uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashLoan(
+            receiver,
+            actualRepayment,
+            totalFee,
+            protocolFee
+        );
 
         if (maxExpectedRepayment > actualAmountTransferred) {
             // If there is any unpaid balance, it becomes an ongoing debt
