@@ -634,4 +634,26 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus PT-USDe-30OCT2025",
+    symbol: "vPT-USDe-30OCT2025",
+    asset: "PT-USDe-30OCT2025",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.1",
+      jumpMultiplierPerYear: "2.5",
+      kink: "0.8",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "1000000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "300",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
