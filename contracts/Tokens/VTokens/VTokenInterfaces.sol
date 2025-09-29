@@ -305,11 +305,6 @@ abstract contract VTokenInterface is VTokenStorage {
     event FlashLoanStatusChanged(bool previousStatus, bool newStatus);
 
     /**
-     * @notice Event emitted when flashLoan is executed
-     */
-    event FlashLoanExecuted(address receiver, address underlying, uint256 amount);
-
-    /**
      * @notice Event emitted when asset is transferred to receiver
      */
     event TransferOutUnderlyingFlashLoan(address asset, address receiver, uint256 amount);

@@ -9,7 +9,6 @@ import { TokenErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VTokenInterface } from "./VTokenInterfaces.sol";
-import { IFlashLoanSimpleReceiver } from "../../FlashLoan/interfaces/IFlashLoanSimpleReceiver.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -413,74 +412,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         emit TransferInUnderlyingFlashLoan(underlying, from, actualAmountTransferred, totalFee, protocolFee);
         return actualAmountTransferred;
-    }
-
-    /**
-     * @notice Executes a flashLoan operation.
-     * @dev Transfers the amount to the receiver contract and ensures that the total repayment (amount + fee)
-     *      is returned by the receiver contract after the operation. The function performs checks to ensure the validity
-     *      of parameters, that flashLoan is enabled for the given asset, and that the total repayment is sufficient.
-     *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
-     *      requirements
-     *      - The `receiver` address must not be the zero address.
-     *      - FlashLoans must be enabled for the asset.
-     *      - The `receiver` contract must repay the loan with the appropriate fee.
-     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
-     * @param amount The amount of asset to be loaned.
-     * @param param Additional encoded parameters passed with the flash loan.
-     * @custom:error FlashLoanNotEnabled is thrown if flash loans are disabled for the asset.
-     * @custom:error SenderNotAuthorized is thrown if the 'msg.sender' is not authorized to execute flash loan.
-     * @custom:error ExecuteFlashLoanFailed is thrown if the receiver contract fails to execute the operation.
-     * @custom:error InsufficientRepayment is thrown if the repayment (amount + fee) is insufficient after the operation.
-     * @custom:event Emits FlashLoanExecuted event on success
-     */
-    function executeFlashLoan(
-        address payable receiver,
-        uint256 amount,
-        bytes calldata param
-    ) external nonReentrant returns (uint256) {
-        if (!isFlashLoanEnabled) {
-            revert FlashLoanNotEnabled();
-        }
-
-        ensureNonZeroAddress(receiver);
-
-        // Check if the caller is authorized to execute flash loans
-        if (!comptroller.authorizedFlashLoan(msg.sender)) {
-            revert SenderNotAuthorized(msg.sender);
-        }
-
-        // Tracks the flashLoan amount before transferring amount to the receiver
-        flashLoanAmount += amount;
-
-        // Transfer the underlying asset to the receiver
-        doTransferOut(receiver, amount);
-
-        uint256 balanceBefore = getCashPrior();
-        (uint256 totalFee, uint256 protocolFee) = calculateFlashLoanFee(amount);
-        uint256 repayAmount = amount + totalFee;
-
-        // Call the execute operation on receiver contract
-        if (!IFlashLoanSimpleReceiver(receiver).executeOperation(underlying, amount, totalFee, msg.sender, param)) {
-            revert ExecuteFlashLoanFailed();
-        }
-
-        doTransferIn(receiver, repayAmount);
-        flashLoanAmount -= amount;
-
-        if ((getCashPrior() - balanceBefore) < repayAmount) revert InsufficientRepayment();
-
-        // Transfer protocol fee to protocol share reserve
-        doTransferOut(protocolShareReserve, protocolFee);
-
-        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
-            address(comptroller),
-            underlying,
-            IProtocolShareReserve.IncomeType.FLASHLOAN
-        );
-
-        emit FlashLoanExecuted(receiver, underlying, amount);
-        return uint(Error.NO_ERROR);
     }
 
     /**
