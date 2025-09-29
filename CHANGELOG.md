@@ -1,3 +1,17 @@
+## [10.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v10.0.0-dev.1...v10.0.0-dev.2) (2025-09-29)
+
+
+### Features
+
+* add mainnet deployments for PT-USDe-30OCT2025 market ([c465fe8](https://github.com/VenusProtocol/venus-protocol/commit/c465fe84927cea76cdab74da191470739bb1c3f8))
+* add testnet deployments for PT-USDe-30Oct2025 market ([f59d942](https://github.com/VenusProtocol/venus-protocol/commit/f59d94273f679e436486b188c5fab4f76ce92c28))
+* updating deployment files ([c946240](https://github.com/VenusProtocol/venus-protocol/commit/c94624064f2c2487ecf593216992dceb17ee5bcb))
+
+
+### Bug Fixes
+
+* market naming case ([7b5b2a6](https://github.com/VenusProtocol/venus-protocol/commit/7b5b2a63520ca75251abd1b776f2e9842bbbd8e1))
+
 ## [10.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.23...v10.0.0-dev.1) (2025-09-26)
 
 
