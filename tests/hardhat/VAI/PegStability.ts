@@ -158,7 +158,7 @@ describe("Peg Stability Module", () => {
             feeIn: 0,
             feeOut: 0,
             vaiMintCap: 0,
-            _initialized: 0, // Initilising is locked after constructor execution of the implementation
+            _initialized: 0, // Initialising is locked after constructor execution of the implementation
           });
         });
         it("should revert if contract already deployed", async () => {
@@ -240,7 +240,7 @@ describe("Peg Stability Module", () => {
             ).to.be.revertedWithCustomError(pegStability, "InvalidFee");
           });
         });
-        it("should initialize sucessfully", async () => {
+        it("should initialize successfully", async () => {
           await expect(
             pegStability.initialize(
               acm.address,
@@ -439,7 +439,7 @@ describe("Peg Stability Module", () => {
               pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT_DOUBLE),
             ).to.be.revertedWithCustomError(pegStability, "VAIMintedUnderflow");
           });
-          describe("should sucessfully perform the swap", () => {
+          describe("should successfully perform the swap", () => {
             beforeEach(async () => {
               resetAllFakes();
             });
@@ -589,7 +589,7 @@ describe("Peg Stability Module", () => {
               ).to.be.revertedWithCustomError(pegStability, "AmountTooSmall");
             });
           }
-          describe("should sucessfully perform the swap", () => {
+          describe("should successfully perform the swap", () => {
             beforeEach(async () => {
               resetAllFakes();
             });

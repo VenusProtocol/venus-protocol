@@ -277,6 +277,13 @@ const tokens = [
   },
   {
     isMock: false,
+    name: "Wrapped BNB",
+    symbol: "WBNB",
+    decimals: 18,
+    tokenAddress: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+  },
+  {
+    isMock: false,
     name: "PT Ethena USDe 30OCT2025",
     symbol: "PT-USDe-30OCT2025",
     decimals: 18,
