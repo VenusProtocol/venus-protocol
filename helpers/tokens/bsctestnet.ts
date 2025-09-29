@@ -237,6 +237,18 @@ const tokens = [
     symbol: "PT-USDe-30OCT2025",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "PT xSolvBTC 18DEC2025",
+    symbol: "PT-xSolvBTC-18DEC2025",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "PT SolvBTC.BNB 18DEC2025",
+    symbol: "PT-SolvBTC.BNB-18DEC2025",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
