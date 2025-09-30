@@ -5,6 +5,7 @@ pragma solidity 0.8.25;
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
+
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { WeightFunction } from "../interfaces/IFacetBase.sol";
@@ -41,7 +42,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 vTokenSupply = VToken(vToken).totalSupply();
         Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
         uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
-
         require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
@@ -147,7 +147,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
-
         if (shortfall != 0) {
             return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
