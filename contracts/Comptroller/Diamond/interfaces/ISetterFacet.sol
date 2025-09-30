@@ -94,6 +94,8 @@ interface ISetterFacet {
 
     function _setXVSVToken(address xvsVToken_) external;
 
+    function setWhiteListFlashLoanAccount(address account, bool _isWhiteListed) external;
+
     function setIsBorrowAllowed(uint96 poolId, address vToken, bool borrowAllowed) external;
 
     function setPoolActive(uint96 poolId, bool active) external;

@@ -151,11 +151,33 @@ contract VTokenStorageBase {
 
 contract VTokenStorage is VTokenStorageBase {
     /**
+     * @notice flashLoan is enabled for this market or not
+     */
+    bool public isFlashLoanEnabled;
+
+    /**
+     * @notice total fee percentage collected on flashLoan (scaled by 1e18)
+     */
+    uint256 public flashLoanFeeMantissa;
+
+    /**
+     * @notice fee percentage of flashLoan that goes to protocol (scaled by 1e18)
+     */
+    uint256 public flashLoanProtocolShareMantissa;
+
+    /**
+     * @notice Amount of flashLoan taken by the receiver
+     * @dev This is used to track the amount of flashLoan taken to correctly calculate the exchange rate
+     *      during the flashLoan process. It is added to the total cash when calculating the exchange rate.
+     */
+    uint256 public flashLoanAmount;
+
+    /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[50] private __gap;
+    uint256[46] private __gap;
 }
 
 abstract contract VTokenInterface is VTokenStorage {
@@ -272,8 +294,47 @@ abstract contract VTokenInterface is VTokenStorage {
      */
     event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserve);
 
-    /// @notice Emitted when access control address is changed by admin
+    /**
+     * @notice Emitted when access control address is changed by admin
+     */
     event NewAccessControlManager(address oldAccessControlAddress, address newAccessControlAddress);
+
+    /**
+     * @notice Event emitted when flashLoanEnabled status is changed
+     */
+    event FlashLoanStatusChanged(bool previousStatus, bool newStatus);
+
+    /**
+     * @notice Event emitted when asset is transferred to receiver
+     */
+    event TransferOutUnderlyingFlashLoan(address asset, address receiver, uint256 amount);
+
+    /**
+     * @notice Event emitted when asset is transferred from sender and verified
+     */
+    event TransferInUnderlyingFlashLoan(
+        address indexed asset,
+        address indexed sender,
+        uint256 amount,
+        uint256 totalFee,
+        uint256 protocolFee
+    );
+
+    /**
+     * @notice Event emitted when flashLoan fee mantissa is updated
+     */
+    event FlashLoanFeeUpdated(
+        uint256 oldFlashLoanFeeMantissa,
+        uint256 newFlashLoanFeeMantissa,
+        uint256 oldFlashLoanProtocolShare,
+        uint256 newFlashLoanProtocolShare
+    );
+
+    // @notice Thrown when comptroller is not valid
+    error InvalidComptroller();
+
+    // @notice Thrown when there is already an active flashLoan
+    error FlashLoanAlreadyActive();
 
     /*** User Interface ***/
 
@@ -302,6 +363,8 @@ abstract contract VTokenInterface is VTokenStorage {
 
     /*** Admin Function ***/
     function _reduceReserves(uint reduceAmount) external virtual returns (uint);
+
+    function borrowDebtPosition(address borrower, uint borrowAmount) external virtual returns (uint);
 
     function balanceOf(address owner) external view virtual returns (uint);
 

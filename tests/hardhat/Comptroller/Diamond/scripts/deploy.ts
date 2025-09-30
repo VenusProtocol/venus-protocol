@@ -17,7 +17,7 @@ export async function deployFacets() {
   await diamond.deployed();
 
   // deploy facets
-  const FacetNames = ["MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet"];
+  const FacetNames = ["MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet", "FlashLoanFacet"];
   const cut: any = [];
 
   for (const FacetName of FacetNames) {

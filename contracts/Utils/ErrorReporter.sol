@@ -43,8 +43,38 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when an invalid weighting strategy is provided
     error InvalidWeightingStrategy(WeightFunction strategy);
 
+    // @notice Thrown when no assets are requested for flash loan
+    error NoAssetsRequested();
+
+    // @notice Thrown when invalid flash loan parameters are provided
+    error InvalidFlashLoanParams();
+
+    // @notice Thrown when flash loan is not enabled on the vToken
+    error FlashLoanNotEnabled();
+
+    // @notice Thrown when the sender is not authorized to use flashloan onBehalfOf
+    error SenderNotAuthorizedForFlashLoan(address sender);
+
+    // @notice Thrown when the onBehalfOf didn't approve the contract that receives flashloan
+    error NotAnApprovedDelegate();
+
+    // @notice Thrown when an invalid mode is provided
+    error InvalidMode();
+
+    // @notice Thrown when executeOperation on the receiver contract fails
+    error ExecuteFlashLoanFailed();
+
+    // @notice Thrown when the requested amount is zero
+    error InvalidAmount();
+
+    // @notice Thrown when failing to create a debt position in mode 1
+    error FailedToCreateDebtPosition();
+
     /// @notice Thrown when attempting to interact with an inactive pool
     error InactivePool(uint96 poolId);
+
+    /// @notice Thrown when repayment amount is insufficient to cover the fee
+    error NotEnoughRepayment(uint256 repaid, uint256 required);
 
     enum Error {
         NO_ERROR,

@@ -102,6 +102,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when XVS vToken address is changed
     event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
+    /// @notice Emitted when an account's flash loan whitelist status is updated
+    event IsAccountFlashLoanWhitelisted(address indexed account, bool indexed isWhitelisted);
+
     /// @notice Emitted when liquidation threshold for a market in a pool is changed by admin
     event NewLiquidationThreshold(
         uint96 indexed poolId,
@@ -616,6 +619,19 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         emit NewXVSVToken(xvsVToken, xvsVToken_);
         xvsVToken = xvsVToken_;
+    }
+
+    /**
+     * @notice Adds/Removes an account to the flash loan whitelist
+     * @param account The account to authorize for flash loans
+     * @param isWhiteListed True to whitelist the account for flash loans, false to remove from whitelist
+     */
+    function setWhiteListFlashLoanAccount(address account, bool isWhiteListed) external {
+        ensureAllowed("setWhiteListFlashLoanAccount(address,bool)");
+        ensureNonzeroAddress(account);
+
+        authorizedFlashLoan[account] = isWhiteListed;
+        emit IsAccountFlashLoanWhitelisted(account, isWhiteListed);
     }
 
     /**

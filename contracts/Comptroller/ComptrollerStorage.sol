@@ -320,3 +320,15 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
      */
     uint96 public lastPoolId;
 }
+
+contract ComptrollerV18Storage is ComptrollerV17Storage {
+    struct FlashLoanData {
+        uint256[] totalFees;
+        uint256[] protocolFees;
+        uint256[] actualRepayments;
+        uint256[] remainingDebts;
+    }
+
+    /// @notice Mapping of accounts authorized to execute flash loans
+    mapping(address => bool) public authorizedFlashLoan;
+}
