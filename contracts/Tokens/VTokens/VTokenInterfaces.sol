@@ -313,8 +313,8 @@ abstract contract VTokenInterface is VTokenStorage {
      * @notice Event emitted when asset is transferred from sender and verified
      */
     event TransferInUnderlyingFlashLoan(
-        address asset,
-        address sender,
+        address indexed asset,
+        address indexed sender,
         uint256 amount,
         uint256 totalFee,
         uint256 protocolFee

@@ -185,22 +185,6 @@ contract VBep20DelegatorR1 is VTokenInterfaceR1, VBep20InterfaceR1, VDelegatorIn
     }
 
     /**
-     * @notice open a debt position for the borrower
-     * @dev This function checks if the borrow is allowed, accrues interest, and updates the borrower's balance.
-     *      It also emits a Borrow event and calls the comptroller's borrowVerify function.
-     *      It reverts if the borrow is not allowed, if the market's block number is not current, or if the protocol has insufficient cash.
-     * @param borrower The address of the borrower
-     * @param borrowAmount The amount of underlying asset to borrow
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
-     */
-    function borrowDebtPosition(address borrower, uint borrowAmount) external returns (uint) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("borrowDebtPosition(address,uint256)", borrower, borrowAmount)
-        );
-        return abi.decode(data, (uint));
-    }
-
-    /**
      * @notice Transfer `amount` tokens from `msg.sender` to `dst`
      * @param dst The address of the destination account
      * @param amount The number of tokens to transfer

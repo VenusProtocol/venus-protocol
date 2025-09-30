@@ -1115,12 +1115,12 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Fail if redeem not allowed */
         uint allowed = comptroller.redeemAllowed(address(this), redeemer, vars.redeemTokens);
         if (allowed != 0) {
-            return failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.REDEEM_COMPTROLLER_REJECTION, allowed);
+            revert("math error");
         }
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != block.number) {
-            return fail(Error.MARKET_NOT_FRESH, FailureInfo.REDEEM_FRESHNESS_CHECK);
+            revert("math error");
         }
 
         /*
@@ -1136,7 +1136,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* Fail gracefully if protocol has insufficient cash */
         if (getCashPrior() < vars.redeemAmount) {
-            return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.REDEEM_CASH_NOT_AVAILABLE);
+            revert("math error");
         }
 
         /////////////////////////
@@ -1230,17 +1230,17 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
 
         if (allowed != 0) {
-            return failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.BORROW_COMPTROLLER_REJECTION, allowed);
+            revert("math error");
         }
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != block.number) {
-            return fail(Error.MARKET_NOT_FRESH, FailureInfo.BORROW_FRESHNESS_CHECK);
+            revert("math error");
         }
 
         /* Revert if protocol has insufficient underlying cash */
         if (shouldTransfer && getCashPrior() < borrowAmount) {
-            return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.BORROW_CASH_NOT_AVAILABLE);
+            revert("math error");
         }
 
         BorrowLocalVars memory vars;
@@ -1349,7 +1349,16 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* We fetch the amount the borrower owes, with accumulated interest */
         (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
-        ensureNoMathError(vars.mathErr);
+        if (vars.mathErr != MathError.NO_ERROR) {
+            return (
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.REPAY_BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED,
+                    uint(vars.mathErr)
+                ),
+                0
+            );
+        }
 
         /* If repayAmount == type(uint256).max, repayAmount = accountBorrows */
         if (repayAmount == type(uint256).max) {
@@ -1479,11 +1488,9 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Fail if repayBorrow fails */
-        uint err;
-        uint actualRepayAmount;
-        (err, actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
-        if (err != uint(Error.NO_ERROR)) {
-            return (fail(Error(err), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
+        (uint repayBorrowError, uint actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
+        if (repayBorrowError != uint(Error.NO_ERROR)) {
+            return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
         }
 
         /////////////////////////
@@ -1491,27 +1498,28 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We calculate the number of collateral tokens that will be seized */
-        (, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
+        (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
             borrower,
             address(this),
             address(vTokenCollateral),
             actualRepayAmount
         );
 
-        require(
-            (err == uint(Error.NO_ERROR)) && (vTokenCollateral.balanceOf(borrower) >= seizeTokens),
-            "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED or LIQUIDATE_SEIZE_TOO_MUCH"
-        );
+        require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
+
+        /* Revert if borrower collateral token balance < seizeTokens */
+        require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
 
         // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
+        uint seizeError;
         if (address(vTokenCollateral) == address(this)) {
-            err = seizeInternal(address(this), liquidator, borrower, seizeTokens);
+            seizeError = seizeInternal(address(this), liquidator, borrower, seizeTokens);
         } else {
-            err = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
+            seizeError = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
         }
 
         /* Revert if seize tokens fails (since we cannot be sure of side effects) */
-        require(err == uint(Error.NO_ERROR), "token seizure failed");
+        require(seizeError == uint(Error.NO_ERROR), "token seizure failed");
 
         /* We emit a LiquidateBorrow event */
         emit LiquidateBorrow(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
