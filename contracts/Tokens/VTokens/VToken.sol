@@ -214,7 +214,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureAllowed("_setReserveFactor(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors.
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
             return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
         }
 
@@ -250,7 +250,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureAllowed("_reduceReserves(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors.
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
 
@@ -476,27 +476,23 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint8 decimals_
     ) public {
         ensureAdmin(msg.sender);
-        require(
-            accrualBlockNumber == 0 && borrowIndex == 0 && (initialExchangeRateMantissa_ > 0),
-            "market may only be initialized once"
-        );
+        require(accrualBlockNumber == 0 && borrowIndex == 0, "market may only be initialized once");
 
         // Set initial exchange rate
         initialExchangeRateMantissa = initialExchangeRateMantissa_;
+        require(initialExchangeRateMantissa > 0, "initial exchange rate must be greater than zero.");
 
         // Set the comptroller
-        uint ComptrollerErr = _setComptroller(comptroller_);
+        uint err = _setComptroller(comptroller_);
+        require(err == uint(Error.NO_ERROR), "setting comptroller failed");
 
         // Initialize block number and borrow index (block number mocks depend on comptroller being set)
         accrualBlockNumber = block.number;
         borrowIndex = mantissaOne;
 
         // Set the interest rate model (depends on block number / borrow index)
-        uint InterestModelErr = _setInterestRateModelFresh(interestRateModel_);
-        require(
-            (ComptrollerErr == uint(Error.NO_ERROR)) && (InterestModelErr == uint(Error.NO_ERROR)),
-            "comptroller or interest model initialization failed"
-        );
+        err = _setInterestRateModelFresh(interestRateModel_);
+        require(err == uint(Error.NO_ERROR), "setting interest rate model failed");
 
         name = name_;
         symbol = symbol_;
@@ -675,7 +671,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureAllowed("_setInterestRateModel(address)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors.
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
             return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
         }
 
@@ -1867,10 +1863,6 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function ensureNonZeroAddress(address address_) private pure {
         require(address_ != address(0), "zero address");
-    }
-
-    function ensureAccrueInterest() private {
-        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
     }
 
     /*** Safe Token ***/
