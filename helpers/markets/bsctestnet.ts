@@ -681,4 +681,48 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus PT-xSolvBTC-18DEC2025",
+    symbol: "vPT-xSolvBTC-18DEC2025",
+    asset: "PT-xSolvBTC-18DEC2025",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.1",
+      jumpMultiplierPerYear: "2.5",
+      kink: "0.8",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "10",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.01",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus PT-SolvBTC.BNB-18DEC2025",
+    symbol: "vPT-SolvBTC.BNB-18DEC2025",
+    asset: "PT-SolvBTC.BNB-18DEC2025",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.1",
+      jumpMultiplierPerYear: "2.5",
+      kink: "0.8",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "10",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.01",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];

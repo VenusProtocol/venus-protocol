@@ -289,6 +289,20 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x607c834cfb7fcbbb341cbe23f77a6e83bcf3f55c",
   },
+  {
+    isMock: false,
+    name: "PT xSolvBTC 18DEC2025",
+    symbol: "PT-xSolvBTC-18DEC2025",
+    decimals: 18,
+    tokenAddress: "0x154b13a628e947034ca69378ee0acde9d973d868",
+  },
+  {
+    isMock: false,
+    name: "PT SolvBTC.BNB 18DEC2025",
+    symbol: "PT-SolvBTC.BNB-18DEC2025",
+    decimals: 18,
+    tokenAddress: "0xee61a49a180cd23c3e629c5a70c1ee6539c004bd",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
