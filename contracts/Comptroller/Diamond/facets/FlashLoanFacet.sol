@@ -152,6 +152,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
     ) internal {
         //Cache array length
         uint256 vTokensLength = vTokens.length;
+        uint256 err;
 
         for (uint256 i; i < vTokensLength; ++i) {
             (flashLoanData.totalFees[i], flashLoanData.protocolFees[i]) = vTokens[i].calculateFlashLoanFee(
@@ -160,6 +161,12 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
 
             // Transfer the asset to receiver
             vTokens[i].transferOutUnderlyingFlashLoan(receiver, underlyingAmounts[i]);
+
+            /// Accrues interest to ensure the market's state is up to date
+            err = vTokens[i].accrueInterest();
+            if (err != 0) {
+                revert AccrueInterestFailed(err);
+            }
         }
     }
 
@@ -216,7 +223,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         address payable onBehalf,
         address payable receiver,
         VToken[] memory vTokens,
-        uint256[] memory underlyingAmounts, 
+        uint256[] memory underlyingAmounts,
         uint256[] memory underlyingAmountsToRepay,
         FlashLoanData memory flashLoanData
     ) internal {
@@ -228,7 +235,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
                 vTokens[i],
                 onBehalf,
                 receiver,
-                underlyingAmounts[i],  
+                underlyingAmounts[i],
                 underlyingAmountsToRepay[i],
                 flashLoanData.totalFees[i],
                 flashLoanData.protocolFees[i]
