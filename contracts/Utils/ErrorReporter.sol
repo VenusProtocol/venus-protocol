@@ -58,9 +58,6 @@ contract ComptrollerErrorReporter {
     // @notice Thrown when the onBehalfOf didn't approve the contract that receives flashloan
     error NotAnApprovedDelegate();
 
-    // @notice Thrown when an invalid mode is provided
-    error InvalidMode();
-
     // @notice Thrown when executeOperation on the receiver contract fails
     error ExecuteFlashLoanFailed();
 
