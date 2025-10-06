@@ -336,6 +336,18 @@ abstract contract VTokenInterface is VTokenStorage {
     // @notice Thrown when there is already an active flashLoan
     error FlashLoanAlreadyActive();
 
+    /// @notice Thrown when flash loan fee exceeds maximum allowed
+    error FlashLoanFeeTooHigh(uint256 fee, uint256 maxFee);
+
+    /// @notice Thrown when protocol share exceeds total fee
+    error ProtocolShareExceedsTotalFee(uint256 protocolShare, uint256 totalFee);
+
+    // @notice Thrown when the vToken does not have enough cash to lend
+    error InsufficientCash();
+
+    /// @notice Thrown when the repayment amount is insufficient to cover the total fee
+    error InsufficientRepayment(uint256 actualAmount, uint256 requiredTotalFee);
+
     /*** User Interface ***/
 
     function transfer(address dst, uint amount) external virtual returns (bool);

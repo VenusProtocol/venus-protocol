@@ -630,6 +630,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         ensureAllowed("setWhiteListFlashLoanAccount(address,bool)");
         ensureNonzeroAddress(account);
 
+        // If the account's status is already the same as the desired status, do nothing
+        if (authorizedFlashLoan[account] == isWhiteListed) {
+            return;
+        }
+
         authorizedFlashLoan[account] = isWhiteListed;
         emit IsAccountFlashLoanWhitelisted(account, isWhiteListed);
     }

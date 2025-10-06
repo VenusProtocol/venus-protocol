@@ -372,7 +372,9 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert FlashLoanAlreadyActive();
         }
 
-        // Set flashLoanAmount to track the borrowed amount
+        if (getCashPrior() < amount) {
+            revert InsufficientCash();
+        }
         flashLoanAmount = amount;
         doTransferOut(to, amount);
         emit TransferOutUnderlyingFlashLoan(underlying, to, amount);
@@ -404,6 +406,10 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         uint256 actualAmountTransferred = doTransferIn(from, repaymentAmount);
+
+        if (actualAmountTransferred < totalFee) {
+            revert InsufficientRepayment(actualAmountTransferred, totalFee);
+        }
 
         // Transfer protocol fee to protocol share reserve
         doTransferOut(protocolShareReserve, protocolFee);
@@ -454,14 +460,27 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // update the signature
         ensureAllowed("setFlashLoanFeeMantissa(uint256,uint256)");
 
-        emit FlashLoanFeeUpdated(
-            flashLoanFeeMantissa,
-            flashLoanFeeMantissa_,
-            flashLoanProtocolShareMantissa,
-            flashLoanProtocolShare_
-        );
-        flashLoanFeeMantissa = flashLoanFeeMantissa_;
-        flashLoanProtocolShareMantissa = flashLoanProtocolShare_;
+        if (flashLoanFeeMantissa_ > 1e18) {
+            revert FlashLoanFeeTooHigh(flashLoanFeeMantissa_, 1e18);
+        }
+        if (flashLoanFeeMantissa_ > 0 && flashLoanProtocolShare_ > flashLoanFeeMantissa_) {
+            revert ProtocolShareExceedsTotalFee(flashLoanProtocolShare_, flashLoanFeeMantissa_);
+        }
+
+        // Only proceed if values are changing
+        if (
+            flashLoanFeeMantissa != flashLoanFeeMantissa_ || flashLoanProtocolShareMantissa != flashLoanProtocolShare_
+        ) {
+            emit FlashLoanFeeUpdated(
+                flashLoanFeeMantissa,
+                flashLoanFeeMantissa_,
+                flashLoanProtocolShareMantissa,
+                flashLoanProtocolShare_
+            );
+
+            flashLoanFeeMantissa = flashLoanFeeMantissa_;
+            flashLoanProtocolShareMantissa = flashLoanProtocolShare_;
+        }
 
         return uint(Error.NO_ERROR);
     }

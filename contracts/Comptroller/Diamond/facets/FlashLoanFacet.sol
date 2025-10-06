@@ -50,21 +50,30 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) external nonReentrant {
-        // Cache array length
-        uint256 vTokensLength = vTokens.length;
+        uint256 len = vTokens.length;
+        Market storage market;
+
+        // vTokens array must not be empty
+        if (len == 0) {
+            revert NoAssetsRequested();
+        }
 
         // All arrays must have the same length and not be zero
-        if (vTokensLength != underlyingAmounts.length) {
+        if (len != underlyingAmounts.length) {
             revert InvalidFlashLoanParams();
         }
 
-        for (uint256 i; i < vTokensLength; ++i) {
-            if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
-            if (underlyingAmounts[i] == 0) revert InvalidAmount();
-        }
-        // vTokens array must not be empty
-        if (vTokensLength == 0) {
-            revert NoAssetsRequested();
+        for (uint256 i; i < len; ++i) {
+            market = getCorePoolMarket(address(vTokens[i]));
+            if (!market.isListed) {
+                revert MarketNotListed(address(vTokens[i]));
+            }
+            if (!(vTokens[i]).isFlashLoanEnabled()) {
+                revert FlashLoanNotEnabled();
+            }
+            if (underlyingAmounts[i] == 0) {
+                revert InvalidAmount();
+            }
         }
 
         ensureNonzeroAddress(receiver);
