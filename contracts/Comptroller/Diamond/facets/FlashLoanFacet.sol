@@ -130,7 +130,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             param
         );
         // Phase 3: Handles repayment
-        _executePhase3(onBehalf, receiver, vTokens, tokensApproved, flashLoanData);
+        _executePhase3(onBehalf, receiver, vTokens, underlyingAmounts, tokensApproved, flashLoanData);
     }
 
     /**
@@ -208,6 +208,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
      * @param onBehalf The address whose debt position will be used for any unpaid balance
      * @param receiver The address providing the repayment
      * @param vTokens Array of vToken contracts for the borrowed assets
+     * @param underlyingAmounts Array of amounts that were originally borrowed for each asset
      * @param underlyingAmountsToRepay Array of amounts to be repaid for each asset
      * @param flashLoanData Struct containing calculated fees for each asset
      */
@@ -215,6 +216,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         address payable onBehalf,
         address payable receiver,
         VToken[] memory vTokens,
+        uint256[] memory underlyingAmounts, 
         uint256[] memory underlyingAmountsToRepay,
         FlashLoanData memory flashLoanData
     ) internal {
@@ -226,6 +228,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
                 vTokens[i],
                 onBehalf,
                 receiver,
+                underlyingAmounts[i],  
                 underlyingAmountsToRepay[i],
                 flashLoanData.totalFees[i],
                 flashLoanData.protocolFees[i]
@@ -245,6 +248,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
      * @param vToken The vToken contract for the asset being flash loaned.
      * @param onBehalf The address whose debt position will be used if there is any unpaid flash loan balance.
      * @param receiver The address that received the flash loan and is providing the repayment.
+     * @param borrowedAmount The original amount that was borrowed (passed from underlyingAmounts).
      * @param repayAmount The amount being repaid by the receiver (may be partial or full repayment).
      * @param totalFee The total fee charged for the flash loan (minimum required repayment).
      * @param protocolFee The portion of the total fee allocated to the protocol.
@@ -255,12 +259,12 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         VToken vToken,
         address payable onBehalf,
         address payable receiver,
+        uint256 borrowedAmount,
         uint256 repayAmount,
         uint256 totalFee,
         uint256 protocolFee
     ) internal {
-        uint256 borrowedFlashLoanAmount = vToken.flashLoanAmount();
-        uint256 maxExpectedRepayment = borrowedFlashLoanAmount + totalFee;
+        uint256 maxExpectedRepayment = borrowedAmount + totalFee;
         uint256 actualRepayAmount = repayAmount > maxExpectedRepayment ? maxExpectedRepayment : repayAmount;
 
         if (actualRepayAmount < totalFee) {
