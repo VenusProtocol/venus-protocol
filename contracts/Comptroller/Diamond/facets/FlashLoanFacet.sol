@@ -7,8 +7,9 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
 import { IProtocolShareReserve } from "../../../external/IProtocolShareReserve.sol";
+import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransient.sol";
 
-contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
+contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient {
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
 
@@ -33,7 +34,12 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
         bytes memory param
-    ) external {
+    ) external nonReentrant {
+        // All arrays must have the same length and not be zero
+        if (vTokens.length != underlyingAmounts.length) {
+            revert InvalidFlashLoanParams();
+        }
+
         for (uint256 i; i < vTokens.length; ++i) {
             if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
             if (underlyingAmounts[i] == 0) revert InvalidAmount();
@@ -41,10 +47,6 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase {
         // vTokens array must not be empty
         if (vTokens.length == 0) {
             revert NoAssetsRequested();
-        }
-        // All arrays must have the same length and not be zero
-        if (vTokens.length != underlyingAmounts.length) {
-            revert InvalidFlashLoanParams();
         }
 
         ensureNonzeroAddress(receiver);
