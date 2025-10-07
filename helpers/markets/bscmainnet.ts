@@ -801,4 +801,26 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus slisBNB",
+    symbol: "vslisBNB",
+    asset: "slisBNB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "3000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.1",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bscmainnet">>[];
