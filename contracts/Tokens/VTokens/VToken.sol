@@ -306,18 +306,26 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Returns the current per-block supply interest rate for this vToken
+     * @dev The calculation includes `flashLoanAmount` in the cash balance to account for active flash loans.
      * @return The supply interest rate per block, scaled by 1e18
      */
     function supplyRatePerBlock() external view override returns (uint) {
-        return interestRateModel.getSupplyRate(getCashPrior(), totalBorrows, totalReserves, reserveFactorMantissa);
+        return
+            interestRateModel.getSupplyRate(
+                getCashPrior() + flashLoanAmount,
+                totalBorrows,
+                totalReserves,
+                reserveFactorMantissa
+            );
     }
 
     /**
      * @notice Returns the current per-block borrow interest rate for this vToken
+     * @dev The calculation includes `flashLoanAmount` in the cash balance to account for active flash loans.
      * @return The borrow interest rate per block, scaled by 1e18
      */
     function borrowRatePerBlock() external view override returns (uint) {
-        return interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
+        return interestRateModel.getBorrowRate(getCashPrior() + flashLoanAmount, totalBorrows, totalReserves);
     }
 
     /**
