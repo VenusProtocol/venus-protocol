@@ -82,6 +82,7 @@ describe("FlashLoan", async () => {
   let alice: SignerWithAddress;
   let vTokenA: MockContract<VBep20Harness>;
   let vTokenB: MockContract<VBep20Harness>;
+  let vTokenC: MockContract<VBep20Harness>;
   let underlyingA: MockContract<BEP20Harness>;
   let underlyingB: MockContract<BEP20Harness>;
   let unitroller: Unitroller;
@@ -92,8 +93,10 @@ describe("FlashLoan", async () => {
   type Contracts = FlashLoanContractsFixture & {
     vTokenA: MockContract<VBep20Harness>;
     vTokenB: MockContract<VBep20Harness>;
+    vTokenC: MockContract<VBep20Harness>;
     underlyingA: MockContract<BEP20Harness>;
     underlyingB: MockContract<BEP20Harness>;
+    underlyingC: MockContract<BEP20Harness>;
   };
 
   const mockUnderlying = async (name: string, symbol: string): Promise<MockContract<BEP20Harness>> => {
@@ -106,6 +109,7 @@ describe("FlashLoan", async () => {
     const contracts = await flashLoanTestFixture();
     const underlyingA = await mockUnderlying("TokenA", "TKNA");
     const underlyingB = await mockUnderlying("TokenB", "TKNB");
+    const underlyingC = await mockUnderlying("TokenC", "TKNC");
 
     const vTokenFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
     const vTokenA = await vTokenFactory.deploy(
@@ -130,23 +134,38 @@ describe("FlashLoan", async () => {
       contracts.admin.address,
     );
 
+    const vTokenC = await vTokenFactory.deploy(
+      underlyingC.address,
+      contracts.comptroller.address,
+      contracts.interestRateModel.address,
+      "200000000000000000000000",
+      "vTokenC",
+      "VTKNC",
+      18,
+      contracts.admin.address,
+    );
+
     protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
       "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
     );
     vTokenA.setAccessControlManager(contracts.accessControlManager.address);
     vTokenB.setAccessControlManager(contracts.accessControlManager.address);
+    vTokenC.setAccessControlManager(contracts.accessControlManager.address);
     await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);
     await vTokenB.setProtocolShareReserve(protocolShareReserveMock.address);
+    await vTokenC.setProtocolShareReserve(protocolShareReserveMock.address);
 
     await vTokenA.setFlashLoanFeeMantissa(totalFeeMantissaTokenA, protocolShareMantissaTokenA);
     await vTokenB.setFlashLoanFeeMantissa(totalFeeMantissaTokenB, protocolShareMantissaTokenB);
+    await vTokenC.setFlashLoanFeeMantissa(totalFeeMantissaTokenB, protocolShareMantissaTokenB);
 
-    return { ...contracts, vTokenA, vTokenB, underlyingA, underlyingB };
+    return { ...contracts, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB, underlyingC };
   }
 
   beforeEach(async () => {
     [alice] = await ethers.getSigners();
-    ({ unitroller, comptroller, vTokenA, vTokenB, underlyingA, underlyingB } = await loadFixture(deploy));
+    ({ unitroller, comptroller, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB, underlyingC } =
+      await loadFixture(deploy));
   });
 
   describe("FlashLoan Multi-Assets", async () => {
@@ -191,6 +210,20 @@ describe("FlashLoan", async () => {
       await expect(comptroller.setWhiteListFlashLoanAccount(ethers.constants.AddressZero, true)).to.be.revertedWith(
         "can't be zero address",
       );
+    });
+
+    it("Should revert if the market is not listed", async () => {
+      await vTokenC.setFlashLoanEnabled(true);
+      expect(await vTokenC.isFlashLoanEnabled()).to.be.true;
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan([vTokenC.address], [flashLoanAmount1], mockReceiverContract.address, "0x"),
+      ).to.be.revertedWithCustomError(comptroller, "MarketNotListed");
     });
 
     it("Should revert if contract is not whitelisted", async () => {
@@ -563,7 +596,7 @@ describe("FlashLoan", async () => {
             mockReceiverContract.address,
             "0x",
           ),
-      ).to.be.revertedWith("Insufficient balance");
+      ).to.be.revertedWithCustomError(vTokenA, "InsufficientCash");
     });
 
     it("Should revert with NotEnoughRepayment when repayment is less than total fee", async () => {

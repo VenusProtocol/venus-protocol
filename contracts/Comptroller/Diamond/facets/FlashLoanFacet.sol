@@ -6,7 +6,6 @@ import { IFlashLoanFacet } from "../interfaces/IFlashLoanFacet.sol";
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
-import { IProtocolShareReserve } from "../../../external/IProtocolShareReserve.sol";
 import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransient.sol";
 
 /**
@@ -162,7 +161,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             // Transfer the asset to receiver
             vTokens[i].transferOutUnderlyingFlashLoan(receiver, underlyingAmounts[i]);
 
-            /// Accrues interest to ensure the market's state is up to date
+            // Accrues interest to ensure the market's state is up to date
             err = vTokens[i].accrueInterest();
             if (err != 0) {
                 revert AccrueInterestFailed(err);

@@ -46,9 +46,9 @@ const USDT_HOLDER = "0xbEe5b9859B03FEefd5Ae3ce7C5d92f3b09a55149";
 const vBUSD_ADDRESS = "0x08e0A5575De71037aE36AbfAfb516595fE68e5e4";
 const BUSD_ADDRESS = "0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47";
 const BUSD_HOLDER = "0x72253172CECFb70561b73FCF3Fa77A52a1D035c7";
-const OLD_POLICY_FACET = "0x671B787AEDB6769972f081C6ee4978146F7D92E6";
-const OLD_SETTER_FACET = "0xb619F7ce96c0a6E3F0b44e993f663522F79f294A";
-const OLD_MARKET_FACET = "0x377c2E7CE08B4cc7033EDF678EE1224A290075Fd";
+const OLD_POLICY_FACET = "0x8C9Ba060C2eF15755c5eE8DD06bB41Fd539C6FbD";
+const OLD_SETTER_FACET = "0x3CCC9fC2fDA021ADb9C9FB0493C1a4a9357f4064";
+const OLD_MARKET_FACET = "0xD3D5f6c68677051e6855Fa38dca0cD6D56ED0c4f";
 const COMPTROLLER_ADDRESS = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
 const USER = "0x4C45758bF15AF0714E4CC44C4EFd177e209C2890";
 const ACM = "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA";
@@ -111,12 +111,6 @@ async function deploy(): Promise<SetupProtocolFixture> {
   const newMarketFacet = await marketFacetFactory.deploy();
   await newMarketFacet.deployed();
 
-  const addSetIsBorrowAllowedSelector = newSetterFacet.interface.getSighash("setIsBorrowAllowed(uint96,address,bool)");
-
-  const addGetEffectiveLtvFactorSelector = newMarketFacet.interface.getSighash(
-    "getEffectiveLtvFactor(address,address,uint8)",
-  );
-
   const existingPolicyFacetFunctions = await unitrollerdiamond.facetFunctionSelectors(OLD_POLICY_FACET);
 
   const flashloanFacetFactory = await ethers.getContractFactory("FlashLoanFacet");
@@ -143,18 +137,13 @@ async function deploy(): Promise<SetupProtocolFixture> {
     },
     {
       facetAddress: newMarketFacet.address,
-      action: FacetCutAction.Add,
-      functionSelectors: [addGetEffectiveLtvFactorSelector],
-    },
-    {
-      facetAddress: newMarketFacet.address,
       action: FacetCutAction.Replace,
       functionSelectors: existingMarketFacetFunctions,
     },
     {
       facetAddress: newSetterFacet.address,
       action: FacetCutAction.Add,
-      functionSelectors: [addSetWhiteListFlashLoanAccountFunctionSignature, addSetIsBorrowAllowedSelector],
+      functionSelectors: [addSetWhiteListFlashLoanAccountFunctionSignature],
     },
     {
       facetAddress: newSetterFacet.address,
@@ -219,7 +208,7 @@ async function deploy(): Promise<SetupProtocolFixture> {
   };
 }
 
-forking(64048894, () => {
+forking(67968490, () => {
   if (FORK_TESTNET) {
     describe("FlashLoan Fork Test", async () => {
       let usdtHolder: SignerWithAddress;
@@ -414,6 +403,8 @@ forking(64048894, () => {
 
         // Mine blocks as required by the test setup
         await mine(blocksToMine);
+        await vBUSD.accrueInterest();
+        await vUSDT.accrueInterest();
 
         const balanceBeforeUSDT = await USDT.balanceOf(vUSDT.address);
         const balanceBeforeBUSD = await BUSD.balanceOf(vBUSD.address);
@@ -454,6 +445,7 @@ forking(64048894, () => {
         const BUSDFlashLoanProtocolFeeMantissa = BUSDFlashLoanFee.mul(BUSDFlashLoanProtocolShareMantissa).div(
           parseUnits("1", 18),
         );
+
         const remainderBUSD = BUSDFlashLoanFee.sub(BUSDFlashLoanProtocolFeeMantissa);
         const remainderUSDT = USDTFlashLoanFee.sub(USDTFlashLoanProtocolFeeMantissa);
 
