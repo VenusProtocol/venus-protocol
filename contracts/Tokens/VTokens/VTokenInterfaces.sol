@@ -364,7 +364,7 @@ abstract contract VTokenInterface is VTokenStorage {
     /*** Admin Function ***/
     function _reduceReserves(uint reduceAmount) external virtual returns (uint);
 
-    function borrowDebtPosition(address borrower, uint borrowAmount) external virtual returns (uint);
+    function flashLoanDebtPosition(address borrower, uint borrowAmount) external virtual returns (uint);
 
     function balanceOf(address owner) external view virtual returns (uint);
 

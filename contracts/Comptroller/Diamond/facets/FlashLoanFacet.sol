@@ -213,7 +213,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             // If there is any unpaid balance, it becomes an ongoing debt
             uint256 leftUnpaidBalance = maxExpectedRepayment - actualAmountTransferred;
 
-            uint256 debtError = vToken.borrowDebtPosition(onBehalf, leftUnpaidBalance);
+            uint256 debtError = vToken.flashLoanDebtPosition(onBehalf, leftUnpaidBalance);
             if (debtError != 0) {
                 revert FailedToCreateDebtPosition();
             }
