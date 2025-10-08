@@ -9,6 +9,7 @@ import { TokenErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VTokenInterface } from "./VTokenInterfaces.sol";
+import { MANTISSA_ONE } from "@venusprotocol/solidity-utilities/contracts/constants.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -468,10 +469,10 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // update the signature
         ensureAllowed("setFlashLoanFeeMantissa(uint256,uint256)");
 
-        if (flashLoanFeeMantissa_ > 1e18) {
-            revert FlashLoanFeeTooHigh(flashLoanFeeMantissa_, 1e18);
+        if (flashLoanFeeMantissa_ > MANTISSA_ONE) {
+            revert FlashLoanFeeTooHigh(flashLoanFeeMantissa_, MANTISSA_ONE);
         }
-        if (flashLoanFeeMantissa_ > 0 && flashLoanProtocolShare_ > flashLoanFeeMantissa_) {
+        if (flashLoanProtocolShare_ > flashLoanFeeMantissa_) {
             revert ProtocolShareExceedsTotalFee(flashLoanProtocolShare_, flashLoanFeeMantissa_);
         }
 
@@ -1194,7 +1195,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             );
             ensureNoMathError(vars.mathErr);
 
-            (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
+            (vars.mathErr, feeAmount) = divUInt(feeAmount, MANTISSA_ONE);
             ensureNoMathError(vars.mathErr);
 
             (vars.mathErr, remainedAmount) = subUInt(vars.redeemAmount, feeAmount);

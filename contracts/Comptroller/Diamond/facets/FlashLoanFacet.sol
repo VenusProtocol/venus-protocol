@@ -18,11 +18,7 @@ import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransien
  *      The contract supports protocol fee collection and integrates with the Venus lending protocol.
  */
 contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient {
-    /// @notice Data structure to hold flash loan related data during execution
-    struct FlashLoanData {
-        uint256[] totalFees;
-        uint256[] protocolFees;
-    }
+    
 
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
@@ -110,7 +106,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) internal {
-        FlashLoanData memory flashLoanData;
+        FlashLoanFee memory flashLoanData;
         //Cache array length
         uint256 vTokensLength = vTokens.length;
         // Initialize arrays
@@ -147,7 +143,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         address payable receiver,
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
-        FlashLoanData memory flashLoanData
+        FlashLoanFee memory flashLoanData
     ) internal {
         //Cache array length
         uint256 vTokensLength = vTokens.length;
@@ -218,7 +214,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
         uint256[] memory underlyingAmountsToRepay,
-        FlashLoanData memory flashLoanData
+        FlashLoanFee memory flashLoanData
     ) internal {
         //Cache array length
         uint256 vTokensLength = vTokens.length;
