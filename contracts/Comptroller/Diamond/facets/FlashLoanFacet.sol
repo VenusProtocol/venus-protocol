@@ -12,8 +12,8 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
 
-    /// @notice Emitted when a flash loan is partially repaid and a debt position is created
-    event FlashLoanPartiallyRepaid(
+    /// @notice Emitted when a flash loan is repaid (fully or partially) and shows debt position status
+    event FlashLoanRepaid(
         address indexed receiver,
         address indexed onBehalf,
         address indexed asset,
@@ -209,23 +209,26 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             protocolFee
         );
 
+        // Default for full repayment
+        uint256 leftUnpaidBalance;
+
         if (maxExpectedRepayment > actualAmountTransferred) {
             // If there is any unpaid balance, it becomes an ongoing debt
-            uint256 leftUnpaidBalance = maxExpectedRepayment - actualAmountTransferred;
+            leftUnpaidBalance = maxExpectedRepayment - actualAmountTransferred;
 
             uint256 debtError = vToken.flashLoanDebtPosition(onBehalf, leftUnpaidBalance);
             if (debtError != 0) {
                 revert FailedToCreateDebtPosition();
             }
-
-            // Emit event for partial repayment with debt position creation
-            emit FlashLoanPartiallyRepaid(
-                receiver,
-                onBehalf,
-                address(vToken.underlying()),
-                actualAmountTransferred,
-                leftUnpaidBalance
-            );
         }
+
+        // Emit event for partial repayment with debt position creation
+        emit FlashLoanRepaid(
+            receiver,
+            onBehalf,
+            address(vToken.underlying()),
+            actualAmountTransferred,
+            leftUnpaidBalance
+        );
     }
 }
