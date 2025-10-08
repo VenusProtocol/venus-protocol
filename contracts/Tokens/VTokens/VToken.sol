@@ -312,7 +312,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function supplyRatePerBlock() external view override returns (uint) {
         return
             interestRateModel.getSupplyRate(
-                getCashPrior() + flashLoanAmount,
+                _getCashPriorWithFlashLoan(),
                 totalBorrows,
                 totalReserves,
                 reserveFactorMantissa
@@ -325,7 +325,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The borrow interest rate per block, scaled by 1e18
      */
     function borrowRatePerBlock() external view override returns (uint) {
-        return interestRateModel.getBorrowRate(getCashPrior() + flashLoanAmount, totalBorrows, totalReserves);
+        return interestRateModel.getBorrowRate(_getCashPriorWithFlashLoan(), totalBorrows, totalReserves);
     }
 
     /**
@@ -565,7 +565,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Read the previous values out of storage */
-        uint cashPrior = getCashPrior() + flashLoanAmount;
+        uint cashPrior = _getCashPriorWithFlashLoan();
         uint borrowsPrior = totalBorrows;
         uint reservesPrior = totalReserves;
         uint borrowIndexPrior = borrowIndex;
@@ -1858,16 +1858,12 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
              * Otherwise:
              *  exchangeRate = (totalCash + totalBorrows + flashLoanAmount - totalReserves) / totalSupply
              */
-            uint totalCash = getCashPrior();
+            uint totalCash = _getCashPriorWithFlashLoan();
             uint cashPlusBorrowsMinusReserves;
             Exp memory exchangeRate;
             MathError mathErr;
 
-            (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(
-                totalCash + flashLoanAmount,
-                totalBorrows,
-                totalReserves
-            );
+            (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(totalCash, totalBorrows, totalReserves);
             if (mathErr != MathError.NO_ERROR) {
                 return (mathErr, 0);
             }
@@ -1879,6 +1875,14 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
             return (MathError.NO_ERROR, exchangeRate.mantissa);
         }
+    }
+
+    /**
+     * @notice Gets balance of this contract including active flash loans
+     * @return The quantity of underlying owned by this contract plus active flash loan amount
+     */
+    function _getCashPriorWithFlashLoan() internal view returns (uint) {
+        return getCashPrior() + flashLoanAmount;
     }
 
     function ensureAllowed(string memory functionSig) private view {
