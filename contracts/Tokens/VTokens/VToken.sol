@@ -330,11 +330,10 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Get cash balance of this vToken in the underlying asset
-     * @dev The calculation includes `flashLoanAmount` in the cash balance to account for active flash loans.
      * @return The quantity of underlying asset owned by this contract
      */
     function getCash() external view override returns (uint) {
-        return getCashPrior() + flashLoanAmount;
+        return getCashPrior();
     }
 
     /**
