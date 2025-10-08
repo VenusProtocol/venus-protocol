@@ -565,7 +565,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Read the previous values out of storage */
-        uint cashPrior = getCashPrior();
+        uint cashPrior = getCashPrior() + flashLoanAmount;
         uint borrowsPrior = totalBorrows;
         uint reservesPrior = totalReserves;
         uint borrowIndexPrior = borrowIndex;

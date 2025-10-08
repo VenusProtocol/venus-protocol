@@ -76,9 +76,6 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when the vToken market is not listed
     error MarketNotListed(address vToken);
 
-    /// @notice Thrown when the vToken accrue interest fails
-    error AccrueInterestFailed(uint256 errCode);
-
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
