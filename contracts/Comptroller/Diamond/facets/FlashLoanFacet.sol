@@ -34,6 +34,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
      * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
      * @custom:error InvalidFlashLoanParams is thrown if the flash loan params are invalid.
      * @custom:error SenderNotAuthorizedForFlashLoan is thrown if the sender is not authorized to use flashloan.
+     * @custom:error NotAnApprovedDelegate is thrown if `msg.sender` is not `onBehalf` or an approved delegate for `onBehalf`.
      * @custom:event Emits FlashLoanExecuted on success
      */
     function executeFlashLoan(
