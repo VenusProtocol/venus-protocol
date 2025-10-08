@@ -13,6 +13,7 @@ contract BadFlashLoanReceiver is MockFlashLoanReceiver {
         uint256[] calldata,
         uint256[] calldata,
         address,
+        address,
         bytes calldata
     ) external override returns (bool, uint256[] memory) {
         return (false, new uint256[](0));

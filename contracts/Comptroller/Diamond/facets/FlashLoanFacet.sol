@@ -81,7 +81,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             revert SenderNotAuthorizedForFlashLoan(msg.sender);
         }
 
-        if (!approvedDelegates[onBehalf][msg.sender]) {
+        if (msg.sender != onBehalf && !approvedDelegates[onBehalf][msg.sender]) {
             revert NotAnApprovedDelegate();
         }
 
@@ -195,6 +195,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             vTokens,
             underlyingAmounts,
             totalFees,
+            msg.sender,
             onBehalf,
             param
         );

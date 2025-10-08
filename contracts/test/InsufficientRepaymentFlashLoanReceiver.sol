@@ -12,9 +12,11 @@ contract InsufficientRepaymentFlashLoanReceiver is MockFlashLoanReceiver {
         VToken[] calldata assets,
         uint256[] calldata,
         uint256[] calldata premiums,
+        address initiator,
         address onBehalf,
         bytes calldata param
     ) external override returns (bool, uint256[] memory) {
+        initiator;
         onBehalf;
         param;
 

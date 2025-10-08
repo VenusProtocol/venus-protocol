@@ -12,11 +12,13 @@ contract BorrowDebtFlashLoanReceiver is MockFlashLoanReceiver {
         VToken[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata,
+        address initiator,
         address onBehalf,
         bytes calldata param
     ) external override returns (bool, uint256[] memory) {
         // 👇 Your custom logic for the flash loan should be implemented here 👇
         /** YOUR CUSTOM LOGIC HERE */
+        initiator;
         onBehalf;
         param;
         // 👆 Your custom logic for the flash loan should be implemented above here 👆

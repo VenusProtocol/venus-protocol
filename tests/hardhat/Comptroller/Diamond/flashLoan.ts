@@ -96,7 +96,6 @@ describe("FlashLoan", async () => {
     vTokenC: MockContract<VBep20Harness>;
     underlyingA: MockContract<BEP20Harness>;
     underlyingB: MockContract<BEP20Harness>;
-    underlyingC: MockContract<BEP20Harness>;
   };
 
   const mockUnderlying = async (name: string, symbol: string): Promise<MockContract<BEP20Harness>> => {
@@ -159,13 +158,12 @@ describe("FlashLoan", async () => {
     await vTokenB.setFlashLoanFeeMantissa(totalFeeMantissaTokenB, protocolShareMantissaTokenB);
     await vTokenC.setFlashLoanFeeMantissa(totalFeeMantissaTokenB, protocolShareMantissaTokenB);
 
-    return { ...contracts, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB, underlyingC };
+    return { ...contracts, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB };
   }
 
   beforeEach(async () => {
     [alice] = await ethers.getSigners();
-    ({ unitroller, comptroller, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB, underlyingC } =
-      await loadFixture(deploy));
+    ({ unitroller, comptroller, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB } = await loadFixture(deploy));
   });
 
   describe("FlashLoan Multi-Assets", async () => {
