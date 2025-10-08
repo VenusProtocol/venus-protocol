@@ -339,8 +339,8 @@ abstract contract VTokenInterface is VTokenStorage {
     /// @notice Thrown when flash loan fee exceeds maximum allowed
     error FlashLoanFeeTooHigh(uint256 fee, uint256 maxFee);
 
-    /// @notice Thrown when protocol share exceeds total fee
-    error ProtocolShareExceedsTotalFee(uint256 protocolShare, uint256 totalFee);
+    /// @notice Thrown when flash loan fee protocol share exceeds maximum allowed
+    error FlashLoanProtocolShareTooHigh(uint256 fee, uint256 maxFee);
 
     // @notice Thrown when the vToken does not have enough cash to lend
     error InsufficientCash();

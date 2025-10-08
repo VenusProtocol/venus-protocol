@@ -466,14 +466,14 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 flashLoanFeeMantissa_,
         uint256 flashLoanProtocolShare_
     ) external returns (uint256) {
-        // update the signature
         ensureAllowed("setFlashLoanFeeMantissa(uint256,uint256)");
 
         if (flashLoanFeeMantissa_ > MANTISSA_ONE) {
             revert FlashLoanFeeTooHigh(flashLoanFeeMantissa_, MANTISSA_ONE);
         }
-        if (flashLoanProtocolShare_ > flashLoanFeeMantissa_) {
-            revert ProtocolShareExceedsTotalFee(flashLoanProtocolShare_, flashLoanFeeMantissa_);
+
+        if (flashLoanProtocolShare_ > MANTISSA_ONE) {
+            revert FlashLoanProtocolShareTooHigh(flashLoanProtocolShare_, MANTISSA_ONE);
         }
 
         // Only proceed if values are changing

@@ -18,8 +18,6 @@ import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransien
  *      The contract supports protocol fee collection and integrates with the Venus lending protocol.
  */
 contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient {
-    
-
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
 
