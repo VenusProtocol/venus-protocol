@@ -453,7 +453,7 @@ abstract contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegator
      * @param borrowAmount The amount of underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function borrowDebtPosition(address borrower, uint borrowAmount) external override returns (uint) {
+    function borrowDebtPosition(address borrower, uint borrowAmount) external returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("borrowDebtPosition(address,uint256)", borrower, borrowAmount)
         );

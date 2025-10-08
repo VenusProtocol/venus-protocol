@@ -746,7 +746,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      */
-    function borrowDebtPosition(address borrower, uint borrowAmount) external override nonReentrant returns (uint256) {
+    function borrowDebtPosition(address borrower, uint borrowAmount) external nonReentrant returns (uint256) {
         // Reverts if the caller is not the comptroller
         if (msg.sender != address(comptroller)) {
             revert InvalidComptroller();
