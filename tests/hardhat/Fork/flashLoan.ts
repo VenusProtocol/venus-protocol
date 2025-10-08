@@ -433,8 +433,23 @@ forking(64048894, () => {
         const usdtFlashLoanAmount = parseUnits("10", 6); // 10 USDT
         const busdFlashLoanAmount = parseUnits("10", 18); // 10 BUSD
 
+        // Calculate expected fees and repayment amounts for event verification
+        const usdtFeeData = await vUSDT.calculateFlashLoanFee(usdtFlashLoanAmount);
+        const busdFeeData = await vBUSD.calculateFlashLoanFee(busdFlashLoanAmount);
+
+        const usdtTotalFee = usdtFeeData[0]; // totalFee
+        const busdTotalFee = busdFeeData[0]; // totalFee
+
+        // MockFlashLoanReceiver repays full amount + fee (full repayment)
+        const usdtExpectedRepayment = usdtFlashLoanAmount.add(usdtTotalFee);
+        const busdExpectedRepayment = busdFlashLoanAmount.add(busdTotalFee);
+
+        // Get underlying token addresses for event verification
+        const usdtUnderlyingAddress = await vUSDT.underlying();
+        const busdUnderlyingAddress = await vBUSD.underlying();
+
         // user initiates a flashLoan of USDT and BUSD through the flashLoanFacet contract
-        await flashLoanFacet.connect(user).executeFlashLoan(
+        const tx = await flashLoanFacet.connect(user).executeFlashLoan(
           user.address,
           mockFlashLoanReceiver.address,
           [vUSDT.address, vBUSD.address],
@@ -448,18 +463,46 @@ forking(64048894, () => {
 
         const BUSDFlashLoanFee = busdFlashLoanAmount.mul(BUSDFlashLoanTotalFeeMantissa).div(parseUnits("1", 18));
         const USDTFlashLoanFee = usdtFlashLoanAmount.mul(USDTFlashLoanTotalFeeMantissa).div(parseUnits("1", 18));
+
         const USDTFlashLoanProtocolFeeMantissa = USDTFlashLoanFee.mul(USDTFlashLoanProtocolShareMantissa).div(
           parseUnits("1", 18),
         );
         const BUSDFlashLoanProtocolFeeMantissa = BUSDFlashLoanFee.mul(BUSDFlashLoanProtocolShareMantissa).div(
           parseUnits("1", 18),
         );
+
         const remainderBUSD = BUSDFlashLoanFee.sub(BUSDFlashLoanProtocolFeeMantissa);
         const remainderUSDT = USDTFlashLoanFee.sub(USDTFlashLoanProtocolFeeMantissa);
 
         // Validate that USDT and BUSD balances in the contracts increased, confirming repayment plus fees
         expect(balanceAfterBUSD).to.be.closeTo(balanceBeforeBUSD.add(remainderBUSD), 1);
         expect(balanceAfterUSDT).to.be.closeTo(balanceBeforeUSDT.add(remainderUSDT), 1);
+
+        // Verify FlashLoanExecuted event was emitted
+        await expect(tx)
+          .to.emit(flashLoanFacet, "FlashLoanExecuted")
+          .withArgs(
+            mockFlashLoanReceiver.address,
+            [vUSDT.address, vBUSD.address],
+            [usdtFlashLoanAmount, busdFlashLoanAmount],
+          );
+
+        // Verify FlashLoanRepaid events were emitted for both assets (full repayment - remainingDebt = 0)
+        await expect(tx).to.emit(flashLoanFacet, "FlashLoanRepaid").withArgs(
+          mockFlashLoanReceiver.address, // receiver
+          user.address, // onBehalf
+          usdtUnderlyingAddress, // asset (USDT address)
+          usdtExpectedRepayment, // repaidAmount (principal + fee)
+          0, // remainingDebt (0 for full repayment)
+        );
+
+        await expect(tx).to.emit(flashLoanFacet, "FlashLoanRepaid").withArgs(
+          mockFlashLoanReceiver.address, // receiver
+          user.address, // onBehalf
+          busdUnderlyingAddress, // asset (BUSD address)
+          busdExpectedRepayment, // repaidAmount (principal + fee)
+          0, // remainingDebt (0 for full repayment)
+        );
       });
 
       it("Should be able to do flashLoan for USDT & BUSD with debt position", async () => {
@@ -505,6 +548,25 @@ forking(64048894, () => {
         const usdtFlashLoanAmount = parseUnits("5", 6); // 5 USDT
         const busdFlashLoanAmount = parseUnits("5", 18); // 5 BUSD
 
+        // Calculate expected fees and repayment amounts
+        const usdtFeeData = await vUSDT.calculateFlashLoanFee(usdtFlashLoanAmount);
+        const busdFeeData = await vBUSD.calculateFlashLoanFee(busdFlashLoanAmount);
+
+        const usdtTotalFee = usdtFeeData[0]; // totalFee
+        const busdTotalFee = busdFeeData[0]; // totalFee
+
+        // BorrowDebtFlashLoanReceiver repays the principal amount (not the fee)
+        const usdtRepaidAmount = usdtFlashLoanAmount; // Repays principal only
+        const busdRepaidAmount = busdFlashLoanAmount; // Repays principal only
+
+        // Remaining debt will be just the fee (since principal is repaid)
+        const usdtExpectedDebt = usdtTotalFee; // Only fee becomes debt
+        const busdExpectedDebt = busdTotalFee; // Only fee becomes debt
+
+        // Get underlying token addresses for event verification
+        const usdtUnderlyingAddress = await vUSDT.underlying();
+        const busdUnderlyingAddress = await vBUSD.underlying();
+
         // User initiates a flashLoan with mode = 1 (debt position) for both tokens
         const tx = await flashLoanFacet.connect(user).executeFlashLoan(
           user.address,
@@ -530,6 +592,23 @@ forking(64048894, () => {
             [vUSDT.address, vBUSD.address],
             [usdtFlashLoanAmount, busdFlashLoanAmount],
           );
+
+        // Verify FlashLoanRepaid events were emitted for both assets (partial repayment)
+        await expect(tx).to.emit(flashLoanFacet, "FlashLoanRepaid").withArgs(
+          borrowDebtFlashLoanReceiver.address, // receiver
+          user.address, // onBehalf
+          usdtUnderlyingAddress, // asset (USDT address)
+          usdtRepaidAmount, // repaidAmount (principal only)
+          usdtExpectedDebt, // remainingDebt (fee becomes debt)
+        );
+
+        await expect(tx).to.emit(flashLoanFacet, "FlashLoanRepaid").withArgs(
+          borrowDebtFlashLoanReceiver.address, // receiver
+          user.address, // onBehalf
+          busdUnderlyingAddress, // asset (BUSD address)
+          busdRepaidAmount, // repaidAmount (principal only)
+          busdExpectedDebt, // remainingDebt (fee becomes debt)
+        );
       });
     });
   }
