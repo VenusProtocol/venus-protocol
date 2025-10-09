@@ -370,6 +370,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param amount The amount of the underlying asset to transfer.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      * @custom:error FlashLoanAlreadyActive is thrown if there is already an active flash loan.
+     * @custom:error InsufficientCash is thrown when the vToken does not have enough cash to lend
      * @custom:event Emits TransferOutUnderlyingFlashLoan event on successful transfer of amount to receiver
      */
     function transferOutUnderlyingFlashLoan(address payable to, uint256 amount) external nonReentrant {
@@ -402,6 +403,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param protocolFee The protocol fee amount to be transferred to the protocol share reserve.
      * @return actualAmountTransferred The actual amount transferred in from the receiver.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
+     * @custom:error InsufficientRepayment is thrown when the repayment amount is insufficient to cover the total fee
      * @custom:event Emits TransferInUnderlyingFlashLoan event on successful transfer of amount from the receiver to the vToken
      */
     function transferInUnderlyingFlashLoan(
@@ -460,6 +462,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param flashLoanProtocolShare_ FlashLoan protocol fee share, transferred to protocol share reserve
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      * @custom:access Only Governance
+     * @custom:error FlashLoanFeeTooHigh is thrown when flash loan fee exceeds maximum allowed
+     * @custom:error FlashLoanProtocolShareTooHigh is thrown when flash loan fee protocol share exceeds maximum allowed
      * @custom:event Emits FlashLoanFeeUpdated event on success
      */
     function setFlashLoanFeeMantissa(
