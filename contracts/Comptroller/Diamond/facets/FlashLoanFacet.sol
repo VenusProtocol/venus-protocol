@@ -6,9 +6,9 @@ import { IFlashLoanFacet } from "../interfaces/IFlashLoanFacet.sol";
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
-import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransient.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient {
+contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuard {
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
 
