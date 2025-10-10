@@ -457,7 +457,7 @@ abstract contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegator
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      */
-    function flashLoanDebtPosition(address borrower, uint borrowAmount) external override returns (uint) {
+    function flashLoanDebtPosition(address borrower, uint borrowAmount) external returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("flashLoanDebtPosition(address,uint256)", borrower, borrowAmount)
         );

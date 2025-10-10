@@ -8,6 +8,15 @@ import { FacetBase } from "./FacetBase.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
 import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransient.sol";
 
+/**
+ * @title FlashLoanFacet
+ * @author Venus
+ * @notice This facet contains all the methods related to flash loans
+ * @dev This contract implements flash loan functionality allowing users to borrow assets temporarily
+ *      within a single transaction. Users can borrow multiple assets simultaneously and have the
+ *      flexibility to repay partially, with unpaid balances automatically converted to debt positions.
+ *      The contract supports protocol fee collection and integrates with the Venus lending protocol.
+ */
 contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient {
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
@@ -33,7 +42,9 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
      * @custom:error InvalidAmount is thrown if the requested amount is zero.
      * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
      * @custom:error InvalidFlashLoanParams is thrown if the flash loan params are invalid.
+     * @custom:error MarketNotListed is thrown if the specified vToken market is not listed.
      * @custom:error SenderNotAuthorizedForFlashLoan is thrown if the sender is not authorized to use flashloan.
+     * @custom:error NotAnApprovedDelegate is thrown if `msg.sender` is not `onBehalf` or an approved delegate for `onBehalf`.
      * @custom:event Emits FlashLoanExecuted on success
      */
     function executeFlashLoan(
@@ -43,18 +54,30 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) external nonReentrant {
+        uint256 len = vTokens.length;
+        Market storage market;
+
+        // vTokens array must not be empty
+        if (len == 0) {
+            revert NoAssetsRequested();
+        }
+
         // All arrays must have the same length and not be zero
-        if (vTokens.length != underlyingAmounts.length) {
+        if (len != underlyingAmounts.length) {
             revert InvalidFlashLoanParams();
         }
 
-        for (uint256 i; i < vTokens.length; ++i) {
-            if (!(vTokens[i]).isFlashLoanEnabled()) revert FlashLoanNotEnabled();
-            if (underlyingAmounts[i] == 0) revert InvalidAmount();
-        }
-        // vTokens array must not be empty
-        if (vTokens.length == 0) {
-            revert NoAssetsRequested();
+        for (uint256 i; i < len; ++i) {
+            market = getCorePoolMarket(address(vTokens[i]));
+            if (!market.isListed) {
+                revert MarketNotListed(address(vTokens[i]));
+            }
+            if (!(vTokens[i]).isFlashLoanEnabled()) {
+                revert FlashLoanNotEnabled();
+            }
+            if (underlyingAmounts[i] == 0) {
+                revert InvalidAmount();
+            }
         }
 
         ensureNonzeroAddress(receiver);
@@ -63,7 +86,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             revert SenderNotAuthorizedForFlashLoan(msg.sender);
         }
 
-        if (!approvedDelegates[onBehalf][msg.sender]) {
+        if (msg.sender != onBehalf && !approvedDelegates[onBehalf][msg.sender]) {
             revert NotAnApprovedDelegate();
         }
 
@@ -74,7 +97,16 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
     }
 
     /**
-     * @notice Executes all flash loan phases
+     * @notice Executes all flash loan phases in sequence
+     * @dev Orchestrates the complete flash loan process through three phases:
+     *      Phase 1: Calculate fees and transfer assets to receiver
+     *      Phase 2: Execute custom operations on receiver contract
+     *      Phase 3: Handle repayment and debt position creation
+     * @param onBehalf The address whose debt position will be used for any unpaid flash loan balance
+     * @param receiver The address of the contract receiving the flash loan
+     * @param vTokens Array of vToken contracts for the assets being borrowed
+     * @param underlyingAmounts Array of amounts being borrowed for each asset
+     * @param param Additional parameters passed to the receiver contract
      */
     function _executeFlashLoanPhases(
         address payable onBehalf,
@@ -83,12 +115,12 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) internal {
-        FlashLoanData memory flashLoanData;
+        FlashLoanFee memory flashLoanData;
+        //Cache array length
+        uint256 vTokensLength = vTokens.length;
         // Initialize arrays
-        flashLoanData.totalFees = new uint256[](vTokens.length);
-        flashLoanData.protocolFees = new uint256[](vTokens.length);
-        flashLoanData.actualRepayments = new uint256[](vTokens.length);
-        flashLoanData.remainingDebts = new uint256[](vTokens.length);
+        flashLoanData.totalFees = new uint256[](vTokensLength);
+        flashLoanData.protocolFees = new uint256[](vTokensLength);
 
         // Phase 1: Calculate fees and transfer assets
         _executePhase1(receiver, vTokens, underlyingAmounts, flashLoanData);
@@ -102,19 +134,30 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             param
         );
         // Phase 3: Handles repayment
-        _executePhase3(onBehalf, receiver, vTokens, tokensApproved, flashLoanData);
+        _executePhase3(onBehalf, receiver, vTokens, underlyingAmounts, tokensApproved, flashLoanData);
     }
 
     /**
      * @notice Phase 1: Calculate fees and transfer assets to receiver
+     * @dev For each requested asset:
+     *      - Calculates total fee and protocol fee using the vToken's fee structure
+     *      - Transfers the requested amount from the vToken to the receiver
+     *      - Updates flash loan tracking in the vToken contract
+     * @param receiver The address receiving the flash loan assets
+     * @param vTokens Array of vToken contracts for the assets being borrowed
+     * @param underlyingAmounts Array of amounts being borrowed for each asset
+     * @param flashLoanData Struct containing fee arrays to be populated
      */
     function _executePhase1(
         address payable receiver,
         VToken[] memory vTokens,
         uint256[] memory underlyingAmounts,
-        FlashLoanData memory flashLoanData
+        FlashLoanFee memory flashLoanData
     ) internal {
-        for (uint256 i; i < vTokens.length; ++i) {
+        //Cache array length
+        uint256 vTokensLength = vTokens.length;
+
+        for (uint256 i; i < vTokensLength; ++i) {
             (flashLoanData.totalFees[i], flashLoanData.protocolFees[i]) = vTokens[i].calculateFlashLoanFee(
                 underlyingAmounts[i]
             );
@@ -125,7 +168,18 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
     }
 
     /**
-     * @notice Phase 2: Execute operations on receiver contract
+     * @notice Phase 2: Execute custom operations on receiver contract
+     * @dev Calls the receiver contract's executeOperation function, allowing it to perform
+     *      custom logic with the borrowed assets. The receiver must return success status
+     *      and specify repayment amounts for each asset.
+     * @param onBehalf The address whose debt position will be used for any unpaid balance
+     * @param receiver The address of the contract executing custom operations
+     * @param vTokens Array of vToken contracts for the borrowed assets
+     * @param underlyingAmounts Array of amounts that were borrowed for each asset
+     * @param totalFees Array of total fees for each borrowed asset
+     * @param param Additional parameters passed to the receiver's executeOperation function
+     * @return tokensApproved Array of amounts the receiver approved for repayment
+     * @custom:error ExecuteFlashLoanFailed is thrown if the receiver's executeOperation returns false
      */
     function _executePhase2(
         address payable onBehalf,
@@ -139,6 +193,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             vTokens,
             underlyingAmounts,
             totalFees,
+            msg.sender,
             onBehalf,
             param
         );
@@ -151,21 +206,34 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
 
     /**
      * @notice Phase 3: Handles repayment based on full or partial repayment
-     * @dev If full repayment is made, transfer protocol fee to protocol share reserve and update state.
-     *      If partial repayment is made, create an ongoing debt position for the unpaid balance.
+     * @dev Processes repayment for each asset in the flash loan:
+     *      - Ensures minimum fee repayment for each asset
+     *      - Creates debt positions for any unpaid balances
+     *      - Handles protocol fee distribution automatically
+     * @param onBehalf The address whose debt position will be used for any unpaid balance
+     * @param receiver The address providing the repayment
+     * @param vTokens Array of vToken contracts for the borrowed assets
+     * @param underlyingAmounts Array of amounts that were originally borrowed for each asset
+     * @param underlyingAmountsToRepay Array of amounts to be repaid for each asset
+     * @param flashLoanData Struct containing calculated fees for each asset
      */
     function _executePhase3(
         address payable onBehalf,
         address payable receiver,
         VToken[] memory vTokens,
+        uint256[] memory underlyingAmounts,
         uint256[] memory underlyingAmountsToRepay,
-        FlashLoanData memory flashLoanData
+        FlashLoanFee memory flashLoanData
     ) internal {
-        for (uint256 i; i < vTokens.length; ++i) {
+        //Cache array length
+        uint256 vTokensLength = vTokens.length;
+
+        for (uint256 i; i < vTokensLength; ++i) {
             _handleFlashLoan(
                 vTokens[i],
                 onBehalf,
                 receiver,
+                underlyingAmounts[i],
                 underlyingAmountsToRepay[i],
                 flashLoanData.totalFees[i],
                 flashLoanData.protocolFees[i]
@@ -175,36 +243,43 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
 
     /**
      * @notice Handles the repayment and fee logic for a flash loan.
-     * @dev Transfers the repaid amount from the receiver, checks if the full amount plus fee is repaid,
-     *      and either settles the protocol fee or creates an ongoing debt position for any unpaid balance.
-     *      Updates the protocol share reserve state if the protocol fee is transferred.
+     * @dev This function processes flash loan repayment with the following logic:
+     *      1. Ensures the repayment amount is at least equal to the total fee (minimum requirement).
+     *      2. Caps the repayment to prevent over-repayment (borrowedAmount + totalFee maximum).
+     *      3. Transfers the actual repayment amount from the receiver to the vToken.
+     *      4. If repayment is less than the full amount (borrowedAmount + totalFee), creates a debt position
+     *         for the unpaid balance on the onBehalf address.
+     *      5. Protocol fees are automatically handled within the transferInUnderlyingFlashLoan function.
      * @param vToken The vToken contract for the asset being flash loaned.
-     * @param onBehalf The address of the EOA who initiated the flash loan.
-     * @param receiver The address that received the flash loan and is repaying.
-     * @param amountRepaid The amount repaid by the receiver (principal + fee).
-     * @param totalFee The total fee charged for the flash loan.
+     * @param onBehalf The address whose debt position will be used if there is any unpaid flash loan balance.
+     * @param receiver The address that received the flash loan and is providing the repayment.
+     * @param borrowedAmount The original amount that was borrowed (passed from underlyingAmounts).
+     * @param repayAmount The amount being repaid by the receiver (may be partial or full repayment).
+     * @param totalFee The total fee charged for the flash loan (minimum required repayment).
      * @param protocolFee The portion of the total fee allocated to the protocol.
+     * @custom:error NotEnoughRepayment is thrown if repayAmount is less than the minimum required fee.
+     * @custom:error FailedToCreateDebtPosition is thrown if debt position creation fails for unpaid balance.
      */
     function _handleFlashLoan(
         VToken vToken,
         address payable onBehalf,
         address payable receiver,
-        uint256 amountRepaid,
+        uint256 borrowedAmount,
+        uint256 repayAmount,
         uint256 totalFee,
         uint256 protocolFee
     ) internal {
-        uint256 borrowedFlashLoanAmount = vToken.flashLoanAmount();
-        uint256 maxExpectedRepayment = borrowedFlashLoanAmount + totalFee;
-        uint256 actualRepayment = amountRepaid > maxExpectedRepayment ? maxExpectedRepayment : amountRepaid;
+        uint256 maxExpectedRepayment = borrowedAmount + totalFee;
+        uint256 actualRepayAmount = repayAmount > maxExpectedRepayment ? maxExpectedRepayment : repayAmount;
 
-        if (actualRepayment < totalFee) {
-            revert NotEnoughRepayment(actualRepayment, totalFee);
+        if (actualRepayAmount < totalFee) {
+            revert NotEnoughRepayment(actualRepayAmount, totalFee);
         }
 
         // Transfer repayment (this will handle the protocol fee as well)
         uint256 actualAmountTransferred = vToken.transferInUnderlyingFlashLoan(
             receiver,
-            actualRepayment,
+            actualRepayAmount,
             totalFee,
             protocolFee
         );

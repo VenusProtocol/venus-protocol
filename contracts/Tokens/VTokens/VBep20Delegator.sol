@@ -318,26 +318,6 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
     }
 
     /**
-     * @notice Opens a debt position for the borrower as part of flash loan repayment
-     * @dev This function is specifically called during flash loan operations when the repayment
-     *      is insufficient to cover the full borrowed amount plus fees. It creates a debt position
-     *      for the unpaid balance. The function checks if the borrow is allowed, accrues interest,
-     *      and updates the borrower's balance. It also emits a Borrow event and calls the
-     *      comptroller's borrowVerify function. It reverts if the borrow is not allowed or
-     *      if the market's block number is not current.
-     * @param borrower The address of the borrower who will have the debt position created
-     * @param borrowAmount The amount of underlying asset that becomes debt (unpaid flash loan balance)
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
-     * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
-     */
-    function flashLoanDebtPosition(address borrower, uint borrowAmount) external override returns (uint) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("flashLoanDebtPosition(address,uint256)", borrower, borrowAmount)
-        );
-        return abi.decode(data, (uint));
-    }
-
-    /**
      * @notice Accrues interest and reduces reserves by transferring to admin
      * @param reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
