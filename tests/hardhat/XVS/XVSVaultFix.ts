@@ -91,7 +91,7 @@ describe("XVSVault", async () => {
       await reset(`${FORK_ENDPOINT}`, 25458046);
       await sendGasCost();
       await deployAndConfigureNewVault();
-      // Expected data of the withdrawalRequests array after upgrade i.e append 0 at the end of the each array feild.
+      // Expected data of the withdrawalRequests array after upgrade i.e append 0 at the end of the each array field.
       const beforeUpgrade = [
         ["1219905705900531585631", "1665230433", "0"],
         ["10250054759802389186707", "1662327363", "0"],
