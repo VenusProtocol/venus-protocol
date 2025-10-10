@@ -666,8 +666,9 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureNoMathError(mathErr);
         if (blockDelta >= reduceReservesBlockDelta) {
             reduceReservesBlockNumber = currentBlockNumber;
-            if (cashPrior < totalReservesNew) {
-                _reduceReservesFresh(cashPrior);
+            uint actualCash = getCashPrior();
+            if (actualCash < totalReservesNew) {
+                _reduceReservesFresh(actualCash);
             } else {
                 _reduceReservesFresh(totalReservesNew);
             }
