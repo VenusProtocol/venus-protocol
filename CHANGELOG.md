@@ -1,3 +1,13 @@
+## [10.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.1...v10.1.0-dev.2) (2025-10-13)
+
+
+### Features
+
+* deploy slisBNB market on bscmainnet ([492d670](https://github.com/VenusProtocol/venus-protocol/commit/492d670e9e7bd5029f9d7ecbdbb543c757fd5107))
+* deploy slisBNB market on bsctestnet ([d054827](https://github.com/VenusProtocol/venus-protocol/commit/d0548278e8318081288063f6c41e6451699601e0))
+* updating deployment files ([9f86133](https://github.com/VenusProtocol/venus-protocol/commit/9f8613340634fb0b60686874a8e1f1d8ee3d9056))
+* updating deployment files ([c1cdf46](https://github.com/VenusProtocol/venus-protocol/commit/c1cdf4610b342fbce3cfb847aca5d0b5c1f4bbfe))
+
 ## [10.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v10.0.0...v10.1.0-dev.1) (2025-10-10)
 
 
