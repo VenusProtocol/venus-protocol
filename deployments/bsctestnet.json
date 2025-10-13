@@ -3247,7 +3247,7 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0x63C0A164C1ec039d9A6197c2b5b4c64cF7197f92",
+      "address": "0x31fd5a3Fdbe9972373e9373Eb59519c60d30EE00",
       "abi": [
         {
           "inputs": [],
@@ -3312,11 +3312,6 @@
         },
         {
           "inputs": [],
-          "name": "InvalidMode",
-          "type": "error"
-        },
-        {
-          "inputs": [],
           "name": "InvalidOperationForCorePool",
           "type": "error"
         },
@@ -3369,6 +3364,17 @@
           "type": "error"
         },
         {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketNotListed",
+          "type": "error"
+        },
+        {
           "inputs": [],
           "name": "MarketNotListedInCorePool",
           "type": "error"
@@ -3376,6 +3382,27 @@
         {
           "inputs": [],
           "name": "NoAssetsRequested",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "NotAnApprovedDelegate",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "repaid",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "required",
+              "type": "uint256"
+            }
+          ],
+          "name": "NotEnoughRepayment",
           "type": "error"
         },
         {
@@ -4243,7 +4270,7 @@
       ]
     },
     "FlashLoanFacet": {
-      "address": "0x8eaeC2e491255335b638A94A2F62E30B334a7e7C",
+      "address": "0x957BE05daF560bd56D9Adb8D7A52CfbCD828163B",
       "abi": [
         {
           "inputs": [],
@@ -4308,11 +4335,6 @@
         },
         {
           "inputs": [],
-          "name": "InvalidMode",
-          "type": "error"
-        },
-        {
-          "inputs": [],
           "name": "InvalidOperationForCorePool",
           "type": "error"
         },
@@ -4362,6 +4384,17 @@
         {
           "inputs": [],
           "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketNotListed",
           "type": "error"
         },
         {
@@ -4420,6 +4453,11 @@
             }
           ],
           "name": "PoolMarketNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ReentrancyGuardReentrantCall",
           "type": "error"
         },
         {
@@ -4494,6 +4532,43 @@
             }
           ],
           "name": "FlashLoanExecuted",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "receiver",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "onBehalf",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "asset",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "repaidAmount",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "remainingDebt",
+              "type": "uint256"
+            }
+          ],
+          "name": "FlashLoanRepaid",
           "type": "event"
         },
         {
@@ -16415,7 +16490,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x3B6129250Ec0706FfF99E4909554F16b71A4bdaf",
+      "address": "0x3cAe1E59cdE3E3258348375cf301b469FB40A092",
       "abi": [
         {
           "inputs": [],
@@ -16480,11 +16555,6 @@
         },
         {
           "inputs": [],
-          "name": "InvalidMode",
-          "type": "error"
-        },
-        {
-          "inputs": [],
           "name": "InvalidOperationForCorePool",
           "type": "error"
         },
@@ -16534,6 +16604,17 @@
         {
           "inputs": [],
           "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketNotListed",
           "type": "error"
         },
         {
@@ -23172,7 +23253,7 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0x22CaBF6638458D9460304900868B5e5006134885",
+      "address": "0xB15620d400B12B1d9431910B770Eb1E0179432B1",
       "abi": [
         {
           "inputs": [],
@@ -23237,11 +23318,6 @@
         },
         {
           "inputs": [],
-          "name": "InvalidMode",
-          "type": "error"
-        },
-        {
-          "inputs": [],
           "name": "InvalidOperationForCorePool",
           "type": "error"
         },
@@ -23291,6 +23367,17 @@
         {
           "inputs": [],
           "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketNotListed",
           "type": "error"
         },
         {
@@ -32528,7 +32615,7 @@
       ]
     },
     "RewardFacet": {
-      "address": "0x60952A607B00090e79683c51654B5B0BB4553684",
+      "address": "0x771d07CE1FE51d261a9c3e00A42684Ed45e0c50b",
       "abi": [
         {
           "inputs": [],
@@ -32593,11 +32680,6 @@
         },
         {
           "inputs": [],
-          "name": "InvalidMode",
-          "type": "error"
-        },
-        {
-          "inputs": [],
           "name": "InvalidOperationForCorePool",
           "type": "error"
         },
@@ -32647,6 +32729,17 @@
         {
           "inputs": [],
           "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketNotListed",
           "type": "error"
         },
         {
@@ -34146,7 +34239,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0xa6624EcbcA3328Dc7b5741db0Cd0c2f2653f2608",
+      "address": "0x98DCde088ED0208e4521867344532565657e0a91",
       "abi": [
         {
           "inputs": [],
@@ -34211,11 +34304,6 @@
         },
         {
           "inputs": [],
-          "name": "InvalidMode",
-          "type": "error"
-        },
-        {
-          "inputs": [],
           "name": "InvalidOperationForCorePool",
           "type": "error"
         },
@@ -34265,6 +34353,17 @@
         {
           "inputs": [],
           "name": "MarketConfigNotFound",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketNotListed",
           "type": "error"
         },
         {
@@ -36280,7 +36379,7 @@
             },
             {
               "internalType": "bool",
-              "name": "_isWhiteListed",
+              "name": "isWhiteListed",
               "type": "bool"
             }
           ],
@@ -50838,7 +50937,7 @@
       ]
     },
     "Unitroller_Implementation": {
-      "address": "0x85B295214748085782653B518e3b5a1915Cf6e81",
+      "address": "0xd25200C9CE964329d20389E328F1Ca0e2B0e91BC",
       "abi": [
         {
           "anonymous": false,
@@ -55144,7 +55243,7 @@
       ]
     },
     "VBep20Delegate": {
-      "address": "0x70223EBdC5585D931BE959cc86F7366B9d45FE29",
+      "address": "0xb941C5D148c65Ce49115D12B5148247AaCeFF375",
       "abi": [
         {
           "inputs": [],
@@ -55153,38 +55252,65 @@
         },
         {
           "inputs": [],
-          "name": "ExecuteFlashLoanFailed",
-          "type": "error"
-        },
-        {
-          "inputs": [],
           "name": "FlashLoanAlreadyActive",
           "type": "error"
         },
         {
-          "inputs": [],
-          "name": "FlashLoanNotEnabled",
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "fee",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxFee",
+              "type": "uint256"
+            }
+          ],
+          "name": "FlashLoanFeeTooHigh",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "fee",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxFee",
+              "type": "uint256"
+            }
+          ],
+          "name": "FlashLoanProtocolShareTooHigh",
           "type": "error"
         },
         {
           "inputs": [],
+          "name": "InsufficientCash",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "actualAmount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "requiredTotalFee",
+              "type": "uint256"
+            }
+          ],
           "name": "InsufficientRepayment",
           "type": "error"
         },
         {
           "inputs": [],
           "name": "InvalidComptroller",
-          "type": "error"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "sender",
-              "type": "address"
-            }
-          ],
-          "name": "SenderNotAuthorized",
           "type": "error"
         },
         {
@@ -55297,31 +55423,6 @@
             }
           ],
           "name": "Failure",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": false,
-              "internalType": "address",
-              "name": "receiver",
-              "type": "address"
-            },
-            {
-              "indexed": false,
-              "internalType": "address",
-              "name": "underlying",
-              "type": "address"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "amount",
-              "type": "uint256"
-            }
-          ],
-          "name": "FlashLoanExecuted",
           "type": "event"
         },
         {
@@ -55803,13 +55904,13 @@
           "anonymous": false,
           "inputs": [
             {
-              "indexed": false,
+              "indexed": true,
               "internalType": "address",
               "name": "asset",
               "type": "address"
             },
             {
-              "indexed": false,
+              "indexed": true,
               "internalType": "address",
               "name": "sender",
               "type": "address"
@@ -55818,6 +55919,18 @@
               "indexed": false,
               "internalType": "uint256",
               "name": "amount",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "totalFee",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "protocolFee",
               "type": "uint256"
             }
           ],
@@ -56216,30 +56329,6 @@
           "type": "function"
         },
         {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "borrower",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "borrowAmount",
-              "type": "uint256"
-            }
-          ],
-          "name": "borrowDebtPosition",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
           "inputs": [],
           "name": "borrowIndex",
           "outputs": [
@@ -56342,35 +56431,6 @@
           "type": "function"
         },
         {
-          "inputs": [
-            {
-              "internalType": "address payable",
-              "name": "receiver",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "amount",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "param",
-              "type": "bytes"
-            }
-          ],
-          "name": "executeFlashLoan",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
           "inputs": [],
           "name": "flashLoanAmount",
           "outputs": [
@@ -56381,6 +56441,30 @@
             }
           ],
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "borrowAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "flashLoanDebtPosition",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
@@ -57125,7 +57209,12 @@
             },
             {
               "internalType": "uint256",
-              "name": "amountRepaid",
+              "name": "repaymentAmount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalFee",
               "type": "uint256"
             },
             {
