@@ -634,4 +634,73 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus WBNB",
+    symbol: "vWBNB",
+    asset: "WBNB",
+    interestRateModel: {
+      model: "two-kinks",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.045",
+      kink: "0.7",
+      baseRatePerYear2: "0",
+      multiplierPerYear2: "1.4",
+      kink2: "0.8",
+      jumpMultiplierPerYear: "3",
+    },
+    riskParameters: {
+      collateralFactor: "0.8",
+      reserveFactor: "0.3",
+      supplyCap: "2672000",
+      borrowCap: "2008000",
+    },
+    initialSupply: {
+      amount: "1",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus PT-USDe-30OCT2025",
+    symbol: "vPT-USDe-30OCT2025",
+    asset: "PT-USDe-30OCT2025",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.1",
+      jumpMultiplierPerYear: "2.5",
+      kink: "0.8",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "1000000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "300",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus slisBNB",
+    symbol: "vslisBNB",
+    asset: "slisBNB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "3000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.1",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];

@@ -65,7 +65,7 @@ async function deployAndConfigureLiquidator() {
   const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB);
 
   const proxyAdmin = ProxyAdmin__factory.connect("0x2b40B43AC5F7949905b0d2Ed9D6154a8ce06084a", impersonatedTimelock);
-  protocolShareReserve = await smock.fake<IProtocolShareReserve>("contracts/InterfacesV8.sol:IProtocolShareReserve");
+  protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
 
   const data = liquidatorNewImpl.interface.encodeFunctionData("initialize", [
     convertToUnit(5, 16),

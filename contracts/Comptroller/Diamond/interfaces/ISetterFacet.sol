@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
-import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { ComptrollerTypes } from "../../ComptrollerStorage.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 
 interface ISetterFacet {
-    function setPriceOracle(PriceOracle newOracle) external returns (uint256);
+    function setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256);
 
-    function _setPriceOracle(PriceOracle newOracle) external returns (uint256);
+    function _setPriceOracle(ResilientOracleInterface newOracle) external returns (uint256);
 
     function setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256);
 
@@ -26,11 +26,23 @@ interface ISetterFacet {
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256);
 
-    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256);
+    function setCollateralFactor(
+        uint96 poolId,
+        VToken vToken,
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
+    ) external returns (uint256);
 
-    function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
+    function setLiquidationIncentive(
+        address vToken,
+        uint256 newLiquidationIncentiveMantissa
+    ) external returns (uint256);
 
-    function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
+    function setLiquidationIncentive(
+        uint96 poolId,
+        address vToken,
+        uint256 newLiquidationIncentiveMantissa
+    ) external returns (uint256);
 
     function _setLiquidatorContract(address newLiquidatorContract_) external;
 
@@ -46,17 +58,9 @@ interface ISetterFacet {
 
     function _setProtocolPaused(bool state) external returns (bool);
 
-    function setActionsPaused(
-        address[] calldata markets,
-        ComptrollerTypes.Action[] calldata actions,
-        bool paused
-    ) external;
+    function setActionsPaused(address[] calldata markets, Action[] calldata actions, bool paused) external;
 
-    function _setActionsPaused(
-        address[] calldata markets,
-        ComptrollerTypes.Action[] calldata actions,
-        bool paused
-    ) external;
+    function _setActionsPaused(address[] calldata markets, Action[] calldata actions, bool paused) external;
 
     function _setVAIController(VAIControllerInterface vaiController_) external returns (uint256);
 
@@ -89,4 +93,12 @@ interface ISetterFacet {
     function _setXVSToken(address xvs_) external;
 
     function _setXVSVToken(address xvsVToken_) external;
+
+    function setIsBorrowAllowed(uint96 poolId, address vToken, bool borrowAllowed) external;
+
+    function setPoolActive(uint96 poolId, bool active) external;
+
+    function setPoolLabel(uint96 poolId, string calldata newLabel) external;
+
+    function setAllowCorePoolFallback(uint96 poolId, bool allowFallback) external;
 }

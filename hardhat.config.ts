@@ -1,9 +1,8 @@
 import "module-alias/register";
 
 import "@nomicfoundation/hardhat-chai-matchers";
-import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-verify";
 import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import fs from "fs";
@@ -158,7 +157,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          evmVersion: "paris",
+          evmVersion: "cancun",
           outputSelection: {
             "*": {
               "*": ["storageLayout"],
@@ -259,6 +258,9 @@ const config: HardhatUserConfig = {
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
   },
+  sourcify: {
+    enabled: true,
+  },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     customChains: [
@@ -353,6 +355,14 @@ const config: HardhatUserConfig = {
 function isFork() {
   return process.env.FORKED_NETWORK
     ? {
+        chains: {
+          56: {
+            hardforkHistory: {
+              berlin: 0,
+              london: 13000000,
+            },
+          },
+        },
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {

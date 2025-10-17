@@ -1,10 +1,10 @@
 pragma solidity ^0.5.16;
 
-import "../../../Comptroller/ComptrollerInterface.sol";
+import "./ComptrollerInterface.sol";
 import "../../../InterestRateModels/InterestRateModel.sol";
-import "../VTokenInterfaces.sol";
+import { VTokenStorageR1 } from "./VTokenStorageR1.sol";
 
-contract VTokenInterfaceR1 is VTokenStorage {
+contract VTokenInterfaceR1 is VTokenStorageR1 {
     /**
      * @notice Indicator that this is a vToken contract (for inspection)
      */
@@ -176,4 +176,65 @@ contract VTokenInterfaceR1 is VTokenStorage {
     function borrowBalanceStored(address account) public view returns (uint);
 
     function exchangeRateStored() public view returns (uint);
+}
+
+interface VBep20InterfaceR1 {
+    /*** User Interface ***/
+
+    function mint(uint mintAmount) external returns (uint);
+
+    function mintBehalf(address receiver, uint mintAmount) external returns (uint);
+
+    function redeem(uint redeemTokens) external returns (uint);
+
+    function redeemUnderlying(uint redeemAmount) external returns (uint);
+
+    function borrow(uint borrowAmount) external returns (uint);
+
+    function repayBorrow(uint repayAmount) external returns (uint);
+
+    function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);
+
+    function liquidateBorrow(
+        address borrower,
+        uint repayAmount,
+        VTokenInterfaceR1 vTokenCollateral
+    ) external returns (uint);
+
+    /*** Admin Functions ***/
+
+    function _addReserves(uint addAmount) external returns (uint);
+}
+
+interface VDelegatorInterfaceR1 {
+    /**
+     * @notice Emitted when implementation is changed
+     */
+    event NewImplementation(address oldImplementation, address newImplementation);
+
+    /**
+     * @notice Called by the admin to update the implementation of the delegator
+     * @param implementation_ The address of the new implementation for delegation
+     * @param allowResign Flag to indicate whether to call _resignImplementation on the old implementation
+     * @param becomeImplementationData The encoded bytes data to be passed to _becomeImplementation
+     */
+    function _setImplementation(
+        address implementation_,
+        bool allowResign,
+        bytes calldata becomeImplementationData
+    ) external;
+}
+
+interface VDelegateInterfaceR1 {
+    /**
+     * @notice Called by the delegator on a delegate to initialize it for duty
+     * @dev Should revert if any issues arise which make it unfit for delegation
+     * @param data The encoded bytes data for any initialization
+     */
+    function _becomeImplementation(bytes calldata data) external;
+
+    /**
+     * @notice Called by the delegator on a delegate to forfeit its responsibility
+     */
+    function _resignImplementation() external;
 }

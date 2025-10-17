@@ -1,13 +1,15 @@
 pragma solidity ^0.5.16;
-import "../VTokenInterfaces.sol";
-import "./VTokenInterfaceR1.sol";
+
+import { InterestRateModel } from "../../../InterestRateModels/InterestRateModel.sol";
+import { ComptrollerInterface } from "./ComptrollerInterface.sol";
+import { VTokenInterfaceR1, VBep20InterfaceR1, VDelegatorInterfaceR1 } from "./VTokenInterfaceR1.sol";
 
 /**
  * @title Venus's VBep20Delegator Contract
  * @notice vTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Venus
  */
-contract VBep20DelegatorR1 is VTokenInterfaceR1, VBep20Interface, VDelegatorInterface {
+contract VBep20DelegatorR1 is VTokenInterfaceR1, VBep20InterfaceR1, VDelegatorInterfaceR1 {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
@@ -174,7 +176,7 @@ contract VBep20DelegatorR1 is VTokenInterfaceR1, VBep20Interface, VDelegatorInte
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceR1 vTokenCollateral
     ) external returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("liquidateBorrow(address,uint256,address)", borrower, repayAmount, vTokenCollateral)

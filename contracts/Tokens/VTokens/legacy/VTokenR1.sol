@@ -1,13 +1,11 @@
 pragma solidity ^0.5.16;
 
-import "../../../Comptroller/ComptrollerInterface.sol";
-import "../../../Utils/ErrorReporter.sol";
-import "../../../Utils/Exponential.sol";
-import "../../../Tokens/EIP20Interface.sol";
-import "../../../Tokens/EIP20NonStandardInterface.sol";
-import "../../../InterestRateModels/InterestRateModel.sol";
-import "../VTokenInterfaces.sol";
+import { ComptrollerInterface, IComptroller } from "./ComptrollerInterface.sol";
+import { TokenErrorReporter } from "./Utils/ErrorReporter.sol";
+import { Exponential } from "./Utils/Exponential.sol";
+import { InterestRateModel } from "../../../InterestRateModels/InterestRateModel.sol";
 import { VTokenInterfaceR1 } from "./VTokenInterfaceR1.sol";
+import { IProtocolShareReserveV5 } from "./IProtocolShareReserveV5.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 /**
@@ -1238,7 +1236,7 @@ contract VTokenR1 is VTokenInterfaceR1, Exponential, TokenErrorReporter {
     function liquidateBorrowInternal(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceR1 vTokenCollateral
     ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -1270,7 +1268,7 @@ contract VTokenR1 is VTokenInterfaceR1, Exponential, TokenErrorReporter {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceR1 vTokenCollateral
     ) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
         uint allowed = comptroller.liquidateBorrowAllowed(

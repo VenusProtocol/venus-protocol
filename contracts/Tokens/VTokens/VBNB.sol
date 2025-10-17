@@ -1,6 +1,10 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
 
-import "./VToken.sol";
+pragma solidity 0.8.25;
+
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { VToken } from "./VToken.sol";
 
 /**
  * @title Venus's vBNB Contract
@@ -20,15 +24,15 @@ contract VBNB is VToken {
      */
     constructor(
         ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
-    ) public {
+    ) {
         // Creator of the contract is admin during initialization
-        admin = msg.sender;
+        admin = payable(msg.sender);
 
         initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
 
@@ -39,7 +43,7 @@ contract VBNB is VToken {
     /**
      * @notice Send BNB to VBNB to mint
      */
-    function() external payable {
+    receive() external payable {
         (uint err, ) = mintInternal(msg.value);
         requireNoError(err, "mint failed");
     }
@@ -67,7 +71,7 @@ contract VBNB is VToken {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeem(uint redeemTokens) external returns (uint) {
-        return redeemInternal(msg.sender, msg.sender, redeemTokens);
+        return redeemInternal(msg.sender, payable(msg.sender), redeemTokens);
     }
 
     /**
@@ -80,7 +84,7 @@ contract VBNB is VToken {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeemUnderlying(uint redeemAmount) external returns (uint) {
-        return redeemUnderlyingInternal(msg.sender, msg.sender, redeemAmount);
+        return redeemUnderlyingInternal(msg.sender, payable(msg.sender), redeemAmount);
     }
 
     /**
@@ -90,7 +94,7 @@ contract VBNB is VToken {
      */
     // @custom:event Emits Borrow event on success
     function borrow(uint borrowAmount) external returns (uint) {
-        return borrowInternal(msg.sender, msg.sender, borrowAmount);
+        return borrowInternal(msg.sender, payable(msg.sender), borrowAmount);
     }
 
     /**
@@ -135,14 +139,14 @@ contract VBNB is VToken {
      * @param amount Amount of BNB being sent
      * @return The actual amount of BNB transferred
      */
-    function doTransferIn(address from, uint amount) internal returns (uint) {
+    function doTransferIn(address from, uint amount) internal override returns (uint) {
         // Sanity checks
         require(msg.sender == from, "sender mismatch");
         require(msg.value == amount, "value mismatch");
         return amount;
     }
 
-    function doTransferOut(address payable to, uint amount) internal {
+    function doTransferOut(address payable to, uint amount) internal override {
         /* Send the BNB, with minimal gas and revert on failure */
         to.transfer(amount);
     }
@@ -152,7 +156,7 @@ contract VBNB is VToken {
      * @dev This excludes the value of the current message, if any
      * @return The quantity of BNB owned by this contract
      */
-    function getCashPrior() internal view returns (uint) {
+    function getCashPrior() internal view override returns (uint) {
         (MathError err, uint startingBalance) = subUInt(address(this).balance, msg.value);
         require(err == MathError.NO_ERROR, "cash prior math error");
         return startingBalance;

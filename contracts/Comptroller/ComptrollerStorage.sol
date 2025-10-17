@@ -1,26 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
+
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { PoolMarketId } from "./Types/PoolMarketId.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
-import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
 import { IPrime } from "../Tokens/Prime/IPrime.sol";
-
-interface ComptrollerTypes {
-    enum Action {
-        MINT,
-        REDEEM,
-        BORROW,
-        REPAY,
-        SEIZE,
-        LIQUIDATE,
-        TRANSFER,
-        ENTER_MARKET,
-        EXIT_MARKET
-    }
-}
 
 contract UnitrollerAdminStorage {
     /**
@@ -44,11 +32,11 @@ contract UnitrollerAdminStorage {
     address public pendingComptrollerImplementation;
 }
 
-contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
+contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice Oracle which gives the price of any given asset
      */
-    PriceOracle public oracle;
+    ResilientOracleInterface public oracle;
 
     /**
      * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow
@@ -56,9 +44,9 @@ contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
     uint256 public closeFactorMantissa;
 
     /**
-     * @notice Multiplier representing the discount on collateral that a liquidator receives
+     * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
      */
-    uint256 public liquidationIncentiveMantissa;
+    uint256 private _oldLiquidationIncentiveMantissa;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
@@ -79,17 +67,29 @@ contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
          *  Must be between 0 and 1, and stored as a mantissa.
          */
         uint256 collateralFactorMantissa;
-        /// @notice Per-market mapping of "accounts in this asset"
+        /// @notice Per-market mapping of "accounts in this asset" (used for Core Pool only)
         mapping(address => bool) accountMembership;
         /// @notice Whether or not this market receives XVS
         bool isVenus;
+        /**
+         * @notice Multiplier representing the collateralization after which the borrow is eligible
+         * for liquidation. For instance, 0.8 liquidate when the borrow is 80% of collateral
+         * value. Must be between 0 and collateral factor, stored as a mantissa.
+         */
+        uint256 liquidationThresholdMantissa;
+        /// @notice discount on collateral that a liquidator receives when liquidating a borrow in this market
+        uint256 liquidationIncentiveMantissa;
+        /// @notice The pool ID this market is associated with, Used to support pools/emodes
+        uint96 poolId;
+        /// @notice Flag  to restrict borrowing in certain pools/emodes.
+        bool isBorrowAllowed;
     }
 
     /**
-     * @notice Official mapping of vTokens -> Market metadata
-     * @dev Used e.g. to determine if a market is supported
+     * @notice Mapping of PoolMarketId -> Market metadata
+     * Underlying key layout: First 12 bytes (96 bits) represent the poolId, last 20 bytes the vToken address
      */
-    mapping(address => Market) public markets;
+    mapping(PoolMarketId => Market) internal _poolMarkets;
 
     /**
      * @notice The Pause Guardian can pause certain actions as a safety mechanism.
@@ -270,7 +270,7 @@ contract ComptrollerV14Storage is ComptrollerV13Storage {
 
 contract ComptrollerV15Storage is ComptrollerV14Storage {
     /// @notice Whether forced liquidation is enabled for the borrows of a user in a market
-    mapping(address /* user */ => mapping(address /* market */ => bool)) public isForcedLiquidationEnabledForUser;
+    mapping(address user => mapping(address market => bool)) public isForcedLiquidationEnabledForUser;
 }
 
 contract ComptrollerV16Storage is ComptrollerV15Storage {
@@ -279,4 +279,44 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
+}
+
+contract ComptrollerV17Storage is ComptrollerV16Storage {
+    struct PoolData {
+        /// @notice label for the pool
+        string label;
+        /// @notice List of vToken addresses associated with this pool
+        address[] vTokens;
+        /**
+         * @notice Whether the pool is active and can be entered. If set to false,
+         * new entries are disabled and existing accounts fall back to core pool values
+         */
+        bool isActive;
+        /**
+         * @notice Whether core pool risk factors can be used as fallback when the market
+         * is not configured in the specific pool, falls back when set to true
+         */
+        bool allowCorePoolFallback;
+    }
+
+    /**
+     * @notice Tracks the selected pool for each user
+     * @dev
+     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in
+     * - A value of `0` represents the default core pool (legacy behavior)
+     */
+    mapping(address => uint96) public userPoolId;
+
+    /**
+     * @notice Mapping of pool ID to its corresponding metadata and configuration
+     * @dev Pool IDs are unique and incremented via `lastPoolId` when a new pool is created
+     *      Not updated for the Core Pool (`poolId = 0`)
+     */
+    mapping(uint96 => PoolData) public pools;
+
+    /**
+     * @notice Counter used to generate unique pool IDs
+     * @dev Increments each time a pool is created; `poolId = 0` is reserved for the core pool
+     */
+    uint96 public lastPoolId;
 }

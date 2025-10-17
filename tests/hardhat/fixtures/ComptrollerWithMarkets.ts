@@ -121,7 +121,7 @@ export const deployFakeAccessControlManager = async (): Promise<FakeContract<IAc
 };
 
 export const deployFakeProtocolShareReserve = async (): Promise<FakeContract<IProtocolShareReserve>> => {
-  const psr = await smock.fake<IProtocolShareReserve>("contracts/InterfacesV8.sol:IProtocolShareReserve");
+  const psr = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   return psr;
 };
 
@@ -142,7 +142,6 @@ export const deployComptroller = async (
 ): Promise<ComptrollerMock> => {
   const acm = opts.accessControlManager ?? (await deployFakeAccessControlManager());
   const oracle = opts.oracle ?? (await deployFakeOracle());
-  const liquidationIncentiveMantissa = opts.liquidationIncentiveMantissa ?? parseUnits("1.1", 18);
   const closeFactorMantissa = opts.closeFactorMantissa ?? parseUnits("0.5", 18);
   const comptrollerLens = opts.comptrollerLens ?? (await deployComptrollerLens());
 
@@ -152,7 +151,6 @@ export const deployComptroller = async (
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setAccessControl(acm.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(liquidationIncentiveMantissa);
   await comptroller._setCloseFactor(closeFactorMantissa);
   return comptroller;
 };

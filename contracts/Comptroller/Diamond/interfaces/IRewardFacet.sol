@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { ComptrollerTypes } from "../../ComptrollerStorage.sol";
+import { Action } from "../../ComptrollerInterface.sol";
+import { IFacetBase } from "./IFacetBase.sol";
 
-interface IRewardFacet {
+interface IRewardFacet is IFacetBase {
     function claimVenus(address holder) external;
 
     function claimVenus(address holder, VToken[] calldata vTokens) external;
@@ -16,11 +17,7 @@ interface IRewardFacet {
 
     function _grantXVS(address recipient, uint256 amount) external;
 
-    function getXVSAddress() external view returns (address);
-
     function getXVSVTokenAddress() external view returns (address);
-
-    function actionPaused(address market, ComptrollerTypes.Action action) external view returns (bool);
 
     function claimVenus(
         address[] calldata holders,

@@ -29,7 +29,11 @@ async function calculateSeizeTokens(
   vTokenCollateral: FakeContract<VBep20Immutable>,
   repayAmount: BigNumberish,
 ) {
-  return comptroller.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount);
+  return comptroller["liquidateCalculateSeizeTokens(address,address,uint256)"](
+    vTokenBorrowed.address,
+    vTokenCollateral.address,
+    repayAmount,
+  );
 }
 
 function rando(min: number, max: number): number {
@@ -66,7 +70,6 @@ describe("Comptroller", () => {
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
-    await comptroller._setLiquidationIncentive(convertToUnit("1.1", 18));
 
     const vTokenBorrowed = await smock.fake<VBep20Immutable>(
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
@@ -74,6 +77,11 @@ describe("Comptroller", () => {
     const vTokenCollateral = await smock.fake<VBep20Immutable>(
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
+
+    await comptroller._supportMarket(vTokenBorrowed.address);
+    await comptroller._supportMarket(vTokenCollateral.address);
+    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenBorrowed.address, convertToUnit("1.1", 18));
+    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenCollateral.address, convertToUnit("1.1", 18));
 
     return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
@@ -126,7 +134,11 @@ describe("Comptroller", () => {
       ethers.provider.getBlockNumber();
       /// TODO: Somehow the error message does not get propagated into the resulting tx. Smock bug?
       await expect(
-        comptroller.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount),
+        comptroller["liquidateCalculateSeizeTokens(address,address,uint256)"](
+          vTokenBorrowed.address,
+          vTokenCollateral.address,
+          repayAmount,
+        ),
       ).to.be.reverted; // revertedWith("exchangeRateStored: exchangeRateStoredInternal failed");
     });
 
@@ -145,7 +157,7 @@ describe("Comptroller", () => {
 
         setOraclePrice(vTokenCollateral, collateralPrice);
         setOraclePrice(vTokenBorrowed, borrowedPrice);
-        await comptroller._setLiquidationIncentive(liquidationIncentive);
+        await comptroller["setLiquidationIncentive(address,uint256)"](vTokenCollateral.address, liquidationIncentive);
         vTokenCollateral.exchangeRateStored.returns(exchangeRate);
 
         const seizeAmount = (repayAmount * liquidationIncentive * borrowedPrice) / collateralPrice;

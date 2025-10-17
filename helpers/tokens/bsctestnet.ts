@@ -224,6 +224,26 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xc625f060ad25f4A6c2d9eBF30C133dB61B7AF072",
   },
+  {
+    isMock: false,
+    name: "Wrapped BNB",
+    symbol: "WBNB",
+    decimals: 18,
+    tokenAddress: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
+  },
+  {
+    isMock: true,
+    name: "PT Ethena USDe 30OCT2025",
+    symbol: "PT-USDe-30OCT2025",
+    decimals: 18,
+  },
+  {
+    isMock: false, // True but deployed on IL
+    name: "Staked Lista BNB",
+    symbol: "slisBNB",
+    decimals: 18,
+    tokenAddress: "0xd2aF6A916Bc77764dc63742BC30f71AF4cF423F4",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

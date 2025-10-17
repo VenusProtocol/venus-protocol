@@ -1,20 +1,15 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
-import "../Comptroller/Diamond/facets/MarketFacet.sol";
-import "../Comptroller/Diamond/facets/PolicyFacet.sol";
-import "../Comptroller/Diamond/facets/RewardFacet.sol";
-import "../Comptroller/Diamond/facets/SetterFacet.sol";
+import "../Comptroller/legacy/Diamond/facets/MarketFacetR1.sol";
+import "../Comptroller/legacy/Diamond/facets/PolicyFacetR1.sol";
+import "../Comptroller/legacy/Diamond/facets/RewardFacetR1.sol";
+import "../Comptroller/legacy/Diamond/facets/SetterFacetR1.sol";
 import "../Comptroller/Unitroller.sol";
 
 // This contract contains all methods of Comptroller implementation in different facets at one place for testing purpose
 // This contract does not have diamond functionality(i.e delegate call to facets methods)
-contract ComptrollerMockR1 is MarketFacet, PolicyFacet, RewardFacet, SetterFacet {
-    event MarketListed(address vToken);
-    event NewCollateralFactor(address vToken, uint256 oldCollateralFactorMantissa, uint256 newCollateralFactorMantissa);
-    event MarketEntered(address vToken, address account);
-    event MarketExited(address vToken, address account);
-
-    constructor() public {
+contract ComptrollerMockR1 is MarketFacetR1, PolicyFacetR1, RewardFacetR1, SetterFacetR1 {
+    constructor() {
         admin = msg.sender;
     }
 
@@ -23,7 +18,7 @@ contract ComptrollerMockR1 is MarketFacet, PolicyFacet, RewardFacet, SetterFacet
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
-    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external returns (uint) {
+    function _setComptrollerLens(ComptrollerLensInterfaceR1 comptrollerLens_) external override returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);

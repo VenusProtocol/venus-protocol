@@ -1,21 +1,30 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
-import "../Oracle/PriceOracle.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import "../Tokens/VTokens/VBep20.sol";
 
-contract SimplePriceOracle is PriceOracle {
+contract SimplePriceOracle is ResilientOracleInterface {
     mapping(address => uint) internal prices;
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
 
-    function getUnderlyingPrice(VToken vToken) public view returns (uint) {
-        if (compareStrings(vToken.symbol(), "vBNB")) {
+    function getUnderlyingPrice(address vToken) public view returns (uint) {
+        string memory symbol = VToken(vToken).symbol();
+        if (compareStrings(symbol, "vBNB")) {
             return 1e18;
-        } else if (compareStrings(vToken.symbol(), "VAI")) {
+        } else if (compareStrings(symbol, "VAI")) {
             return prices[address(vToken)];
         } else {
             return prices[address(VBep20(address(vToken)).underlying())];
         }
     }
+
+    function getPrice(address asset) external view returns (uint256) {
+        return prices[asset];
+    }
+
+    function updatePrice(address vToken) external {}
+
+    function updateAssetPrice(address asset) external {}
 
     function setUnderlyingPrice(VToken vToken, uint underlyingPriceMantissa) public {
         address asset = address(VBep20(address(vToken)).underlying());
