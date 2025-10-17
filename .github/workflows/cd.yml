@@ -40,3 +40,33 @@ jobs:
           GIT_COMMITTER_NAME: Venus Tools
           GIT_COMMITTER_EMAIL: tools@venus.io
         run: yarn semantic-release
+
+      - name: Prepare slim package
+        # Create a slim folder with the minium content we want, and remove unneeded files
+        run: |
+          mkdir slim && cp -r artifacts* package.json README.md deployments slim && cd slim
+          find deployments -not -name "*_addresses.json*" -delete
+          find artifacts -not -regex "artifacts/contracts.*" -delete
+          find artifacts-zk -not -regex "artifacts-zk/contracts.*" -delete
+          find artifacts -regex "artifacts/.*dbg\.json" -delete
+
+          # Add "-slim" to the version in the npm package, keeping the tag "-dev" if it exists
+          jq '.version |= sub("^(?<core>[0-9]+\\.[0-9]+\\.[0-9]+)"; "\(.core)-slim")' package.json > package.tmp.json && mv package.tmp.json package.json 
+
+          # Remove the "prepare" script because husky won't work for this slim version
+          jq 'del(.scripts.prepare)' package.json > package.tmp.json && mv package.tmp.json package.json
+
+          # Empty devDependencies and dependencies
+          jq '.dependencies = {}' package.json > package.tmp.json && mv package.tmp.json package.json
+          jq '.devDependencies = {}' package.json > package.tmp.json && mv package.tmp.json package.json
+      - name: Publish slim package
+        run: |
+          cd slim
+
+          # Extract to PRE_RELEASE_TAG the tag in the version field of the package json, or the empty string if it doesn't exist
+          PRE_RELEASE_TAG=$(jq -r '.version | if test("-") then capture("^[0-9]+\\.[0-9]+\\.[0-9]+(?<tag>-[a-zA-Z-]+)") | .tag else "" end' package.json)
+
+          # Publish the package to a custom tag for slim versions
+          npm publish --access public --tag slim$PRE_RELEASE_TAG --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
