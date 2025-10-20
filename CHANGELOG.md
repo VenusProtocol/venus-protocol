@@ -1,3 +1,11 @@
+## [10.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.2...v10.1.0-dev.3) (2025-10-20)
+
+
+### Bug Fixes
+
+* fixed etherscan verification ([55ecc18](https://github.com/VenusProtocol/venus-protocol/commit/55ecc189154ca1a0f313defea1e3718d7241c53e))
+* merge conflict ([5046e28](https://github.com/VenusProtocol/venus-protocol/commit/5046e287017f40451305725716fbbe9d670202d5))
+
 ## [10.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.1...v10.1.0-dev.2) (2025-10-13)
 
 
