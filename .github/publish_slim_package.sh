@@ -7,4 +7,4 @@ cd slim
 PRE_RELEASE_TAG=$(jq -r '.version | if test("-") then capture("^[0-9]+\\.[0-9]+\\.[0-9]+(?<tag>-[a-zA-Z-]+)") | .tag else "" end' package.json)
 
 # Publish the package to a custom tag for slim versions
-npm publish --access public --tag slim$PRE_RELEASE_TAG
+npm publish --provenance --access public --tag slim$PRE_RELEASE_TAG
