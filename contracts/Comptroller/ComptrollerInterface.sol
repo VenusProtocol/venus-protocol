@@ -207,6 +207,8 @@ interface ComptrollerInterface {
             uint96 marketPoolId,
             bool isBorrowAllowed
         );
+
+    function isFlashLoanPaused() external view returns (bool);
 }
 
 interface IVAIVault {

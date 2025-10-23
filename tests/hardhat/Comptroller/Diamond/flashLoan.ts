@@ -62,6 +62,7 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   const result = await deployDiamond("");
   const unitroller = result.unitroller;
   const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+
   const comptrollerLens = await ComptrollerLensFactory.deploy();
   await comptroller._setAccessControl(accessControlManager.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
@@ -183,6 +184,26 @@ describe("FlashLoan", async () => {
         await ethers.getContractFactory<MockFlashLoanReceiver__factory>("MockFlashLoanReceiver");
       mockReceiverContract = await MockFlashLoanReceiver.deploy(unitroller.address);
       await mockReceiverContract.deployed();
+    });
+
+    it("Should revert flash loan when paused system-wide", async () => {
+      // Pause flash loans system-wide
+      await comptroller.setFlashLoanPaused(true);
+
+      // Verify pause status
+      expect(await comptroller.isFlashLoanPaused()).to.be.true;
+
+      // Should revert when paused
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.be.revertedWithCustomError(comptroller, "FlashLoanPausedSystemWide");
     });
 
     it("Should revert if flashLoan is not enabled", async () => {
@@ -312,6 +333,32 @@ describe("FlashLoan", async () => {
             "0x",
           ),
       ).to.be.revertedWithCustomError(comptroller, "ExecuteFlashLoanFailed");
+    });
+
+    it("Should emit FlashLoanPauseChanged event when pause status changes", async () => {
+      // Test pausing
+      await expect(comptroller.setFlashLoanPaused(true))
+        .to.emit(comptroller, "FlashLoanPauseChanged")
+        .withArgs(false, true);
+
+      // Test unpausing
+      await expect(comptroller.setFlashLoanPaused(false))
+        .to.emit(comptroller, "FlashLoanPauseChanged")
+        .withArgs(true, false);
+    });
+
+    it("Should not emit event when setting same pause status", async () => {
+      // Flash loans are not paused by default
+      expect(await comptroller.isFlashLoanPaused()).to.be.false;
+
+      // Setting to false again should not emit event (no change)
+      await expect(comptroller.setFlashLoanPaused(false)).to.not.emit(comptroller, "FlashLoanPauseChanged");
+
+      // Pause first
+      await comptroller.setFlashLoanPaused(true);
+
+      // Setting to true again should not emit event (no change)
+      await expect(comptroller.setFlashLoanPaused(true)).to.not.emit(comptroller, "FlashLoanPauseChanged");
     });
 
     it("User has not supplied in venus - Should not create debt position if receiver repays full amount + fee", async () => {

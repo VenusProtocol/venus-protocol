@@ -18,4 +18,6 @@ interface IFlashLoanFacet {
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) external;
+
+    function isFlashLoanPaused() external view returns (bool);
 }

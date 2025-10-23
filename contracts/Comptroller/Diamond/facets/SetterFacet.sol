@@ -125,6 +125,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when pool Fallback status is updated
     event PoolFallbackStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
 
+    /// @notice Emitted when flash loan pause status changes
+    event FlashLoanPauseChanged(bool oldPaused, bool newPaused);
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -638,6 +641,24 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         authorizedFlashLoan[account] = isWhiteListed;
         emit IsAccountFlashLoanWhitelisted(account, isWhiteListed);
+    }
+
+    /**
+     * @notice Pause or unpause flash loans system-wide
+     * @param paused True to pause flash loans, false to unpause
+     * @custom:access Only Governance
+     * @custom:event Emits FlashLoanPauseChanged event
+     */
+    function setFlashLoanPaused(bool paused) external {
+        ensureAllowed("setFlashLoanPaused(bool)");
+
+        // Check if value is actually changing
+        if (flashLoanPaused == paused) {
+            return; // No change needed
+        }
+
+        emit FlashLoanPauseChanged(flashLoanPaused, paused);
+        flashLoanPaused = paused;
     }
 
     /**

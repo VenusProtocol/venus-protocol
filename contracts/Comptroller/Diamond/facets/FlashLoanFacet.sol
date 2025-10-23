@@ -39,6 +39,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
      * @param underlyingAmounts The amounts of each underlying assets to be loaned.
      * @param param The bytes passed in the executeOperation call.
      * @custom:error FlashLoanNotEnabled is thrown if the flash loan is not enabled for the asset.
+     * @custom:error FlashLoanPausedSystemWide is thrown if flash loans are paused system-wide.
      * @custom:error InvalidAmount is thrown if the requested amount is zero.
      * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
      * @custom:error InvalidFlashLoanParams is thrown if the flash loan params are invalid.
@@ -54,6 +55,10 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
         uint256[] memory underlyingAmounts,
         bytes memory param
     ) external nonReentrant {
+        if (flashLoanPaused) {
+            revert FlashLoanPausedSystemWide();
+        }
+
         uint256 len = vTokens.length;
         Market storage market;
 
@@ -305,5 +310,13 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             actualAmountTransferred,
             leftUnpaidBalance
         );
+    }
+
+    /**
+     * @notice Check if flash loans are currently paused system-wide
+     * @return True if flash loans are paused, false otherwise
+     */
+    function isFlashLoanPaused() external view returns (bool) {
+        return flashLoanPaused;
     }
 }

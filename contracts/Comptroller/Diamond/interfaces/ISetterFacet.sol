@@ -103,4 +103,6 @@ interface ISetterFacet {
     function setPoolLabel(uint96 poolId, string calldata newLabel) external;
 
     function setAllowCorePoolFallback(uint96 poolId, bool allowFallback) external;
+
+    function setFlashLoanPaused(bool paused) external;
 }

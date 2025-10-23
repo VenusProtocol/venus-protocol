@@ -76,6 +76,9 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when the vToken market is not listed
     error MarketNotListed(address vToken);
 
+    /// @notice Thrown when flash loans are paused system-wide
+    error FlashLoanPausedSystemWide();
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
