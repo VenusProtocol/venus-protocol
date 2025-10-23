@@ -18,6 +18,9 @@ import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransien
  *      The contract supports protocol fee collection and integrates with the Venus lending protocol.
  */
 contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient {
+    /// @notice Maximum number of assets that can be flash loaned in a single transaction
+    uint256 public constant MAX_FLASHLOAN_ASSETS = 10;
+
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
 
@@ -41,6 +44,7 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
      * @custom:error FlashLoanNotEnabled is thrown if the flash loan is not enabled for the asset.
      * @custom:error FlashLoanPausedSystemWide is thrown if flash loans are paused system-wide.
      * @custom:error InvalidAmount is thrown if the requested amount is zero.
+     * @custom:error TooManyAssetsRequested is thrown if the number of requested assets exceeds the maximum limit.
      * @custom:error NoAssetsRequested is thrown if no assets are requested for the flash loan.
      * @custom:error InvalidFlashLoanParams is thrown if the flash loan params are invalid.
      * @custom:error MarketNotListed is thrown if the specified vToken market is not listed.
@@ -59,12 +63,18 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             revert FlashLoanPausedSystemWide();
         }
 
+        ensureNonzeroAddress(onBehalf);
+
         uint256 len = vTokens.length;
         Market storage market;
 
         // vTokens array must not be empty
         if (len == 0) {
             revert NoAssetsRequested();
+        }
+        // Add maximum array length check to prevent gas limit issues
+        if (len > MAX_FLASHLOAN_ASSETS) {
+            revert TooManyAssetsRequested(len, MAX_FLASHLOAN_ASSETS);
         }
 
         // All arrays must have the same length and not be zero

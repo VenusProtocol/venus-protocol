@@ -231,6 +231,30 @@ describe("FlashLoan", async () => {
       );
     });
 
+    it("Should revert when onBehalf is address zero", async () => {
+      await expect(
+        comptroller.executeFlashLoan(
+          ethers.constants.AddressZero, // ❌ Zero address
+          mockReceiverContract.address,
+          [vTokenA.address],
+          [flashLoanAmount1],
+          "0x",
+        ),
+      ).to.be.revertedWith("can't be zero address");
+    });
+
+    it("Should revert when too many assets are requested", async () => {
+      // Create array with more assets than MAX_FLASHLOAN_ASSETS
+      const tooManyAssets = new Array(11).fill(vTokenA.address); // Assuming MAX is 10
+      const tooManyAmounts = new Array(11).fill(flashLoanAmount1);
+
+      await expect(
+        comptroller.executeFlashLoan(alice.address, mockReceiverContract.address, tooManyAssets, tooManyAmounts, "0x"),
+      )
+        .to.be.revertedWithCustomError(comptroller, "TooManyAssetsRequested")
+        .withArgs(11, 10);
+    });
+
     it("Should revert if the market is not listed", async () => {
       await vTokenC.setFlashLoanEnabled(true);
       expect(await vTokenC.isFlashLoanEnabled()).to.be.true;
