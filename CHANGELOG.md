@@ -1,3 +1,10 @@
+## [10.1.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.3...v10.1.0-dev.4) (2025-10-23)
+
+
+### Features
+
+* add slim package scripts ([fdf3b60](https://github.com/VenusProtocol/venus-protocol/commit/fdf3b606cb7f2b2f5bf949c95084d6876956e665))
+
 ## [10.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.2...v10.1.0-dev.3) (2025-10-20)
 
 
