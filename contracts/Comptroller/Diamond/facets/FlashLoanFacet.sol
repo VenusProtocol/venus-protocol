@@ -321,12 +321,4 @@ contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient 
             leftUnpaidBalance
         );
     }
-
-    /**
-     * @notice Check if flash loans are currently paused system-wide
-     * @return True if flash loans are paused, false otherwise
-     */
-    function isFlashLoanPaused() external view returns (bool) {
-        return flashLoanPaused;
-    }
 }

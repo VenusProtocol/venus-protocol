@@ -191,7 +191,7 @@ describe("FlashLoan", async () => {
       await comptroller.setFlashLoanPaused(true);
 
       // Verify pause status
-      expect(await comptroller.isFlashLoanPaused()).to.be.true;
+      expect(await comptroller.flashLoanPaused()).to.be.true;
 
       // Should revert when paused
       await expect(
@@ -244,15 +244,18 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert when too many assets are requested", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
       // Create array with more assets than MAX_FLASHLOAN_ASSETS
-      const tooManyAssets = new Array(11).fill(vTokenA.address); // Assuming MAX is 10
-      const tooManyAmounts = new Array(11).fill(flashLoanAmount1);
+      const tooManyAssets = new Array(201).fill(vTokenA.address); // Assuming MAX is 200
+      const tooManyAmounts = new Array(201).fill(flashLoanAmount1);
+
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
 
       await expect(
         comptroller.executeFlashLoan(alice.address, mockReceiverContract.address, tooManyAssets, tooManyAmounts, "0x"),
       )
         .to.be.revertedWithCustomError(comptroller, "TooManyAssetsRequested")
-        .withArgs(11, 10);
+        .withArgs(201, 200);
     });
 
     it("Should revert if the market is not listed", async () => {
@@ -373,7 +376,7 @@ describe("FlashLoan", async () => {
 
     it("Should not emit event when setting same pause status", async () => {
       // Flash loans are not paused by default
-      expect(await comptroller.isFlashLoanPaused()).to.be.false;
+      expect(await comptroller.flashLoanPaused()).to.be.false;
 
       // Setting to false again should not emit event (no change)
       await expect(comptroller.setFlashLoanPaused(false)).to.not.emit(comptroller, "FlashLoanPauseChanged");
