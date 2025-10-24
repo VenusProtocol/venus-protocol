@@ -19,7 +19,7 @@ import { ReentrancyGuardTransient } from "../../../Utils/ReentrancyGuardTransien
  */
 contract FlashLoanFacet is IFlashLoanFacet, FacetBase, ReentrancyGuardTransient {
     /// @notice Maximum number of assets that can be flash loaned in a single transaction
-    uint256 public constant MAX_FLASHLOAN_ASSETS = 10;
+    uint256 public constant MAX_FLASHLOAN_ASSETS = 200;
 
     /// @notice Emitted when the flash loan is successfully executed
     event FlashLoanExecuted(address indexed receiver, VToken[] assets, uint256[] amounts);
