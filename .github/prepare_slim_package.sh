@@ -8,8 +8,9 @@ find artifacts -mindepth 1 -depth -regex "artifacts/.*dbg\.json" -exec rm -r "{}
 # Add "-slim" to the version in the npm package, keeping the tag "-dev" if it exists
 jq '.version |= sub("^(?<core>[0-9]+\\.[0-9]+\\.[0-9]+)"; "\(.core)-slim")' package.json > package.tmp.json && mv package.tmp.json package.json 
 
-# Remove the "prepare" script because husky won't work for this slim version
+# Remove the "prepare" and "postinstall" scripts, they won't work for this slim version
 jq 'del(.scripts.prepare)' package.json > package.tmp.json && mv package.tmp.json package.json
+jq 'del(.scripts.postinstall)' package.json > package.tmp.json && mv package.tmp.json package.json
 
 # Empty devDependencies and dependencies
 jq '.dependencies = {}' package.json > package.tmp.json && mv package.tmp.json package.json
