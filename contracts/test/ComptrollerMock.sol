@@ -4,11 +4,12 @@ import "../Comptroller/Diamond/facets/MarketFacet.sol";
 import "../Comptroller/Diamond/facets/PolicyFacet.sol";
 import "../Comptroller/Diamond/facets/RewardFacet.sol";
 import "../Comptroller/Diamond/facets/SetterFacet.sol";
+import "../Comptroller/Diamond/facets/FlashLoanFacet.sol";
 import "../Comptroller/Unitroller.sol";
 
 // This contract contains all methods of Comptroller implementation in different facets at one place for testing purpose
 // This contract does not have diamond functionality(i.e delegate call to facets methods)
-contract ComptrollerMock is MarketFacet, PolicyFacet, RewardFacet, SetterFacet {
+contract ComptrollerMock is MarketFacet, PolicyFacet, RewardFacet, SetterFacet, FlashLoanFacet {
     constructor() {
         admin = msg.sender;
     }

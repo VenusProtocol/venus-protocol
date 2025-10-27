@@ -324,4 +324,7 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
 contract ComptrollerV18Storage is ComptrollerV17Storage {
     /// @notice Mapping of accounts authorized to execute flash loans
     mapping(address => bool) public authorizedFlashLoan;
+
+    /// @notice Whether flash loans are paused system-wide
+    bool public flashLoanPaused;
 }
