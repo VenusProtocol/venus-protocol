@@ -3247,7 +3247,7 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0x31fd5a3Fdbe9972373e9373Eb59519c60d30EE00",
+      "address": "0x72dCB93F8c3fB00D31076e93b6E87C342A3eCC9c",
       "abi": [
         {
           "inputs": [],
@@ -3282,6 +3282,11 @@
         {
           "inputs": [],
           "name": "FlashLoanNotEnabled",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "FlashLoanPausedSystemWide",
           "type": "error"
         },
         {
@@ -3441,6 +3446,22 @@
             }
           ],
           "name": "SenderNotAuthorizedForFlashLoan",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "requested",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maximum",
+              "type": "uint256"
+            }
+          ],
+          "name": "TooManyAssetsRequested",
           "type": "error"
         },
         {
@@ -4270,7 +4291,7 @@
       ]
     },
     "FlashLoanFacet": {
-      "address": "0x957BE05daF560bd56D9Adb8D7A52CfbCD828163B",
+      "address": "0x32348c5bB52E5468A11901e70BdE061192feCAf4",
       "abi": [
         {
           "inputs": [],
@@ -4305,6 +4326,11 @@
         {
           "inputs": [],
           "name": "FlashLoanNotEnabled",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "FlashLoanPausedSystemWide",
           "type": "error"
         },
         {
@@ -4472,6 +4498,22 @@
           "type": "error"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "requested",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maximum",
+              "type": "uint256"
+            }
+          ],
+          "name": "TooManyAssetsRequested",
+          "type": "error"
+        },
+        {
           "anonymous": false,
           "inputs": [
             {
@@ -4589,6 +4631,19 @@
           ],
           "name": "MarketEntered",
           "type": "event"
+        },
+        {
+          "inputs": [],
+          "name": "MAX_FLASHLOAN_ASSETS",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
         },
         {
           "inputs": [
@@ -4828,6 +4883,19 @@
           "name": "executeFlashLoan",
           "outputs": [],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "flashLoanPaused",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -16490,7 +16558,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x3cAe1E59cdE3E3258348375cf301b469FB40A092",
+      "address": "0x0A7A88aB6aB40417Bd6bF1EB3907EFF06D24C2FC",
       "abi": [
         {
           "inputs": [],
@@ -16525,6 +16593,11 @@
         {
           "inputs": [],
           "name": "FlashLoanNotEnabled",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "FlashLoanPausedSystemWide",
           "type": "error"
         },
         {
@@ -16684,6 +16757,22 @@
             }
           ],
           "name": "SenderNotAuthorizedForFlashLoan",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "requested",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maximum",
+              "type": "uint256"
+            }
+          ],
+          "name": "TooManyAssetsRequested",
           "type": "error"
         },
         {
@@ -17231,6 +17320,19 @@
             }
           ],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "flashLoanPaused",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -23253,7 +23355,7 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0xB15620d400B12B1d9431910B770Eb1E0179432B1",
+      "address": "0xf8d94ef23c1188f8ab1009E56D558d7834d1F019",
       "abi": [
         {
           "inputs": [],
@@ -23288,6 +23390,11 @@
         {
           "inputs": [],
           "name": "FlashLoanNotEnabled",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "FlashLoanPausedSystemWide",
           "type": "error"
         },
         {
@@ -23447,6 +23554,22 @@
             }
           ],
           "name": "SenderNotAuthorizedForFlashLoan",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "requested",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maximum",
+              "type": "uint256"
+            }
+          ],
+          "name": "TooManyAssetsRequested",
           "type": "error"
         },
         {
@@ -23883,6 +24006,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "flashLoanPaused",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -32615,7 +32751,7 @@
       ]
     },
     "RewardFacet": {
-      "address": "0x771d07CE1FE51d261a9c3e00A42684Ed45e0c50b",
+      "address": "0x0bc7922Cc08Ea32E196d25805558a84dF54beC6a",
       "abi": [
         {
           "inputs": [],
@@ -32650,6 +32786,11 @@
         {
           "inputs": [],
           "name": "FlashLoanNotEnabled",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "FlashLoanPausedSystemWide",
           "type": "error"
         },
         {
@@ -32809,6 +32950,22 @@
             }
           ],
           "name": "SenderNotAuthorizedForFlashLoan",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "requested",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maximum",
+              "type": "uint256"
+            }
+          ],
+          "name": "TooManyAssetsRequested",
           "type": "error"
         },
         {
@@ -33293,6 +33450,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "flashLoanPaused",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -34239,7 +34409,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0x98DCde088ED0208e4521867344532565657e0a91",
+      "address": "0x4fc4C41388237D13A430879417f143EF54e5BB05",
       "abi": [
         {
           "inputs": [],
@@ -34274,6 +34444,11 @@
         {
           "inputs": [],
           "name": "FlashLoanNotEnabled",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "FlashLoanPausedSystemWide",
           "type": "error"
         },
         {
@@ -34436,6 +34611,22 @@
           "type": "error"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "requested",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maximum",
+              "type": "uint256"
+            }
+          ],
+          "name": "TooManyAssetsRequested",
+          "type": "error"
+        },
+        {
           "anonymous": false,
           "inputs": [
             {
@@ -34540,6 +34731,25 @@
             }
           ],
           "name": "Failure",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "oldPaused",
+              "type": "bool"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "newPaused",
+              "type": "bool"
+            }
+          ],
+          "name": "FlashLoanPauseChanged",
           "type": "event"
         },
         {
@@ -35723,6 +35933,19 @@
           "type": "function"
         },
         {
+          "inputs": [],
+          "name": "flashLoanPaused",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "uint96",
@@ -36139,6 +36362,19 @@
               "type": "uint256"
             }
           ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bool",
+              "name": "paused",
+              "type": "bool"
+            }
+          ],
+          "name": "setFlashLoanPaused",
+          "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
         },
@@ -50937,7 +51173,7 @@
       ]
     },
     "Unitroller_Implementation": {
-      "address": "0xd25200C9CE964329d20389E328F1Ca0e2B0e91BC",
+      "address": "0x1774f993861B14B7C3963F3e09f67cfBd2B32198",
       "abi": [
         {
           "anonymous": false,
@@ -51288,6 +51524,19 @@
               "internalType": "struct Diamond.Facet[]",
               "name": "",
               "type": "tuple[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "flashLoanPaused",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
