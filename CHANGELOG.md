@@ -1,3 +1,12 @@
+## [10.1.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.4...v10.1.0-dev.5) (2025-11-03)
+
+
+### Bug Fixes
+
+* correct tag ([430e629](https://github.com/VenusProtocol/venus-protocol/commit/430e629b5dee0fab3db461597fe3ce5ae680536c))
+* generate provenance statement during CD ([0e58859](https://github.com/VenusProtocol/venus-protocol/commit/0e58859baa46b07dd191562972b418de4d4993e7))
+* remove postinstall ([a081a2f](https://github.com/VenusProtocol/venus-protocol/commit/a081a2f8fbd738321ed8deaf91ff34e7bfe713ad))
+
 ## [10.1.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.3...v10.1.0-dev.4) (2025-10-23)
 
 
