@@ -1,3 +1,19 @@
+## [10.1.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.5...v10.1.0-dev.6) (2025-11-04)
+
+
+### Features
+
+* deployed new IRM ([89b18ab](https://github.com/VenusProtocol/venus-protocol/commit/89b18ab1a444d9aa8120ad87fc8fdb140e0f6d81))
+* updating deployment files ([8f769c1](https://github.com/VenusProtocol/venus-protocol/commit/8f769c14473f5775cf0497b2294a73be33901427))
+* updating deployment files ([a806309](https://github.com/VenusProtocol/venus-protocol/commit/a806309d477be4ccc5865fa6ce2f4a9fef0bb474))
+
+
+### Bug Fixes
+
+* deployed IRMs ([4ba8ccf](https://github.com/VenusProtocol/venus-protocol/commit/4ba8ccf8c8092a907878c025ff214e2484f13fcc))
+* uncommented markets ([b885eef](https://github.com/VenusProtocol/venus-protocol/commit/b885eefa6cb366f558c54c848541f177b8519668))
+* updated params and removed deployment ([cd9eb83](https://github.com/VenusProtocol/venus-protocol/commit/cd9eb836d847706212ac2ecc7beefa7cc5873299))
+
 ## [10.1.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.4...v10.1.0-dev.5) (2025-11-03)
 
 
