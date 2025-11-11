@@ -473,7 +473,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         uint256 liquidationThresholdAvg,
         uint256 healthFactor
     ) external view returns (uint256 incentive) {
-        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
+        Market storage market = getCorePoolMarket(vToken);
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
             vToken,
@@ -493,7 +493,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address borrower,
         address vToken
     ) external view returns (uint256 incentive) {
-        Market storage market = _poolMarkets[getCorePoolMarketIndex(vToken)];
+        Market storage market = getCorePoolMarket(vToken);
         (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = getHypotheticalHealthSnapshotInternal(
             borrower,
             VToken(vToken),
