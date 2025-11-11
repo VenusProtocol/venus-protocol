@@ -47,7 +47,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)
      */
-    uint256 public oldLiquidationIncentiveMantissa;
+    uint256 private _oldLiquidationIncentiveMantissa;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
@@ -68,7 +68,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
          *  Must be between 0 and 1, and stored as a mantissa.
          */
         uint256 collateralFactorMantissa;
-        /// @notice Per-market mapping of "accounts in this asset"
+        /// @notice Per-market mapping of "accounts in this asset" (used for Core Pool only)
         mapping(address => bool) accountMembership;
         /// @notice Whether or not this market receives XVS
         bool isVenus;
@@ -288,19 +288,30 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
         string label;
         /// @notice List of vToken addresses associated with this pool
         address[] vTokens;
+        /**
+         * @notice Whether the pool is active and can be entered. If set to false,
+         * new entries are disabled and existing accounts fall back to core pool values
+         */
+        bool isActive;
+        /**
+         * @notice Whether core pool risk factors can be used as fallback when the market
+         * is not configured in the specific pool, falls back when set to true
+         */
+        bool allowCorePoolFallback;
     }
 
     /**
-     * @notice Tracks the selected pool for each user.
+     * @notice Tracks the selected pool for each user
      * @dev
-     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in.
-     * - A value of `0` represents the default core pool (legacy behavior).
+     * - The mapping stores the pool ID (`uint96`) that each user (`address`) is currently in
+     * - A value of `0` represents the default core pool (legacy behavior)
      */
     mapping(address => uint96) public userPoolId;
 
     /**
      * @notice Mapping of pool ID to its corresponding metadata and configuration
-     * @dev Pool IDs are unique and incremented via `nextPoolId` when a new pool is created
+     * @dev Pool IDs are unique and incremented via `lastPoolId` when a new pool is created
+     *      Not updated for the Core Pool (`poolId = 0`)
      */
     mapping(uint96 => PoolData) public pools;
 
@@ -309,22 +320,15 @@ contract ComptrollerV17Storage is ComptrollerV16Storage {
      * @dev Increments each time a pool is created; `poolId = 0` is reserved for the core pool
      */
     uint96 public lastPoolId;
+}
 
+contract ComptrollerV18Storage is ComptrollerV17Storage {
     /// @notice Mapping of accounts authorized to execute flash loans
     mapping(address => bool) public authorizedFlashLoan;
 
-    struct FlashLoanData {
-        uint256[] protocolFees;
-        uint256[] supplierFees;
-        uint256[] totalFees;
-        uint256[] balanceAfterTransfer;
-        uint256[] actualRepayments;
-        uint256[] remainingDebts;
-    }
-    /// @notice Mapping to store delegate authorization for flash loans
-    mapping(address /* delegator */ => mapping(address /* market */ => mapping(address /* sender */ => bool)))
-        public delegateAuthorizationFlashloan;
-
+    /// @notice Whether flash loans are paused system-wide
+    bool public flashLoanPaused;
+    
     /// @notice The LiquidationManager contract address
     LiquidationManager public liquidationManager;
 }

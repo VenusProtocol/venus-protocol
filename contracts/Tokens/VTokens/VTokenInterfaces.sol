@@ -157,18 +157,19 @@ contract VTokenStorage is VTokenStorageBase {
     bool public isFlashLoanEnabled;
 
     /**
-     * @notice fee percentage collected by protocol on flashLoan
+     * @notice total fee percentage collected on flashLoan (scaled by 1e18)
      */
-    uint256 public flashLoanProtocolFeeMantissa;
+    uint256 public flashLoanFeeMantissa;
 
     /**
-     * @notice fee percentage collected by supplier on flashLoan
+     * @notice fee percentage of flashLoan that goes to protocol (scaled by 1e18)
      */
-    uint256 public flashLoanSupplierFeeMantissa;
+    uint256 public flashLoanProtocolShareMantissa;
 
     /**
      * @notice Amount of flashLoan taken by the receiver
-     * @dev This is used to track the amount of flashLoan taken in the current transaction
+     * @dev This is used to track the amount of flashLoan taken to correctly calculate the exchange rate
+     *      during the flashLoan process. It is added to the total cash when calculating the exchange rate.
      */
     uint256 public flashLoanAmount;
 
@@ -302,42 +303,51 @@ abstract contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when flashLoanEnabled status is changed
      */
-    event ToggleFlashLoanEnabled(bool previousStatus, bool newStatus);
-
-    /**
-     * @notice Event emitted when flashLoan is executed
-     */
-    event FlashLoanExecuted(address receiver, address underlying, uint256 amount);
+    event FlashLoanStatusChanged(bool previousStatus, bool newStatus);
 
     /**
      * @notice Event emitted when asset is transferred to receiver
      */
-    event TransferOutUnderlying(address asset, address receiver, uint256 amount);
+    event TransferOutUnderlyingFlashLoan(address asset, address receiver, uint256 amount);
 
     /**
      * @notice Event emitted when asset is transferred from sender and verified
      */
-    event TransferInUnderlyingAndVerify(address asset, address sender, uint256 amount);
+    event TransferInUnderlyingFlashLoan(
+        address indexed asset,
+        address indexed sender,
+        uint256 amount,
+        uint256 totalFee,
+        uint256 protocolFee
+    );
 
     /**
      * @notice Event emitted when flashLoan fee mantissa is updated
      */
     event FlashLoanFeeUpdated(
-        uint256 oldFlashLoanProtocolFeeMantissa,
-        uint256 newFlashLoanProtocolFeeMantissa,
-        uint256 oldFlashLoanSupplierFeeMantissa,
-        uint256 newFlashLoanSupplierFeeMantissa
+        uint256 oldFlashLoanFeeMantissa,
+        uint256 newFlashLoanFeeMantissa,
+        uint256 oldFlashLoanProtocolShare,
+        uint256 newFlashLoanProtocolShare
     );
 
-    /*** Flash Loan Error***/
+    // @notice Thrown when comptroller is not valid
+    error InvalidComptroller();
 
-    error FlashLoanNotAuthorized();
+    // @notice Thrown when there is already an active flashLoan
+    error FlashLoanAlreadyActive();
 
-    error FlashLoanNotEnabled();
+    /// @notice Thrown when flash loan fee exceeds maximum allowed
+    error FlashLoanFeeTooHigh(uint256 fee, uint256 maxFee);
 
-    error ExecuteFlashLoanFailed();
+    /// @notice Thrown when flash loan fee protocol share exceeds maximum allowed
+    error FlashLoanProtocolShareTooHigh(uint256 fee, uint256 maxFee);
 
-    error InsufficientRepaymentBalance();
+    // @notice Thrown when the vToken does not have enough cash to lend
+    error InsufficientCash();
+
+    /// @notice Thrown when the repayment amount is insufficient to cover the total fee
+    error InsufficientRepayment(uint256 actualAmount, uint256 requiredTotalFee);
 
     /*** User Interface ***/
 
@@ -366,8 +376,6 @@ abstract contract VTokenInterface is VTokenStorage {
 
     /*** Admin Function ***/
     function _reduceReserves(uint reduceAmount) external virtual returns (uint);
-
-    function borrowDebtPosition(address borrower, uint borrowAmount) external virtual returns (uint);
 
     function balanceOf(address owner) external view virtual returns (uint);
 

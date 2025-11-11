@@ -63,7 +63,7 @@ contract ComptrollerScenario is ComptrollerMock {
     }
 
     function unlist(VToken vToken) public {
-        _poolMarkets[getCorePoolMarketIndex(address(vToken))].isListed = false;
+        getCorePoolMarket(address(vToken)).isListed = false;
     }
 
     /**

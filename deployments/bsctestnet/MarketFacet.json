@@ -18,17 +18,58 @@
     },
     {
       "inputs": [],
-      "name": "CorePoolModificationNotAllowed",
-      "type": "error"
-    },
-    {
-      "inputs": [],
       "name": "EmptyPoolLabel",
       "type": "error"
     },
     {
       "inputs": [],
+      "name": "ExecuteFlashLoanFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FailedToCreateDebtPosition",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FlashLoanNotEnabled",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FlashLoanPausedSystemWide",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint96",
+          "name": "poolId",
+          "type": "uint96"
+        }
+      ],
+      "name": "InactivePool",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "IncompatibleBorrowedAssets",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAmount",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidFlashLoanParams",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidOperationForCorePool",
       "type": "error"
     },
     {
@@ -80,8 +121,45 @@
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vToken",
+          "type": "address"
+        }
+      ],
+      "name": "MarketNotListed",
+      "type": "error"
+    },
+    {
       "inputs": [],
       "name": "MarketNotListedInCorePool",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NoAssetsRequested",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotAnApprovedDelegate",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "repaid",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "required",
+          "type": "uint256"
+        }
+      ],
+      "name": "NotEnoughRepayment",
       "type": "error"
     },
     {
@@ -109,6 +187,33 @@
         }
       ],
       "name": "PoolMarketNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "SenderNotAuthorizedForFlashLoan",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requested",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maximum",
+          "type": "uint256"
+        }
+      ],
+      "name": "TooManyAssetsRequested",
       "type": "error"
     },
     {
@@ -494,6 +599,25 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedFlashLoan",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "borrowCapGuardian",
       "outputs": [
@@ -685,6 +809,19 @@
         }
       ],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "flashLoanPaused",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -1417,19 +1554,6 @@
     },
     {
       "inputs": [],
-      "name": "oldLiquidationIncentiveMantissa",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "oracle",
       "outputs": [
         {
@@ -1517,7 +1641,7 @@
         },
         {
           "internalType": "uint256",
-          "name": "maxLiquidationIncentiveMantissa",
+          "name": "liquidationIncentiveMantissa",
           "type": "uint256"
         },
         {
@@ -1548,6 +1672,16 @@
           "internalType": "string",
           "name": "label",
           "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "allowCorePoolFallback",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -2010,7 +2144,7 @@
       "_supportMarket(address)": {
         "details": "Allows a privileged role to add and list markets to the Comptroller",
         "params": {
-          "vToken": "The address of the market (token) to list"
+          "vToken": "The address of the vToken market to list in the Core Pool"
         },
         "returns": {
           "_0": "uint256 0=success, otherwise a failure. (See enum Error for details)"
@@ -2023,7 +2157,7 @@
         }
       },
       "addPoolMarkets(uint96[],address[])": {
-        "custom:error": "ArrayLengthMismatch Reverts if `poolIds` and `vTokens` arrays have different lengths.CorePoolModificationNotAllowed Reverts if attempting to modify the core pool.PoolDoesNotExist Reverts if the target pool ID does not exist.MarketNotListedInCorePool Reverts if the market is not listed in the core pool.MarketAlreadyListed Reverts if the given market is already listed in the specified pool.",
+        "custom:error": "ArrayLengthMismatch Reverts if `poolIds` and `vTokens` arrays have different lengths or if the length is zero.InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.PoolDoesNotExist Reverts if the target pool ID does not exist.MarketNotListedInCorePool Reverts if the market is not listed in the core pool.MarketAlreadyListed Reverts if the given market is already listed in the specified pool.InactivePool Reverts if attempted to add markets to an inactive pool.",
         "custom:event": "PoolMarketInitialized Emitted after successfully initializing a market in a pool.",
         "params": {
           "poolIds": "Array of pool IDs.",
@@ -2031,6 +2165,7 @@
         }
       },
       "checkMembership(address,address)": {
+        "details": "Reads membership from the Core Pool (`poolId = 0`). Although the account may have entered other pools,      all entered market state is recorded in the Core Pool indexes, making this function applicable to all poolIds",
         "params": {
           "account": "The address of the account to check",
           "vToken": "The vToken to check"
@@ -2058,7 +2193,7 @@
         }
       },
       "enterPool(uint96)": {
-        "custom:error": "PoolDoesNotExist The specified pool ID does not exist.AlreadyInSelectedPool The user is already in the target pool.IncompatibleBorrowedAssets The user's current borrows are incompatible with the new pool.LiquidityCheckFailed The user's liquidity is insufficient after switching pools.",
+        "custom:error": "PoolDoesNotExist The specified pool ID does not exist.AlreadyInSelectedPool The user is already in the target pool.IncompatibleBorrowedAssets The user's current borrows are incompatible with the new pool.LiquidityCheckFailed The user's liquidity is insufficient after switching pools.InactivePool The user is trying to enter inactive pool.",
         "custom:event": "PoolSelected Emitted after a successful pool switch.",
         "params": {
           "poolId": "The ID of the pool the user wants to enter."
@@ -2080,11 +2215,12 @@
         }
       },
       "getAssetsIn(address)": {
+        "details": "Reads membership from the Core Pool (`poolId = 0`). Although the account may have entered other pools,      all entered market state is recorded in the Core Pool indexes, making this function applicable to all poolIds",
         "params": {
-          "account": "The address of the account to pull assets for"
+          "account": "The address of the account to query"
         },
         "returns": {
-          "_0": "A dynamic list with the assets the account has entered"
+          "_0": "assets A dynamic array of vToken markets the account has entered"
         }
       },
       "getCollateralFactor(address)": {
@@ -2115,17 +2251,17 @@
         }
       },
       "getEffectiveLiquidationIncentive(address,address)": {
-        "details": "This value should be used when calculating account liquidity and during liquidation checks.",
+        "details": "The incentive is determined by the pool entered by the account and the specified vToken via      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used",
         "params": {
-          "account": "The address of the account for which to fetch the liquidation Incentive.",
-          "vToken": "The address of the vToken whose liquidation Incentive is being queried."
+          "account": "The account whose pool is used to determine the market's risk parameters",
+          "vToken": "The address of the vToken market"
         },
         "returns": {
           "_0": "The liquidation Incentive for the vToken, scaled by 1e18"
         }
       },
       "getEffectiveLtvFactor(address,address,uint8)": {
-        "details": "This value should be used when calculating account liquidity and during liquidation checks.",
+        "details": "The value is determined by the pool entered by the account and the specified vToken via      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used.      This value is used for account liquidity calculations and liquidation checks.",
         "params": {
           "account": "The account whose pool is used to determine the market's risk parameters.",
           "vToken": "The address of the vToken market.",
@@ -2151,10 +2287,10 @@
       },
       "getLiquidationIncentive(address)": {
         "params": {
-          "vToken": "The address of the vToken whose liquidation Incentive is being queried."
+          "vToken": "The address of the vToken to get the liquidation Incentive for"
         },
         "returns": {
-          "_0": "The liquidation Incentive for the vToken, scaled by 1e18"
+          "_0": "liquidationIncentive The liquidation incentive for the vToken, scaled by 1e18"
         }
       },
       "getLiquidationThreshold(address)": {
@@ -2166,17 +2302,17 @@
         }
       },
       "getPoolMarketIndex(uint96,address)": {
-        "details": "Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping. - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,   maintaining backward compatibility with legacy mappings. - For other pools, packs the `poolId` and `market` address into a single `bytes32` key,   The first 96 bits are used for the `poolId`, and the remaining 160 bits for the `market` address.",
+        "details": "Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,   maintaining backward compatibility with legacy mappings - For other pools, packs the `poolId` and `market` address into a single `bytes32` key,   The first 96 bits are used for the `poolId`, and the remaining 160 bits for the `market` address",
         "params": {
-          "poolId": "The ID of the pool.",
-          "vToken": "The address of the market (vToken)."
+          "poolId": "The ID of the pool",
+          "vToken": "The address of the market (vToken)"
         },
         "returns": {
-          "_0": "A `bytes32` key that uniquely represents the (poolId, market) pair."
+          "_0": "PoolMarketId The `bytes32` key that uniquely represents the (poolId, vToken) pair"
         }
       },
       "getPoolVTokens(uint96)": {
-        "custom:error": "PoolDoesNotExist Reverts if the given pool ID do not exist.",
+        "custom:error": "PoolDoesNotExist Reverts if the given pool ID do not exist.InvalidOperationForCorePool Reverts if called on the Core Pool.",
         "params": {
           "poolId": "The ID of the pool whose vTokens are being queried."
         },
@@ -2200,10 +2336,10 @@
       },
       "isMarketListed(address)": {
         "params": {
-          "vToken": "vToken Address for the market to check"
+          "vToken": "The vToken Address of the market to check"
         },
         "returns": {
-          "_0": "listed True if listed otherwise false"
+          "_0": "listed True if the (Core Pool, vToken) market is listed, otherwise false"
         }
       },
       "liquidateCalculateSeizeTokens(address,address,address,uint256)": {
@@ -2268,6 +2404,7 @@
         }
       },
       "poolMarkets(uint96,address)": {
+        "custom:error": "PoolDoesNotExist Reverts if the given pool ID do not exist.",
         "details": "Fetches the Market struct associated with the poolId and returns all relevant parameters.",
         "params": {
           "poolId": "The ID of the pool whose market configuration is being queried.",
@@ -2278,13 +2415,13 @@
           "isBorrowAllowed": "Whether borrowing is allowed in this market.",
           "isListed": "Whether the market is listed and enabled.",
           "isVenus": "Whether this market is eligible for XVS rewards.",
+          "liquidationIncentiveMantissa": "The liquidation incentive allowed for this market, in mantissa.",
           "liquidationThresholdMantissa": "The threshold at which liquidation is triggered, in mantissa.",
-          "marketPoolId": "The pool ID this market belongs to.",
-          "maxLiquidationIncentiveMantissa": "The max liquidation incentive allowed for this market, in mantissa."
+          "marketPoolId": "The pool ID this market belongs to."
         }
       },
       "removePoolMarket(uint96,address)": {
-        "custom:error": "PoolMarketNotFound Reverts if the market is not listed in the pool.",
+        "custom:error": "InvalidOperationForCorePool Reverts if called on the Core Pool.PoolMarketNotFound Reverts if the market is not listed in the pool.",
         "custom:event": "PoolMarketRemoved Emitted after a market is successfully removed from a pool.",
         "params": {
           "poolId": "The ID of the pool from which the market should be removed.",
@@ -2305,7 +2442,7 @@
           "market": "The address of the market (vToken) to unlist"
         },
         "returns": {
-          "_0": "uint256 0=success, otherwise a failure. (See enum Error for details)"
+          "_0": "uint256 0=success, otherwise a failure (See enum Error for details)"
         }
       },
       "updateDelegate(address,bool)": {
@@ -2335,19 +2472,29 @@
           "notice": "Thrown when borrowing is not allowed in the selected pool for a given market."
         }
       ],
-      "CorePoolModificationNotAllowed()": [
-        {
-          "notice": "Thrown when trying to modify the core pool (poolId == 0)"
-        }
-      ],
       "EmptyPoolLabel()": [
         {
           "notice": "Thrown when the pool label is empty"
         }
       ],
+      "FlashLoanPausedSystemWide()": [
+        {
+          "notice": "Thrown when flash loans are paused system-wide"
+        }
+      ],
+      "InactivePool(uint96)": [
+        {
+          "notice": "Thrown when attempting to interact with an inactive pool"
+        }
+      ],
       "IncompatibleBorrowedAssets()": [
         {
           "notice": "Thrown when One or more of your assets are not compatible with the selected pool."
+        }
+      ],
+      "InvalidOperationForCorePool()": [
+        {
+          "notice": "Thrown when trying to call pool-specific methods on the Core Pool"
         }
       ],
       "InvalidWeightingStrategy(uint8)": [
@@ -2370,9 +2517,19 @@
           "notice": "Thrown when market is not set in the _poolMarkets mapping"
         }
       ],
+      "MarketNotListed(address)": [
+        {
+          "notice": "Thrown when the vToken market is not listed"
+        }
+      ],
       "MarketNotListedInCorePool()": [
         {
           "notice": "Thrown when market trying to add in a pool is not listed in the core pool"
+        }
+      ],
+      "NotEnoughRepayment(uint256,uint256)": [
+        {
+          "notice": "Thrown when repayment amount is insufficient to cover the fee"
         }
       ],
       "PoolDoesNotExist(uint96)": [
@@ -2383,6 +2540,11 @@
       "PoolMarketNotFound(uint96,address)": [
         {
           "notice": "Thrown when trying to remove a market that is not listed in the given pool."
+        }
+      ],
+      "TooManyAssetsRequested(uint256,uint256)": [
+        {
+          "notice": "Thrown when too many assets are requested in a single flash loan"
         }
       ]
     },
@@ -2424,7 +2586,7 @@
         "notice": "Multiplier used to calculate the maximum repayAmount when liquidating a borrow (deprecated)"
       },
       "_supportMarket(address)": {
-        "notice": "Add the market to the _poolMarkets mapping and set it as listed"
+        "notice": "Adds the given vToken market to the Core Pool (`poolId = 0`) and marks it as listed"
       },
       "accountAssets(address,uint256)": {
         "notice": "Per-account mapping of \"assets you are in\", capped by maxAssets"
@@ -2447,6 +2609,9 @@
       "authorizedFlashLoan(address)": {
         "notice": "Mapping of accounts authorized to execute flash loans"
       },
+      "authorizedFlashLoan(address)": {
+        "notice": "Mapping of accounts authorized to execute flash loans"
+      },
       "borrowCapGuardian()": {
         "notice": "The borrowCapGuardian can set borrowCaps to any number for any market. Lowering the borrow cap could disable borrowing on the given market."
       },
@@ -2454,7 +2619,7 @@
         "notice": "Borrow caps enforced by borrowAllowed for each vToken address."
       },
       "checkMembership(address,address)": {
-        "notice": "Returns whether the given account is entered in the given asset"
+        "notice": "Returns whether the given account has entered the specified vToken market in the Core Pool"
       },
       "comptrollerImplementation()": {
         "notice": "Active brains of Unitroller"
@@ -2474,11 +2639,14 @@
       "exitMarket(address)": {
         "notice": "Removes asset from sender's account liquidity calculation"
       },
+      "flashLoanPaused()": {
+        "notice": "Whether flash loans are paused system-wide"
+      },
       "getAllMarkets()": {
         "notice": "Return all of the markets"
       },
       "getAssetsIn(address)": {
-        "notice": "Returns the assets an account has entered"
+        "notice": "Returns the vToken markets an account has entered in the Core Pool"
       },
       "getCollateralFactor(address)": {
         "notice": "Get the core pool collateral factor for a vToken"
@@ -2490,7 +2658,7 @@
         "notice": "Get the liquidation incentive for a borrower"
       },
       "getEffectiveLiquidationIncentive(address,address)": {
-        "notice": "Get the Effective liquidation Incentive for a vToken"
+        "notice": "Get the Effective Liquidation Incentive for a given account and market"
       },
       "getEffectiveLtvFactor(address,address,uint8)": {
         "notice": "Returns the effective loan-to-value factor (collateral factor or liquidation threshold) for a given account and market."
@@ -2499,13 +2667,13 @@
         "notice": "Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,          and average liquidation incentive"
       },
       "getLiquidationIncentive(address)": {
-        "notice": "Get the liquidation Incentive for a vToken"
+        "notice": "Get the core pool liquidation Incentive for a vToken"
       },
       "getLiquidationThreshold(address)": {
         "notice": "Get the core pool liquidation threshold for a vToken"
       },
       "getPoolMarketIndex(uint96,address)": {
-        "notice": "Returns the market index for a given vToken"
+        "notice": "Returns the unique market index for the given poolId and vToken pair"
       },
       "getPoolVTokens(uint96)": {
         "notice": "Returns the full list of vTokens for a given pool ID."
@@ -2526,7 +2694,7 @@
         "notice": "Whether forced liquidation is enabled for the borrows of a user in a market"
       },
       "isMarketListed(address)": {
-        "notice": "Check if a market is marked as listed (active)"
+        "notice": "Checks whether the given vToken market is listed in the Core Pool (`poolId = 0`)"
       },
       "lastPoolId()": {
         "notice": "Counter used to generate unique pool IDs"
@@ -2557,9 +2725,6 @@
       },
       "mintedVAIs(address)": {
         "notice": "The minted VAI amount to each user"
-      },
-      "oldLiquidationIncentiveMantissa()": {
-        "notice": "Multiplier representing the discount on collateral that a liquidator receives (deprecated)"
       },
       "oracle()": {
         "notice": "Oracle which gives the price of any given asset"
@@ -2604,13 +2769,13 @@
         "notice": "Fee percent of accrued interest with decimal 18"
       },
       "unlistMarket(address)": {
-        "notice": "Unlist a market by setting isListed to false"
+        "notice": "Unlists the given vToken market from the Core Pool (`poolId = 0`) by setting `isListed` to false"
       },
       "updateDelegate(address,bool)": {
         "notice": "Grants or revokes the borrowing or redeeming delegate rights to / from an account  If allowed, the delegate will be able to borrow funds on behalf of the sender  Upon a delegated borrow, the delegate will receive the funds, and the borrower  will see the debt on their account  Upon a delegated redeem, the delegate will receive the redeemed amount and the approver  will see a deduction in his vToken balance"
       },
       "userPoolId(address)": {
-        "notice": "Tracks the selected pool for each user."
+        "notice": "Tracks the selected pool for each user"
       },
       "vaiController()": {
         "notice": "The Address of VAIController"
@@ -2702,7 +2867,7 @@
       {
         "astId": 2768,
         "contract": "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
-        "label": "oldLiquidationIncentiveMantissa",
+        "label": "_oldLiquidationIncentiveMantissa",
         "offset": 0,
         "slot": "6",
         "type": "t_uint256"
@@ -3475,9 +3640,25 @@
             "offset": 0,
             "slot": "1",
             "type": "t_array(t_address)dyn_storage"
+          },
+          {
+            "astId": 2019,
+            "contract": "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
+            "label": "isActive",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_bool"
+          },
+          {
+            "astId": 2022,
+            "contract": "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
+            "label": "allowCorePoolFallback",
+            "offset": 1,
+            "slot": "2",
+            "type": "t_bool"
           }
         ],
-        "numberOfBytes": "64"
+        "numberOfBytes": "96"
       },
       "t_struct(VenusMarketState)2844_storage": {
         "encoding": "inplace",

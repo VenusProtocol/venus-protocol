@@ -12,7 +12,7 @@ import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInter
  * @notice vTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Venus
  */
-abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
+contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
@@ -25,9 +25,6 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
      * @param admin_ Address of the administrator of this token
      * @param implementation_ The address of the implementation the contract delegates to
      * @param becomeImplementationData The encoded args for becomeImplementation
-     * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
-     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     constructor(
         address underlying_,
@@ -39,10 +36,7 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData,
-        bool flashLoanEnabled_,
-        uint256 flashLoanProtocolFeeMantissa_,
-        uint256 flashLoanSupplierFeeMantissa_
+        bytes memory becomeImplementationData
     ) {
         // Creator of the contract is admin during initialization
         admin = payable(msg.sender);
@@ -51,17 +45,14 @@ abstract contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegato
         delegateTo(
             implementation_,
             abi.encodeWithSignature(
-                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256,uint256)",
+                "initialize(address,address,address,uint256,string,string,uint8)",
                 underlying_,
                 comptroller_,
                 interestRateModel_,
                 initialExchangeRateMantissa_,
                 name_,
                 symbol_,
-                decimals_,
-                flashLoanEnabled_,
-                flashLoanProtocolFeeMantissa_,
-                flashLoanSupplierFeeMantissa_
+                decimals_
             )
         );
 

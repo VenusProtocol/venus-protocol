@@ -21,7 +21,7 @@ import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
  * @notice This facet contract contains all the configurational setter functions
  */
 contract SetterFacet is ISetterFacet, FacetBase {
-    /// @notice Emitted when a collateral factor is changed by admin
+    /// @notice Emitted when a collateral factor for a market in a pool is changed by admin
     event NewCollateralFactor(
         uint96 indexed poolId,
         VToken indexed vToken,
@@ -95,15 +95,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when an account's flash loan whitelist status is updated
     event IsAccountFlashLoanWhitelisted(address indexed account, bool indexed isWhitelisted);
 
-    /// @notice Emitted when delegate authorization for flash loans is changed
-    event DelegateAuthorizationFlashloanChanged(
-        address indexed user,
-        address indexed market,
-        address indexed delegate,
-        bool approved
-    );
-
-    /// @notice Emitted when liquidation threshold is changed by admin
+    /// @notice Emitted when liquidation threshold for a market in a pool is changed by admin
     event NewLiquidationThreshold(
         uint96 indexed poolId,
         VToken indexed vToken,
@@ -126,7 +118,19 @@ contract SetterFacet is ISetterFacet, FacetBase {
     );
 
     /// @notice Emitted when the borrowAllowed flag is updated for a market
-    event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool isAllowed);
+    event BorrowAllowedUpdated(uint96 indexed poolId, address indexed market, bool oldStatus, bool newStatus);
+
+    /// @notice Emitted when pool active status updated
+    event PoolActiveStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
+
+    /// @notice Emitted when pool label is updated
+    event PoolLabelUpdated(uint96 indexed poolId, string oldLabel, string newLabel);
+
+    /// @notice Emitted when pool Fallback status is updated
+    event PoolFallbackStatusUpdated(uint96 indexed poolId, bool oldStatus, bool newStatus);
+
+    /// @notice Emitted when flash loan pause status changes
+    event FlashLoanPauseChanged(bool oldPaused, bool newPaused);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -190,7 +194,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the collateral factor and liquidation threshold for a market in the Core Pool only.
-     * @dev Alias to _setCollateralFactor to support the Isolated Lending Comptroller Interface
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
@@ -670,29 +673,112 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Adds/Removes an account to the flash loan whitelist
      * @param account The account to authorize for flash loans
-     * @param _isWhiteListed True to whitelist the account for flash loans, false to remove from whitelist
+     * @param isWhiteListed True to whitelist the account for flash loans, false to remove from whitelist
+     * @custom:event Emits IsAccountFlashLoanWhitelisted when an account's flash loan whitelist status is updated
      */
-    function setWhiteListFlashLoanAccount(address account, bool _isWhiteListed) external {
+    function setWhiteListFlashLoanAccount(address account, bool isWhiteListed) external {
         ensureAllowed("setWhiteListFlashLoanAccount(address,bool)");
         ensureNonzeroAddress(account);
 
-        authorizedFlashLoan[account] = _isWhiteListed;
-        emit IsAccountFlashLoanWhitelisted(account, _isWhiteListed);
+        // If the account's status is already the same as the desired status, do nothing
+        if (authorizedFlashLoan[account] == isWhiteListed) {
+            return;
+        }
+
+        authorizedFlashLoan[account] = isWhiteListed;
+        emit IsAccountFlashLoanWhitelisted(account, isWhiteListed);
     }
 
     /**
-     * @notice Set or revoke delegate authorization for flash loans
-     * @dev Allows users to authorize delegates to execute flash loans on their behalf
-     * @param delegate The address to authorize or revoke as delegate
-     * @param approved True to authorize, false to revoke
+     * @notice Pause or unpause flash loans system-wide
+     * @param paused True to pause flash loans, false to unpause
+     * @custom:access Only Governance
+     * @custom:event Emits FlashLoanPauseChanged event
      */
-    function setDelegateAuthorizationFlashloan(address market, address delegate, bool approved) external {
-        ensureNonzeroAddress(delegate);
+    function setFlashLoanPaused(bool paused) external {
+        ensureAllowed("setFlashLoanPaused(bool)");
 
-        // Only allow users to set authorization for themselves
-        delegateAuthorizationFlashloan[msg.sender][market][delegate] = approved;
+        // Check if value is actually changing
+        if (flashLoanPaused == paused) {
+            return; // No change needed
+        }
 
-        emit DelegateAuthorizationFlashloanChanged(msg.sender, market, delegate, approved);
+        emit FlashLoanPauseChanged(flashLoanPaused, paused);
+        flashLoanPaused = paused;
+    }
+
+    /**
+     * @notice Updates the label for a specific pool (excluding the Core Pool)
+     * @param poolId ID of the pool to update
+     * @param newLabel The new label for the pool
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist
+     * @custom:error EmptyPoolLabel Reverts if the provided label is an empty string
+     * @custom:event PoolLabelUpdated Emitted after the pool label is updated
+     */
+    function setPoolLabel(uint96 poolId, string calldata newLabel) external {
+        ensureAllowed("setPoolLabel(uint96,string)");
+
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+        if (bytes(newLabel).length == 0) revert EmptyPoolLabel();
+
+        PoolData storage pool = pools[poolId];
+
+        if (keccak256(bytes(pool.label)) == keccak256(bytes(newLabel))) {
+            return;
+        }
+
+        emit PoolLabelUpdated(poolId, pool.label, newLabel);
+        pool.label = newLabel;
+    }
+
+    /**
+     * @notice updates active status for a specific pool (excluding the Core Pool)
+     * @param poolId id of the pool to update
+     * @param active true to enable, false to disable
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
+     * @custom:event PoolActiveStatusUpdated Emitted after the pool active status is updated.
+     */
+    function setPoolActive(uint96 poolId, bool active) external {
+        ensureAllowed("setPoolActive(uint96,bool)");
+
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+
+        PoolData storage pool = pools[poolId];
+
+        if (pool.isActive == active) {
+            return;
+        }
+
+        emit PoolActiveStatusUpdated(poolId, pool.isActive, active);
+        pool.isActive = active;
+    }
+
+    /**
+     * @notice Updates the `allowCorePoolFallback` flag for a specific pool (excluding the Core Pool).
+     * @param poolId ID of the pool to update.
+     * @param allowFallback True to allow fallback to Core Pool, false to disable.
+     * @custom:error InvalidOperationForCorePool Reverts when attempting to call pool-specific methods on the Core Pool.
+     * @custom:error PoolDoesNotExist Reverts if the target pool ID does not exist.
+     * @custom:event PoolFallbackStatusUpdated Emitted after the pool fallback flag is updated.
+     */
+    function setAllowCorePoolFallback(uint96 poolId, bool allowFallback) external {
+        ensureAllowed("setAllowCorePoolFallback(uint96,bool)");
+
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+
+        PoolData storage pool = pools[poolId];
+
+        if (pool.allowCorePoolFallback == allowFallback) {
+            return;
+        }
+
+        emit PoolFallbackStatusUpdated(poolId, pool.allowCorePoolFallback, allowFallback);
+        pool.allowCorePoolFallback = allowFallback;
     }
 
     /**
@@ -720,9 +806,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
             return;
         }
 
+        emit BorrowAllowedUpdated(poolId, vToken, m.isBorrowAllowed, borrowAllowed);
         m.isBorrowAllowed = borrowAllowed;
-
-        emit BorrowAllowedUpdated(poolId, vToken, borrowAllowed);
     }
 
     /**

@@ -1166,6 +1166,30 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "calculateFlashLoanFee",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "comptroller",
       "outputs": [
@@ -1439,6 +1463,19 @@
           "internalType": "contract InterestRateModelV8",
           "name": "",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "isFlashLoanEnabled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -1834,6 +1871,49 @@
         }
       ],
       "name": "setAccessControlManager",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "enabled",
+          "type": "bool"
+        }
+      ],
+      "name": "setFlashLoanEnabled",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "flashLoanFeeMantissa_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "flashLoanProtocolShare_",
+          "type": "uint256"
+        }
+      ],
+      "name": "setFlashLoanFeeMantissa",
       "outputs": [
         {
           "internalType": "uint256",
@@ -2247,6 +2327,7 @@
         }
       },
       "borrowRatePerBlock()": {
+        "details": "The calculation includes `flashLoanAmount` in the cash balance to account for active flash loans.",
         "returns": {
           "_0": "The borrow interest rate per block, scaled by 1e18"
         }
@@ -2421,6 +2502,28 @@
           "_0": "uint 0=success, otherwise will revert"
         }
       },
+      "setFlashLoanEnabled(bool)": {
+        "custom:access": "Only Governance",
+        "custom:event": "Emits FlashLoanStatusChanged event on success",
+        "params": {
+          "enabled": "True to enable flash loans, false to disable"
+        },
+        "returns": {
+          "_0": "uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details)."
+        }
+      },
+      "setFlashLoanFeeMantissa(uint256,uint256)": {
+        "custom:access": "Only Governance",
+        "custom:error": "FlashLoanFeeTooHigh is thrown when flash loan fee exceeds maximum allowedFlashLoanProtocolShareTooHigh is thrown when flash loan fee protocol share exceeds maximum allowed",
+        "custom:event": "Emits FlashLoanFeeUpdated event on success",
+        "params": {
+          "flashLoanFeeMantissa_": "FlashLoan fee, scaled by 1e18",
+          "flashLoanProtocolShare_": "FlashLoan protocol fee share, transferred to protocol share reserve"
+        },
+        "returns": {
+          "_0": "uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details)."
+        }
+      },
       "setProtocolShareReserve(address)": {
         "params": {
           "protcolShareReserve_": "The address of protocol share reserve contract"
@@ -2432,6 +2535,7 @@
         }
       },
       "supplyRatePerBlock()": {
+        "details": "The calculation includes `flashLoanAmount` in the cash balance to account for active flash loans.",
         "returns": {
           "_0": "The supply interest rate per block, scaled by 1e18"
         }
@@ -2481,6 +2585,23 @@
     "version": 1
   },
   "userdoc": {
+    "errors": {
+      "FlashLoanFeeTooHigh(uint256,uint256)": [
+        {
+          "notice": "Thrown when flash loan fee exceeds maximum allowed"
+        }
+      ],
+      "FlashLoanProtocolShareTooHigh(uint256,uint256)": [
+        {
+          "notice": "Thrown when flash loan fee protocol share exceeds maximum allowed"
+        }
+      ],
+      "InsufficientRepayment(uint256,uint256)": [
+        {
+          "notice": "Thrown when the repayment amount is insufficient to cover the total fee"
+        }
+      ]
+    },
     "events": {
       "AccrueInterest(uint256,uint256,uint256,uint256)": {
         "notice": "Event emitted when interest is accrued"
@@ -2689,6 +2810,9 @@
       "isFlashLoanEnabled()": {
         "notice": "flashLoan is enabled for this market or not"
       },
+      "isFlashLoanEnabled()": {
+        "notice": "flashLoan is enabled for this market or not"
+      },
       "isVToken()": {
         "notice": "Indicator that this is a vToken contract (for inspection)"
       },
@@ -2742,6 +2866,12 @@
       },
       "setAccessControlManager(address)": {
         "notice": "Sets the address of the access control manager of this contract"
+      },
+      "setFlashLoanEnabled(bool)": {
+        "notice": "Sets flash loan status for the market"
+      },
+      "setFlashLoanFeeMantissa(uint256,uint256)": {
+        "notice": "Update flashLoan fee mantissa"
       },
       "setProtocolShareReserve(address)": {
         "notice": "Sets protocol share reserve contract address"
@@ -3033,8 +3163,11 @@
         "numberOfBytes": "20"
       },
       "t_array(t_uint256)46_storage": {
+      "t_array(t_uint256)46_storage": {
         "base": "t_uint256",
         "encoding": "inplace",
+        "label": "uint256[46]",
+        "numberOfBytes": "1472"
         "label": "uint256[46]",
         "numberOfBytes": "1472"
       },

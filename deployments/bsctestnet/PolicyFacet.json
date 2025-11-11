@@ -18,17 +18,58 @@
     },
     {
       "inputs": [],
-      "name": "CorePoolModificationNotAllowed",
-      "type": "error"
-    },
-    {
-      "inputs": [],
       "name": "EmptyPoolLabel",
       "type": "error"
     },
     {
       "inputs": [],
+      "name": "ExecuteFlashLoanFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FailedToCreateDebtPosition",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FlashLoanNotEnabled",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FlashLoanPausedSystemWide",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint96",
+          "name": "poolId",
+          "type": "uint96"
+        }
+      ],
+      "name": "InactivePool",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "IncompatibleBorrowedAssets",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAmount",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidFlashLoanParams",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidOperationForCorePool",
       "type": "error"
     },
     {
@@ -80,8 +121,45 @@
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vToken",
+          "type": "address"
+        }
+      ],
+      "name": "MarketNotListed",
+      "type": "error"
+    },
+    {
       "inputs": [],
       "name": "MarketNotListedInCorePool",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NoAssetsRequested",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotAnApprovedDelegate",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "repaid",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "required",
+          "type": "uint256"
+        }
+      ],
+      "name": "NotEnoughRepayment",
       "type": "error"
     },
     {
@@ -109,6 +187,33 @@
         }
       ],
       "name": "PoolMarketNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "SenderNotAuthorizedForFlashLoan",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requested",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maximum",
+          "type": "uint256"
+        }
+      ],
+      "name": "TooManyAssetsRequested",
       "type": "error"
     },
     {
@@ -423,6 +528,25 @@
         }
       ],
       "name": "approvedDelegates",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedFlashLoan",
       "outputs": [
         {
           "internalType": "bool",
@@ -1234,19 +1358,6 @@
     },
     {
       "inputs": [],
-      "name": "oldLiquidationIncentiveMantissa",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "oracle",
       "outputs": [
         {
@@ -1311,6 +1422,16 @@
           "internalType": "string",
           "name": "label",
           "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "allowCorePoolFallback",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -2002,7 +2123,7 @@
           "account": "The account get liquidity for"
         },
         "returns": {
-          "_0": "(possible error code (semi-opaque), account liquidity in excess of collateral requirements,          account shortfall below collateral requirements)"
+          "_0": "(possible error code (semi-opaque), account liquidity in excess of liquidation threshold requirements,          account shortfall below liquidation threshold requirements)"
         }
       },
       "getBorrowingPower(address)": {
@@ -2039,13 +2160,13 @@
         }
       },
       "getPoolMarketIndex(uint96,address)": {
-        "details": "Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping. - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,   maintaining backward compatibility with legacy mappings. - For other pools, packs the `poolId` and `market` address into a single `bytes32` key,   The first 96 bits are used for the `poolId`, and the remaining 160 bits for the `market` address.",
+        "details": "Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,   maintaining backward compatibility with legacy mappings - For other pools, packs the `poolId` and `market` address into a single `bytes32` key,   The first 96 bits are used for the `poolId`, and the remaining 160 bits for the `market` address",
         "params": {
-          "poolId": "The ID of the pool.",
-          "vToken": "The address of the market (vToken)."
+          "poolId": "The ID of the pool",
+          "vToken": "The address of the market (vToken)"
         },
         "returns": {
-          "_0": "A `bytes32` key that uniquely represents the (poolId, market) pair."
+          "_0": "PoolMarketId The `bytes32` key that uniquely represents the (poolId, vToken) pair"
         }
       },
       "getXVSAddress()": {
@@ -2195,19 +2316,29 @@
           "notice": "Thrown when borrowing is not allowed in the selected pool for a given market."
         }
       ],
-      "CorePoolModificationNotAllowed()": [
-        {
-          "notice": "Thrown when trying to modify the core pool (poolId == 0)"
-        }
-      ],
       "EmptyPoolLabel()": [
         {
           "notice": "Thrown when the pool label is empty"
         }
       ],
+      "FlashLoanPausedSystemWide()": [
+        {
+          "notice": "Thrown when flash loans are paused system-wide"
+        }
+      ],
+      "InactivePool(uint96)": [
+        {
+          "notice": "Thrown when attempting to interact with an inactive pool"
+        }
+      ],
       "IncompatibleBorrowedAssets()": [
         {
           "notice": "Thrown when One or more of your assets are not compatible with the selected pool."
+        }
+      ],
+      "InvalidOperationForCorePool()": [
+        {
+          "notice": "Thrown when trying to call pool-specific methods on the Core Pool"
         }
       ],
       "InvalidWeightingStrategy(uint8)": [
@@ -2230,9 +2361,19 @@
           "notice": "Thrown when market is not set in the _poolMarkets mapping"
         }
       ],
+      "MarketNotListed(address)": [
+        {
+          "notice": "Thrown when the vToken market is not listed"
+        }
+      ],
       "MarketNotListedInCorePool()": [
         {
           "notice": "Thrown when market trying to add in a pool is not listed in the core pool"
+        }
+      ],
+      "NotEnoughRepayment(uint256,uint256)": [
+        {
+          "notice": "Thrown when repayment amount is insufficient to cover the fee"
         }
       ],
       "PoolDoesNotExist(uint96)": [
@@ -2243,6 +2384,11 @@
       "PoolMarketNotFound(uint96,address)": [
         {
           "notice": "Thrown when trying to remove a market that is not listed in the given pool."
+        }
+      ],
+      "TooManyAssetsRequested(uint256,uint256)": [
+        {
+          "notice": "Thrown when too many assets are requested in a single flash loan"
         }
       ]
     },
@@ -2292,6 +2438,9 @@
       "authorizedFlashLoan(address)": {
         "notice": "Mapping of accounts authorized to execute flash loans"
       },
+      "authorizedFlashLoan(address)": {
+        "notice": "Mapping of accounts authorized to execute flash loans"
+      },
       "borrowAllowed(address,address,uint256)": {
         "notice": "Checks if the account should be allowed to borrow the underlying asset of the given market"
       },
@@ -2314,7 +2463,7 @@
         "notice": "Executes a flashLoan operation with the specified assets, amounts, and modes."
       },
       "getAccountLiquidity(address)": {
-        "notice": "Determine the current account liquidity wrt collateral requirements"
+        "notice": "Determine the current account liquidity wrt liquidation threshold requirements"
       },
       "getBorrowingPower(address)": {
         "notice": "Alias to getAccountLiquidity to support the Isolated Lending Comptroller Interface"
@@ -2326,7 +2475,7 @@
         "notice": "Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,          and average liquidation incentive"
       },
       "getPoolMarketIndex(uint96,address)": {
-        "notice": "Returns the market index for a given vToken"
+        "notice": "Returns the unique market index for the given poolId and vToken pair"
       },
       "getXVSAddress()": {
         "notice": "Returns the XVS address"
@@ -2366,9 +2515,6 @@
       },
       "mintedVAIs(address)": {
         "notice": "The minted VAI amount to each user"
-      },
-      "oldLiquidationIncentiveMantissa()": {
-        "notice": "Multiplier representing the discount on collateral that a liquidator receives (deprecated)"
       },
       "oracle()": {
         "notice": "Oracle which gives the price of any given asset"
@@ -2428,7 +2574,7 @@
         "notice": "Fee percent of accrued interest with decimal 18"
       },
       "userPoolId(address)": {
-        "notice": "Tracks the selected pool for each user."
+        "notice": "Tracks the selected pool for each user"
       },
       "vaiController()": {
         "notice": "The Address of VAIController"
@@ -2520,7 +2666,7 @@
       {
         "astId": 4709,
         "contract": "contracts/Comptroller/Diamond/facets/PolicyFacet.sol:PolicyFacet",
-        "label": "oldLiquidationIncentiveMantissa",
+        "label": "_oldLiquidationIncentiveMantissa",
         "offset": 0,
         "slot": "6",
         "type": "t_uint256"
@@ -3293,9 +3439,25 @@
             "offset": 0,
             "slot": "1",
             "type": "t_array(t_address)dyn_storage"
+          },
+          {
+            "astId": 2019,
+            "contract": "contracts/Comptroller/Diamond/facets/PolicyFacet.sol:PolicyFacet",
+            "label": "isActive",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_bool"
+          },
+          {
+            "astId": 2022,
+            "contract": "contracts/Comptroller/Diamond/facets/PolicyFacet.sol:PolicyFacet",
+            "label": "allowCorePoolFallback",
+            "offset": 1,
+            "slot": "2",
+            "type": "t_bool"
           }
         ],
-        "numberOfBytes": "64"
+        "numberOfBytes": "96"
       },
       "t_struct(VenusMarketState)4785_storage": {
         "encoding": "inplace",

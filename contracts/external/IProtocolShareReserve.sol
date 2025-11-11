@@ -6,6 +6,7 @@ interface IProtocolShareReserve {
     enum IncomeType {
         SPREAD,
         LIQUIDATION,
+        ERC4626_WRAPPER_REWARDS,
         FLASHLOAN
     }
 

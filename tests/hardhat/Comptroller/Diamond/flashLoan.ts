@@ -29,10 +29,10 @@ chai.use(smock.matchers);
 
 const flashLoanAmount1 = parseUnits("10", 18);
 const flashLoanAmount2 = parseUnits("10", 18);
-const protocolFeeMantissaTokenA = parseUnits("0.01", 18);
-const protocolFeeMantissaTokenB = parseUnits("0.02", 18);
-const supplierFeeMantissaTokenA = parseUnits("0.01", 18);
-const supplierFeeMantissaTokenB = parseUnits("0.02", 18);
+const totalFeeMantissaTokenA = parseUnits("0.03", 18);
+const totalFeeMantissaTokenB = parseUnits("0.04", 18);
+const protocolShareMantissaTokenA = parseUnits("0.01", 18);
+const protocolShareMantissaTokenB = parseUnits("0.01", 18);
 
 // Declare the types here
 type FlashLoanContractsFixture = {
@@ -62,6 +62,7 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   const result = await deployDiamond("");
   const unitroller = result.unitroller;
   const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+
   const comptrollerLens = await ComptrollerLensFactory.deploy();
   await comptroller._setAccessControl(accessControlManager.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
@@ -80,9 +81,9 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
 
 describe("FlashLoan", async () => {
   let alice: SignerWithAddress;
-  let bob: SignerWithAddress;
   let vTokenA: MockContract<VBep20Harness>;
   let vTokenB: MockContract<VBep20Harness>;
+  let vTokenC: MockContract<VBep20Harness>;
   let underlyingA: MockContract<BEP20Harness>;
   let underlyingB: MockContract<BEP20Harness>;
   let unitroller: Unitroller;
@@ -93,6 +94,7 @@ describe("FlashLoan", async () => {
   type Contracts = FlashLoanContractsFixture & {
     vTokenA: MockContract<VBep20Harness>;
     vTokenB: MockContract<VBep20Harness>;
+    vTokenC: MockContract<VBep20Harness>;
     underlyingA: MockContract<BEP20Harness>;
     underlyingB: MockContract<BEP20Harness>;
   };
@@ -106,13 +108,11 @@ describe("FlashLoan", async () => {
   async function deploy(): Promise<Contracts> {
     const contracts = await flashLoanTestFixture();
     const underlyingA = await mockUnderlying("TokenA", "TKNA");
+    const underlyingB = await mockUnderlying("TokenB", "TKNB");
+    const underlyingC = await mockUnderlying("TokenC", "TKNC");
 
-    protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
-      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
-    );
-
-    const vTokenAFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
-    const vTokenA = await vTokenAFactory.deploy(
+    const vTokenFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
+    const vTokenA = await vTokenFactory.deploy(
       underlyingA.address,
       contracts.comptroller.address,
       contracts.interestRateModel.address,
@@ -123,11 +123,7 @@ describe("FlashLoan", async () => {
       contracts.admin.address,
     );
 
-    vTokenA.setAccessControlManager(contracts.accessControlManager.address);
-
-    const underlyingB = await mockUnderlying("TokenB", "TKNB");
-    const vTokenBFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
-    const vTokenB = await vTokenBFactory.deploy(
+    const vTokenB = await vTokenFactory.deploy(
       underlyingB.address,
       contracts.comptroller.address,
       contracts.interestRateModel.address,
@@ -138,19 +134,37 @@ describe("FlashLoan", async () => {
       contracts.admin.address,
     );
 
+    const vTokenC = await vTokenFactory.deploy(
+      underlyingC.address,
+      contracts.comptroller.address,
+      contracts.interestRateModel.address,
+      "200000000000000000000000",
+      "vTokenC",
+      "VTKNC",
+      18,
+      contracts.admin.address,
+    );
+
+    protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
+      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
+    );
+    vTokenA.setAccessControlManager(contracts.accessControlManager.address);
     vTokenB.setAccessControlManager(contracts.accessControlManager.address);
+    vTokenC.setAccessControlManager(contracts.accessControlManager.address);
     await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);
     await vTokenB.setProtocolShareReserve(protocolShareReserveMock.address);
+    await vTokenC.setProtocolShareReserve(protocolShareReserveMock.address);
 
-    await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissaTokenA, supplierFeeMantissaTokenA);
-    await vTokenB._setFlashLoanFeeMantissa(protocolFeeMantissaTokenB, supplierFeeMantissaTokenB);
+    await vTokenA.setFlashLoanFeeMantissa(totalFeeMantissaTokenA, protocolShareMantissaTokenA);
+    await vTokenB.setFlashLoanFeeMantissa(totalFeeMantissaTokenB, protocolShareMantissaTokenB);
+    await vTokenC.setFlashLoanFeeMantissa(totalFeeMantissaTokenB, protocolShareMantissaTokenB);
 
-    return { ...contracts, vTokenA, vTokenB, underlyingA, underlyingB };
+    return { ...contracts, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB };
   }
 
   beforeEach(async () => {
-    [alice, bob] = await ethers.getSigners();
-    ({ unitroller, comptroller, vTokenA, vTokenB, underlyingA, underlyingB } = await loadFixture(deploy));
+    [alice] = await ethers.getSigners();
+    ({ unitroller, comptroller, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB } = await loadFixture(deploy));
   });
 
   describe("FlashLoan Multi-Assets", async () => {
@@ -172,6 +186,26 @@ describe("FlashLoan", async () => {
       await mockReceiverContract.deployed();
     });
 
+    it("Should revert flash loan when paused system-wide", async () => {
+      // Pause flash loans system-wide
+      await comptroller.setFlashLoanPaused(true);
+
+      // Verify pause status
+      expect(await comptroller.flashLoanPaused()).to.be.true;
+
+      // Should revert when paused
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.be.revertedWithCustomError(comptroller, "FlashLoanPausedSystemWide");
+    });
+
     it("Should revert if flashLoan is not enabled", async () => {
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.false;
@@ -186,96 +220,128 @@ describe("FlashLoan", async () => {
             [vTokenA.address, vTokenB.address],
             [flashLoanAmount1, flashLoanAmount2],
             mockReceiverContract.address,
-            [0, 0],
-            alice.address,
             "0x",
           ),
-      ).to.be.revertedWith("FlashLoan not enabled");
+      ).to.be.revertedWithCustomError(comptroller, "FlashLoanNotEnabled");
     });
 
     it("Should revert if the user is zero address", async () => {
-      // whitelist alice for flashLoan
-
       await expect(comptroller.setWhiteListFlashLoanAccount(ethers.constants.AddressZero, true)).to.be.revertedWith(
         "can't be zero address",
       );
     });
 
-    it("Should revert if user is not whitelisted", async () => {
-      await vTokenA._toggleFlashLoan();
-      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+    it("Should revert when onBehalf is address zero", async () => {
       await expect(
-        mockReceiverContract.requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
+        comptroller.executeFlashLoan(
+          ethers.constants.AddressZero, // ❌ Zero address
           mockReceiverContract.address,
-          [0, 0],
-          alice.address,
-          "0x",
-        ),
-      ).to.be.revertedWith("FlashLoan not enabled");
-    });
-
-    it("Should revert if invalid mode is used", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
-
-      await expect(
-        mockReceiverContract.requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          mockReceiverContract.address,
-          [0, 10],
-          alice.address,
-          "0x",
-        ),
-      ).to.be.revertedWith("Invalid mode");
-    });
-
-    it("Should revert if onBehalf param is Zero Address", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
-
-      await expect(
-        mockReceiverContract.requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          mockReceiverContract.address,
-          [0, 10],
-          ethers.constants.AddressZero,
+          [vTokenA.address],
+          [flashLoanAmount1],
           "0x",
         ),
       ).to.be.revertedWith("can't be zero address");
     });
 
+    it("Should revert when too many assets are requested", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      // Create array with more assets than MAX_FLASHLOAN_ASSETS
+      const tooManyAssets = new Array(201).fill(vTokenA.address); // Assuming MAX is 200
+      const tooManyAmounts = new Array(201).fill(flashLoanAmount1);
+
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      await expect(
+        comptroller.executeFlashLoan(alice.address, mockReceiverContract.address, tooManyAssets, tooManyAmounts, "0x"),
+      )
+        .to.be.revertedWithCustomError(comptroller, "TooManyAssetsRequested")
+        .withArgs(201, 200);
+    });
+
+    it("Should revert if the market is not listed", async () => {
+      await vTokenC.setFlashLoanEnabled(true);
+      expect(await vTokenC.isFlashLoanEnabled()).to.be.true;
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan([vTokenC.address], [flashLoanAmount1], mockReceiverContract.address, "0x"),
+      ).to.be.revertedWithCustomError(comptroller, "MarketNotListed");
+    });
+
+    it("Should revert if contract is not whitelisted", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          mockReceiverContract.address,
+          "0x",
+        ),
+      )
+        .to.be.revertedWithCustomError(comptroller, "SenderNotAuthorizedForFlashLoan")
+        .withArgs(mockReceiverContract.address);
+    });
+
     it("Should revert if array params are unequal", async () => {
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       await expect(
         mockReceiverContract.requestFlashLoan(
           [vTokenB.address],
           [flashLoanAmount1, flashLoanAmount2],
           mockReceiverContract.address,
-          [0, 10],
-          alice.address,
           "0x",
         ),
-      ).to.be.revertedWith("Invalid flashLoan params");
+      ).to.be.revertedWithCustomError(comptroller, "InvalidFlashLoanParams");
+    });
+
+    it("should revert when requested flash loan amount is zero", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+
+      // whitelist alice for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+
+      // Execute the flashLoan from the mockReceiverContract
+      await expect(
+        mockReceiverContract.requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [0, 0],
+          mockReceiverContract.address,
+          "0x",
+        ),
+      ).to.be.revertedWithCustomError(comptroller, "InvalidAmount");
     });
 
     it("Should revert if receiver's executeOperation returns false", async () => {
       // Enable flashLoan for vTokens
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
-
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
       // Deploy the bad receiver contract
       const BadFlashLoanReceiver = await ethers.getContractFactory("BadFlashLoanReceiver");
       const badReceiver = await BadFlashLoanReceiver.deploy(unitroller.address);
       await badReceiver.deployed();
+
+      // whitelist badReceiver contract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(badReceiver.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(badReceiver.address, true);
 
       // Set the balance of badReceiver to cover full repayment for both tokens
       await underlyingA.harnessSetBalance(badReceiver.address, parseUnits("20", 18));
@@ -291,100 +357,178 @@ describe("FlashLoan", async () => {
             [vTokenA.address, vTokenB.address],
             [flashLoanAmount1, flashLoanAmount2],
             badReceiver.address,
-            [0, 0],
-            alice.address,
             "0x",
           ),
-      ).to.be.revertedWith("Execute flashLoan failed");
+      ).to.be.revertedWithCustomError(comptroller, "ExecuteFlashLoanFailed");
     });
 
-    it("FlashLoan for multiple underlying and transfer funds to PSR", async () => {
-      // Enable flashLoan for multiple vToken
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+    it("Should emit FlashLoanPauseChanged event when pause status changes", async () => {
+      // Test pausing
+      await expect(comptroller.setFlashLoanPaused(true))
+        .to.emit(comptroller, "FlashLoanPauseChanged")
+        .withArgs(false, true);
 
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(alice.address, true);
+      // Test unpausing
+      await expect(comptroller.setFlashLoanPaused(false))
+        .to.emit(comptroller, "FlashLoanPauseChanged")
+        .withArgs(true, false);
+    });
+
+    it("Should not emit event when setting same pause status", async () => {
+      // Flash loans are not paused by default
+      expect(await comptroller.flashLoanPaused()).to.be.false;
+
+      // Setting to false again should not emit event (no change)
+      await expect(comptroller.setFlashLoanPaused(false)).to.not.emit(comptroller, "FlashLoanPauseChanged");
+
+      // Pause first
+      await comptroller.setFlashLoanPaused(true);
+
+      // Setting to true again should not emit event (no change)
+      await expect(comptroller.setFlashLoanPaused(true)).to.not.emit(comptroller, "FlashLoanPauseChanged");
+    });
+
+    it("User has not supplied in venus - Should not create debt position if receiver repays full amount + fee", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+
+      // Set the balance of mockReceiver in order to pay for flashLoan fee
+      await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.not.be.reverted;
+
+      // Check that no debt position was created
+      const debtA = await vTokenA.borrowBalanceStored(alice.address);
+      const debtB = await vTokenB.borrowBalanceStored(alice.address);
+      expect(debtA).to.equal(0);
+      expect(debtB).to.equal(0);
+    });
+
+    it("User has not supplied in venus - should revert if repayment is insufficient", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
 
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
 
-      // Set the balance of mockReceiver in order to pay for flashLoan fee
-      await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("20", 18));
-      await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("20", 18));
-
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
 
-      // Get the balance before the flashLoan
-      const beforeBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
-      const beforeBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
-      const psrABalanceBefore = await underlyingA.balanceOf(protocolShareReserveMock.address);
-      const psrBBalanceBefore = await underlyingB.balanceOf(protocolShareReserveMock.address);
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
 
       // Execute the flashLoan from the mockReceiverContract
-      const flashLoan = await mockReceiverContract
-        .connect(alice)
-        .requestFlashLoan(
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-          mockReceiverContract.address,
-          [0, 0],
-          alice.address,
-          "0x",
-        );
-
-      // Get the balance after the flashLoan
-      const afterBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
-      const afterBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
-
-      // Calculate expected fees
-      const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
-      const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
-
-      const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
-      const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
-
-      // Verify vToken balances
-      expect(afterBalanceVTokenA).to.be.equal(beforeBalanceVTokenA.add(supplierFeeA));
-      expect(afterBalanceVTokenB).to.be.equal(beforeBalanceVTokenB.add(supplierFeeB));
-
-      // Verify protocol share reserve balances
-      expect(await underlyingA.balanceOf(protocolShareReserveMock.address)).to.equal(
-        psrABalanceBefore.add(protocolFeeA),
-      );
-      expect(await underlyingB.balanceOf(protocolShareReserveMock.address)).to.equal(
-        psrBBalanceBefore.add(protocolFeeB),
-      );
-
-      await expect(flashLoan)
-        .to.emit(comptroller, "FlashLoanExecuted")
-        .withArgs(
-          mockReceiverContract.address,
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-        );
-
-      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
-        comptroller.address,
-        underlyingA.address,
-        2,
-      );
-
-      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
-        comptroller.address,
-        underlyingB.address,
-        2,
-      );
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.be.revertedWith("Insufficient balance");
     });
 
-    it("FlashLoan for multiple underlying with debt position (mode = 1)", async () => {
-      // Enable flashLoan for multiple vTokens
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+    it("User has supplied in venus - Should not create debt position if repays full amount + fee", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
-      // whitelist alice for flashLoan
-      await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
+      // Set the balance of mockReceiver in order to pay for flashLoan fee
+      await underlyingA.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("30", 18));
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
+
+      // Set collateral factors for the markets
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("1", 18),
+      );
+
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+
+      await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("1000", 18));
+      await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("1000", 18));
+      await vTokenA.connect(alice).mint(parseUnits("500", 18)); // Alice supplies 500 tokens as collateral
+      await vTokenB.connect(alice).mint(parseUnits("500", 18)); // Alice supplies 500 tokens as collateral
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.not.be.reverted;
+
+      // Check that no debt position was created
+      const debtA = await vTokenA.borrowBalanceStored(alice.address);
+      const debtB = await vTokenB.borrowBalanceStored(alice.address);
+      expect(debtA).to.equal(0);
+      expect(debtB).to.equal(0);
+    });
+
+    it("User has supplied in venus - Should create debt position if repays less than required", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+
+      // Deploy the bad receiver contract
+      const BorrowDebtFlashLoanReceiver = await ethers.getContractFactory("BorrowDebtFlashLoanReceiver");
+      const borrowDebtReceiver = await BorrowDebtFlashLoanReceiver.deploy(unitroller.address);
+      await borrowDebtReceiver.deployed();
+
+      // whitelist borrowDebtReceiver for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(borrowDebtReceiver.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(borrowDebtReceiver.address, true);
 
       // Set collateral factors for the markets
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
@@ -413,12 +557,7 @@ describe("FlashLoan", async () => {
       await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
       await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
 
-      // This is needed because onBehalfOf is alice but the caller is bob
-      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenA.address, bob.address, true);
-      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
-
-      // Alice needs to have collateral to borrow against in mode 1
-      // Give Alice some underlying tokens and let her supply as collateral
+      // Alice needs to have collateral to borrow against
       await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
       await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
       await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("1000", 18));
@@ -429,81 +568,122 @@ describe("FlashLoan", async () => {
       // Enter markets for Alice so she can borrow
       await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
 
-      // Make small borrows to establish Alice as a borrower (much smaller amounts)
-      await vTokenA.connect(alice).borrow(parseUnits("1", 18)); // Very small borrow
-      await vTokenB.connect(alice).borrow(parseUnits("1", 18)); // Very small borrow
+      // Set receiver balance to less than required repayment
+      await underlyingA.harnessSetBalance(borrowDebtReceiver.address, flashLoanAmount1); // No fee
+      await underlyingB.harnessSetBalance(borrowDebtReceiver.address, flashLoanAmount2); // No fee
 
-      // Set balances for vTokens to have liquidity
-      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("100", 18));
-      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("100", 18));
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
 
+      // Calculate expected protocol fees
+      const expectedProtocolFeeA = flashLoanAmount1
+        .mul(totalFeeMantissaTokenA)
+        .mul(protocolShareMantissaTokenA)
+        .div(parseUnits("1", 36));
+      const expectedProtocolFeeB = flashLoanAmount2
+        .mul(totalFeeMantissaTokenB)
+        .mul(protocolShareMantissaTokenB)
+        .div(parseUnits("1", 36));
+
+      // Get protocol share reserve address
+      const protocolShareReserveA = await vTokenA.protocolShareReserve();
+      const protocolShareReserveB = await vTokenB.protocolShareReserve();
+
+      // Get protocol share reserve balances before flash loan
+      const protocolReserveBalanceBeforeA = await underlyingA.balanceOf(protocolShareReserveA);
+      const protocolReserveBalanceBeforeB = await underlyingB.balanceOf(protocolShareReserveB);
       const aliceBorrowBalanceBeforeA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceBeforeB = await vTokenB.borrowBalanceStored(alice.address);
 
-      // Execute flash loan with mode = 1 (debt position) for both assets
-      const tx = await mockReceiverContract.connect(bob).requestFlashLoan(
-        [vTokenA.address, vTokenB.address],
-        [flashLoanAmount1, flashLoanAmount2],
-        mockReceiverContract.address,
-        [1, 1], // Both assets in mode 1
-        alice.address,
-        "0x",
-      );
+      await expect(
+        borrowDebtReceiver
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            borrowDebtReceiver.address,
+            "0x",
+          ),
+      ).to.not.be.reverted;
 
+      // Check that debt position was created for the onBehalf
       const aliceBorrowBalanceAfterA = await vTokenA.borrowBalanceStored(alice.address);
       const aliceBorrowBalanceAfterB = await vTokenB.borrowBalanceStored(alice.address);
 
-      // Calculate expected fees
-      const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
-      const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
-      const totalFeeA = protocolFeeA.add(supplierFeeA);
-
-      const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
-      const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
-      const totalFeeB = protocolFeeB.add(supplierFeeB);
-
-      // Check if debt positions were created for Alice
       expect(aliceBorrowBalanceAfterA).to.be.gt(aliceBorrowBalanceBeforeA);
       expect(aliceBorrowBalanceAfterB).to.be.gt(aliceBorrowBalanceBeforeB);
 
-      // The debt should be approximately the flashloan amount + fees minus minimal repayment
-      const expectedDebtA = flashLoanAmount1.add(totalFeeA);
-      const expectedDebtB = flashLoanAmount2.add(totalFeeB); // minus what receiver could pay
-      const actualDebtA = aliceBorrowBalanceAfterA.sub(aliceBorrowBalanceBeforeA);
-      const actualDebtB = aliceBorrowBalanceAfterB.sub(aliceBorrowBalanceBeforeB);
+      // Check that protocol share reserve received the expected fees
+      const protocolReserveBalanceAfterA = await underlyingA.balanceOf(protocolShareReserveA);
+      const protocolReserveBalanceAfterB = await underlyingB.balanceOf(protocolShareReserveB);
 
-      expect(actualDebtA).to.be.closeTo(expectedDebtA, parseUnits("0.1", 18));
-      expect(actualDebtB).to.be.closeTo(expectedDebtB, parseUnits("0.1", 18));
+      expect(protocolReserveBalanceAfterA).to.equal(protocolReserveBalanceBeforeA.add(expectedProtocolFeeA));
+      expect(protocolReserveBalanceAfterB).to.equal(protocolReserveBalanceBeforeB.add(expectedProtocolFeeB));
 
-      // Should emit FlashLoanExecuted event
-      await expect(tx)
-        .to.emit(comptroller, "FlashLoanExecuted")
-        .withArgs(
-          mockReceiverContract.address,
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-        );
-
-      // Protocol share reserve should be updated for partial fees received
+      // Verify that updateAssetsState was called on protocol share reserve
       expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
         comptroller.address,
         underlyingA.address,
-        2,
+        3, // IProtocolShareReserve.IncomeType.FLASHLOAN
       );
-
       expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
         comptroller.address,
         underlyingB.address,
-        2,
+        3, // IProtocolShareReserve.IncomeType.FLASHLOAN
       );
     });
 
-    it("FlashLoan for multiple underlying with mixed modes (mode = 0 and mode = 1)", async () => {
-      // Enable flashLoan for multiple vTokens
-      await vTokenA._toggleFlashLoan();
-      await vTokenB._toggleFlashLoan();
+    it("User has not enough supply in Venus and repays lesser amount (should revert)", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
 
-      await comptroller.setWhiteListFlashLoanAccount(bob.address, true);
+      // whitelist mockReceiverContract for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(mockReceiverContract.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
+
+      expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
+      expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
+
+      // alice supplies insufficient collateral
+      await underlyingA.harnessSetBalance(alice.address, parseUnits("10", 18));
+      await underlyingB.harnessSetBalance(alice.address, parseUnits("10", 18));
+      await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("10", 18));
+      await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("10", 18));
+      await vTokenA.connect(alice).mint(parseUnits("5", 18));
+      await vTokenB.connect(alice).mint(parseUnits("5", 18));
+      await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
+
+      // Only repay principal, not fee
+      await underlyingA.harnessSetBalance(mockReceiverContract.address, flashLoanAmount1);
+      await underlyingB.harnessSetBalance(mockReceiverContract.address, flashLoanAmount2);
+
+      await expect(
+        mockReceiverContract
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            mockReceiverContract.address,
+            "0x",
+          ),
+      ).to.be.revertedWithCustomError(vTokenA, "InsufficientCash");
+    });
+
+    it("Should revert with NotEnoughRepayment when repayment is less than total fee", async () => {
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+
+      // Deploy the insufficient repayment receiver
+      const InsufficientRepaymentReceiver = await ethers.getContractFactory("InsufficientRepaymentFlashLoanReceiver");
+      const insufficientReceiver = await InsufficientRepaymentReceiver.deploy(comptroller.address);
+
+      // whitelist insufficientReceiver for flashLoan
+      await comptroller.setWhiteListFlashLoanAccount(insufficientReceiver.address, true);
+
+      // set delegate to receiver contract to allow flashloan onBehalfOf from alice
+      await comptroller.connect(alice).updateDelegate(insufficientReceiver.address, true);
 
       // Set collateral factors for the markets
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
@@ -522,110 +702,35 @@ describe("FlashLoan", async () => {
         [vTokenA.address, vTokenB.address],
         [parseUnits("100000", 18), parseUnits("100000", 18)],
       );
-      await comptroller._setMarketSupplyCaps(
-        [vTokenA.address, vTokenB.address],
-        [parseUnits("100000", 18), parseUnits("100000", 18)],
-      );
 
       await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
       await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
 
-      // Set delegation authorization (only needed for mode = 1)
-      await comptroller.connect(alice).setDelegateAuthorizationFlashloan(vTokenB.address, bob.address, true);
-
-      // Alice needs collateral to borrow against in mode 1 (for tokenB only)
-      await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
-      await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
-      await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("1000", 18));
-      await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("1000", 18));
-      await vTokenA.connect(alice).mint(parseUnits("500", 18)); // Alice supplies collateral
-      await vTokenB.connect(alice).mint(parseUnits("500", 18)); // Alice supplies collateral
-
-      // Enter markets for Alice
-      await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
-
-      // Make small borrow in tokenB to establish Alice as a borrower (needed for mode = 1)
-      await vTokenB.connect(alice).borrow(parseUnits("1", 18));
-
-      // Set balances for vTokens to have liquidity
-      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("100", 18));
-      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("100", 18));
-
-      // Set mockReceiver balance to cover mode = 0 repayment for tokenA
-      const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
-      const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
-      const totalFeeA = protocolFeeA.add(supplierFeeA);
-      const requiredRepaymentA = flashLoanAmount1.add(totalFeeA);
-
-      await underlyingA.harnessSetBalance(mockReceiverContract.address, requiredRepaymentA.add(parseUnits("1", 18)));
-
-      // TokenB (mode = 1): receiver has insufficient balance to force debt creation
-      await underlyingB.harnessSetBalance(mockReceiverContract.address, parseUnits("0", 18));
-
-      // Get balances before flash loan
-      const beforeBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
-      const beforeBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
-      const psrABalanceBefore = await underlyingA.balanceOf(protocolShareReserveMock.address);
-      const aliceBorrowBalanceBeforeA = await vTokenA.borrowBalanceStored(alice.address);
-      const aliceBorrowBalanceBeforeB = await vTokenB.borrowBalanceStored(alice.address);
-
-      // Execute flash loan with mixed modes
-      const tx = await mockReceiverContract.connect(bob).requestFlashLoan(
-        [vTokenA.address, vTokenB.address],
-        [flashLoanAmount1, flashLoanAmount2],
-        mockReceiverContract.address,
-        [0, 1], // TokenA: mode 0 (classic), TokenB: mode 1 (debt position)
-        alice.address,
-        "0x",
-      );
-
-      // Get balances after flash loan
-      const afterBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
-      const afterBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
-      const aliceBorrowBalanceAfterA = await vTokenA.borrowBalanceStored(alice.address);
-      const aliceBorrowBalanceAfterB = await vTokenB.borrowBalanceStored(alice.address);
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
+      await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
 
       // Calculate expected fees
-      const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
-      const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
-      const totalFeeB = protocolFeeB.add(supplierFeeB);
+      const expectedFeeA = flashLoanAmount1.mul(totalFeeMantissaTokenA).div(parseUnits("1", 18));
+      const expectedFeeB = flashLoanAmount2.mul(totalFeeMantissaTokenB).div(parseUnits("1", 18));
 
-      // Verify TokenA (mode = 0) behavior - classic flash loan
-      expect(aliceBorrowBalanceAfterA).to.equal(aliceBorrowBalanceBeforeA); // No debt created for Alice in tokenA
-      expect(afterBalanceVTokenA).to.equal(beforeBalanceVTokenA.add(supplierFeeA)); // vToken keeps supplier fee
-      expect(await underlyingA.balanceOf(protocolShareReserveMock.address)).to.equal(
-        psrABalanceBefore.add(protocolFeeA),
-      ); // PSR receives protocol fee
+      // Give the receiver exactly half of each fee (insufficient)
+      const amountA = expectedFeeA;
+      const amountB = expectedFeeB;
 
-      // Verify TokenB (mode = 1) behavior - debt position created
-      expect(aliceBorrowBalanceAfterB).to.be.gt(aliceBorrowBalanceBeforeB); // Debt was created for Alice in tokenB
+      await underlyingA.harnessSetBalance(insufficientReceiver.address, amountA);
+      await underlyingB.harnessSetBalance(insufficientReceiver.address, amountB);
 
-      const expectedDebtIncreaseB = flashLoanAmount2.add(totalFeeB); // Full amount becomes debt since no repayment
-      const actualDebtIncreaseB = aliceBorrowBalanceAfterB.sub(aliceBorrowBalanceBeforeB);
-      expect(actualDebtIncreaseB).to.be.closeTo(expectedDebtIncreaseB, parseUnits("0.01", 18));
-
-      // ADJUSTED: Use a wider tolerance since there might be interest accrual or other factors
-      const actualVTokenBDecrease = beforeBalanceVTokenB.sub(afterBalanceVTokenB);
-      const expectedVTokenBDecrease = flashLoanAmount2.add(totalFeeB);
-
-      // Use a much wider tolerance to accommodate for any interest accrual or rounding
-      expect(actualVTokenBDecrease).to.be.closeTo(expectedVTokenBDecrease, parseUnits("10", 18));
-
-      // Should emit FlashLoanExecuted event
-      await expect(tx)
-        .to.emit(comptroller, "FlashLoanExecuted")
-        .withArgs(
-          mockReceiverContract.address,
-          [vTokenA.address, vTokenB.address],
-          [flashLoanAmount1, flashLoanAmount2],
-        );
-
-      // Protocol share reserve should be updated for tokenA (mode 0)
-      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
-        comptroller.address,
-        underlyingA.address,
-        2, // FLASHLOAN income type
-      );
+      // Execute the flashLoan - should revert with NotEnoughRepayment
+      await expect(
+        insufficientReceiver
+          .connect(alice)
+          .requestFlashLoan(
+            [vTokenA.address, vTokenB.address],
+            [flashLoanAmount1, flashLoanAmount2],
+            insufficientReceiver.address,
+            "0x",
+          ),
+      ).to.be.revertedWithCustomError(comptroller, "NotEnoughRepayment");
     });
   });
 });

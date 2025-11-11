@@ -129,7 +129,7 @@ contract VBep20Harness is VBep20Immutable {
     }
 
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
-        return borrowFresh(account, account, borrowAmount);
+        return borrowFresh(account, account, borrowAmount, true);
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
@@ -245,10 +245,7 @@ abstract contract VBep20DelegatorScenario is VBep20Delegator {
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData,
-        bool flashLoanEnabled_,
-        uint256 flashLoanProtocolFeeMantissa_,
-        uint256 flashLoanSupplierFeeMantissa_
+        bytes memory becomeImplementationData
     )
         VBep20Delegator(
             underlying_,
@@ -260,10 +257,7 @@ abstract contract VBep20DelegatorScenario is VBep20Delegator {
             decimals_,
             admin_,
             implementation_,
-            becomeImplementationData,
-            flashLoanEnabled_,
-            flashLoanProtocolFeeMantissa_,
-            flashLoanSupplierFeeMantissa_
+            becomeImplementationData
         )
     {}
 
@@ -385,7 +379,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
     }
 
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
-        return borrowFresh(account, account, borrowAmount);
+        return borrowFresh(account, account, borrowAmount, true);
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {

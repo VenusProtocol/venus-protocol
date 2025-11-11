@@ -161,6 +161,25 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedFlashLoan",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "borrowCapGuardian",
       "outputs": [
@@ -385,6 +404,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "flashLoanPaused",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -526,19 +558,6 @@
     },
     {
       "inputs": [],
-      "name": "oldLiquidationIncentiveMantissa",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "oracle",
       "outputs": [
         {
@@ -603,6 +622,16 @@
           "internalType": "string",
           "name": "label",
           "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "allowCorePoolFallback",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -1047,6 +1076,9 @@
       "authorizedFlashLoan(address)": {
         "notice": "Mapping of accounts authorized to execute flash loans"
       },
+      "authorizedFlashLoan(address)": {
+        "notice": "Mapping of accounts authorized to execute flash loans"
+      },
       "borrowCapGuardian()": {
         "notice": "The borrowCapGuardian can set borrowCaps to any number for any market. Lowering the borrow cap could disable borrowing on the given market."
       },
@@ -1077,6 +1109,9 @@
       "facets()": {
         "notice": "Get all facets address and their function selector"
       },
+      "flashLoanPaused()": {
+        "notice": "Whether flash loans are paused system-wide"
+      },
       "isForcedLiquidationEnabled(address)": {
         "notice": "Whether forced liquidation is enabled for all users borrowing in a certain market"
       },
@@ -1097,9 +1132,6 @@
       },
       "mintedVAIs(address)": {
         "notice": "The minted VAI amount to each user"
-      },
-      "oldLiquidationIncentiveMantissa()": {
-        "notice": "Multiplier representing the discount on collateral that a liquidator receives (deprecated)"
       },
       "oracle()": {
         "notice": "Oracle which gives the price of any given asset"
@@ -1135,7 +1167,7 @@
         "notice": "Fee percent of accrued interest with decimal 18"
       },
       "userPoolId(address)": {
-        "notice": "Tracks the selected pool for each user."
+        "notice": "Tracks the selected pool for each user"
       },
       "vaiController()": {
         "notice": "The Address of VAIController"
@@ -1224,7 +1256,7 @@
       {
         "astId": 4709,
         "contract": "contracts/Comptroller/Diamond/Diamond.sol:Diamond",
-        "label": "oldLiquidationIncentiveMantissa",
+        "label": "_oldLiquidationIncentiveMantissa",
         "offset": 0,
         "slot": "6",
         "type": "t_uint256"
@@ -1997,9 +2029,25 @@
             "offset": 0,
             "slot": "1",
             "type": "t_array(t_address)dyn_storage"
+          },
+          {
+            "astId": 2019,
+            "contract": "contracts/Comptroller/Diamond/Diamond.sol:Diamond",
+            "label": "isActive",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_bool"
+          },
+          {
+            "astId": 2022,
+            "contract": "contracts/Comptroller/Diamond/Diamond.sol:Diamond",
+            "label": "allowCorePoolFallback",
+            "offset": 1,
+            "slot": "2",
+            "type": "t_bool"
           }
         ],
-        "numberOfBytes": "64"
+        "numberOfBytes": "96"
       },
       "t_struct(VenusMarketState)4785_storage": {
         "encoding": "inplace",

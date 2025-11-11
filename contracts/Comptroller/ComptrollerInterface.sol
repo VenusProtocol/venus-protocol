@@ -47,12 +47,10 @@ interface ComptrollerInterface {
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
     function executeFlashLoan(
-        address payable initiator,
+        address payable onBehalf,
         address payable receiver,
-        VToken[] calldata assets,
-        uint256[] calldata amounts,
-        uint256[] calldata modes,
-        address onBehalfOf,
+        VToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
         bytes calldata param
     ) external;
 
@@ -149,7 +147,7 @@ interface ComptrollerInterface {
 
     function getXVSAddress() external view returns (address);
 
-    function markets(address) external view returns (bool, uint, bool, uint, uint);
+    function markets(address) external view returns (bool, uint, bool, uint, uint, uint96, bool);
 
     function oracle() external view returns (ResilientOracleInterface);
 
@@ -182,8 +180,6 @@ interface ComptrollerInterface {
     function approvedDelegates(address borrower, address delegate) external view returns (bool);
 
     function vaiController() external view returns (VAIControllerInterface);
-
-    function oldLiquidationIncentiveMantissa() external view returns (uint);
 
     function protocolPaused() external view returns (bool);
 
@@ -233,7 +229,11 @@ interface ComptrollerInterface {
 
     function lastPoolId() external view returns (uint96);
 
-    function pools(uint96 poolId) external view returns (string memory label);
+    function corePoolId() external pure returns (uint96);
+
+    function pools(
+        uint96 poolId
+    ) external view returns (string memory label, bool isActive, bool allowCorePoolFallback);
 
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
 
@@ -248,10 +248,12 @@ interface ComptrollerInterface {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 maxLiquidationIncentiveMantissa,
+            uint256 liquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );
+
+    function isFlashLoanPaused() external view returns (bool);
 }
 
 interface IVAIVault {
@@ -259,8 +261,6 @@ interface IVAIVault {
 }
 
 interface IComptroller {
-    function liquidationIncentiveMantissa() external view returns (uint);
-
     /*** Treasury Data ***/
     function treasuryAddress() external view returns (address);
 

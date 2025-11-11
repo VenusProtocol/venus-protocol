@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 import { FlashLoanReceiverBase } from "./FlashLoanReceiverBase.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
-import { IERC20NonStandard } from "../Tokens/IERC20NonStandard.sol";
+import { IERC20NonStandard } from "../Tokens/test/IERC20NonStandard.sol";
 
 /// @title MockFlashLoanReceiver
 /// @notice A mock implementation of a flashLoan receiver contract that interacts with the Comptroller to request and handle flash loans.
@@ -28,12 +28,10 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         VToken[] calldata assets,
         uint256[] calldata amounts,
         address payable receiver,
-        uint256[] calldata modes,
-        address onBehalfOf,
         bytes calldata param
     ) external {
         // Request the flashLoan from the Comptroller contract
-        COMPTROLLER.executeFlashLoan(payable(msg.sender), receiver, assets, amounts, modes, onBehalfOf, param);
+        COMPTROLLER.executeFlashLoan(payable(msg.sender), receiver, assets, amounts, param);
     }
 
     /**
@@ -44,6 +42,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
      * @param amounts The amounts of each asset borrowed.
      * @param premiums The fees for each flash-borrowed asset.
      * @param initiator The address that initiated the flash loan.
+     * @param onBehalf The address of the user whose debt position will be used for the flashLoan.
      * @param param Additional encoded parameters passed with the flash loan.
      * @return True if the operation succeeds and the debt plus premium is repaid, false otherwise.
      */
@@ -52,26 +51,32 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         uint256[] calldata amounts,
         uint256[] calldata premiums,
         address initiator,
+        address onBehalf,
         bytes calldata param
-    ) external virtual returns (bool) {
+    ) external virtual returns (bool, uint256[] memory) {
         // 👇 Your custom logic for the flash loan should be implemented here 👇
         /** YOUR CUSTOM LOGIC HERE */
         initiator;
+        onBehalf;
         param;
         // 👆 Your custom logic for the flash loan should be implemented above here 👆
 
-        // Calculate the total repayment amount (loan amount + premium) for each borrowed asset
+        uint256[] memory approvedTokens = _approveRepayments(assets, amounts, premiums);
+        return (true, approvedTokens);
+    }
+
+    function _approveRepayments(
+        VToken[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums
+    ) private returns (uint256[] memory) {
         uint256 len = assets.length;
-        for (uint256 k; k < len; ) {
+        uint256[] memory approvedTokens = new uint256[](len);
+        for (uint256 k = 0; k < len; ++k) {
             uint256 total = amounts[k] + premiums[k];
-
-            // Transfer the repayment (amount + premium) back to the VToken contract
             IERC20NonStandard(assets[k].underlying()).approve(address(assets[k]), total);
-
-            ++k;
+            approvedTokens[k] = total;
         }
-
-        // Return true to indicate successful execution of the flash loan operation
-        return true;
+        return approvedTokens;
     }
 }

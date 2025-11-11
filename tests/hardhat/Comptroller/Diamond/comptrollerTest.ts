@@ -1055,8 +1055,8 @@ describe("Comptroller", () => {
         const newPoolId = currentLastPoolId.add(1);
         expect(await comptroller.lastPoolId()).to.equal(newPoolId);
 
-        const poolLabel = await comptroller.pools(newPoolId);
-        expect(poolLabel).to.equal(newLabel);
+        const poolData = await comptroller.pools(newPoolId);
+        expect(poolData.label).to.equal(newLabel);
 
         await expect(tx).to.emit(comptroller, "PoolCreated").withArgs(newPoolId, newLabel);
 
@@ -1075,7 +1075,7 @@ describe("Comptroller", () => {
       it("reverts if trying to add to core pool (poolId 0)", async () => {
         await expect(comptroller.addPoolMarkets([corePoolId], [vToken.address])).to.be.revertedWithCustomError(
           comptroller,
-          "CorePoolModificationNotAllowed",
+          "InvalidOperationForCorePool",
         );
       });
 
@@ -1140,7 +1140,7 @@ describe("Comptroller", () => {
       it("should update borrowAllowed and emits event", async () => {
         await expect(comptroller.setIsBorrowAllowed(poolId, vToken.address, true))
           .to.emit(comptroller, "BorrowAllowedUpdated")
-          .withArgs(poolId, vToken.address, true);
+          .withArgs(poolId, vToken.address, false, true);
 
         let [, , , , , , isBorrowAllowed] = await comptroller.poolMarkets(poolId, vToken.address);
         expect(isBorrowAllowed).to.be.true;
@@ -1391,12 +1391,95 @@ describe("Comptroller", () => {
         expect(cf).to.equal(defaultCF);
         expect(lt).to.equal(defaultLT);
 
-        // Remove market from pool → fallback to core pool params
-        await comptroller.removePoolMarket(poolId, vToken.address);
+        // set e-mode pool isActive to false → fallback to core pool params
+        await comptroller.setPoolActive(poolId, false);
         cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
         lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
         expect(cf).to.equal(coreCF);
         expect(lt).to.equal(coreLT);
+
+        // set e-mode pool isActive to true → effective params should update to pool defaults
+        await comptroller.setPoolActive(poolId, true);
+        cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        expect(cf).to.equal(defaultCF);
+        expect(lt).to.equal(defaultLT);
+      });
+    });
+
+    describe("setAllowCorePoolFallback", () => {
+      it("should update the AllowCorePoolFallback", async () => {
+        await expect(comptroller.setAllowCorePoolFallback(poolId, true))
+          .to.emit(comptroller, "PoolFallbackStatusUpdated")
+          .withArgs(poolId, false, true);
+
+        const pool = await comptroller.pools(poolId);
+        expect(pool.allowCorePoolFallback).to.equal(true);
+      });
+
+      it("should use risk factors as zero if market not configured in the pool", async () => {
+        await comptroller.removePoolMarket(poolId, vToken.address);
+        await comptroller.enterPool(poolId);
+        const cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        const lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        expect(cf).to.equal(0);
+        expect(lt).to.equal(0);
+      });
+
+      it("should use core pool risk factors if market not configured in the pool and allowCorePoolFallback is true", async () => {
+        await comptroller.setAllowCorePoolFallback(poolId, true);
+        await comptroller.removePoolMarket(poolId, vToken.address);
+        await comptroller.enterPool(poolId);
+        const cf = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 0);
+        const lt = await comptroller.getEffectiveLtvFactor(root.getAddress(), vToken.address, 1);
+        expect(cf).to.equal(coreCF);
+        expect(lt).to.equal(coreLT);
+      });
+    });
+
+    describe("Pool isActive Status", () => {
+      it("reverts if pool does not exist", async () => {
+        await expect(comptroller.setPoolActive(poolId + 1, false))
+          .to.be.revertedWithCustomError(comptroller, "PoolDoesNotExist")
+          .withArgs(poolId + 1);
+      });
+
+      it("reverts if tries to set for core pool", async () => {
+        await expect(comptroller.setPoolActive(corePoolId, false)).to.be.revertedWithCustomError(
+          comptroller,
+          "InvalidOperationForCorePool",
+        );
+      });
+
+      it("should return silenty if isActive is already set to desired value", async () => {
+        await comptroller.setPoolActive(poolId, true);
+        await expect(comptroller.setPoolActive(poolId, true)).to.not.emit(comptroller, "BorrowAllowedUpdated");
+      });
+
+      it("should update isActive and emits event", async () => {
+        await expect(comptroller.setPoolActive(poolId, false))
+          .to.emit(comptroller, "PoolActiveStatusUpdated")
+          .withArgs(poolId, true, false);
+
+        let [, isActive] = await comptroller.pools(poolId);
+        expect(isActive).to.be.false;
+
+        // swtitch to false
+        await comptroller.setPoolActive(poolId, true);
+        [, isActive] = await comptroller.pools(poolId);
+        expect(isActive).to.be.true;
+      });
+    });
+
+    describe("setPoolLabel", () => {
+      it("should update the pool label", async () => {
+        const newPoolLabel = "stablecoins e-mode";
+        await expect(comptroller.setPoolLabel(poolId, newPoolLabel))
+          .to.emit(comptroller, "PoolLabelUpdated")
+          .withArgs(poolId, "e-mode", newPoolLabel);
+
+        const pool = await comptroller.pools(poolId);
+        expect(pool.label).to.equal(newPoolLabel);
       });
     });
 
