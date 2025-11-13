@@ -145,6 +145,7 @@ describe("Comptroller: assetListTest", () => {
 
     const receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
     expect(receipt).to.emit(unitroller, "MarketUnlisted");
+    expect(receipt).to.emit(unitroller, "PoolMarketRemoved");
 
     const expectedError_ = expectedError || Error.NO_ERROR;
     expect(reply).to.equal(expectedError_);
@@ -325,6 +326,10 @@ describe("Comptroller: assetListTest", () => {
           ],
           true,
         );
+
+      const newLabel = "test-pool";
+      await comptroller.createPool(newLabel);
+      await comptroller.addPoolMarkets([1], [OMG.address]);
 
       await unlistAndCheckMarket(OMG, [BAT, ZRX], [OMG, BAT, ZRX]);
     });
