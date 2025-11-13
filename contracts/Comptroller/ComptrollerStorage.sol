@@ -328,7 +328,9 @@ contract ComptrollerV18Storage is ComptrollerV17Storage {
 
     /// @notice Whether flash loans are paused system-wide
     bool public flashLoanPaused;
-    
+}
+
+contract ComptrollerV19Storage is ComptrollerV18Storage {
     /// @notice The LiquidationManager contract address
     LiquidationManager public liquidationManager;
 }
