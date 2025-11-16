@@ -143,9 +143,15 @@ describe("Comptroller: assetListTest", () => {
   ) {
     const reply = await comptroller.connect(customer).callStatic.unlistMarket(unlistToken.address);
 
+    let poolVTokens = await comptroller.getPoolVTokens(1);
+    expect(poolVTokens).to.include(unlistToken.address);
+
     const receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
     expect(receipt).to.emit(unitroller, "MarketUnlisted");
     expect(receipt).to.emit(unitroller, "PoolMarketRemoved");
+
+    poolVTokens = await comptroller.getPoolVTokens(1);
+    expect(poolVTokens).to.not.include(unlistToken.address);
 
     const expectedError_ = expectedError || Error.NO_ERROR;
     expect(reply).to.equal(expectedError_);

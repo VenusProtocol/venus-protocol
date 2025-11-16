@@ -216,18 +216,14 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         require(_market.collateralFactorMantissa == 0, "collateral factor is not 0");
 
-        _market.isListed = false;
-
         for (uint96 i = lastPoolId; i > corePoolId; i--) {
-            address[] memory markets = getPoolVTokens(uint96(i));
-
-            for (uint256 j = 0; j < markets.length; j++) {
-                if (markets[j] == market) {
-                    _removePoolMarket(i, market);
-                    break;
-                }
+            PoolMarketId index = getPoolMarketIndex(i, market);
+            if (_poolMarkets[index].isListed) {
+                _removePoolMarket(i, market);
             }
         }
+
+        _market.isListed = false;
 
         emit MarketUnlisted(market);
 
