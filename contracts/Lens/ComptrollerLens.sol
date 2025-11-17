@@ -404,11 +404,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      */
     function _finalizeSnapshot(AccountSnapshot memory snapshot) internal pure {
         if (snapshot.totalCollateral > 0) {
-            snapshot.liquidationThresholdAvg = div_(snapshot.weightedCollateral, snapshot.totalCollateral);
+            snapshot.liquidationThresholdAvg = div_(snapshot.weightedCollateral * 10, snapshot.totalCollateral);
         }
 
         if (snapshot.borrows > 0) {
-            snapshot.healthFactor = div_(snapshot.weightedCollateral, snapshot.borrows);
+            snapshot.healthFactor = div_(snapshot.weightedCollateral * 10, snapshot.borrows);
         } else {
             snapshot.healthFactor = type(uint256).max;
         }
