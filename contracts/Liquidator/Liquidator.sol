@@ -399,7 +399,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 totalIncentive
     ) internal returns (uint256 ours, uint256 theirs) {
         (ours, theirs) = _splitLiquidationIncentive(seizedAmount, totalIncentive);
-        // (ours, theirs) = _splitLiquidationIncentive(borrower, address(vTokenCollateral), seizedAmount);
+
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }

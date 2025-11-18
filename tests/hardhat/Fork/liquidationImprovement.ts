@@ -123,12 +123,13 @@ const addresses = {
     USDT_HOLDER: "0xF977814e90dA44bFA03b6295A0616a897441aceC",
     ACCESS_CONTROL_MANAGER: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
     LIQUIDATOR: "0x0870793286aada55d39ce7f82fb2766e8004cf43", // existing on-chain Liquidator
+    PSR: "0xCa01D5A9A248a830E9D93231e791B1afFed7c446", // Protocol Share Reserve
   },
 };
 
 const FORK_BLOCK = 68034344;
 
-describe("Fork - Liquidator (Liquidator.sol) uses dynamic closeFactor & incentive", function () {
+describe("Dynamic Liquidation Mechanism", function () {
   this.timeout(180000);
 
   forking(FORK_BLOCK, () => {
@@ -148,7 +149,6 @@ describe("Fork - Liquidator (Liquidator.sol) uses dynamic closeFactor & incentiv
       timelock = await initMainnetUser(addresses.bscmainnet.TIMELOCK, parseEther("1"));
 
       // upgrade comptroller to new Diamond implementation (same pattern used elsewhere)
-
       comptroller = await upgradeComptroller();
 
       // Deploy LiquidationManager and set it on comptroller
@@ -218,7 +218,6 @@ describe("Fork - Liquidator (Liquidator.sol) uses dynamic closeFactor & incentiv
           [VETH.address, vUSDT.address],
           [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
         );
-      await comptroller.connect(timelock)._setForcedLiquidation(VETH.address, true);
 
       // set market max liquidation incentive to allow manager capping
       await comptroller
@@ -305,15 +304,22 @@ describe("Fork - Liquidator (Liquidator.sol) uses dynamic closeFactor & incentiv
       // execute liquidation using on-chain Liquidator contract; caller is executor
       await mine(30000);
 
+      const executorVUSDTBalanceBefore = await vUSDT.callStatic.balanceOf(executor.address);
+      const psrUSDTBalanceBefore = await usdt.callStatic.balanceOf(addresses.bscmainnet.PSR);
+
       await liquidatorOnChain
         .connect(executor)
         .liquidateBorrow(VETH.address, borrower.address, repayAmount, vUSDT.address);
       // balances after
       const borrowerCollateralAfter = await vUSDT.callStatic.balanceOf(borrower.address);
+      const executorVUSDTBalanceAfter = await vUSDT.callStatic.balanceOf(executor.address);
+      const psrUSDTBalanceAfter = await usdt.callStatic.balanceOf(addresses.bscmainnet.PSR);
 
       const actualSeized = borrowerCollateralBefore.sub(borrowerCollateralAfter);
       // actual seized should approximately equal comptroller's calculation
       expect(actualSeized).to.be.closeTo(totalSeized, 2);
+      expect(executorVUSDTBalanceAfter).to.be.gt(executorVUSDTBalanceBefore);
+      expect(psrUSDTBalanceAfter).to.be.gt(psrUSDTBalanceBefore);
 
       const markets = await comptroller["markets(address)"](vUSDT.address);
       const dynamicIncentive = await comptroller["getDynamicLiquidationIncentive(address,address)"](
@@ -345,6 +351,71 @@ describe("Fork - Liquidator (Liquidator.sol) uses dynamic closeFactor & incentiv
 
       expect(dynamicCloseFactor.toString()).to.be.lte(parseUnits("1", 18));
       expect(dynamicCloseFactor.toString()).to.be.gte(parseUnits("0.01", 18));
+    });
+
+    it("cannot be liquidated after previous liquidation (account is healthy)", async () => {
+      const repayAmount = parseUnits("1", 16);
+
+      // double-check via liquidateBorrowAllowed (non-zero = not allowed)
+      const allowedCode = await comptroller.callStatic[
+        "liquidateBorrowAllowed(address,address,address,address,uint256)"
+      ](VETH.address, vUSDT.address, executor.address, borrower.address, repayAmount);
+      expect(allowedCode).to.not.equal(0);
+
+      // attempting to execute through the on-chain Liquidator should revert
+      await expect(
+        liquidatorOnChain.connect(executor).liquidateBorrow(VETH.address, borrower.address, repayAmount, vUSDT.address),
+      ).to.be.revertedWithCustomError(liquidatorOnChain, "LiquidationFailed");
+    });
+
+    it("LiquidationManager: returns market max when dynamic incentive disabled", async () => {
+      // disable dynamic incentive for market
+      await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, false);
+
+      const maxIncentive = parseUnits("1.15", 18);
+      const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
+      const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
+        borrower.address,
+        ethers.constants.AddressZero,
+        0,
+        borrowBalance,
+        1,
+      );
+
+      // verify dynamic close factor is sane
+      const incentive = await liquidationManager.calculateDynamicLiquidationIncentive(
+        vUSDT.address,
+        snapshot.healthFactor,
+        snapshot.liquidationThresholdAvg,
+        maxIncentive,
+      );
+
+      expect(ethers.BigNumber.from(incentive).eq(maxIncentive)).to.be.true;
+    });
+
+    it("LiquidationManager: computes dynamic incentive = max (no cap) (account is healthy)", async () => {
+      await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, true);
+
+      const maxIncentive = parseUnits("1.15", 18);
+      const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
+      const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
+        borrower.address,
+        ethers.constants.AddressZero,
+        0,
+        borrowBalance,
+        1,
+      );
+
+      // verify dynamic close factor is sane
+      const incentive = await liquidationManager.calculateDynamicLiquidationIncentive(
+        vUSDT.address,
+        snapshot.healthFactor,
+        snapshot.liquidationThresholdAvg,
+        maxIncentive,
+      );
+
+      // incentive should be equal to maxIncentive as account is healthy
+      expect(ethers.BigNumber.from(incentive).eq(maxIncentive)).to.be.true;
     });
   });
 });

@@ -123,7 +123,7 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
     /**
      * @notice Calculate the close factor for a liquidation
      * @param borrowBalance The borrow balance of the borrower
-     * @param wtAvg The weighted average of the collateral
+     * @param wtAvgMantissa The weighted average mantissa of the collateral
      * @param totalCollateral The total collateral available for liquidation
      * @param dynamicLiquidationIncentive The dynamic liquidation incentive, scaled by 1e18
      * @param maxLiquidationIncentive The maximum liquidation incentive allowed
@@ -132,7 +132,7 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
     function calculateDynamicCloseFactor(
         address market,
         uint256 borrowBalance,
-        uint256 wtAvg,
+        uint256 wtAvgMantissa,
         uint256 totalCollateral,
         uint256 dynamicLiquidationIncentive,
         uint256 maxLiquidationIncentive
@@ -142,6 +142,7 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
             return defaultCloseFactorMantissa;
         }
 
+        uint256 wtAvg = wtAvgMantissa / 1e18;
         if (dynamicLiquidationIncentive == maxLiquidationIncentive) {
             // Prevent underflow
             if (wtAvg * totalCollateral > borrowBalance * mantissaOne) {
