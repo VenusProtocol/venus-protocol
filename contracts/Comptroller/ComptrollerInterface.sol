@@ -44,6 +44,14 @@ interface ComptrollerInterface {
 
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
+    function executeFlashLoan(
+        address payable onBehalf,
+        address payable receiver,
+        VToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
+        bytes calldata param
+    ) external;
+
     function repayBorrowAllowed(
         address vToken,
         address payer,
@@ -160,6 +168,8 @@ interface ComptrollerInterface {
 
     function vaiMintRate() external view returns (uint);
 
+    function authorizedFlashLoan(address account) external view returns (bool);
+
     function userPoolId(address account) external view returns (uint96);
 
     function getLiquidationIncentive(address vToken) external view returns (uint256);
@@ -197,6 +207,8 @@ interface ComptrollerInterface {
             uint96 marketPoolId,
             bool isBorrowAllowed
         );
+
+    function isFlashLoanPaused() external view returns (bool);
 }
 
 interface IVAIVault {

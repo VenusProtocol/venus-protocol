@@ -106,6 +106,7 @@
     "provenance": true
   },
   "resolutions": {
-    "hardhat": "2.22.18"
+    "hardhat": "2.22.18",
+    "@defi-wonderland/smock": "2.4.0"
   }
 }

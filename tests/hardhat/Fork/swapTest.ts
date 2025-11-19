@@ -89,6 +89,9 @@ async function configureVtoken(underlyingToken: FaucetToken | VBep20Immutable, n
     symbol,
     18,
     admin.address,
+    false,
+    0,
+    0,
   );
   await vToken.deployed();
   return vToken;

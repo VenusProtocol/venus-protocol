@@ -10,7 +10,7 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerV18Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
 
@@ -19,7 +19,7 @@ import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, ComptrollerErrorReporter {
+contract FacetBase is IFacetBase, ComptrollerV18Storage, ExponentialNoError, ComptrollerErrorReporter {
     using SafeERC20 for IERC20;
 
     /// @notice The initial Venus index for a market
