@@ -130,7 +130,7 @@ $ yarn hardhat --network <network-name> --export ./deployments/<network-name>.js
 ### Source Code Verification
 
 In order to verify the source code of already deployed contracts, run:
-`npx hardhat etherscan-verify --network <network_name>`
+`npx hardhat verify --network <network-name> <contract-address> <constructor-arg1> <constructor-arg2>`
 
 Make sure you have added `ETHERSCAN_API_KEY` in `.env` file.
 

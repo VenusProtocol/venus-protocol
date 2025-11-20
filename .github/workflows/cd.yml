@@ -40,3 +40,11 @@ jobs:
           GIT_COMMITTER_NAME: Venus Tools
           GIT_COMMITTER_EMAIL: tools@venus.io
         run: yarn semantic-release
+
+      - name: Prepare slim package
+        run: bash .github/prepare_slim_package.sh
+
+      - name: Publish slim package
+        run: bash .github/publish_slim_package.sh
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
