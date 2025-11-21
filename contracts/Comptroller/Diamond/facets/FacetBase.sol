@@ -187,7 +187,13 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
         WeightFunction weightingStrategy
     ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
         return
-            getHypotheticalHealthSnapshotInternal(account, vTokenModify, redeemTokens, borrowAmount, weightingStrategy);
+            _getHypotheticalHealthSnapshotInternal(
+                account,
+                vTokenModify,
+                redeemTokens,
+                borrowAmount,
+                weightingStrategy
+            );
     }
 
     /**
@@ -205,7 +211,7 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
      * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
      *  without calculating accumulated interest.
      */
-    function getHypotheticalHealthSnapshotInternal(
+    function _getHypotheticalHealthSnapshotInternal(
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,

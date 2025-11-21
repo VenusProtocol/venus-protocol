@@ -230,9 +230,22 @@ describe("RepayBorrow Capping Logic Tests", async () => {
       await underlying.connect(liquidator).approve(vToken.address, excessiveLiquidationAmount);
 
       const balanceBefore = await underlying.balanceOf(liquidator.address);
+      // Create a mock AccountSnapshot struct - all values set to 0 for simplicity in test
+      const mockSnapshot = {
+        totalCollateral: 0,
+        weightedCollateral: 0,
+        borrows: 0,
+        liquidity: 0,
+        shortfall: 0,
+        liquidationThresholdAvg: 0,
+        healthFactor: 0,
+        dynamicLiquidationIncentiveMantissa: 0,
+      };
 
       // Attempt liquidation with excessive amount
-      await vToken.connect(liquidator).liquidateBorrow(user.address, excessiveLiquidationAmount, vToken.address);
+      await vToken
+        .connect(liquidator)
+        .liquidateBorrow(user.address, excessiveLiquidationAmount, vToken.address, mockSnapshot);
 
       // Check that liquidation was capped to actual debt
       const balanceAfter = await underlying.balanceOf(liquidator.address);

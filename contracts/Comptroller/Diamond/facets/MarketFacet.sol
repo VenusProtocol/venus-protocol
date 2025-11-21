@@ -494,13 +494,16 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address vToken
     ) external view returns (uint256 incentive) {
         Market storage market = getCorePoolMarket(vToken);
-        (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) = getHypotheticalHealthSnapshotInternal(
-            borrower,
-            VToken(vToken),
-            0,
-            0,
-            WeightFunction.USE_LIQUIDATION_THRESHOLD
-        );
+        (
+            uint256 err,
+            ComptrollerLensInterface.AccountSnapshot memory snapshot
+        ) = _getHypotheticalHealthSnapshotInternal(
+                borrower,
+                VToken(vToken),
+                0,
+                0,
+                WeightFunction.USE_LIQUIDATION_THRESHOLD
+            );
         if (err != uint256(Error.NO_ERROR)) {
             return err;
         }
@@ -633,7 +636,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return collateralFactorMantissa The maximum borrowable percentage of collateral, in mantissa.
      * @return isVenus Whether this market is eligible for XVS rewards.
      * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
-     * @return liquidationIncentiveMantissa The liquidation incentive allowed for this market, in mantissa.
+     * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
      * @return marketPoolId The pool ID this market belongs to.
      * @return isBorrowAllowed Whether borrowing is allowed in this market.
      * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
@@ -649,7 +652,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         )
@@ -784,7 +787,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      *      `allowCorePoolFallback` is enabled, falls back to the core pool (poolId = 0) values.
      * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
      * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
-     * @return liquidationIncentiveMantissa The liquidation incentive allowed for this market, in mantissa.
+     * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
      */
     function getLiquidationParams(
         uint96 poolId,
@@ -795,7 +798,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         returns (
             uint256 collateralFactorMantissa,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa
+            uint256 maxLiquidationIncentiveMantissa
         )
     {
         PoolData storage pool = pools[poolId];
