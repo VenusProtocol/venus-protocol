@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "10.0.0",
+  "version": "10.1.0-dev.7",
   "description": "The Venus Money Market",
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
@@ -59,8 +59,7 @@
     "@matterlabs/hardhat-zksync-verify": "0.7.0",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
-    "@nomicfoundation/hardhat-verify": "^2.0.8",
-    "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.14",
     "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "@semantic-release/changelog": "^6.0.1",
     "@semantic-release/git": "^10.0.1",
@@ -107,6 +106,7 @@
     "provenance": true
   },
   "resolutions": {
-    "hardhat": "2.22.18"
+    "hardhat": "2.22.18",
+    "@defi-wonderland/smock": "2.4.0"
   }
 }
