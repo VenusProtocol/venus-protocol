@@ -280,7 +280,7 @@ const config: HardhatUserConfig = {
         network: "bscmainnet",
         chainId: 56,
         urls: {
-          apiURL: "https://api.bscscan.com/api",
+          apiURL: "https://api.etherscan.io/v2/api?chainid=56",
           browserURL: "https://bscscan.com",
         },
       },
@@ -288,7 +288,7 @@ const config: HardhatUserConfig = {
         network: "bsctestnet",
         chainId: 97,
         urls: {
-          apiURL: "https://api-testnet.bscscan.com/api",
+          apiURL: "https://api.etherscan.io/v2/api?chainid=97",
           browserURL: "https://testnet.bscscan.com",
         },
       },
