@@ -16,7 +16,7 @@ import {
   VBep20,
 } from "../../../typechain";
 import { deployComptrollerWithMarkets } from "../fixtures/ComptrollerWithMarkets";
-import { FORK_MAINNET, around, forking, initMainnetUser, setForkBlock } from "./utils";
+import { FORK_MAINNET, around, forking, initMainnetUser } from "./utils";
 
 const { expect } = chai;
 chai.use(smock.matchers);

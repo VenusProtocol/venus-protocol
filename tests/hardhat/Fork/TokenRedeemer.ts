@@ -255,18 +255,8 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
     let treasury: SignerWithAddress;
 
     beforeEach(async () => {
-      ({
-        redeemer,
-        vToken,
-        underlying,
-        owner,
-        supplier,
-        treasury,
-        vToken2,
-        underlying2,
-        vBNB,
-        borrowers,
-      } = await loadFixture(setup));
+      ({ redeemer, vToken, underlying, owner, supplier, treasury, vToken2, underlying2, vBNB, borrowers } =
+        await loadFixture(setup));
       [someone] = await ethers.getSigners();
     });
 

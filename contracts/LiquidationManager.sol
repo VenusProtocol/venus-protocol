@@ -122,6 +122,7 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
 
     /**
      * @notice Calculate the close factor for a liquidation
+     * @param market The address of the market
      * @param borrowBalance The borrow balance of the borrower
      * @param wtAvgMantissa The weighted average mantissa of the collateral
      * @param totalCollateral The total collateral available for liquidation
@@ -164,6 +165,7 @@ contract LiquidationManager is AccessControlledV8, ExponentialNoError {
 
     /**
      * @notice Calculate the dynamic liquidation incentive based on health factor and average liquidation threshold
+     * @param market The address of the market
      * @param healthFactor The health factor of the borrower
      * @param liquidationThresholdAvg The average liquidation threshold of the collateral
      * @param maxLiquidationIncentiveMantissa The maximum liquidation incentive allowed, scaled by 1e18
