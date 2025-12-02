@@ -3163,11 +3163,8 @@
         "numberOfBytes": "20"
       },
       "t_array(t_uint256)46_storage": {
-      "t_array(t_uint256)46_storage": {
         "base": "t_uint256",
         "encoding": "inplace",
-        "label": "uint256[46]",
-        "numberOfBytes": "1472"
         "label": "uint256[46]",
         "numberOfBytes": "1472"
       },
