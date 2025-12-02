@@ -225,6 +225,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param repayAmount The amount of underlying being repaid
+     * @return 0 if the liquidation is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function liquidateBorrowAllowed(
         address vTokenBorrowed,
@@ -300,6 +301,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param borrower The address of the borrower
      * @param repayAmount The amount of underlying being repaid
      * @param snapshot The account snapshot of the borrower
+     * @return 0 if the liquidation is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function liquidateBorrowAllowed(
         address vTokenBorrowed,

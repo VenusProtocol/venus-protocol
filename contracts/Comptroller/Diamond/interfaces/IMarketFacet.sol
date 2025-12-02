@@ -88,7 +88,7 @@ interface IMarketFacet {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );

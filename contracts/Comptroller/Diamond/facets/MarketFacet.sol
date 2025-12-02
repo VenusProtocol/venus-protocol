@@ -462,11 +462,13 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the liquidation incentive for a borrower
+     * @notice Get the dynamic liquidation incentive for a borrower
+     * @dev Calculates incentive based on provided health factor and liquidation threshold average,
+     *      without reading borrower's account state from storage
      * @param vToken The address of the vToken to be seized
      * @param liquidationThresholdAvg The average liquidation threshold for the borrower
      * @param healthFactor The health factor of the borrower
-     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     * @return incentive The dynamic liquidation incentive for the borrower, scaled by 1e18
      */
     function getDynamicLiquidationIncentive(
         address vToken,
@@ -484,10 +486,12 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the liquidation incentive for a borrower
+     * @notice Get the dynamic liquidation incentive for a borrower
+     * @dev Reads borrower's account state to calculate health factor and liquidation threshold average,
+     *      then computes the dynamic incentive using the liquidation manager
      * @param borrower The address of the borrower
      * @param vToken The address of the vToken to be seized
-     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     * @return incentive The dynamic liquidation incentive for the borrower, scaled by 1e18
      */
     function getDynamicLiquidationIncentive(
         address borrower,

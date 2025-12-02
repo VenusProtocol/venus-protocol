@@ -27,8 +27,8 @@ interface ComptrollerLensInterface {
 
     // Just need to make borrower first then comptroller
     function liquidateCalculateSeizeTokens(
-        address comptroller,
         address borrower,
+        address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint256 actualRepayAmount

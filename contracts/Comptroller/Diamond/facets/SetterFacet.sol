@@ -213,13 +213,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param liquidationManager_ The new liquidation manager address
      */
     function setLiquidationManager(address liquidationManager_) external {
+        ensureAllowed("setLiquidationManager(address)");
         return __setLiquidationManager(liquidationManager_);
     }
 
     /**
-     * @notice Sets the liquidation incentive for a particular market in the core pool only.
-     * @param vToken The market to set the liquidation incentive for
-     * @param newMaxLiquidationIncentive The liquidation incentive, scaled by 1e18
+     * @notice Sets the max liquidation incentive for a particular market in the core pool only.
+     * @param vToken The market to set the max liquidation incentive for
+     * @param newMaxLiquidationIncentive The max liquidation incentive, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function setMarketMaxLiquidationIncentive(
@@ -231,10 +232,10 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Sets the liquidation incentive for a particular market in the specified pool.
+     * @notice Sets the max liquidation incentive for a particular market in the specified pool.
      * @param poolId The ID of the pool.
-     * @param vToken The market to set the liquidation incentive for
-     * @param newMaxLiquidationIncentive The liquidation incentive, scaled by 1e18
+     * @param vToken The market to set the max liquidation incentive for
+     * @param newMaxLiquidationIncentive The max liquidation incentive, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function setMarketMaxLiquidationIncentive(
@@ -626,17 +627,16 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function __setLiquidationManager(
         address liquidationManager_
     ) internal compareAddress(address(liquidationManager), liquidationManager_) {
-        ensureAllowed("setLiquidationManager(address)");
         ensureNonzeroAddress(liquidationManager_);
         emit NewLiquidationManager(liquidationManager, LiquidationManager(liquidationManager_));
         liquidationManager = LiquidationManager(liquidationManager_);
     }
 
     /**
-     * @notice Set the liquidation incentive for a market
+     * @notice Set the max liquidation incentive for a market
      * @param poolId The ID of the pool.
-     * @param vToken The market to set the liquidation incentive for
-     * @param newMaxLiquidationIncentive The new liquidation incentive, scaled by 1e18
+     * @param vToken The market to set the max liquidation incentive for
+     * @param newMaxLiquidationIncentive The new max liquidation incentive, scaled by 1e18
      * @return uint256 0=success, otherwise reverted
      */
     function __setMarketMaxLiquidationIncentive(
@@ -835,7 +835,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @dev Updates the collateral factor. Used by _setCollateralFactor and setCollateralFactor
+     * @dev Updates the collateral factor. Used by setCollateralFactor
      * @param poolId The ID of the pool.
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor to be set

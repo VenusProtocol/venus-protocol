@@ -132,7 +132,7 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Determine what the liquidity would be if the given amounts were redeemed/borrowed on the basis of liquidation threshold
+     * @notice Determine what the liquidity would be if the given amounts were redeemed/borrowed on the basis of collateral factor or liquidation threshold
      * @param account The account to determine liquidity for
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
@@ -165,8 +165,7 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,
-     *          and average liquidation incentive
+     * @notice Get a snapshot of the health of an account
      * @param account The account to get the health snapshot for
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
@@ -197,8 +196,7 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Get a snapshot of the health of an account, including average liquidation threshold, total collateral, health factor, health factor threshold,
-     *          and average liquidation incentive
+     * @notice Internal function to get a snapshot of the health of an account
      * @param account The account to get the health snapshot for
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem

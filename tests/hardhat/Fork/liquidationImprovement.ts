@@ -127,295 +127,303 @@ const addresses = {
   },
 };
 
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
+
 const FORK_BLOCK = 68034344;
 
-describe("Dynamic Liquidation Mechanism", function () {
-  this.timeout(180000);
+if (FORK_MAINNET) {
+  describe("Dynamic Liquidation Mechanism", function () {
+    this.timeout(180000);
 
-  forking(FORK_BLOCK, () => {
-    let timelock: any;
-    let comptroller: any;
-    let VETH: VBep20Delegator;
-    let vUSDT: VBep20Delegator;
-    let eth: any;
-    let usdt: any;
-    let liquidationManager: LiquidationManager;
-    let liquidatorOnChain: LiquidatorContract;
-    let borrower: any;
-    let executor: any; // account that will call liquidator and provide repay funds
+    forking(FORK_BLOCK, () => {
+      let timelock: any;
+      let comptroller: any;
+      let VETH: VBep20Delegator;
+      let vUSDT: VBep20Delegator;
+      let eth: any;
+      let usdt: any;
+      let liquidationManager: LiquidationManager;
+      let liquidatorOnChain: LiquidatorContract;
+      let borrower: any;
+      let executor: any; // account that will call liquidator and provide repay funds
 
-    before(async () => {
-      // impersonate timelock and fund it
-      timelock = await initMainnetUser(addresses.bscmainnet.TIMELOCK, parseEther("1"));
+      before(async () => {
+        // impersonate timelock and fund it
+        timelock = await initMainnetUser(addresses.bscmainnet.TIMELOCK, parseEther("1"));
 
-      // upgrade comptroller to new Diamond implementation (same pattern used elsewhere)
-      comptroller = await upgradeComptroller();
+        // upgrade comptroller to new Diamond implementation (same pattern used elsewhere)
+        comptroller = await upgradeComptroller();
 
-      // Deploy LiquidationManager and set it on comptroller
-      const baseCloseFactorMantissa = parseUnits("0.05", 18); // 5%
-      const defaultCloseFactorMantissa = parseUnits("0.5", 18); // 50%
-      const targetHealthFactor = parseUnits("1.1", 18); // 1.1
+        // Deploy LiquidationManager and set it on comptroller
+        const baseCloseFactorMantissa = parseUnits("0.05", 18); // 5%
+        const defaultCloseFactorMantissa = parseUnits("0.5", 18); // 50%
+        const targetHealthFactor = parseUnits("1.1", 18); // 1.1
 
-      const LMFactory = await ethers.getContractFactory("LiquidationManager");
-      liquidationManager = (await LMFactory.connect(timelock).deploy(
-        baseCloseFactorMantissa,
-        defaultCloseFactorMantissa,
-        targetHealthFactor,
-      )) as LiquidationManager;
-      await liquidationManager.deployed();
-      await liquidationManager.connect(timelock).initialize(addresses.bscmainnet.ACCESS_CONTROL_MANAGER);
+        const LMFactory = await ethers.getContractFactory("LiquidationManager");
+        liquidationManager = (await LMFactory.connect(timelock).deploy(
+          baseCloseFactorMantissa,
+          defaultCloseFactorMantissa,
+          targetHealthFactor,
+        )) as LiquidationManager;
+        await liquidationManager.deployed();
+        await liquidationManager.connect(timelock).initialize(addresses.bscmainnet.ACCESS_CONTROL_MANAGER);
 
-      // Grant timelock permission to set LiquidationManager via ACM and set it
-      const acm = IAccessControlManagerV8__factory.connect(addresses.bscmainnet.ACCESS_CONTROL_MANAGER, timelock);
-      await acm
-        .connect(timelock)
-        .giveCallPermission(
-          addresses.bscmainnet.UNITROLLER,
-          "setLiquidationManager(address)",
-          addresses.bscmainnet.TIMELOCK,
-        );
+        // Grant timelock permission to set LiquidationManager via ACM and set it
+        const acm = IAccessControlManagerV8__factory.connect(addresses.bscmainnet.ACCESS_CONTROL_MANAGER, timelock);
+        await acm
+          .connect(timelock)
+          .giveCallPermission(
+            addresses.bscmainnet.UNITROLLER,
+            "setLiquidationManager(address)",
+            addresses.bscmainnet.TIMELOCK,
+          );
 
-      await acm
-        .connect(timelock)
-        .giveCallPermission(
-          addresses.bscmainnet.UNITROLLER,
-          "setMarketMaxLiquidationIncentive(address,uint256)",
-          addresses.bscmainnet.TIMELOCK,
-        );
+        await acm
+          .connect(timelock)
+          .giveCallPermission(
+            addresses.bscmainnet.UNITROLLER,
+            "setMarketMaxLiquidationIncentive(address,uint256)",
+            addresses.bscmainnet.TIMELOCK,
+          );
 
-      await comptroller.connect(timelock).setLiquidationManager(liquidationManager.address);
+        await comptroller.connect(timelock).setLiquidationManager(liquidationManager.address);
 
-      // Prepare vToken instances and set interest model to zero for determinism
-      VETH = VBep20Delegator__factory.connect(addresses.bscmainnet.VETH, timelock) as VBep20Delegator;
-      vUSDT = VBep20Delegator__factory.connect(addresses.bscmainnet.VUSDT, timelock) as VBep20Delegator;
+        // Prepare vToken instances and set interest model to zero for determinism
+        VETH = VBep20Delegator__factory.connect(addresses.bscmainnet.VETH, timelock) as VBep20Delegator;
+        vUSDT = VBep20Delegator__factory.connect(addresses.bscmainnet.VUSDT, timelock) as VBep20Delegator;
 
-      const vTokenFactory = await ethers.getContractFactory("VBep20Delegate");
-      const vTokenImpl = await vTokenFactory.connect(timelock).deploy();
-      await vTokenImpl.deployed();
-      await (VETH as any).connect(timelock)._setImplementation(vTokenImpl.address, true, "0x00");
-      await (vUSDT as any).connect(timelock)._setImplementation(vTokenImpl.address, true, "0x00");
+        const vTokenFactory = await ethers.getContractFactory("VBep20Delegate");
+        const vTokenImpl = await vTokenFactory.connect(timelock).deploy();
+        await vTokenImpl.deployed();
+        await (VETH as any).connect(timelock)._setImplementation(vTokenImpl.address, true, "0x00");
+        await (vUSDT as any).connect(timelock)._setImplementation(vTokenImpl.address, true, "0x00");
 
-      // zero interest rate model
-      const zeroRateModel = await deployJumpRateModel({
-        baseRatePerYear: 0,
-        multiplierPerYear: 0,
-        jumpMultiplierPerYear: 0,
+        // zero interest rate model
+        const zeroRateModel = await deployJumpRateModel({
+          baseRatePerYear: 0,
+          multiplierPerYear: 0,
+          jumpMultiplierPerYear: 0,
+        });
+
+        await (VETH as any).connect(timelock)._setInterestRateModel(zeroRateModel.address);
+        await (vUSDT as any).connect(timelock)._setInterestRateModel(zeroRateModel.address);
+
+        // set market caps and force liquidation for determinism
+        await comptroller
+          .connect(timelock)
+          ._setMarketSupplyCaps(
+            [VETH.address, vUSDT.address],
+            [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
+          );
+        await comptroller
+          .connect(timelock)
+          ._setMarketBorrowCaps(
+            [VETH.address, vUSDT.address],
+            [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
+          );
+
+        // set market max liquidation incentive to allow manager capping
+        await comptroller
+          .connect(timelock)
+          ["setMarketMaxLiquidationIncentive(address,uint256)"](vUSDT.address, parseUnits("1.15", 18));
+        await comptroller
+          .connect(timelock)
+          ["setMarketMaxLiquidationIncentive(address,uint256)"](VETH.address, parseUnits("1.15", 18));
+
+        await comptroller
+          .connect(timelock)
+          ["setCollateralFactor(address,uint256,uint256)"](vUSDT.address, parseUnits("0.2", 18), parseUnits("0.2", 18));
+
+        // get underlying token contracts
+        eth = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await VETH.underlying());
+        usdt = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await vUSDT.underlying());
+
+        // set up executor (liquidation caller) and borrower
+        const signers = await ethers.getSigners();
+        executor = signers[3];
+        borrower = signers[2];
+
+        // impersonate rich holders and transfer tokens
+        const ethHolder = await initMainnetUser(addresses.bscmainnet.ETH_HOLDER, parseEther("1"));
+        const usdtHolder = await initMainnetUser(addresses.bscmainnet.USDT_HOLDER, parseEther("1"));
+
+        // fund executor with eth and approve the on-chain Liquidator
+        await eth.connect(ethHolder).transfer(executor.address, parseUnits("1000", 18));
+        const liquidatorAddr = addresses.bscmainnet.LIQUIDATOR;
+        await eth.connect(executor).approve(liquidatorAddr, parseUnits("1000", 18));
+
+        // prepare borrower: supply USDT as collateral and borrow eth
+        await usdt.connect(usdtHolder).transfer(borrower.address, parseUnits("500", 18));
+
+        await usdt.connect(borrower).approve(vUSDT.address, parseUnits("500", 18));
+
+        await (vUSDT as any).connect(borrower).mint(parseUnits("500", 18));
+
+        await comptroller.connect(borrower).enterMarkets([vUSDT.address]);
+
+        await (VETH as any).connect(borrower).borrow(parseUnits("2", 16));
+
+        // connect to on-chain Liquidator contract (existing deployment) as contract instance
+        liquidatorOnChain = (await ethers.getContractAt("Liquidator", liquidatorAddr)) as LiquidatorContract;
+
+        await acm
+          .connect(timelock)
+          .giveCallPermission(
+            ethers.constants.AddressZero,
+            "setDynamicCloseFactorEnabled(address,bool)",
+            addresses.bscmainnet.TIMELOCK,
+          );
+
+        await acm
+          .connect(timelock)
+          .giveCallPermission(
+            ethers.constants.AddressZero,
+            "setDynamicLiquidationIncentiveEnabled(address,bool)",
+            addresses.bscmainnet.TIMELOCK,
+          );
       });
 
-      await (VETH as any).connect(timelock)._setInterestRateModel(zeroRateModel.address);
-      await (vUSDT as any).connect(timelock)._setInterestRateModel(zeroRateModel.address);
+      it("executes liquidation via Liquidator and observes dynamic closeFactor & incentive", async () => {
+        // enable dynamic flags in manager for the involved markets
+        await liquidationManager.connect(timelock).setDynamicCloseFactorEnabled(VETH.address, true);
+        await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, true);
 
-      // set market caps and force liquidation for determinism
-      await comptroller
-        .connect(timelock)
-        ._setMarketSupplyCaps(
-          [VETH.address, vUSDT.address],
-          [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
+        await comptroller
+          .connect(timelock)
+          [
+            "setCollateralFactor(address,uint256,uint256)"
+          ](vUSDT.address, parseUnits("0.14", 18), parseUnits("0.14", 18));
+
+        // compute a sample repay amount and precompute expected seize using comptroller calc
+        const repayAmount = parseUnits("1", 16);
+
+        const [err, totalSeized] = await comptroller.callStatic[
+          "liquidateCalculateSeizeTokens(address,address,address,uint256)"
+        ](borrower.address, VETH.address, vUSDT.address, repayAmount);
+
+        expect(err).to.equal(0);
+
+        // balances before
+        const borrowerCollateralBefore = await vUSDT.callStatic.balanceOf(borrower.address);
+
+        // execute liquidation using on-chain Liquidator contract; caller is executor
+        await mine(30000);
+
+        const executorVUSDTBalanceBefore = await vUSDT.callStatic.balanceOf(executor.address);
+        const psrUSDTBalanceBefore = await usdt.callStatic.balanceOf(addresses.bscmainnet.PSR);
+
+        await liquidatorOnChain
+          .connect(executor)
+          .liquidateBorrow(VETH.address, borrower.address, repayAmount, vUSDT.address);
+        // balances after
+        const borrowerCollateralAfter = await vUSDT.callStatic.balanceOf(borrower.address);
+        const executorVUSDTBalanceAfter = await vUSDT.callStatic.balanceOf(executor.address);
+        const psrUSDTBalanceAfter = await usdt.callStatic.balanceOf(addresses.bscmainnet.PSR);
+
+        const actualSeized = borrowerCollateralBefore.sub(borrowerCollateralAfter);
+        // actual seized should approximately equal comptroller's calculation
+        expect(actualSeized).to.be.closeTo(totalSeized, 2);
+        expect(executorVUSDTBalanceAfter).to.be.gt(executorVUSDTBalanceBefore);
+        expect(psrUSDTBalanceAfter).to.be.gt(psrUSDTBalanceBefore);
+
+        const markets = await comptroller["markets(address)"](vUSDT.address);
+        const dynamicIncentive = await comptroller["getDynamicLiquidationIncentive(address,address)"](
+          borrower.address,
+          vUSDT.address,
         );
-      await comptroller
-        .connect(timelock)
-        ._setMarketBorrowCaps(
-          [VETH.address, vUSDT.address],
-          [ethers.constants.MaxUint256, ethers.constants.MaxUint256],
-        );
+        // verify dynamic incentive is sane
+        expect(dynamicIncentive.toString()).to.be.equal(markets.liquidationIncentiveMantissa.toString());
 
-      // set market max liquidation incentive to allow manager capping
-      await comptroller
-        .connect(timelock)
-        ["setMarketMaxLiquidationIncentive(address,uint256)"](vUSDT.address, parseUnits("1.15", 18));
-      await comptroller
-        .connect(timelock)
-        ["setMarketMaxLiquidationIncentive(address,uint256)"](VETH.address, parseUnits("1.15", 18));
-
-      await comptroller
-        .connect(timelock)
-        ["setCollateralFactor(address,uint256,uint256)"](vUSDT.address, parseUnits("0.2", 18), parseUnits("0.2", 18));
-
-      // get underlying token contracts
-      eth = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await VETH.underlying());
-      usdt = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await vUSDT.underlying());
-
-      // set up executor (liquidation caller) and borrower
-      const signers = await ethers.getSigners();
-      executor = signers[3];
-      borrower = signers[2];
-
-      // impersonate rich holders and transfer tokens
-      const ethHolder = await initMainnetUser(addresses.bscmainnet.ETH_HOLDER, parseEther("1"));
-      const usdtHolder = await initMainnetUser(addresses.bscmainnet.USDT_HOLDER, parseEther("1"));
-
-      // fund executor with eth and approve the on-chain Liquidator
-      await eth.connect(ethHolder).transfer(executor.address, parseUnits("1000", 18));
-      const liquidatorAddr = addresses.bscmainnet.LIQUIDATOR;
-      await eth.connect(executor).approve(liquidatorAddr, parseUnits("1000", 18));
-
-      // prepare borrower: supply USDT as collateral and borrow eth
-      await usdt.connect(usdtHolder).transfer(borrower.address, parseUnits("500", 18));
-
-      await usdt.connect(borrower).approve(vUSDT.address, parseUnits("500", 18));
-
-      await (vUSDT as any).connect(borrower).mint(parseUnits("500", 18));
-
-      await comptroller.connect(borrower).enterMarkets([vUSDT.address]);
-
-      await (VETH as any).connect(borrower).borrow(parseUnits("2", 16));
-
-      // connect to on-chain Liquidator contract (existing deployment) as contract instance
-      liquidatorOnChain = (await ethers.getContractAt("Liquidator", liquidatorAddr)) as LiquidatorContract;
-
-      await acm
-        .connect(timelock)
-        .giveCallPermission(
+        const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
+          borrower.address,
           ethers.constants.AddressZero,
-          "setDynamicCloseFactorEnabled(address,bool)",
-          addresses.bscmainnet.TIMELOCK,
+          0,
+          0,
+          1,
+        );
+        // verify dynamic close factor is sane
+        const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
+        const wtAvg = snapshot.liquidationThresholdAvg.div(10);
+        const totalCollateral = snapshot.totalCollateral;
+        const dynamicCloseFactor = await liquidationManager.calculateDynamicCloseFactor(
+          VETH.address,
+          borrowBalance,
+          wtAvg,
+          totalCollateral,
+          dynamicIncentive,
+          markets.liquidationIncentiveMantissa,
         );
 
-      await acm
-        .connect(timelock)
-        .giveCallPermission(
+        expect(dynamicCloseFactor.toString()).to.be.lte(parseUnits("1", 18));
+        expect(dynamicCloseFactor.toString()).to.be.gte(parseUnits("0.01", 18));
+      });
+
+      it("cannot be liquidated after previous liquidation (account is healthy)", async () => {
+        const repayAmount = parseUnits("1", 16);
+
+        // double-check via liquidateBorrowAllowed (non-zero = not allowed)
+        const allowedCode = await comptroller.callStatic[
+          "liquidateBorrowAllowed(address,address,address,address,uint256)"
+        ](VETH.address, vUSDT.address, executor.address, borrower.address, repayAmount);
+        expect(allowedCode).to.not.equal(0);
+
+        // attempting to execute through the on-chain Liquidator should revert
+        await expect(
+          liquidatorOnChain
+            .connect(executor)
+            .liquidateBorrow(VETH.address, borrower.address, repayAmount, vUSDT.address),
+        ).to.be.revertedWithCustomError(liquidatorOnChain, "LiquidationFailed");
+      });
+
+      it("LiquidationManager: returns market max when dynamic incentive disabled", async () => {
+        // disable dynamic incentive for market
+        await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, false);
+
+        const maxIncentive = parseUnits("1.15", 18);
+        const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
+        const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
+          borrower.address,
           ethers.constants.AddressZero,
-          "setDynamicLiquidationIncentiveEnabled(address,bool)",
-          addresses.bscmainnet.TIMELOCK,
+          0,
+          borrowBalance,
+          1,
         );
-    });
 
-    it("executes liquidation via Liquidator and observes dynamic closeFactor & incentive", async () => {
-      // enable dynamic flags in manager for the involved markets
-      await liquidationManager.connect(timelock).setDynamicCloseFactorEnabled(VETH.address, true);
-      await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, true);
+        // verify dynamic close factor is sane
+        const incentive = await liquidationManager.calculateDynamicLiquidationIncentive(
+          vUSDT.address,
+          snapshot.healthFactor,
+          snapshot.liquidationThresholdAvg,
+          maxIncentive,
+        );
 
-      await comptroller
-        .connect(timelock)
-        ["setCollateralFactor(address,uint256,uint256)"](vUSDT.address, parseUnits("0.14", 18), parseUnits("0.14", 18));
+        expect(ethers.BigNumber.from(incentive).eq(maxIncentive)).to.be.true;
+      });
 
-      // compute a sample repay amount and precompute expected seize using comptroller calc
-      const repayAmount = parseUnits("1", 16);
+      it("LiquidationManager: computes dynamic incentive = max (no cap) (account is healthy)", async () => {
+        await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, true);
 
-      const [err, totalSeized] = await comptroller.callStatic[
-        "liquidateCalculateSeizeTokens(address,address,address,uint256)"
-      ](borrower.address, VETH.address, vUSDT.address, repayAmount);
+        const maxIncentive = parseUnits("1.15", 18);
+        const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
+        const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
+          borrower.address,
+          ethers.constants.AddressZero,
+          0,
+          borrowBalance,
+          1,
+        );
 
-      expect(err).to.equal(0);
+        // verify dynamic close factor is sane
+        const incentive = await liquidationManager.calculateDynamicLiquidationIncentive(
+          vUSDT.address,
+          snapshot.healthFactor,
+          snapshot.liquidationThresholdAvg,
+          maxIncentive,
+        );
 
-      // balances before
-      const borrowerCollateralBefore = await vUSDT.callStatic.balanceOf(borrower.address);
-
-      // execute liquidation using on-chain Liquidator contract; caller is executor
-      await mine(30000);
-
-      const executorVUSDTBalanceBefore = await vUSDT.callStatic.balanceOf(executor.address);
-      const psrUSDTBalanceBefore = await usdt.callStatic.balanceOf(addresses.bscmainnet.PSR);
-
-      await liquidatorOnChain
-        .connect(executor)
-        .liquidateBorrow(VETH.address, borrower.address, repayAmount, vUSDT.address);
-      // balances after
-      const borrowerCollateralAfter = await vUSDT.callStatic.balanceOf(borrower.address);
-      const executorVUSDTBalanceAfter = await vUSDT.callStatic.balanceOf(executor.address);
-      const psrUSDTBalanceAfter = await usdt.callStatic.balanceOf(addresses.bscmainnet.PSR);
-
-      const actualSeized = borrowerCollateralBefore.sub(borrowerCollateralAfter);
-      // actual seized should approximately equal comptroller's calculation
-      expect(actualSeized).to.be.closeTo(totalSeized, 2);
-      expect(executorVUSDTBalanceAfter).to.be.gt(executorVUSDTBalanceBefore);
-      expect(psrUSDTBalanceAfter).to.be.gt(psrUSDTBalanceBefore);
-
-      const markets = await comptroller["markets(address)"](vUSDT.address);
-      const dynamicIncentive = await comptroller["getDynamicLiquidationIncentive(address,address)"](
-        borrower.address,
-        vUSDT.address,
-      );
-      // verify dynamic incentive is sane
-      expect(dynamicIncentive.toString()).to.be.equal(markets.liquidationIncentiveMantissa.toString());
-
-      const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
-        borrower.address,
-        ethers.constants.AddressZero,
-        0,
-        0,
-        1,
-      );
-      // verify dynamic close factor is sane
-      const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
-      const wtAvg = snapshot.liquidationThresholdAvg.div(10);
-      const totalCollateral = snapshot.totalCollateral;
-      const dynamicCloseFactor = await liquidationManager.calculateDynamicCloseFactor(
-        VETH.address,
-        borrowBalance,
-        wtAvg,
-        totalCollateral,
-        dynamicIncentive,
-        markets.liquidationIncentiveMantissa,
-      );
-
-      expect(dynamicCloseFactor.toString()).to.be.lte(parseUnits("1", 18));
-      expect(dynamicCloseFactor.toString()).to.be.gte(parseUnits("0.01", 18));
-    });
-
-    it("cannot be liquidated after previous liquidation (account is healthy)", async () => {
-      const repayAmount = parseUnits("1", 16);
-
-      // double-check via liquidateBorrowAllowed (non-zero = not allowed)
-      const allowedCode = await comptroller.callStatic[
-        "liquidateBorrowAllowed(address,address,address,address,uint256)"
-      ](VETH.address, vUSDT.address, executor.address, borrower.address, repayAmount);
-      expect(allowedCode).to.not.equal(0);
-
-      // attempting to execute through the on-chain Liquidator should revert
-      await expect(
-        liquidatorOnChain.connect(executor).liquidateBorrow(VETH.address, borrower.address, repayAmount, vUSDT.address),
-      ).to.be.revertedWithCustomError(liquidatorOnChain, "LiquidationFailed");
-    });
-
-    it("LiquidationManager: returns market max when dynamic incentive disabled", async () => {
-      // disable dynamic incentive for market
-      await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, false);
-
-      const maxIncentive = parseUnits("1.15", 18);
-      const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
-      const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
-        borrower.address,
-        ethers.constants.AddressZero,
-        0,
-        borrowBalance,
-        1,
-      );
-
-      // verify dynamic close factor is sane
-      const incentive = await liquidationManager.calculateDynamicLiquidationIncentive(
-        vUSDT.address,
-        snapshot.healthFactor,
-        snapshot.liquidationThresholdAvg,
-        maxIncentive,
-      );
-
-      expect(ethers.BigNumber.from(incentive).eq(maxIncentive)).to.be.true;
-    });
-
-    it("LiquidationManager: computes dynamic incentive = max (no cap) (account is healthy)", async () => {
-      await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, true);
-
-      const maxIncentive = parseUnits("1.15", 18);
-      const borrowBalance = await VETH.callStatic.borrowBalanceCurrent(borrower.address);
-      const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
-        borrower.address,
-        ethers.constants.AddressZero,
-        0,
-        borrowBalance,
-        1,
-      );
-
-      // verify dynamic close factor is sane
-      const incentive = await liquidationManager.calculateDynamicLiquidationIncentive(
-        vUSDT.address,
-        snapshot.healthFactor,
-        snapshot.liquidationThresholdAvg,
-        maxIncentive,
-      );
-
-      // incentive should be equal to maxIncentive as account is healthy
-      expect(ethers.BigNumber.from(incentive).eq(maxIncentive)).to.be.true;
+        // incentive should be equal to maxIncentive as account is healthy
+        expect(ethers.BigNumber.from(incentive).eq(maxIncentive)).to.be.true;
+      });
     });
   });
-});
+}
