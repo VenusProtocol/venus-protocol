@@ -1,3 +1,119 @@
+## [10.1.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.6...v10.1.0-dev.7) (2025-11-19)
+
+
+### Features
+
+* add _getCashPriorWithFlashLoan function ([194b387](https://github.com/VenusProtocol/venus-protocol/commit/194b387296bddae3dfcfe1b8cca1ebc46d98ee6e))
+* add BadFlashLoanReceiver contract and related tests ([11cf73a](https://github.com/VenusProtocol/venus-protocol/commit/11cf73a2ef0444b8ca6e12f78b504975d8125232))
+* add deployments for Facets, Diamond and VBep20Delegate in bsctestnet ([5ec249d](https://github.com/VenusProtocol/venus-protocol/commit/5ec249d614fc5a5ba581fd08f0281e87810cf787))
+* add deployments for Facets, Diamond, ComptrollerLens and VBep20Delegate in bscmainnet ([2932de2](https://github.com/VenusProtocol/venus-protocol/commit/2932de27965c49bdaa603e02401ee3d0f16976a2))
+* add deployments for Facets, Diamond, ComptrollerLens and VBep20Delegate in bsctestnet ([76eebd4](https://github.com/VenusProtocol/venus-protocol/commit/76eebd41098bcc15aa02c7bf340793c1c9a5dc95))
+* add deployments for Facets, Diamond, ComptrollerLens and VBep20Delegate in bsctestnet ([eaddc40](https://github.com/VenusProtocol/venus-protocol/commit/eaddc4000df308a39f5a469c7475012dd472441b))
+* add deployments for flashloan functionality in bsctestnet ([fca0756](https://github.com/VenusProtocol/venus-protocol/commit/fca0756a564e3d8d262e99a99e63221ff45488ab))
+* add deployments for market and reward facet in bsctestnet ([e4d512e](https://github.com/VenusProtocol/venus-protocol/commit/e4d512edffcb398b0cd0400a33cec01ba3afdc21))
+* add deployments for new flashLoan changes ([9445b3a](https://github.com/VenusProtocol/venus-protocol/commit/9445b3aec466afeab7408d0c00b2f1f575462b83))
+* add initiator parameter to executeFlashLoan function ([8fde88f](https://github.com/VenusProtocol/venus-protocol/commit/8fde88f098e379256050fd3ad9f6543fad39f048))
+* add mock contracts for flash loan receiver ([fb92c44](https://github.com/VenusProtocol/venus-protocol/commit/fb92c448e7eebbfdaafc5fd640a7ea87bf7152f8))
+* add reentrancy guard in executeFlashloan ([c9f1d56](https://github.com/VenusProtocol/venus-protocol/commit/c9f1d56579ade5c5d13254a494b7ad7eb935ad51))
+* flash loan contracts ([dba9c60](https://github.com/VenusProtocol/venus-protocol/commit/dba9c600f563e22419b49717cd254e572ad5286c))
+* move flashLoan functions to new FlashLoanFacet ([18eb4c8](https://github.com/VenusProtocol/venus-protocol/commit/18eb4c8075a82d30dc8e86f1a12b9cccfad23725))
+* multiple asset flash loan ([aba2937](https://github.com/VenusProtocol/venus-protocol/commit/aba293787b79197c71ccda237f83c9714f5f48b5))
+* s1 ([cc4b4f2](https://github.com/VenusProtocol/venus-protocol/commit/cc4b4f2313c4092d1deac08a31e2845404c4bc00))
+* s3 ([64c04cf](https://github.com/VenusProtocol/venus-protocol/commit/64c04cf0dc5fabf356e72b01ec54dc03873df14f))
+* single asset flash loan ([dcd4f1f](https://github.com/VenusProtocol/venus-protocol/commit/dcd4f1f912d1d7752dd915e6097f3710e9a3855b))
+* update bscmainnet deployments ([514220a](https://github.com/VenusProtocol/venus-protocol/commit/514220a23f54e80eac5c659338d819f906ecc706))
+* update bsctestnet deployments ([a58624d](https://github.com/VenusProtocol/venus-protocol/commit/a58624d33a38faa91ebf2eb0e05479a079a98fe7))
+* updating deployment files ([43a4fec](https://github.com/VenusProtocol/venus-protocol/commit/43a4fec40e1c55517a46c6355f3235a6c337a92f))
+* updating deployment files ([7ba8333](https://github.com/VenusProtocol/venus-protocol/commit/7ba8333c62aa1cb0cdc21f6c7642d5ea654abe41))
+* updating deployment files ([7fd685c](https://github.com/VenusProtocol/venus-protocol/commit/7fd685c56ff09db71fd45b88c23b5da88fe7a122))
+* updating deployment files ([5f264f6](https://github.com/VenusProtocol/venus-protocol/commit/5f264f6bad22db3e0a66dd228ea43cb77e55371b))
+* updating deployment files ([cf4e131](https://github.com/VenusProtocol/venus-protocol/commit/cf4e13180925518e2ac88b4b91883b178e2b8fd5))
+* updating deployment files ([86f9478](https://github.com/VenusProtocol/venus-protocol/commit/86f94780d38cc21548b8aef8f0b56e6c7eb4aa30))
+* vlw-01,03,15,17 ([9f05cca](https://github.com/VenusProtocol/venus-protocol/commit/9f05cca562700f19152d88c4541bd58a15675ccf))
+* vlw-04 ([f05bf54](https://github.com/VenusProtocol/venus-protocol/commit/f05bf542e79b11d6cff7d7ce426a1dfebfcbc6dc))
+* vlw-05 ([49382e4](https://github.com/VenusProtocol/venus-protocol/commit/49382e4057c0f52199d37557cfcf5ff0ac8efdf0))
+* vlw-06 ([1c9dbd1](https://github.com/VenusProtocol/venus-protocol/commit/1c9dbd1c08a902ae0c4a1006a0ee96e164f1c025))
+* vlw-09 ([c249297](https://github.com/VenusProtocol/venus-protocol/commit/c24929792e7144470f0856702d9c4e0cf1364e1c))
+* vlw-11 ([9821c49](https://github.com/VenusProtocol/venus-protocol/commit/9821c492379b0b2b5f4f93b09a3dccdc7914ad0d))
+* vlw-12 ([3f6077b](https://github.com/VenusProtocol/venus-protocol/commit/3f6077b93942043cf6a3b71c06ae52cee1926837))
+* vlw-14 ([869afd8](https://github.com/VenusProtocol/venus-protocol/commit/869afd88210f03720a98fceb940c6e508cb727b1))
+
+
+### Bug Fixes
+
+* add missing natSpec ([a1311c5](https://github.com/VenusProtocol/venus-protocol/commit/a1311c5c73cf946206804d8bfddaae29d64654d5))
+* add ref to OZ ReentrancyGuardTransient ([19e135a](https://github.com/VenusProtocol/venus-protocol/commit/19e135acd768a135787a992f0972def0d23c39d9))
+* ci/cd issues ([558b0f5](https://github.com/VenusProtocol/venus-protocol/commit/558b0f5b806fe75bb150e9f8582dc9cccef5b868))
+* evilXToken test ([27f3047](https://github.com/VenusProtocol/venus-protocol/commit/27f3047c25ab31b107a7417760aa1c4ee1549016))
+* fix comments ([09024d5](https://github.com/VenusProtocol/venus-protocol/commit/09024d598290fa1fcbca9ab5ce6b7eb30477132d))
+* fixed _gap value ([544dcf1](https://github.com/VenusProtocol/venus-protocol/commit/544dcf1a7c690bf4dc6c5bc8603737b2b927addc))
+* I04 ([4bb366a](https://github.com/VenusProtocol/venus-protocol/commit/4bb366a1c43f5b0af0ea5aa1fb1fb2c078b91f39))
+* lint ([7ffb17a](https://github.com/VenusProtocol/venus-protocol/commit/7ffb17a9b934402da6585c00cb8ead556bed5eb0))
+* Lint ([e570b0b](https://github.com/VenusProtocol/venus-protocol/commit/e570b0b0e7b254f4b1c668efd84669d2d0418856))
+* lint and prettier ([e7e5cf7](https://github.com/VenusProtocol/venus-protocol/commit/e7e5cf7464b8295bea512d68355669163ee76ff0))
+* lint and prettier ([2759ead](https://github.com/VenusProtocol/venus-protocol/commit/2759ead6cd35849e88d690b753672e55a699edd8))
+* lint issues ([47b2acf](https://github.com/VenusProtocol/venus-protocol/commit/47b2acfc363e4ed209bb96ba287ebacf0a6d8f5a))
+* minor changes ([d6a3620](https://github.com/VenusProtocol/venus-protocol/commit/d6a3620ecde3357bea9b4e33e9ccea180b29c647))
+* minor fix ([5e6e4d6](https://github.com/VenusProtocol/venus-protocol/commit/5e6e4d6a0eebd72ed840af5d8816286c75cec8c5))
+* minor fix ([2efdca4](https://github.com/VenusProtocol/venus-protocol/commit/2efdca4310239f742fa9df6b711e12fb3ac0c58a))
+* minor fix ([d67c78b](https://github.com/VenusProtocol/venus-protocol/commit/d67c78b4e20d5b213c25ed8b23e28de44f1a9574))
+* minor fix ([1637457](https://github.com/VenusProtocol/venus-protocol/commit/1637457ddc0cc2d2f3489a188abbbba0e69ba31d))
+* minor fix ([0dcca21](https://github.com/VenusProtocol/venus-protocol/commit/0dcca21b38a692fd3deef2bd936a1bf0969d95e3))
+* minor fixes ([242ab2b](https://github.com/VenusProtocol/venus-protocol/commit/242ab2b744a24d8cc385b0af895da7a592c3f9d0))
+* minor fixes ([12bccb7](https://github.com/VenusProtocol/venus-protocol/commit/12bccb7bfe8237498ca6103c54b86e72657f079e))
+* minor fixes ([243fc8c](https://github.com/VenusProtocol/venus-protocol/commit/243fc8c3ce101cdf7c8bda44856020ca5fa41ddd))
+* minor fixes ([e313deb](https://github.com/VenusProtocol/venus-protocol/commit/e313deb1100c95b2cc36f3340d042c0ce58f1ac9))
+* minor fixes ([8ed2d89](https://github.com/VenusProtocol/venus-protocol/commit/8ed2d89f60173c908de03db73c5d99d492c939ac))
+* minor fixes ([e921530](https://github.com/VenusProtocol/venus-protocol/commit/e9215302351677b073662b78dfabd65346e94ba2))
+* minor fixes ([ea80325](https://github.com/VenusProtocol/venus-protocol/commit/ea803250e5e1eb864ca56fb89e718f97cbb323e7))
+* minor fixes ([4879942](https://github.com/VenusProtocol/venus-protocol/commit/4879942c2ed2b401c39c324085d3b500255b95ec))
+* pr comments ([bce9a10](https://github.com/VenusProtocol/venus-protocol/commit/bce9a10b54e2bda3258e16366ece3451ebeb399e))
+* pr comments ([7b5d653](https://github.com/VenusProtocol/venus-protocol/commit/7b5d653e125a55bf496f9df167fdc98bb910c081))
+* reduce vToken size ([d35e3c8](https://github.com/VenusProtocol/venus-protocol/commit/d35e3c85def7654935e85067c24a099d3aa33eab))
+* remove unused errors ([fad2194](https://github.com/VenusProtocol/venus-protocol/commit/fad2194063ce2c29ec2495718280b8ae330a1fd8))
+* resolve comments ([01d36ee](https://github.com/VenusProtocol/venus-protocol/commit/01d36ee5ab694143c07c2d96d924cd2e91a7e9ad))
+* small optimization ([f511491](https://github.com/VenusProtocol/venus-protocol/commit/f511491b0840eac748e142886eb011e590dea8fe))
+* tests ([d415fab](https://github.com/VenusProtocol/venus-protocol/commit/d415fab2c5fb8c2db43c7a79b564fa7e4fd25244))
+* update balanceBefore to balanceBeforeRepayFlashloan ([48b8d77](https://github.com/VenusProtocol/venus-protocol/commit/48b8d776e82212a72e7b992afb3cd97e658bcc3e))
+* update comptroller storage ([7c7ddfb](https://github.com/VenusProtocol/venus-protocol/commit/7c7ddfb2581cac2defe7da99bab7b131ca1937f8))
+* update natspec for executeFlashloan in vtoken ([6ffbf15](https://github.com/VenusProtocol/venus-protocol/commit/6ffbf15ef00ecd840a889d84496fd17987abd0b2))
+* use actual cash for transfering reserve ([a89c5fc](https://github.com/VenusProtocol/venus-protocol/commit/a89c5fcaa7cb9d7eeb070bf89464697da228037b))
+* vlw-09 ([f69858b](https://github.com/VenusProtocol/venus-protocol/commit/f69858b8ce2b32c73c5dc800588f0b6158e311e4))
+* vlw-11 ([c2e44d4](https://github.com/VenusProtocol/venus-protocol/commit/c2e44d476af5345208713f01df302e4bd85999a8))
+* vlw-12 ([9945c5f](https://github.com/VenusProtocol/venus-protocol/commit/9945c5f85a2ef5ae32cd603a7041ea213576ebf5))
+* vlw-13 ([757e323](https://github.com/VenusProtocol/venus-protocol/commit/757e323c565bac753e7250662d562170e06d67de))
+
+
+### Reverts
+
+* getCash modification ([865ff7f](https://github.com/VenusProtocol/venus-protocol/commit/865ff7f025d02852ce523f277e7bdabf5fb94911))
+* remove flashLoanAmount from calculations ([7129c29](https://github.com/VenusProtocol/venus-protocol/commit/7129c292c1b29ef275ea508a0012164a5ab85f2b))
+
+## [10.1.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.5...v10.1.0-dev.6) (2025-11-04)
+
+
+### Features
+
+* deployed new IRM ([89b18ab](https://github.com/VenusProtocol/venus-protocol/commit/89b18ab1a444d9aa8120ad87fc8fdb140e0f6d81))
+* updating deployment files ([8f769c1](https://github.com/VenusProtocol/venus-protocol/commit/8f769c14473f5775cf0497b2294a73be33901427))
+* updating deployment files ([a806309](https://github.com/VenusProtocol/venus-protocol/commit/a806309d477be4ccc5865fa6ce2f4a9fef0bb474))
+
+
+### Bug Fixes
+
+* deployed IRMs ([4ba8ccf](https://github.com/VenusProtocol/venus-protocol/commit/4ba8ccf8c8092a907878c025ff214e2484f13fcc))
+* uncommented markets ([b885eef](https://github.com/VenusProtocol/venus-protocol/commit/b885eefa6cb366f558c54c848541f177b8519668))
+* updated params and removed deployment ([cd9eb83](https://github.com/VenusProtocol/venus-protocol/commit/cd9eb836d847706212ac2ecc7beefa7cc5873299))
+
+## [10.1.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.4...v10.1.0-dev.5) (2025-11-03)
+
+
+### Bug Fixes
+
+* correct tag ([430e629](https://github.com/VenusProtocol/venus-protocol/commit/430e629b5dee0fab3db461597fe3ce5ae680536c))
+* generate provenance statement during CD ([0e58859](https://github.com/VenusProtocol/venus-protocol/commit/0e58859baa46b07dd191562972b418de4d4993e7))
+* remove postinstall ([a081a2f](https://github.com/VenusProtocol/venus-protocol/commit/a081a2f8fbd738321ed8deaf91ff34e7bfe713ad))
+
 ## [10.1.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.3...v10.1.0-dev.4) (2025-10-23)
 
 
