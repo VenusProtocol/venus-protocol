@@ -150,11 +150,13 @@
     "TwoKinks_base0bps_slope1000bps_kink8000bps_slope27000bps_base20bps_kink29000bps_jump30000bps_bpy42048000": "0xa7581334a8131a45bCc3A07D5988F586108947f7",
     "TwoKinks_base0bps_slope1500bps_kink8000bps_slope29000bps_base20bps_kink29000bps_jump30000bps_bpy10512000": "0x4D712A88Ff15a7147a9966c5ED2ccb392F1760c9",
     "TwoKinks_base0bps_slope1500bps_kink8000bps_slope29000bps_base20bps_kink29000bps_jump30000bps_bpy21024000": "0x66fA99894aEbB83180a052ef4Cc8cCFaD0F8f8aB",
+    "TwoKinks_base0bps_slope312bps_kink8000bps_slope28499bps_base20bps_kink29000bps_jump34000bps_bpy42048000": "0x5dff09a6D241eac6ccc63A7665CaC6eff55b38E7",
     "TwoKinks_base0bps_slope350bps_kink8000bps_slope217500bps_base20bps_kink29000bps_jump30000bps_bpy10512000": "0x01B1DA0D0e7c92BE46405565e34fc7C23f0a5A2A",
     "TwoKinks_base0bps_slope350bps_kink8000bps_slope217500bps_base20bps_kink29000bps_jump30000bps_bpy21024000": "0xb0a41574C87318265BC4c93acC8D32299dAdF022",
     "TwoKinks_base0bps_slope450bps_kink6500bps_slope214000bps_base20bps_kink28000bps_jump30000bps_bpy21024000": "0x939c9458Bee63Bc21031be3d56dDD30Af7f2230A",
     "TwoKinks_base0bps_slope450bps_kink7000bps_slope214000bps_base20bps_kink28000bps_jump30000bps_bpy21024000": "0x66C928605F123d91462dCB3859811eC8403977a9",
     "TwoKinks_base0bps_slope450bps_kink7000bps_slope214000bps_base20bps_kink28000bps_jump30000bps_bpy42048000": "0xE82B36f4CE8A9B769036B74354588D427a724763",
+    "TwoKinks_base0bps_slope624bps_kink8000bps_slope26001bps_base20bps_kink29000bps_jump34000bps_bpy42048000": "0xb1c97b14dE87928845FCf0016b48B3a61aa3e1AD",
     "TwoKinks_base0bps_slope812bps_kink8000bps_slope22000bps_base20bps_kink29000bps_jump30000bps_bpy42048000": "0xF48508A44da9C7D210a668eCe4d31Bc98702602b",
     "TwoKinks_base0bps_slope875bps_kink8000bps_slope22000bps_base20bps_kink29000bps_jump30000bps_bpy42048000": "0x1a7c9091973CABc491e361A9eaEFD047b48a3647",
     "USDC": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
@@ -249,6 +251,7 @@
     "vasBNB": "0xCC1dB43a06d97f736C7B045AedD03C6707c09BDF",
     "vlisUSD": "0x689E0daB47Ab16bcae87Ec18491692BF621Dc6Ab",
     "vsUSDe": "0x699658323d58eE25c69F1a29d476946ab011bD18",
+    "vslisBNB": "0x89c910Eb8c90df818b4649b508Ba22130Dc73Adc",
     "vxSolvBTC": "0xd804dE60aFD05EE6B89aab5D152258fD461B07D5"
   }
 }
