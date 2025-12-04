@@ -355,30 +355,30 @@ const config: HardhatUserConfig = {
 function isFork() {
   return process.env.FORKED_NETWORK
     ? {
-      chains: {
-        56: {
-          hardforkHistory: {
-            berlin: 0,
-            london: 13000000,
+        chains: {
+          56: {
+            hardforkHistory: {
+              berlin: 0,
+              london: 13000000,
+            },
           },
         },
-      },
-      allowUnlimitedContractSize: false,
-      loggingEnabled: false,
-      forking: {
-        url: getRpcUrl(process.env.FORKED_NETWORK as string) || "https://data-seed-prebsc-1-s1.binance.org:8545",
-        blockNumber: 21068448,
-      },
-      accounts: {
-        accountsBalance: "1000000000000000000",
-      },
-      live: false,
-    }
+        allowUnlimitedContractSize: false,
+        loggingEnabled: false,
+        forking: {
+          url: getRpcUrl(process.env.FORKED_NETWORK as string) || "https://data-seed-prebsc-1-s1.binance.org:8545",
+          blockNumber: 21068448,
+        },
+        accounts: {
+          accountsBalance: "1000000000000000000",
+        },
+        live: false,
+      }
     : {
-      allowUnlimitedContractSize: true,
-      loggingEnabled: false,
-      live: false,
-    };
+        allowUnlimitedContractSize: true,
+        loggingEnabled: false,
+        live: false,
+      };
 }
 
 export default config;

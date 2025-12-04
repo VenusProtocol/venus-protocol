@@ -16558,7 +16558,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x0A7A88aB6aB40417Bd6bF1EB3907EFF06D24C2FC",
+      "address": "0x8e0e15C99Ab0985cB39B2FE36532E5692730eBA9",
       "abi": [
         {
           "inputs": [],
@@ -17266,6 +17266,30 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "onBehalf",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "enterMarketBehalf",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "stateMutability": "nonpayable",
