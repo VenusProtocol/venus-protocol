@@ -28,6 +28,8 @@ interface IMarketFacet {
 
     function checkMembership(address account, VToken vToken) external view returns (bool);
 
+    function enterMarketBehalf(address onBehalf, address vToken) external returns (uint256);
+
     function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory);
 
     function exitMarket(address vToken) external returns (uint256);
