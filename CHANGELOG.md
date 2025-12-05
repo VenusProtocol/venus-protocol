@@ -1,3 +1,18 @@
+## [10.1.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.7...v10.1.0-dev.8) (2025-12-05)
+
+
+### Features
+
+* add enterMarketBehalf for approved delegates and associated tests ([ebda877](https://github.com/VenusProtocol/venus-protocol/commit/ebda8773c574bea9a7511da8376efda7f65bd53b))
+* add mainnet deployments ([40124a8](https://github.com/VenusProtocol/venus-protocol/commit/40124a8cef955bda5898400537f3f7e77a04cfe8))
+* update MarketFacet deployment to support enterMarketBehalf ([75fd438](https://github.com/VenusProtocol/venus-protocol/commit/75fd4387b16bde28169d92b52a6f6545c9db7004))
+* updating deployment files ([60a3c4b](https://github.com/VenusProtocol/venus-protocol/commit/60a3c4b5e46ac25299bd66d27b25b3a266f2391e))
+
+
+### Bug Fixes
+
+* migrate BSC networks to Etherscan API V2 ([c8afd02](https://github.com/VenusProtocol/venus-protocol/commit/c8afd02e97a22fd829b387025094e2e3cff62729))
+
 ## [10.1.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.6...v10.1.0-dev.7) (2025-11-19)
 
 
