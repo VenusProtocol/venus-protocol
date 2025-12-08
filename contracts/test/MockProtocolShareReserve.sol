@@ -33,7 +33,8 @@ interface IMockProtocolShareReserve {
     /// @notice it represents the type of vToken income
     enum IncomeType {
         SPREAD,
-        LIQUIDATION
+        LIQUIDATION,
+        FLASHLOAN
     }
 
     function updateAssetsState(address comptroller, address asset, IncomeType incomeType) external;
@@ -252,7 +253,7 @@ contract MockProtocolShareReserve is
         //we need to accrue and release funds to prime before updating the distribution configuration
         //because prime relies on getUnreleasedFunds and its return value may change after config update
         _accrueAndReleaseFundsToPrime();
-        for (uint256 i = 0; i < configs.length; ) {
+        for (uint256 i; i < configs.length; ) {
             DistributionConfig memory _config = configs[i];
             require(_config.destination != address(0), "ProtocolShareReserve: Destination address invalid");
 
@@ -299,7 +300,7 @@ contract MockProtocolShareReserve is
     function releaseFunds(address comptroller, address[] memory assets) external nonReentrant {
         _accruePrimeInterest();
 
-        for (uint256 i = 0; i < assets.length; ) {
+        for (uint256 i; i < assets.length; ) {
             _releaseFund(comptroller, assets[i]);
 
             unchecked {
@@ -321,7 +322,7 @@ contract MockProtocolShareReserve is
         address destination,
         address asset
     ) external view returns (uint256) {
-        for (uint256 i = 0; i < distributionTargets.length; ) {
+        for (uint256 i; i < distributionTargets.length; ) {
             DistributionConfig storage _config = distributionTargets[i];
             if (_config.schema == schema && _config.destination == destination) {
                 uint256 total = assetsReserves[comptroller][asset][schema];
@@ -381,7 +382,7 @@ contract MockProtocolShareReserve is
      */
     function _accrueAndReleaseFundsToPrime() internal {
         address[] memory markets = IPrime(prime).getAllMarkets();
-        for (uint256 i = 0; i < markets.length; ) {
+        for (uint256 i; i < markets.length; ) {
             address market = markets[i];
             IPrime(prime).accrueInterest(market);
             _releaseFund(CORE_POOL_COMPTROLLER, _getUnderlying(market));
@@ -400,7 +401,7 @@ contract MockProtocolShareReserve is
         // address[] memory markets = IPrime(prime).getAllMarkets();
         address[] memory markets = IPrime(prime).getAllMarkets();
 
-        for (uint256 i = 0; i < markets.length; ) {
+        for (uint256 i; i < markets.length; ) {
             address market = markets[i];
             IPrime(prime).accrueInterest(market);
 
@@ -433,7 +434,7 @@ contract MockProtocolShareReserve is
         }
 
         uint256[] memory totalTransferAmounts = new uint256[](totalSchemas);
-        for (uint256 i = 0; i < distributionTargets.length; ) {
+        for (uint256 i; i < distributionTargets.length; ) {
             DistributionConfig memory _config = distributionTargets[i];
 
             uint256 transferAmount = (schemaBalances[uint256(_config.schema)] * _config.percentage) / MAX_PERCENT;
@@ -492,7 +493,7 @@ contract MockProtocolShareReserve is
         uint256 totalSchemas = uint256(type(Schema).max) + 1;
         uint256[] memory totalPercentages = new uint256[](totalSchemas);
 
-        for (uint256 i = 0; i < distributionTargets.length; ) {
+        for (uint256 i; i < distributionTargets.length; ) {
             DistributionConfig memory config = distributionTargets[i];
             totalPercentages[uint256(config.schema)] += config.percentage;
 

@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "10.1.0-dev.6",
+  "version": "10.1.0-dev.9",
   "description": "The Venus Money Market",
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
@@ -106,6 +106,7 @@
     "provenance": true
   },
   "resolutions": {
-    "hardhat": "2.22.18"
+    "hardhat": "2.22.18",
+    "@defi-wonderland/smock": "2.4.0"
   }
 }
