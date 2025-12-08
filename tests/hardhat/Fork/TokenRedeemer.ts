@@ -752,7 +752,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         await vai.mint(redeemer.address, 3);
         expect(await vai.balanceOf(redeemer.address)).to.equal(3);
         await ethers.provider.send("evm_setAutomine", [false]);
-        await vaiController.setBaseRate(parseUnits("420480", 18)); // 1% each block
+        await vaiController.setBaseRate(parseUnits("700800", 18)); // 1% each block
         await mine(99);
         await vaiController.accrueVAIInterest();
         await mine();
