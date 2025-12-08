@@ -1,3 +1,16 @@
+## [10.1.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.8...v10.1.0-dev.9) (2025-12-08)
+
+
+### Features
+
+* updating deployment files ([3144436](https://github.com/VenusProtocol/venus-protocol/commit/31444366674fbdbb3b29a22212cb251eb8426622))
+
+
+### Bug Fixes
+
+* deployed irm for usdc and usdt ([4559766](https://github.com/VenusProtocol/venus-protocol/commit/455976666a9aeffd8a827ceb372549b8dd75a1af))
+* merge conflict ([ab28b8e](https://github.com/VenusProtocol/venus-protocol/commit/ab28b8e6067ddb22ba590967e66b58df2bffdfec))
+
 ## [10.1.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.7...v10.1.0-dev.8) (2025-12-05)
 
 
