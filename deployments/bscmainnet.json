@@ -39240,7 +39240,7 @@
       ]
     },
     "PrimeLiquidityProvider_Implementation": {
-      "address": "0x95DaED37fdD3F557b3A5cCEb7D50Be65b36721DF",
+      "address": "0x46BED43b29D73835fF075bBa1A0002A1eD1E4de8",
       "abi": [
         {
           "inputs": [
@@ -40246,7 +40246,7 @@
       ]
     },
     "Prime_Implementation": {
-      "address": "0x211b1c2C778daeeD39cE0E6a91Edb1d82a20BB2B",
+      "address": "0x1a6660059E61e88402bD34FC96C2332c5EeAF195",
       "abi": [
         {
           "inputs": [
@@ -70668,7 +70668,7 @@
       ]
     },
     "VaiUnitroller_Implementation": {
-      "address": "0x5134C9D11c397efdF36F828eEf23B14F3F399da4",
+      "address": "0xFD754b21F5dbbf6eb282911Cc0112cbF88190767",
       "abi": [
         {
           "anonymous": false,
@@ -72314,7 +72314,7 @@
       ]
     },
     "VenusLens": {
-      "address": "0xf15A9c5aaDc327B383945D5821C7aC08Cdac7430",
+      "address": "0x344cD779C5aAF3436795B49f7C375E716A20f527",
       "abi": [
         {
           "inputs": [],
