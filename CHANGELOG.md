@@ -1,3 +1,24 @@
+## 10.1.0-dev.10 (2025-12-12)
+
+* ci: fix the release flow through Trusted Publishing ([1cc22a8](https://github.com/VenusProtocol/venus-protocol/commit/1cc22a8))
+* Merge branch 'develop' into feat/VPD-267 ([3a52c10](https://github.com/VenusProtocol/venus-protocol/commit/3a52c10))
+* Merge pull request #649 from VenusProtocol/feat/VPD-267 ([300d295](https://github.com/VenusProtocol/venus-protocol/commit/300d295)), closes [#649](https://github.com/VenusProtocol/venus-protocol/issues/649)
+* Merge pull request #651 from VenusProtocol/feat/VPD-280 ([07cdc2f](https://github.com/VenusProtocol/venus-protocol/commit/07cdc2f)), closes [#651](https://github.com/VenusProtocol/venus-protocol/issues/651)
+* Merge pull request #654 from VenusProtocol/chore/fix-test ([d9fad5a](https://github.com/VenusProtocol/venus-protocol/commit/d9fad5a)), closes [#654](https://github.com/VenusProtocol/venus-protocol/issues/654)
+* fix: fix the TokenRedeemer test ([fdfd3ce](https://github.com/VenusProtocol/venus-protocol/commit/fdfd3ce))
+* fix: test ([d66a169](https://github.com/VenusProtocol/venus-protocol/commit/d66a169))
+* fix: test ([f9c3d55](https://github.com/VenusProtocol/venus-protocol/commit/f9c3d55))
+* fix: update blocks per day in VenusLens ([d546c0f](https://github.com/VenusProtocol/venus-protocol/commit/d546c0f))
+* feat: add bsctestnet checkpoint IRMs for Fermi upgrade ([982ca32](https://github.com/VenusProtocol/venus-protocol/commit/982ca32))
+* feat: update BNB chain blocksPerYear to 70080000 ([1f7d457](https://github.com/VenusProtocol/venus-protocol/commit/1f7d457))
+* feat: update BNB chain blocksPerYear to 70080000 ([77f7df2](https://github.com/VenusProtocol/venus-protocol/commit/77f7df2))
+* feat: update bscmainnet deployments ([5e7ad6d](https://github.com/VenusProtocol/venus-protocol/commit/5e7ad6d))
+* feat: update bsctestnet deployments ([f15588b](https://github.com/VenusProtocol/venus-protocol/commit/f15588b))
+* feat: updating deployment files ([dabff3c](https://github.com/VenusProtocol/venus-protocol/commit/dabff3c))
+* feat: updating deployment files ([b4c3092](https://github.com/VenusProtocol/venus-protocol/commit/b4c3092))
+* feat: updating deployment files ([9f053a6](https://github.com/VenusProtocol/venus-protocol/commit/9f053a6))
+* feat: updating deployment files ([fc94cc0](https://github.com/VenusProtocol/venus-protocol/commit/fc94cc0))
+
 ## [10.1.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.8...v10.1.0-dev.9) (2025-12-08)
 
 
