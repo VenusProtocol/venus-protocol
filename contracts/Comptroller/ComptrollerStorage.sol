@@ -42,7 +42,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow (deprecated)
      */
-    uint256 public __oldCloseFactorMantissaSlot;
+    uint256 private __oldCloseFactorMantissaSlot;
 
     /**
      * @notice Multiplier representing the discount on collateral that a liquidator receives (deprecated)

@@ -84,7 +84,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             priceCollateralMantissa,
             exchangeRateMantissa
         );
-        return (uint(Error.NO_ERROR), seizeTokens);
+        return (uint256(Error.NO_ERROR), seizeTokens);
     }
 
     /**
@@ -129,7 +129,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             exchangeRateMantissa
         );
 
-        return (uint(Error.NO_ERROR), seizeTokens);
+        return (uint256(Error.NO_ERROR), seizeTokens);
     }
 
     /**
@@ -359,10 +359,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 }
 
                 // borrow effect: oraclePrice * borrowAmount
-                snapshot.borrows = mul_ScalarTruncateAddUInt(
+                snapshot.totalBorrows = mul_ScalarTruncateAddUInt(
                     Exp({ mantissa: vars.oraclePriceMantissa }),
                     borrowAmount,
-                    snapshot.borrows
+                    snapshot.totalBorrows
                 );
             }
 
@@ -380,17 +380,17 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             );
 
             // borrows += oraclePrice * borrowBalance
-            snapshot.borrows = mul_ScalarTruncateAddUInt(
+            snapshot.totalBorrows = mul_ScalarTruncateAddUInt(
                 Exp({ mantissa: vars.oraclePriceMantissa }),
                 vars.borrowBalance,
-                snapshot.borrows
+                snapshot.totalBorrows
             );
         }
 
         VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
 
         if (address(vaiController) != address(0)) {
-            snapshot.borrows = add_(snapshot.borrows, vaiController.getVAIRepayAmount(account));
+            snapshot.totalBorrows = add_(snapshot.totalBorrows, vaiController.getVAIRepayAmount(account));
         }
 
         _finalizeSnapshot(snapshot);
@@ -407,18 +407,18 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             snapshot.liquidationThresholdAvg = div_(snapshot.weightedCollateral * 1e18, snapshot.totalCollateral);
         }
 
-        if (snapshot.borrows > 0) {
-            snapshot.healthFactor = div_(snapshot.weightedCollateral * 1e18, snapshot.borrows);
+        if (snapshot.totalBorrows > 0) {
+            snapshot.healthFactor = div_(snapshot.weightedCollateral * 1e18, snapshot.totalBorrows);
         } else {
             snapshot.healthFactor = type(uint256).max;
         }
 
-        if (snapshot.weightedCollateral > snapshot.borrows) {
-            snapshot.liquidity = snapshot.weightedCollateral - snapshot.borrows;
+        if (snapshot.weightedCollateral > snapshot.totalBorrows) {
+            snapshot.liquidity = snapshot.weightedCollateral - snapshot.totalBorrows;
             snapshot.shortfall = 0;
         } else {
             snapshot.liquidity = 0;
-            snapshot.shortfall = snapshot.borrows - snapshot.weightedCollateral;
+            snapshot.shortfall = snapshot.totalBorrows - snapshot.weightedCollateral;
         }
     }
 

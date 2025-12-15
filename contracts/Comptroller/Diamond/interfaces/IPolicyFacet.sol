@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
+import { WeightFunction } from "./IFacetBase.sol";
 
 interface IPolicyFacet {
     function mintAllowed(address vToken, address minter, uint256 mintAmount) external returns (uint256);
@@ -92,6 +93,14 @@ interface IPolicyFacet {
         uint256 redeemTokens,
         uint256 borrowAmount
     ) external view returns (uint256, uint256, uint256);
+
+    function getHypotheticalHealthSnapshot(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
+    ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot);
 
     function _setVenusSpeeds(
         VToken[] calldata vTokens,

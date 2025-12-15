@@ -35,14 +35,6 @@ interface IFacetBase {
      */
     function getXVSAddress() external view returns (address);
 
-    function getHypotheticalHealthSnapshot(
-        address account,
-        VToken vTokenModify,
-        uint256 redeemTokens,
-        uint256 borrowAmount,
-        WeightFunction weightingStrategy
-    ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot);
-
     function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (PoolMarketId);
 
     function corePoolId() external pure returns (uint96);

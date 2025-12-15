@@ -111,6 +111,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev This will be used only in vBNB
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
      * @param vTokenBorrowed The address of the borrowed vToken
      * @param vTokenCollateral The address of the collateral vToken

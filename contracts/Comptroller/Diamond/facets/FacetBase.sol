@@ -165,37 +165,6 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Get a snapshot of the health of an account
-     * @param account The account to get the health snapshot for
-     * @param vTokenModify The market to hypothetically redeem/borrow in
-     * @param redeemTokens The number of tokens to hypothetically redeem
-     * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @param weightingStrategy The weighting strategy to use:
-     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
-     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
-     * @return err Error code
-     * @return snapshot Snapshot of the account's health and collateral status
-     * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
-     *  without calculating accumulated interest.
-     */
-    function getHypotheticalHealthSnapshot(
-        address account,
-        VToken vTokenModify,
-        uint256 redeemTokens,
-        uint256 borrowAmount,
-        WeightFunction weightingStrategy
-    ) external view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
-        return
-            _getHypotheticalHealthSnapshotInternal(
-                account,
-                vTokenModify,
-                redeemTokens,
-                borrowAmount,
-                weightingStrategy
-            );
-    }
-
-    /**
      * @notice Internal function to get a snapshot of the health of an account
      * @param account The account to get the health snapshot for
      * @param vTokenModify The market to hypothetically redeem/borrow in

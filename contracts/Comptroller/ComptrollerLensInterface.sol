@@ -12,7 +12,7 @@ interface ComptrollerLensInterface {
         // Collateral value weighted by each asset's liquidation threshold or collateral factor (USD, scaled by 1e18)
         uint256 weightedCollateral;
         // Total borrowed value by the account (USD, scaled by 1e18)
-        uint256 borrows;
+        uint256 totalBorrows;
         // Amount of excess collateral available for borrowing (USD, scaled by 1e18)
         uint256 liquidity;
         // Amount by which the account is undercollateralized (USD, scaled by 1e18)
