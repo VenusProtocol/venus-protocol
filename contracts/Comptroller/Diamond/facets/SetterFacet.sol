@@ -618,57 +618,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         xvsVToken = xvsVToken_;
     }
 
-    /**
-     * @notice This function is used to set the liquidation manager address which is responsible for managing
-     *         liquidations in the protocol.
-     * @dev Allows the contract admin to set the liquidation manager address used by the Comptroller
-     * @param liquidationManager_ The new liquidation manager address
-     */
-    function __setLiquidationManager(
-        address liquidationManager_
-    ) internal compareAddress(address(liquidationManager), liquidationManager_) {
-        ensureNonzeroAddress(liquidationManager_);
-        emit NewLiquidationManager(liquidationManager, LiquidationManager(liquidationManager_));
-        liquidationManager = LiquidationManager(liquidationManager_);
-    }
-
-    /**
-     * @notice Set the max liquidation incentive for a market
-     * @param poolId The ID of the pool.
-     * @param vToken The market to set the max liquidation incentive for
-     * @param newMaxLiquidationIncentive The new max liquidation incentive, scaled by 1e18
-     * @return uint256 0=success, otherwise reverted
-     */
-    function __setMarketMaxLiquidationIncentive(
-        uint96 poolId,
-        address vToken,
-        uint256 newMaxLiquidationIncentive
-    )
-        internal
-        compareValue(
-            _poolMarkets[getPoolMarketIndex(poolId, vToken)].maxLiquidationIncentiveMantissa,
-            newMaxLiquidationIncentive
-        )
-        returns (uint256)
-    {
-        // Check if pool exists
-        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
-
-        Market storage market = _poolMarkets[getPoolMarketIndex(poolId, vToken)];
-        ensureListed(market);
-
-        require(newMaxLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
-        // Emit event with old incentive, new incentive
-        emit NewMarketLiquidationIncentive(
-            poolId,
-            vToken,
-            market.maxLiquidationIncentiveMantissa,
-            newMaxLiquidationIncentive
-        );
-        // Set liquidation incentive to new incentive
-        market.maxLiquidationIncentiveMantissa = newMaxLiquidationIncentive;
-        return uint256(Error.NO_ERROR);
-    }
 
     /**
      * @notice Adds/Removes an account to the flash loan whitelist
@@ -808,6 +757,59 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         emit BorrowAllowedUpdated(poolId, vToken, m.isBorrowAllowed, borrowAllowed);
         m.isBorrowAllowed = borrowAllowed;
+    }
+
+
+    /**
+     * @notice This function is used to set the liquidation manager address which is responsible for managing
+     *         liquidations in the protocol.
+     * @dev Allows the contract admin to set the liquidation manager address used by the Comptroller
+     * @param liquidationManager_ The new liquidation manager address
+     */
+    function __setLiquidationManager(
+        address liquidationManager_
+    ) internal compareAddress(address(liquidationManager), liquidationManager_) {
+        ensureNonzeroAddress(liquidationManager_);
+        emit NewLiquidationManager(liquidationManager, LiquidationManager(liquidationManager_));
+        liquidationManager = LiquidationManager(liquidationManager_);
+    }
+
+    /**
+     * @notice Set the max liquidation incentive for a market
+     * @param poolId The ID of the pool.
+     * @param vToken The market to set the max liquidation incentive for
+     * @param newMaxLiquidationIncentive The new max liquidation incentive, scaled by 1e18
+     * @return uint256 0=success, otherwise reverted
+     */
+    function __setMarketMaxLiquidationIncentive(
+        uint96 poolId,
+        address vToken,
+        uint256 newMaxLiquidationIncentive
+    )
+        internal
+        compareValue(
+            _poolMarkets[getPoolMarketIndex(poolId, vToken)].maxLiquidationIncentiveMantissa,
+            newMaxLiquidationIncentive
+        )
+        returns (uint256)
+    {
+        // Check if pool exists
+        if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
+
+        Market storage market = _poolMarkets[getPoolMarketIndex(poolId, vToken)];
+        ensureListed(market);
+
+        require(newMaxLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
+        // Emit event with old incentive, new incentive
+        emit NewMarketLiquidationIncentive(
+            poolId,
+            vToken,
+            market.maxLiquidationIncentiveMantissa,
+            newMaxLiquidationIncentive
+        );
+        // Set liquidation incentive to new incentive
+        market.maxLiquidationIncentiveMantissa = newMaxLiquidationIncentive;
+        return uint256(Error.NO_ERROR);
     }
 
     /**

@@ -80,6 +80,7 @@ interface IComptroller {
 
     function getDynamicLiquidationIncentive(
         address vToken,
+        address borrower,
         uint256 liquidationThresholdAvg,
         uint256 healthFactor
     ) external view returns (uint256);

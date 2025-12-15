@@ -105,6 +105,7 @@ interface IMarketFacet {
 
     function getDynamicLiquidationIncentive(
         address vToken,
+        address borrower,
         uint256 liquidationThresholdAvg,
         uint256 healthFactor
     ) external view returns (uint256);
@@ -115,7 +116,6 @@ interface IMarketFacet {
         WeightFunction weightingStrategy
     ) external view returns (uint256);
 
-    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
 
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
 }

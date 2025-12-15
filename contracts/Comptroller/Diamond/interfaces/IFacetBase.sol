@@ -35,6 +35,8 @@ interface IFacetBase {
      */
     function getXVSAddress() external view returns (address);
 
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
+
     function getPoolMarketIndex(uint96 poolId, address vToken) external pure returns (PoolMarketId);
 
     function corePoolId() external pure returns (uint96);

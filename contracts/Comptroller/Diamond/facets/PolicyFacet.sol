@@ -305,14 +305,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        Market storage marketCollateral = getCorePoolMarket(vTokenCollateral);
+        uint256 effectiveLiquidationIncentive = this.getEffectiveLiquidationIncentive(borrower, vTokenCollateral);
         uint256 closeFactor = liquidationManager.calculateDynamicCloseFactor(
             vTokenBorrowed,
             borrowBalance,
             snapshot.liquidationThresholdAvg,
             snapshot.totalCollateral,
             snapshot.dynamicLiquidationIncentiveMantissa,
-            marketCollateral.maxLiquidationIncentiveMantissa
+            effectiveLiquidationIncentive
         );
 
         // The liquidator may not repay more than what is allowed by the closeFactor

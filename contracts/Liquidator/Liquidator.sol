@@ -266,11 +266,14 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             address(vTokenCollateral),
             repayAmount
         );
+        
         uint256 totalIncentive = comptroller.getDynamicLiquidationIncentive(
             address(vTokenCollateral),
+            borrower,
             snapshot.liquidationThresholdAvg,
             snapshot.healthFactor
         );
+
         snapshot.dynamicLiquidationIncentiveMantissa = totalIncentive;
 
         _checkForceVAILiquidate(vToken, borrower);

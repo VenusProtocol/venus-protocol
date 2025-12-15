@@ -264,6 +264,20 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
         return xvs;
     }
 
+        /**
+     * @notice Get the Effective Liquidation Incentive for a given account and market
+     * @dev The incentive is determined by the pool entered by the account and the specified vToken via
+     *      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the
+     *      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used
+     * @param account The account whose pool is used to determine the market's risk parameters
+     * @param vToken The address of the vToken market
+     * @return The liquidation Incentive for the vToken, scaled by 1e18
+     */
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256) {
+        (, , uint256 li) = getLiquidationParams(userPoolId[account], vToken);
+        return li;
+    }
+
     /**
      * @notice Returns the unique market index for the given poolId and vToken pair
      * @dev Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping
@@ -311,5 +325,44 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
         );
 
         return (uint256(err), liquidity, shortfall);
+    }
+
+
+    /**
+     * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.
+     * @dev If the pool is inactive, or if the vToken is not configured in the given pool and
+     *      `allowCorePoolFallback` is enabled, falls back to the core pool (poolId = 0) values.
+     * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
+     * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
+     * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
+     */
+    function getLiquidationParams(
+        uint96 poolId,
+        address vToken
+    )
+        internal
+        view
+        returns (
+            uint256 collateralFactorMantissa,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa
+        )
+    {
+        PoolData storage pool = pools[poolId];
+        Market storage market;
+
+        if (poolId == corePoolId || !pool.isActive) {
+            market = getCorePoolMarket(vToken);
+        } else {
+            PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
+            Market storage poolMarket = _poolMarkets[poolKey];
+            market = (!poolMarket.isListed && pool.allowCorePoolFallback) ? getCorePoolMarket(vToken) : poolMarket;
+        }
+
+        return (
+            market.collateralFactorMantissa,
+            market.liquidationThresholdMantissa,
+            market.maxLiquidationIncentiveMantissa
+        );
     }
 }

@@ -193,6 +193,7 @@ interface ComptrollerInterface {
 
     function getDynamicLiquidationIncentive(
         address market,
+        address borrower,
         uint256 liquidationThresholdAvg,
         uint256 healthFactor
     ) external view returns (uint256);

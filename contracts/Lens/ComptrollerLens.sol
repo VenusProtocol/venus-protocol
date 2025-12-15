@@ -321,12 +321,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             VToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
-            (vars.err, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
+            (errorCode, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
                 account
             );
 
-            if (vars.err != 0) {
-                errorCode = vars.err;
+            if (errorCode != 0) {
                 return (errorCode, snapshot);
             }
 
