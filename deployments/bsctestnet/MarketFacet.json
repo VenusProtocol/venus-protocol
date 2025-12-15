@@ -715,6 +715,30 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "onBehalf",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "vToken",
+          "type": "address"
+        }
+      ],
+      "name": "enterMarketBehalf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address[]",
           "name": "vTokens",
           "type": "address[]"
@@ -2136,6 +2160,17 @@
           "_0": "poolId The incremental unique identifier of the newly created pool."
         }
       },
+      "enterMarketBehalf(address,address)": {
+        "custom:error": "NotAnApprovedDelegate thrown if `msg.sender` is not the account itself or an approved delegate",
+        "details": "Only callable by the account itself or an approved delegate",
+        "params": {
+          "onBehalf": "The address of the account entering the market",
+          "vToken": "The address of the vToken market to enable for the account"
+        },
+        "returns": {
+          "_0": "uint256 indicating the result (0 = success, non-zero = failure)"
+        }
+      },
       "enterMarkets(address[])": {
         "params": {
           "vTokens": "The list of addresses of the vToken markets to be enabled"
@@ -2578,6 +2613,9 @@
       "createPool(string)": {
         "notice": "Creates a new pool with the given label."
       },
+      "enterMarketBehalf(address,address)": {
+        "notice": "Add assets to be included in account liquidity calculation"
+      },
       "enterMarkets(address[])": {
         "notice": "Add assets to be included in account liquidity calculation"
       },
@@ -2802,6 +2840,7 @@
         "label": "oracle",
         "offset": 0,
         "slot": "4",
+        "type": "t_contract(ResilientOracleInterface)3797"
         "type": "t_contract(ResilientOracleInterface)3797"
       },
       {

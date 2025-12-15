@@ -670,6 +670,55 @@ describe("Comptroller", () => {
     });
   });
 
+  describe("enterMarketBehalf", async () => {
+    let comptroller: ComptrollerMock;
+    let vToken: FakeContract<VToken>;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      await contracts.comptroller._supportMarket(vToken.address);
+      configureVToken(vToken, contracts.comptroller);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, vToken } = await loadFixture(deploy));
+    });
+
+    it("should allow user to enter market for themselves", async () => {
+      const result = await comptroller.callStatic.enterMarketBehalf(root.address, vToken.address);
+      expect(result).to.equal(0); // NO_ERROR
+
+      await expect(comptroller.enterMarketBehalf(root.address, vToken.address))
+        .to.emit(comptroller, "MarketEntered")
+        .withArgs(vToken.address, root.address);
+
+      expect(await comptroller.checkMembership(root.address, vToken.address)).to.be.true;
+    });
+
+    it("should allow approved delegate to enter market on behalf of user", async () => {
+      await comptroller.updateDelegate(accounts[1].address, true);
+
+      const result = await comptroller.connect(accounts[1]).callStatic.enterMarketBehalf(root.address, vToken.address);
+      expect(result).to.equal(0); // NO_ERROR
+
+      await expect(comptroller.connect(accounts[1]).enterMarketBehalf(root.address, vToken.address))
+        .to.emit(comptroller, "MarketEntered")
+        .withArgs(vToken.address, root.address);
+
+      expect(await comptroller.checkMembership(root.address, vToken.address)).to.be.true;
+    });
+
+    it("should revert when unapproved delegate tries to enter market", async () => {
+      await expect(
+        comptroller.connect(accounts[1]).enterMarketBehalf(root.address, vToken.address),
+      ).to.be.revertedWithCustomError(comptroller, "NotAnApprovedDelegate");
+    });
+  });
+
   describe("Hooks", () => {
     let unitroller: Unitroller;
     let comptroller: ComptrollerMock;

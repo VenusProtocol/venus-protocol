@@ -196,6 +196,21 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Add assets to be included in account liquidity calculation
+     * @dev Only callable by the account itself or an approved delegate
+     * @param onBehalf The address of the account entering the market
+     * @param vToken The address of the vToken market to enable for the account
+     * @return uint256 indicating the result (0 = success, non-zero = failure)
+     * @custom:error NotAnApprovedDelegate thrown if `msg.sender` is not the account itself or an approved delegate
+     */
+    function enterMarketBehalf(address onBehalf, address vToken) external returns (uint256) {
+        if (msg.sender != onBehalf && !approvedDelegates[onBehalf][msg.sender]) {
+            revert NotAnApprovedDelegate();
+        }
+        return uint256(addToMarketInternal(VToken(vToken), onBehalf));
+    }
+
+    /**
      * @notice Unlists the given vToken market from the Core Pool (`poolId = 0`) by setting `isListed` to false
      * @dev Checks if market actions are paused and borrowCap/supplyCap/CF are set to 0
      * @param market The address of the market (vToken) to unlist

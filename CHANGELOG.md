@@ -1,3 +1,52 @@
+## 10.1.0-dev.10 (2025-12-12)
+
+* ci: fix the release flow through Trusted Publishing ([1cc22a8](https://github.com/VenusProtocol/venus-protocol/commit/1cc22a8))
+* Merge branch 'develop' into feat/VPD-267 ([3a52c10](https://github.com/VenusProtocol/venus-protocol/commit/3a52c10))
+* Merge pull request #649 from VenusProtocol/feat/VPD-267 ([300d295](https://github.com/VenusProtocol/venus-protocol/commit/300d295)), closes [#649](https://github.com/VenusProtocol/venus-protocol/issues/649)
+* Merge pull request #651 from VenusProtocol/feat/VPD-280 ([07cdc2f](https://github.com/VenusProtocol/venus-protocol/commit/07cdc2f)), closes [#651](https://github.com/VenusProtocol/venus-protocol/issues/651)
+* Merge pull request #654 from VenusProtocol/chore/fix-test ([d9fad5a](https://github.com/VenusProtocol/venus-protocol/commit/d9fad5a)), closes [#654](https://github.com/VenusProtocol/venus-protocol/issues/654)
+* fix: fix the TokenRedeemer test ([fdfd3ce](https://github.com/VenusProtocol/venus-protocol/commit/fdfd3ce))
+* fix: test ([d66a169](https://github.com/VenusProtocol/venus-protocol/commit/d66a169))
+* fix: test ([f9c3d55](https://github.com/VenusProtocol/venus-protocol/commit/f9c3d55))
+* fix: update blocks per day in VenusLens ([d546c0f](https://github.com/VenusProtocol/venus-protocol/commit/d546c0f))
+* feat: add bsctestnet checkpoint IRMs for Fermi upgrade ([982ca32](https://github.com/VenusProtocol/venus-protocol/commit/982ca32))
+* feat: update BNB chain blocksPerYear to 70080000 ([1f7d457](https://github.com/VenusProtocol/venus-protocol/commit/1f7d457))
+* feat: update BNB chain blocksPerYear to 70080000 ([77f7df2](https://github.com/VenusProtocol/venus-protocol/commit/77f7df2))
+* feat: update bscmainnet deployments ([5e7ad6d](https://github.com/VenusProtocol/venus-protocol/commit/5e7ad6d))
+* feat: update bsctestnet deployments ([f15588b](https://github.com/VenusProtocol/venus-protocol/commit/f15588b))
+* feat: updating deployment files ([dabff3c](https://github.com/VenusProtocol/venus-protocol/commit/dabff3c))
+* feat: updating deployment files ([b4c3092](https://github.com/VenusProtocol/venus-protocol/commit/b4c3092))
+* feat: updating deployment files ([9f053a6](https://github.com/VenusProtocol/venus-protocol/commit/9f053a6))
+* feat: updating deployment files ([fc94cc0](https://github.com/VenusProtocol/venus-protocol/commit/fc94cc0))
+
+## [10.1.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.8...v10.1.0-dev.9) (2025-12-08)
+
+
+### Features
+
+* updating deployment files ([3144436](https://github.com/VenusProtocol/venus-protocol/commit/31444366674fbdbb3b29a22212cb251eb8426622))
+
+
+### Bug Fixes
+
+* deployed irm for usdc and usdt ([4559766](https://github.com/VenusProtocol/venus-protocol/commit/455976666a9aeffd8a827ceb372549b8dd75a1af))
+* merge conflict ([ab28b8e](https://github.com/VenusProtocol/venus-protocol/commit/ab28b8e6067ddb22ba590967e66b58df2bffdfec))
+
+## [10.1.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.7...v10.1.0-dev.8) (2025-12-05)
+
+
+### Features
+
+* add enterMarketBehalf for approved delegates and associated tests ([ebda877](https://github.com/VenusProtocol/venus-protocol/commit/ebda8773c574bea9a7511da8376efda7f65bd53b))
+* add mainnet deployments ([40124a8](https://github.com/VenusProtocol/venus-protocol/commit/40124a8cef955bda5898400537f3f7e77a04cfe8))
+* update MarketFacet deployment to support enterMarketBehalf ([75fd438](https://github.com/VenusProtocol/venus-protocol/commit/75fd4387b16bde28169d92b52a6f6545c9db7004))
+* updating deployment files ([60a3c4b](https://github.com/VenusProtocol/venus-protocol/commit/60a3c4b5e46ac25299bd66d27b25b3a266f2391e))
+
+
+### Bug Fixes
+
+* migrate BSC networks to Etherscan API V2 ([c8afd02](https://github.com/VenusProtocol/venus-protocol/commit/c8afd02e97a22fd829b387025094e2e3cff62729))
+
 ## [10.1.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v10.1.0-dev.6...v10.1.0-dev.7) (2025-11-19)
 
 
