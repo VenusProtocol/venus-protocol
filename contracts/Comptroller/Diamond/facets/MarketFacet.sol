@@ -157,27 +157,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
         return (err, seizeTokens);
     }
 
-    /**
-     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
-     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
-     * @param borrower The address of the borrower
-     * @param vTokenCollateral The address of the collateral vToken
-     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
-     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
-     */
-    function liquidateVAICalculateSeizeTokens(
-        address borrower,
-        address vTokenCollateral,
-        uint256 actualRepayAmount
-    ) external view returns (uint256, uint256) {
-        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
-            address(this),
-            borrower,
-            vTokenCollateral,
-            actualRepayAmount
-        );
-        return (err, seizeTokens);
-    }
 
     /**
      * @notice Returns whether the given account has entered the specified vToken market in the Core Pool

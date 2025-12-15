@@ -139,11 +139,6 @@ interface ComptrollerInterface {
         uint liquidationIncentiveMantissa
     ) external view returns (uint, uint);
 
-    function liquidateVAICalculateSeizeTokens(
-        address borrower,
-        address vTokenCollateral,
-        uint repayAmount
-    ) external view returns (uint, uint);
 
     function getXVSAddress() external view returns (address);
 
