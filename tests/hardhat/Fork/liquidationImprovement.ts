@@ -185,6 +185,13 @@ if (FORK_MAINNET) {
             "setMarketMaxLiquidationIncentive(address,uint256)",
             addresses.bscmainnet.TIMELOCK,
           );
+        await acm
+          .connect(timelock)
+          .giveCallPermission(
+            addresses.bscmainnet.UNITROLLER,
+            "setMarketMaxLiquidationIncentive(uint96,address,uint256)",
+            addresses.bscmainnet.TIMELOCK,
+          );
 
         await comptroller.connect(timelock).setLiquidationManager(liquidationManager.address);
 
@@ -225,14 +232,14 @@ if (FORK_MAINNET) {
         // set market max liquidation incentive to allow manager capping
         await comptroller
           .connect(timelock)
-          ["setMarketMaxLiquidationIncentive(address,uint256)"](vUSDT.address, parseUnits("1.15", 18));
+        ["setMarketMaxLiquidationIncentive(address,uint256)"](vUSDT.address, parseUnits("1.15", 18));
         await comptroller
           .connect(timelock)
-          ["setMarketMaxLiquidationIncentive(address,uint256)"](VETH.address, parseUnits("1.15", 18));
+        ["setMarketMaxLiquidationIncentive(address,uint256)"](VETH.address, parseUnits("1.15", 18));
 
         await comptroller
           .connect(timelock)
-          ["setCollateralFactor(address,uint256,uint256)"](vUSDT.address, parseUnits("0.2", 18), parseUnits("0.2", 18));
+        ["setCollateralFactor(address,uint256,uint256)"](vUSDT.address, parseUnits("0.2", 18), parseUnits("0.2", 18));
 
         // get underlying token contracts
         eth = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await VETH.underlying());
@@ -290,9 +297,9 @@ if (FORK_MAINNET) {
 
         await comptroller
           .connect(timelock)
-          [
-            "setCollateralFactor(address,uint256,uint256)"
-          ](vUSDT.address, parseUnits("0.14", 18), parseUnits("0.14", 18));
+        [
+          "setCollateralFactor(address,uint256,uint256)"
+        ](vUSDT.address, parseUnits("0.14", 18), parseUnits("0.14", 18));
 
         // compute a sample repay amount and precompute expected seize using comptroller calc
         const repayAmount = parseUnits("1", 16);
@@ -398,6 +405,50 @@ if (FORK_MAINNET) {
         );
 
         expect(ethers.BigNumber.from(incentive).eq(maxIncentive)).to.be.true;
+      });
+
+      it("eMode + Dynamic Incentive: parity between overloads and clamping to market max", async () => {
+        // create a new pool and configure market parameters similar to emode tests
+        await comptroller.connect(timelock).createPool("emode-dyn-test");
+        const poolId = (await comptroller.connect(timelock).lastPoolId()).toNumber();
+        await comptroller.connect(timelock).addPoolMarkets([poolId], [vUSDT.address]);
+
+        // set a per-pool market max liquidation incentive
+        const poolMaxLI = parseUnits("1.2", 18);
+        await comptroller
+          .connect(timelock)
+        ["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](poolId, vUSDT.address, poolMaxLI);
+
+        // enable dynamic liquidation incentive for vUSDT
+        await liquidationManager.connect(timelock).setDynamicLiquidationIncentiveEnabled(vUSDT.address, true);
+        
+        // should revert on entering pool while having Borrows
+        await expect(comptroller.connect(borrower).enterPool(poolId)).to.be.revertedWithCustomError(
+          comptroller,
+          "IncompatibleBorrowedAssets",
+        );
+        // get a snapshot for borrower from comptroller; reuse borrower from setup
+        const borrowBalance = await vUSDT.callStatic.borrowBalanceCurrent(borrower.address);
+        const [, snapshot] = await comptroller.getHypotheticalHealthSnapshot(
+          borrower.address,
+          ethers.constants.AddressZero,
+          0,
+          borrowBalance,
+          1,
+        );
+        // explicit call: (vToken, borrower,liquidationThresholdAvg, healthFactor)
+        const explicit = await comptroller["getDynamicLiquidationIncentive(address,address,uint256,uint256)"](
+          vUSDT.address,
+          borrower.address,
+          snapshot.liquidationThresholdAvg,
+          snapshot.healthFactor,
+        );
+        // borrower-based overload which computes snapshot internally
+        const viaSnapshot = await comptroller["getDynamicLiquidationIncentive(address,address)"](borrower.address, vUSDT.address);
+        // assert parity
+        expect(explicit.eq(viaSnapshot)).to.be.true;
+        // value must not exceed market max (poolMaxLI)
+        expect(explicit.lte(poolMaxLI)).to.be.true;
       });
 
       it("LiquidationManager: computes dynamic incentive = max (no cap) (account is healthy)", async () => {
