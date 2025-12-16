@@ -234,7 +234,7 @@ describe("RepayBorrow Capping Logic Tests", async () => {
       const mockSnapshot = {
         totalCollateral: 0,
         weightedCollateral: 0,
-        borrows: 0,
+        totalBorrows: 0,
         liquidity: 0,
         shortfall: 0,
         liquidationThresholdAvg: 0,

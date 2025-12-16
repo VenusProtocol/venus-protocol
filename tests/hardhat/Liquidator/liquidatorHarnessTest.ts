@@ -62,10 +62,10 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   return { comptroller, vBnb, vTokenCollateral, liquidator, wBnb, underlying };
 }
 
-function configure(fixture: LiquidatorFixture) {
+function configure(fixture: LiquidatorFixture, borrower: SignerWithAddress) {
   const { comptroller, vTokenCollateral } = fixture;
-  comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
-    .whenCalledWith(vTokenCollateral.address, 0, 0)
+  comptroller["getDynamicLiquidationIncentive(address,address,uint256,uint256)"]
+    .whenCalledWith(vTokenCollateral.address, borrower.address, 0, 0)
     .returns(announcedIncentive);
   vTokenCollateral.transfer.reset();
   vTokenCollateral.transfer.returns(true);
@@ -80,13 +80,14 @@ function calculateSplitSeizedTokens(amount: bigint) {
 
 describe("Liquidator", () => {
   let liquidator: SignerWithAddress;
+  let borrower: SignerWithAddress;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
   let liquidatorContract: MockContract<LiquidatorHarness>;
   let underlying: FakeContract<FaucetToken>;
   beforeEach(async () => {
-    [liquidator] = await ethers.getSigners();
+    [liquidator, borrower] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
-    configure(contracts);
+    configure(contracts, borrower);
     ({ vTokenCollateral, liquidator: liquidatorContract, underlying } = contracts);
   });
 

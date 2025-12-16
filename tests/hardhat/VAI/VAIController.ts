@@ -398,7 +398,7 @@ describe("VAIController", async () => {
     const mockSnapshot = {
       totalCollateral: 0,
       weightedCollateral: 0,
-      borrows: 0,
+      totalBorrows: 0,
       liquidity: 0,
       shortfall: 0,
       liquidationThresholdAvg: 0,
@@ -443,8 +443,9 @@ describe("VAIController", async () => {
         0,
         1,
       );
-      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
+      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,address,uint256,uint256)"](
         vusdt.address,
+        user1.address,
         snapshotRaw.liquidationThresholdAvg,
         snapshotRaw.healthFactor,
       );
@@ -477,8 +478,9 @@ describe("VAIController", async () => {
         0,
         1,
       );
-      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
+      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,address,uint256,uint256)"](
         vusdt.address,
+        user1.address,
         snapshotRaw.liquidationThresholdAvg,
         snapshotRaw.healthFactor,
       );
@@ -515,8 +517,9 @@ describe("VAIController", async () => {
         0,
         1,
       );
-      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"](
+      const totalIncentive = await comptroller["getDynamicLiquidationIncentive(address,address,uint256,uint256)"](
         vusdt.address,
+        user1.address,
         snapshotRaw.liquidationThresholdAvg,
         snapshotRaw.healthFactor,
       );

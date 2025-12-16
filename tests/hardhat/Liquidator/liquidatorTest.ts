@@ -103,14 +103,14 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   };
 }
 
-function configure(fixture: LiquidatorFixture) {
+function configure(fixture: LiquidatorFixture, borrower: SignerWithAddress) {
   const { comptroller, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, vBnb } = fixture;
 
-  comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
-    .whenCalledWith(vTokenBorrowed.address, 0, 0)
+  comptroller["getDynamicLiquidationIncentive(address,address,uint256,uint256)"]
+    .whenCalledWith(vTokenBorrowed.address, borrower.address, 0, 0)
     .returns(announcedIncentive);
-  comptroller["getDynamicLiquidationIncentive(address,uint256,uint256)"]
-    .whenCalledWith(vTokenCollateral.address, 0, 0)
+  comptroller["getDynamicLiquidationIncentive(address,address,uint256,uint256)"]
+    .whenCalledWith(vTokenCollateral.address, borrower.address, 0, 0)
     .returns(announcedIncentive);
 
   vTokenBorrowed.underlying.returns(borrowedUnderlying.address);
@@ -146,7 +146,7 @@ describe("Liquidator", () => {
   beforeEach(async () => {
     [liquidator, borrower] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
-    configure(contracts);
+    configure(contracts, borrower);
     ({
       comptroller,
       vTokenBorrowed,
@@ -222,7 +222,7 @@ describe("Liquidator", () => {
           {
             totalCollateral: ethers.BigNumber.from(0),
             weightedCollateral: ethers.BigNumber.from(0),
-            borrows: ethers.BigNumber.from(0),
+            totalBorrows: ethers.BigNumber.from(0),
             liquidity: ethers.BigNumber.from(0),
             shortfall: ethers.BigNumber.from(0),
             liquidationThresholdAvg: ethers.BigNumber.from(0),
@@ -280,7 +280,7 @@ describe("Liquidator", () => {
           {
             totalCollateral: ethers.BigNumber.from(0),
             weightedCollateral: ethers.BigNumber.from(0),
-            borrows: ethers.BigNumber.from(0),
+            totalBorrows: ethers.BigNumber.from(0),
             liquidity: ethers.BigNumber.from(0),
             shortfall: ethers.BigNumber.from(0),
             liquidationThresholdAvg: ethers.BigNumber.from(0),

@@ -379,18 +379,18 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         await mine(99);
         await vaiController.accrueVAIInterest();
         await mine();
-        // 100 blocks here, so debt before the repayment is twice the initial amount
-        expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(2);
-        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(4);
-        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(6);
+        // After 100 blocks with baseRate=420480 the accrued index is ~1.6x,
+        // so expected repay amounts become 1, 3 and 4 for the borrowers (truncation applied)
+        expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(1);
+        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(3);
+        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(4);
         // We transfer the refund to someone instead of treasury here so that we don't need
         // to account for interest that is also transferred to treasury
         const tx = await redeemer.connect(owner).batchRepayVAI(vaiController.address, repayments, someone.address);
         await mine();
         expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(0);
-        // The second repayment doesn't happen due to rounding in VAIController
-        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(4);
-        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(6);
+        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(1);
+        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(4);
         await ethers.provider.send("evm_setAutomine", [true]);
         // Still transfers 1 wei refund to treasury
         await expect(tx).to.changeTokenBalance(vai, someone.address, 1);
