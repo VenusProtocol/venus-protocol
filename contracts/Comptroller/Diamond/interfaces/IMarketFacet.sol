@@ -28,7 +28,6 @@ interface IMarketFacet {
         uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
-
     function checkMembership(address account, VToken vToken) external view returns (bool);
 
     function enterMarketBehalf(address onBehalf, address vToken) external returns (uint256);
@@ -112,7 +111,6 @@ interface IMarketFacet {
         address vToken,
         WeightFunction weightingStrategy
     ) external view returns (uint256);
-
 
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
 }

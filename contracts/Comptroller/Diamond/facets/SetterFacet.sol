@@ -618,7 +618,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         xvsVToken = xvsVToken_;
     }
 
-
     /**
      * @notice Adds/Removes an account to the flash loan whitelist
      * @param account The account to authorize for flash loans
@@ -758,7 +757,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit BorrowAllowedUpdated(poolId, vToken, m.isBorrowAllowed, borrowAllowed);
         m.isBorrowAllowed = borrowAllowed;
     }
-
 
     /**
      * @notice This function is used to set the liquidation manager address which is responsible for managing

@@ -264,7 +264,7 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
         return xvs;
     }
 
-        /**
+    /**
      * @notice Get the Effective Liquidation Incentive for a given account and market
      * @dev The incentive is determined by the pool entered by the account and the specified vToken via
      *      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the
@@ -326,7 +326,6 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
 
         return (uint256(err), liquidity, shortfall);
     }
-
 
     /**
      * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.

@@ -139,7 +139,6 @@ interface ComptrollerInterface {
         uint liquidationIncentiveMantissa
     ) external view returns (uint, uint);
 
-
     function getXVSAddress() external view returns (address);
 
     function markets(address) external view returns (bool, uint, bool, uint, uint, uint96, bool);

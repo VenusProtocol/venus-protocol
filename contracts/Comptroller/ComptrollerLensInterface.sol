@@ -49,7 +49,6 @@ interface ComptrollerLensInterface {
         uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
-
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,

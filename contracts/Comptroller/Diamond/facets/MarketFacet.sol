@@ -157,7 +157,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
         return (err, seizeTokens);
     }
 
-
     /**
      * @notice Returns whether the given account has entered the specified vToken market in the Core Pool
      * @dev Reads membership from the Core Pool (`poolId = 0`). Although the account may have entered other pools,
@@ -472,7 +471,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         uint256 liquidationThresholdAvg,
         uint256 healthFactor
     ) external view returns (uint256 incentive) {
-        uint256 effectiveLiquidationIncentive = this.getEffectiveLiquidationIncentive(borrower,vToken);
+        uint256 effectiveLiquidationIncentive = this.getEffectiveLiquidationIncentive(borrower, vToken);
 
         incentive = liquidationManager.calculateDynamicLiquidationIncentive(
             vToken,
@@ -494,7 +493,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address borrower,
         address vToken
     ) external view returns (uint256 incentive) {
-        uint256 effectiveLiquidationIncentive = this.getEffectiveLiquidationIncentive(borrower,vToken);
+        uint256 effectiveLiquidationIncentive = this.getEffectiveLiquidationIncentive(borrower, vToken);
         (
             uint256 err,
             ComptrollerLensInterface.AccountSnapshot memory snapshot
@@ -767,5 +766,4 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         emit PoolMarketInitialized(poolId, vToken);
     }
-
 }

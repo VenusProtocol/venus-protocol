@@ -1,6 +1,6 @@
 import { smock } from "@defi-wonderland/smock";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { BigNumber, BigNumberish } from "ethers";
@@ -246,6 +246,8 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
     let vToken: VBep20;
     let vToken2: VBep20;
     let vBNB: VBNB;
+    let vaiController: VAIController;
+    let vai: VAI;
     let underlying: FaucetToken;
     let underlying2: FaucetToken;
     let owner: SignerWithAddress;
@@ -255,8 +257,20 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
     let treasury: SignerWithAddress;
 
     beforeEach(async () => {
-      ({ redeemer, vToken, underlying, owner, supplier, treasury, vToken2, underlying2, vBNB, borrowers } =
-        await loadFixture(setup));
+      ({
+        redeemer,
+        vToken,
+        underlying,
+        owner,
+        supplier,
+        treasury,
+        vToken2,
+        underlying2,
+        vBNB,
+        vaiController,
+        vai,
+        borrowers,
+      } = await loadFixture(setup));
       [someone] = await ethers.getSigners();
     });
 
