@@ -244,6 +244,12 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xd2aF6A916Bc77764dc63742BC30f71AF4cF423F4",
   },
+  {
+    isMock: true,
+    name: "PT Staked Lista BNBx 24JUN2026",
+    symbol: "PT-slisBNBx-24JUN2026",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

@@ -703,4 +703,26 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus PT-slisBNBx-24JUN2026",
+    symbol: "vPT-slisBNBx-24JUN2026",
+    asset: "PT-slisBNBx-24JUN2026",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "25000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.14",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
