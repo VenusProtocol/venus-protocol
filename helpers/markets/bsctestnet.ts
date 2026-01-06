@@ -703,4 +703,29 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus United Stables",
+    symbol: "vU",
+    asset: "U",
+    interestRateModel: {
+      model: "two-kinks",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0625",
+      kink: "0.8",
+      baseRatePerYear2: "0",
+      multiplierPerYear2: "0.6",
+      kink2: "0.9",
+      jumpMultiplierPerYear: "3.4",
+    },
+    riskParameters: {
+      collateralFactor: "0.75",
+      reserveFactor: "0.1",
+      supplyCap: "20000000",
+      borrowCap: "20000000",
+    },
+    initialSupply: {
+      amount: "100",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
