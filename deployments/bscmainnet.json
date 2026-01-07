@@ -60912,9 +60912,9 @@
         }
       ]
     },
-    "TwoKinks_base0bps_slope625bps_kink8000bps_slope26000bps_base20bps_kink29000bps_jump34000bps_bpy42048000": {
-      "address": "0x846883aC2AFdaeF9d226182e82f3640d3D6D4d3f",
-            "abi": [
+    "TwoKinks_base0bps_slope624bps_kink8000bps_slope26001bps_base20bps_kink29000bps_jump34000bps_bpy70080000": {
+      "address": "0x04f928517736A57840F0fD544fF2a1819B1bDcE0",
+      "abi": [
         {
           "inputs": [
             {
@@ -61208,8 +61208,8 @@
         }
       ]
     },
-    "TwoKinks_base0bps_slope624bps_kink8000bps_slope26001bps_base20bps_kink29000bps_jump34000bps_bpy70080000": {
-      "address": "0x04f928517736A57840F0fD544fF2a1819B1bDcE0",
+    "TwoKinks_base0bps_slope625bps_kink8000bps_slope26000bps_base20bps_kink29000bps_jump34000bps_bpy42048000": {
+      "address": "0x846883aC2AFdaeF9d226182e82f3640d3D6D4d3f",
       "abi": [
         {
           "inputs": [
