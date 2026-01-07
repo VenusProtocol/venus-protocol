@@ -1,3 +1,12 @@
+## 10.1.0-dev.11 (2026-01-07)
+
+* Merge pull request #655 from VenusProtocol/feat/VPD-282 ([726dc3e](https://github.com/VenusProtocol/venus-protocol/commit/726dc3e)), closes [#655](https://github.com/VenusProtocol/venus-protocol/issues/655)
+* feat: add bscmainnet checkpoint IRMs for Fermi upgrade ([1591941](https://github.com/VenusProtocol/venus-protocol/commit/1591941))
+* feat: deploy checkpoint setter ([7cc4646](https://github.com/VenusProtocol/venus-protocol/commit/7cc4646))
+* feat: updating deployment files ([1777965](https://github.com/VenusProtocol/venus-protocol/commit/1777965))
+* feat: updating deployment files ([2befb9b](https://github.com/VenusProtocol/venus-protocol/commit/2befb9b))
+* ci: npm pkg fix ([d1378e1](https://github.com/VenusProtocol/venus-protocol/commit/d1378e1))
+
 ## 10.1.0-dev.10 (2025-12-12)
 
 * ci: fix the release flow through Trusted Publishing ([1cc22a8](https://github.com/VenusProtocol/venus-protocol/commit/1cc22a8))
