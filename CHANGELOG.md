@@ -1,3 +1,15 @@
+## 10.1.0-dev.12 (2026-01-09)
+
+* Merge branch 'develop' into feat/VPD-418 ([f38a671](https://github.com/VenusProtocol/venus-protocol/commit/f38a671))
+* Merge pull request #657 from VenusProtocol/feat/VPD-418 ([76307c4](https://github.com/VenusProtocol/venus-protocol/commit/76307c4)), closes [#657](https://github.com/VenusProtocol/venus-protocol/issues/657)
+* feat: add checkpoint view and setter for vU ([e7cdca2](https://github.com/VenusProtocol/venus-protocol/commit/e7cdca2))
+* feat: deploy U market on bscmainnet ([49cbf20](https://github.com/VenusProtocol/venus-protocol/commit/49cbf20))
+* feat: deploy U market on bsctestnet ([8348e17](https://github.com/VenusProtocol/venus-protocol/commit/8348e17))
+* feat: updating deployment files ([5d68b0d](https://github.com/VenusProtocol/venus-protocol/commit/5d68b0d))
+* feat: updating deployment files ([0180815](https://github.com/VenusProtocol/venus-protocol/commit/0180815))
+* feat: updating deployment files ([b119640](https://github.com/VenusProtocol/venus-protocol/commit/b119640))
+* feat: updating deployment files ([402e0bb](https://github.com/VenusProtocol/venus-protocol/commit/402e0bb))
+
 ## 10.1.0-dev.11 (2026-01-07)
 
 * Merge pull request #655 from VenusProtocol/feat/VPD-282 ([726dc3e](https://github.com/VenusProtocol/venus-protocol/commit/726dc3e)), closes [#655](https://github.com/VenusProtocol/venus-protocol/issues/655)
