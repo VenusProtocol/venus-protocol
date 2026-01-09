@@ -246,8 +246,8 @@ const tokens = [
   },
   {
     isMock: true,
-    name: "PT Staked Lista BNBx 24JUN2026",
-    symbol: "PT-slisBNBx-24JUN2026",
+    name: "PT Lista collateral BNB 25JUN2026",
+    symbol: "PT-clisBNB-25JUN2026",
     decimals: 18,
   },
 ] as const satisfies readonly TokenConfig[];

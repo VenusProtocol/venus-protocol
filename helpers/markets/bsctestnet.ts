@@ -704,9 +704,9 @@ export default [
     },
   },
   {
-    name: "Venus PT-slisBNBx-24JUN2026",
-    symbol: "vPT-slisBNBx-24JUN2026",
-    asset: "PT-slisBNBx-24JUN2026",
+    name: "Venus PT Lista collateral BNB 25JUN2026",
+    symbol: "vPT-clisBNB-25JUN2026",
+    asset: "PT-clisBNB-25JUN2026",
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
