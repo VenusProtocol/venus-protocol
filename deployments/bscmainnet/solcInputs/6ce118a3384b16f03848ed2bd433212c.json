@@ -1,0 +1,34 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/generated/SetCheckpointBscmainnet.sol": {
+      "content": "\n// SPDX-License-Identifier: BSD-3-Clause\npragma solidity 0.8.25;\n\ninterface VBNBAdminInterface {\n    function setInterestRateModel(address) external;\n}\n\ninterface VTokenInterface {\n    function _setInterestRateModel(address) external;\n}\n\ncontract SetCheckpointBscmainnet {\n    error Unauthorized();\n\n    function run() external {\n        if (msg.sender != 0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396) {\n            revert Unauthorized();\n        }\n        \n        // vU -> CheckpointView_From_TwoKinks_base0bps_slope625bps_kink8000bps_slope26000bps_base20bps_kink29000bps_jump34000bps_bpy42048000_To_bpy70080000_At_1768357800\n        VTokenInterface(0x3d5E269787d562b74aCC55F18Bd26C5D09Fa245E)._setInterestRateModel(0x381829DBb51cD74F3172574f4111F2F58d8b0E53);\n    }\n}"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "evmVersion": "cancun",
+    "outputSelection": {
+      "*": {
+        "*": [
+          "storageLayout",
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "evm.gasEstimates"
+        ],
+        "": ["ast"]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
