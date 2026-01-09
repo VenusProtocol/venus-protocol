@@ -296,6 +296,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xB0b84D294e0C75A6abe60171b70edEb2EFd14A1B",
   },
+  {
+    isMock: false,
+    name: "PT Lista collateral BNB 25JUN2026",
+    symbol: "PT-clisBNB-25JUN2026",
+    decimals: 18,
+    tokenAddress: "0xe052823b4aefc6e230FAf46231A57d0905E30AE0",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
