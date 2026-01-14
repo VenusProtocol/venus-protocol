@@ -250,6 +250,12 @@ const tokens = [
     symbol: "PT-clisBNB-25JUN2026",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "United Stables",
+    symbol: "U",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

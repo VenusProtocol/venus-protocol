@@ -1155,7 +1155,7 @@ describe("Comptroller", () => {
         );
       });
 
-      it("should return silenty if borrowAllowed is already set to desired value", async () => {
+      it("should return silently if borrowAllowed is already set to desired value", async () => {
         await comptroller.setIsBorrowAllowed(poolId, vToken.address, true);
         await expect(comptroller.setIsBorrowAllowed(poolId, vToken.address, true)).to.not.emit(
           comptroller,
@@ -1455,7 +1455,7 @@ describe("Comptroller", () => {
         );
       });
 
-      it("should return silenty if isActive is already set to desired value", async () => {
+      it("should return silently if isActive is already set to desired value", async () => {
         await comptroller.setPoolActive(poolId, true);
         await expect(comptroller.setPoolActive(poolId, true)).to.not.emit(comptroller, "BorrowAllowedUpdated");
       });

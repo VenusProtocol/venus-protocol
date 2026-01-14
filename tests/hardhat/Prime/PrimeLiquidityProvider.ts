@@ -67,8 +67,8 @@ describe("PrimeLiquidityProvider: tests", () => {
     await loadFixture(fixture);
   });
 
-  describe("Testing all initalized values", () => {
-    it("Tokens intialized", async () => {
+  describe("Testing all initialized values", () => {
+    it("Tokens initialized", async () => {
       const tokenABlockOrSecond = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenA.address);
       expect(tokenABlockOrSecond).to.greaterThan(0);
 

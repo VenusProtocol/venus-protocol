@@ -303,6 +303,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xe052823b4aefc6e230FAf46231A57d0905E30AE0",
   },
+  {
+    isMock: false,
+    name: "United Stables",
+    symbol: "U",
+    decimals: 18,
+    tokenAddress: "0xcE24439F2D9C6a2289F741120FE202248B666666",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
