@@ -841,7 +841,7 @@ export default [
       borrowCap: "0",
     },
     initialSupply: {
-      amount: "0.14",
+      amount: "0.035",
       vTokenReceiver: "VTreasury",
     },
   },
