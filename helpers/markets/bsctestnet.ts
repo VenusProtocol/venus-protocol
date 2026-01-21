@@ -704,6 +704,28 @@ export default [
     },
   },
   {
+    name: "Venus PT Lista collateral BNB 25JUN2026",
+    symbol: "vPT-clisBNB-25JUN2026",
+    asset: "PT-clisBNB-25JUN2026",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "25000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.14",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
     name: "Venus United Stables",
     symbol: "vU",
     asset: "U",

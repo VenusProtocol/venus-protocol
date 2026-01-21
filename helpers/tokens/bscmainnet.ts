@@ -298,6 +298,13 @@ const tokens = [
   },
   {
     isMock: false,
+    name: "PT Lista collateral BNB 25JUN2026",
+    symbol: "PT-clisBNB-25JUN2026",
+    decimals: 18,
+    tokenAddress: "0xe052823b4aefc6e230FAf46231A57d0905E30AE0",
+  },
+  {
+    isMock: false,
     name: "United Stables",
     symbol: "U",
     decimals: 18,
