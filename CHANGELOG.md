@@ -1,3 +1,17 @@
+## 10.2.0-dev.1 (2026-01-21)
+
+* Merge branch 'develop' into feat/vpd-404 ([2e1f342](https://github.com/VenusProtocol/venus-protocol/commit/2e1f342))
+* Merge pull request #643 from goldlinker/develop ([ff2d7cf](https://github.com/VenusProtocol/venus-protocol/commit/ff2d7cf)), closes [#643](https://github.com/VenusProtocol/venus-protocol/issues/643)
+* Merge pull request #656 from VenusProtocol/feat/vpd-404 ([01414e3](https://github.com/VenusProtocol/venus-protocol/commit/01414e3)), closes [#656](https://github.com/VenusProtocol/venus-protocol/issues/656)
+* Merge pull request #660 from VenusProtocol/main ([24b52b8](https://github.com/VenusProtocol/venus-protocol/commit/24b52b8)), closes [#660](https://github.com/VenusProtocol/venus-protocol/issues/660)
+* fix: initial supply value ([3c3abf6](https://github.com/VenusProtocol/venus-protocol/commit/3c3abf6))
+* feat: add mainnet deployments for PT-clisBNB-25JUN2026 market ([0bb1d96](https://github.com/VenusProtocol/venus-protocol/commit/0bb1d96))
+* feat: add testnet deployment for PT-slisBNBx-24JUN2026 market ([84a199d](https://github.com/VenusProtocol/venus-protocol/commit/84a199d))
+* feat: redeploy market for bsctestnet ([39dab7d](https://github.com/VenusProtocol/venus-protocol/commit/39dab7d))
+* feat: updating deployment files ([eb1ee25](https://github.com/VenusProtocol/venus-protocol/commit/eb1ee25))
+* feat: updating deployment files ([178b03a](https://github.com/VenusProtocol/venus-protocol/commit/178b03a))
+* chore: fix some minor issues in the comments ([1784726](https://github.com/VenusProtocol/venus-protocol/commit/1784726))
+
 ## 10.1.0 (2026-01-13)
 
 * feat : add initiator parameter to flash loan functions and implement whitelist checks ([7ceed8c](https://github.com/VenusProtocol/venus-protocol/commit/7ceed8c))
