@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
+
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+
+/**
+ * @title PrimeV2StorageV1
+ * @author Venus
+ * @notice Storage layout for PrimeV2 contract with leaderboard-based Prime token distribution
+ */
+contract PrimeV2StorageV1 {
+    // ═══════════════════ CONSTANTS ═══════════════════
+
+    /// @notice Scaling factor for calculations
+    uint256 internal constant EXP_SCALE = 1e18;
+
+    // ═══════════════════ PRIME TOKEN STATE ═══════════════════
+
+    /// @notice Struct to represent a Prime token
+    struct Token {
+        bool exists; // Whether user has a Prime token
+        bool isIrrevocable; // Whether token is irrevocable (admin-granted)
+    }
+
+    /// @notice Mapping of user to their Prime token
+    mapping(address => Token) public tokens;
+
+    /// @notice Total count of irrevocable Prime tokens
+    uint256 public totalIrrevocable;
+
+    /// @notice Total count of revocable Prime tokens
+    uint256 public totalRevocable;
+
+    /// @notice Maximum number of irrevocable tokens allowed
+    uint256 public irrevocableLimit;
+
+    /// @notice Maximum number of revocable tokens allowed
+    uint256 public revocableLimit;
+
+    // ═══════════════════ MARKET STATE ═══════════════════
+
+    /// @notice Struct to represent a market in Prime
+    struct Market {
+        uint256 supplyMultiplier; // Multiplier for supply APR boost
+        uint256 borrowMultiplier; // Multiplier for borrow APR boost
+        uint256 rewardIndex; // Accumulated reward per score
+        uint256 sumOfMembersScore; // Total score of all Prime members in this market
+        bool exists; // Whether this market is in Prime
+    }
+
+    /// @notice Struct to track user's interest in a market
+    struct Interest {
+        uint256 accrued; // Accrued rewards pending claim
+        uint256 score; // User's score in this market
+        uint256 rewardIndex; // Last recorded reward index
+    }
+
+    /// @notice Struct for pending reward info
+    struct PendingReward {
+        address vToken;
+        address rewardToken;
+        uint256 amount;
+    }
+
+    /// @notice Mapping of vToken to its market configuration
+    mapping(address => Market) public markets;
+
+    /// @notice Mapping of vToken -> user -> interest info
+    mapping(address => mapping(address => Interest)) public interests;
+
+    /// @notice Array of all Prime-participating markets
+    address[] internal _allMarkets;
+
+    /// @notice Mapping of underlying token to vToken address
+    mapping(address => address) public vTokenForAsset;
+
+    // ═══════════════════ SCORE PARAMETERS ═══════════════════
+
+    /// @notice Alpha parameter numerator for score calculation
+    uint128 public alphaNumerator;
+
+    /// @notice Alpha parameter denominator for score calculation
+    uint128 public alphaDenominator;
+
+    // ═══════════════════ EXTERNAL CONTRACT REFERENCES ═══════════════════
+
+    /// @notice Address of XVSVault contract
+    address public xvsVault;
+
+    /// @notice Reward token address in XVSVault
+    address public xvsVaultRewardToken;
+
+    /// @notice Pool ID in XVSVault
+    uint256 public xvsVaultPoolId;
+
+    /// @notice Address of PrimeLiquidityProvider
+    address public primeLiquidityProvider;
+
+    /// @notice Oracle for price feeds
+    ResilientOracleInterface public oracle;
+
+    /// @notice Core pool comptroller address
+    address public corePoolComptroller;
+
+    /// @notice Isolated lending pool registry
+    address public poolRegistry;
+
+    /// @notice Address of PrimeLeaderboard contract
+    address public primeLeaderboard;
+
+    // ═══════════════════ INCOME TRACKING ═══════════════════
+
+    /// @notice Unreleased income from PrimeLiquidityProvider per token
+    mapping(address => uint256) public unreleasedPLPIncome;
+
+    // ═══════════════════ SCORE UPDATE TRACKING ═══════════════════
+
+    /// @notice Mapping to track if user's score was updated in a round
+    mapping(uint256 => mapping(address => bool)) public isScoreUpdated;
+
+    /// @notice Current score update round ID
+    uint256 public nextScoreUpdateRoundId;
+
+    /// @notice Number of pending score updates in current round
+    uint256 public pendingScoreUpdates;
+
+    /// @notice Storage gap for future upgrades
+    uint256[40] private __gap;
+}
