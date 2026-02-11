@@ -8,7 +8,6 @@ import { SafeBEP20 } from "../Utils/SafeBEP20.sol";
 import { IBEP20 } from "../Utils/IBEP20.sol";
 import { XVSVaultStorage } from "./XVSVaultStorage.sol";
 import { IPrimeV5 } from "../Tokens/Prime/IPrimeV5.sol";
-import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
 import { SafeCast } from "../Utils/SafeCast.sol";
 import { SafeMath } from "../Utils/SafeMath.sol";
 
@@ -93,12 +92,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         address newPrimeRewardToken,
         uint256 oldPrimePoolId,
         uint256 newPrimePoolId
-    );
-
-    /// @notice Emitted when prime leaderboard contract address is changed
-    event NewPrimeLeaderboard(
-        IPrimeLeaderboard indexed oldPrimeLeaderboard,
-        IPrimeLeaderboard indexed newPrimeLeaderboard
     );
 
     /**
@@ -320,11 +313,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
         if (primeRewardToken == _rewardToken && _pid == primePoolId) {
             primeToken.xvsUpdated(msg.sender);
-
-            // Record deposit for Prime V2 leaderboard tracking
-            if (address(primeLeaderboard) != address(0)) {
-                primeLeaderboard.recordDeposit(msg.sender, _amount);
-            }
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -528,11 +516,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
         if (primeRewardToken == _rewardToken && _pid == primePoolId) {
             primeToken.xvsUpdated(msg.sender);
-
-            // Record withdrawal for Prime V2 leaderboard tracking
-            if (address(primeLeaderboard) != address(0)) {
-                primeLeaderboard.recordWithdrawal(msg.sender, _amount);
-            }
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
@@ -918,15 +901,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         primeToken = _primeToken;
         primeRewardToken = _primeRewardToken;
         primePoolId = _primePoolId;
-    }
-
-    /**
-     * @notice Sets the address of the prime leaderboard contract
-     * @param _primeLeaderboard address of the prime leaderboard contract
-     */
-    function setPrimeLeaderboard(IPrimeLeaderboard _primeLeaderboard) external onlyAdmin {
-        emit NewPrimeLeaderboard(primeLeaderboard, _primeLeaderboard);
-        primeLeaderboard = _primeLeaderboard;
     }
 
     /**
