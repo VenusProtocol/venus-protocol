@@ -28,11 +28,14 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice User's total staked XVS
     mapping(address => uint256) public totalStaked;
 
-    /// @notice User's withdrawn score for current epoch (resets each epoch)
-    mapping(address => uint256) public withdrawnScoreCurrentEpoch;
+    /// @notice User's withdrawn score for current round (resets each round)
+    mapping(address => uint256) public withdrawnScoreCurrentRound;
 
-    /// @notice Epoch number when user's withdrawn score was last updated
-    mapping(address => uint256) internal _withdrawnScoreEpoch;
+    /// @notice Round number when user's withdrawn score was last updated
+    mapping(address => uint256) internal _withdrawnScoreRound;
+
+    /// @notice Last known staked amount per user (for xvsUpdated delta inference)
+    mapping(address => uint256) internal _lastKnownStake;
 
     // ═══════════════════ PARTICIPANT TRACKING ═══════════════════
 
@@ -42,41 +45,13 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice Index of participant in array (1-indexed, 0 = not participant)
     mapping(address => uint256) internal _participantIndex;
 
-    // ═══════════════════ EPOCH STATE ═══════════════════
+    // ═══════════════════ ROUND STATE ═══════════════════
 
-    /// @notice Current epoch number (1-indexed)
-    uint256 public currentEpoch;
-
-    /// @notice Timestamp when current epoch started
-    uint256 public epochStartTime;
-
-    /// @notice Duration of each epoch in seconds (default: 30 days)
-    uint256 public epochDuration;
-
-    /// @notice Number of Prime token slots (default: 500)
-    uint256 public primeSlots;
+    /// @notice Current round number (1-indexed), incremented by advanceRound()
+    uint256 public currentRound;
 
     /// @notice Minimum XVS stake to be a participant (default: 500 XVS)
     uint256 public minimumStake;
-
-    // ═══════════════════ EPOCH PROCESSING STATE ═══════════════════
-
-    /// @notice Number of users processed in current epoch batch processing
-    uint256 public epochProcessedCount;
-
-    /// @notice Mapping of epoch => user => snapshot score (for batch verification)
-    mapping(uint256 => mapping(address => uint256)) public epochScores;
-
-    /// @notice Epoch snapshot data
-    mapping(uint256 => IPrimeLeaderboard.EpochSnapshot) internal _epochSnapshots;
-
-    // ═══════════════════ PRIME STATUS ═══════════════════
-
-    /// @notice Users who currently have Prime status
-    mapping(address => bool) public hasPrime;
-
-    /// @notice User's rank in the last finalized epoch (0 = not ranked)
-    mapping(address => uint256) public userRank;
 
     // ═══════════════════ MULTIPLIER CONFIGURATION ═══════════════════
 
@@ -96,6 +71,12 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice Address of XVSVault contract
     address public xvsVault;
 
+    /// @notice XVSVault reward token address (for getUserInfo calls)
+    address public xvsVaultRewardToken;
+
+    /// @notice XVSVault pool ID (for getUserInfo calls)
+    uint256 public xvsVaultPoolId;
+
     /// @notice Storage gap for future upgrades
-    uint256[40] private __gap;
+    uint256[45] private __gap;
 }

@@ -16,28 +16,6 @@ interface IPrimeLeaderboard {
         uint64 _reserved; // Reserved for future use
     }
 
-    /// @notice Multiplier tier configuration
-    struct MultiplierTier {
-        uint256 durationThreshold; // Duration in seconds to reach this tier
-        uint256 multiplier; // Multiplier value (scaled by 1e18)
-    }
-
-    /// @notice User's snapshot data for an epoch
-    struct UserEpochSnapshot {
-        uint256 effectiveStake; // Effective stake at snapshot
-        uint256 rank; // Rank in the epoch (0 = not ranked)
-        bool hasPrime; // Whether user has Prime for this epoch
-    }
-
-    /// @notice Epoch snapshot summary
-    struct EpochSnapshot {
-        uint256 cutoffScore; // Minimum score to qualify for Prime
-        uint256 totalParticipants; // Number of users with score > 0
-        uint256 primeHoldersCount; // Number of users receiving Prime
-        uint256 processedAt; // Timestamp when epoch was processed
-        bool finalized; // Whether epoch processing is complete
-    }
-
     // ═══════════════════ EVENTS ═══════════════════
 
     /// @notice Emitted when a user deposits XVS
@@ -55,28 +33,8 @@ interface IPrimeLeaderboard {
     /// @notice Emitted when deposits are compacted
     event DepositsCompacted(address indexed user, uint256 oldCount, uint256 newCount);
 
-    /// @notice Emitted when an epoch batch is processed
-    event EpochBatchProcessed(uint256 indexed epochId, uint256 usersProcessed, uint256 totalProcessed);
-
-    /// @notice Emitted when an epoch is finalized
-    event EpochFinalized(
-        uint256 indexed epochId,
-        uint256 cutoffScore,
-        uint256 primeHoldersCount,
-        uint256 totalParticipants
-    );
-
-    /// @notice Emitted when a user gains Prime status
-    event PrimeStatusGranted(address indexed user, uint256 indexed epochId, uint256 rank, uint256 effectiveStake);
-
-    /// @notice Emitted when a user loses Prime status
-    event PrimeStatusRevoked(address indexed user, uint256 indexed epochId, uint256 effectiveStake);
-
-    /// @notice Emitted when epoch duration is updated
-    event EpochDurationUpdated(uint256 oldDuration, uint256 newDuration);
-
-    /// @notice Emitted when prime slots count is updated
-    event PrimeSlotsUpdated(uint256 oldSlots, uint256 newSlots);
+    /// @notice Emitted when a round is advanced
+    event RoundAdvanced(uint256 round);
 
     /// @notice Emitted when minimum stake is updated
     event MinimumStakeUpdated(uint256 oldMinimum, uint256 newMinimum);
@@ -89,6 +47,9 @@ interface IPrimeLeaderboard {
 
     /// @notice Emitted when XVSVault address is set
     event XVSVaultSet(address indexed oldVault, address indexed newVault);
+
+    /// @notice Emitted when XVSVault pool config is updated
+    event XVSVaultPoolConfigSet(address rewardToken, uint256 poolId);
 
     // ═══════════════════ ERRORS ═══════════════════
 
@@ -107,41 +68,14 @@ interface IPrimeLeaderboard {
     /// @notice Thrown when user has insufficient stake
     error InsufficientStake();
 
-    /// @notice Thrown when user is below minimum stake threshold
-    error BelowMinimumStake();
-
-    /// @notice Thrown when deposit limit is exceeded
-    error MaxDepositsExceeded();
-
-    /// @notice Thrown when epoch is not ready to be processed
-    error EpochNotEnded();
-
-    /// @notice Thrown when epoch is already finalized
-    error EpochAlreadyFinalized();
-
-    /// @notice Thrown when batch processing is incomplete
-    error BatchProcessingIncomplete();
-
-    /// @notice Thrown when score verification fails
-    error ScoreVerificationFailed();
-
-    /// @notice Thrown when ranking order is invalid
-    error InvalidRankingOrder();
-
     /// @notice Thrown when multiplier tiers are invalid
     error InvalidMultiplierTiers();
 
-    // ═══════════════════ DEPOSIT TRACKING ═══════════════════
+    // ═══════════════════ XVS VAULT CALLBACK ═══════════════════
 
-    /// @notice Record a new XVS deposit for a user
-    /// @param user The depositor's address
-    /// @param amount The amount of XVS deposited
-    function recordDeposit(address user, uint256 amount) external;
-
-    /// @notice Process a withdrawal using LIFO order
-    /// @param user The withdrawer's address
-    /// @param amount The amount of XVS to withdraw
-    function recordWithdrawal(address user, uint256 amount) external;
+    /// @notice Called by XVSVault on deposit/withdrawal to update deposit tracking
+    /// @param user The user whose stake changed
+    function xvsUpdated(address user) external;
 
     // ═══════════════════ SCORE QUERIES ═══════════════════
 
@@ -170,6 +104,16 @@ interface IPrimeLeaderboard {
     /// @return multiplier The multiplier (scaled by 1e18)
     function getMultiplier(uint256 holdingDuration) external view returns (uint256 multiplier);
 
+    /// @notice Alias for getEffectiveStake - calculates current time-weighted score
+    /// @param user The user's address
+    /// @return score The current effective stake score
+    function calculateCurrentScore(address user) external view returns (uint256 score);
+
+    /// @notice Batch view to get effective stakes for multiple users
+    /// @param users Array of user addresses
+    /// @return scores Array of effective stake scores
+    function getScores(address[] calldata users) external view returns (uint256[] memory scores);
+
     // ═══════════════════ LEADERBOARD QUERIES ═══════════════════
 
     /// @notice Check if a user is a participant (has stake >= minimum)
@@ -187,52 +131,12 @@ interface IPrimeLeaderboard {
     /// @return users Array of participant addresses
     function getParticipants(uint256 start, uint256 end) external view returns (address[] memory users);
 
-    /// @notice Check if a user currently has Prime status
-    /// @param user The user's address
-    /// @return hasPrime Whether user has Prime
-    function hasPrimeStatus(address user) external view returns (bool hasPrime);
+    // ═══════════════════ ROUND MANAGEMENT ═══════════════════
 
-    // ═══════════════════ EPOCH MANAGEMENT ═══════════════════
-
-    /// @notice Get the current epoch number
-    /// @return epoch The current epoch (1-indexed)
-    function getCurrentEpoch() external view returns (uint256 epoch);
-
-    /// @notice Get the timestamp when current epoch ends
-    /// @return endTime The epoch end timestamp
-    function getEpochEndTime() external view returns (uint256 endTime);
-
-    /// @notice Get time remaining in current epoch
-    /// @return remaining Seconds until epoch ends
-    function getTimeUntilEpochEnd() external view returns (uint256 remaining);
-
-    /// @notice Check if the current epoch is ready for processing
-    /// @return isReady Whether epoch can be processed
-    function isEpochReadyForProcessing() external view returns (bool isReady);
-
-    /// @notice Get epoch snapshot data
-    /// @param epochId The epoch number
-    /// @return snapshot The epoch snapshot data
-    function getEpochSnapshot(uint256 epochId) external view returns (EpochSnapshot memory snapshot);
-
-    /// @notice Process a batch of users for the current epoch
-    /// @param users Array of user addresses to process
-    /// @param scores Pre-computed effective stakes (must match on-chain calculation)
-    function processEpochBatch(address[] calldata users, uint256[] calldata scores) external;
-
-    /// @notice Finalize the epoch with ranked users
-    /// @param rankedUsers Top N users in descending order by effective stake
-    function finalizeEpoch(address[] calldata rankedUsers) external;
+    /// @notice Advance to the next round (resets withdrawn scores)
+    function advanceRound() external;
 
     // ═══════════════════ CONFIGURATION ═══════════════════
-
-    /// @notice Set the epoch duration
-    /// @param duration New duration in seconds
-    function setEpochDuration(uint256 duration) external;
-
-    /// @notice Set the number of Prime slots (N)
-    /// @param slots New number of Prime slots
-    function setPrimeSlots(uint256 slots) external;
 
     /// @notice Set the minimum stake to participate
     /// @param minimum New minimum stake amount
@@ -250,4 +154,24 @@ interface IPrimeLeaderboard {
     /// @notice Set the XVSVault contract address
     /// @param xvsVault Address of XVSVault contract
     function setXVSVault(address xvsVault) external;
+
+    /// @notice Set the XVSVault pool configuration for getUserInfo calls
+    /// @param rewardToken Reward token address in XVSVault
+    /// @param poolId Pool ID in XVSVault
+    function setXVSVaultPoolConfig(address rewardToken, uint256 poolId) external;
+
+    /// @notice Get multiplier tier configuration
+    /// @return durations Array of duration thresholds
+    /// @return multipliers Array of multiplier values
+    function getMultiplierTiers() external view returns (uint256[] memory durations, uint256[] memory multipliers);
+
+    /// @notice Pause the contract
+    function pause() external;
+
+    /// @notice Unpause the contract
+    function unpause() external;
+
+    /// @notice Set the max loops limit
+    /// @param loopsLimit New loops limit
+    function setMaxLoopsLimit(uint256 loopsLimit) external;
 }

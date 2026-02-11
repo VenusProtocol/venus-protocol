@@ -7,13 +7,16 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
 
 import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
+import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { PrimeLeaderboardStorageV1 } from "./PrimeLeaderboardStorage.sol";
 
 /**
  * @title PrimeLeaderboard
  * @author Venus
  * @notice Manages the Prime V2 leaderboard with time-weighted scoring
- * @dev Tracks per-deposit timestamps for LIFO withdrawals and calculates effective stake
+ * @dev Tracks per-deposit timestamps for LIFO withdrawals and calculates effective stake.
+ *      Called by XVSVault via the existing primeToken.xvsUpdated() callback.
+ *      Admin reads getScores() off-chain, ranks users, and calls PrimeV2.issue()/burn() directly.
  * @custom:security-contract https://github.com/VenusProtocol/venus-protocol
  */
 contract PrimeLeaderboard is
@@ -33,22 +36,21 @@ contract PrimeLeaderboard is
      * @notice Initialize the PrimeLeaderboard contract
      * @param accessControlManager_ Address of access control manager
      * @param xvsVault_ Address of XVSVault contract
-     * @param epochDuration_ Duration of each epoch in seconds
-     * @param primeSlots_ Number of Prime token slots
+     * @param xvsVaultRewardToken_ Reward token address in XVSVault
+     * @param xvsVaultPoolId_ Pool ID in XVSVault
      * @param minimumStake_ Minimum XVS stake to participate
      * @param loopsLimit_ Maximum loops allowed in iterations
      */
     function initialize(
         address accessControlManager_,
         address xvsVault_,
-        uint256 epochDuration_,
-        uint256 primeSlots_,
+        address xvsVaultRewardToken_,
+        uint256 xvsVaultPoolId_,
         uint256 minimumStake_,
         uint256 loopsLimit_
     ) external initializer {
         if (xvsVault_ == address(0)) revert ZeroAddress();
-        if (epochDuration_ == 0) revert InvalidValue();
-        if (primeSlots_ == 0) revert InvalidValue();
+        if (xvsVaultRewardToken_ == address(0)) revert ZeroAddress();
         if (minimumStake_ == 0) revert InvalidValue();
 
         __AccessControlled_init(accessControlManager_);
@@ -57,13 +59,12 @@ contract PrimeLeaderboard is
         _setMaxLoopsLimit(loopsLimit_);
 
         xvsVault = xvsVault_;
-        epochDuration = epochDuration_;
-        primeSlots = primeSlots_;
+        xvsVaultRewardToken = xvsVaultRewardToken_;
+        xvsVaultPoolId = xvsVaultPoolId_;
         minimumStake = minimumStake_;
 
-        // Initialize epoch
-        currentEpoch = 1;
-        epochStartTime = block.timestamp;
+        // Initialize round counter
+        currentRound = 1;
 
         // Initialize default multiplier tiers
         // Tier 1: 30 days -> 1.3x
@@ -78,102 +79,26 @@ contract PrimeLeaderboard is
         _multiplierValues.push(2.0e18);
     }
 
-    // ═══════════════════ MODIFIERS ═══════════════════
-
-    /// @notice Ensures caller is XVSVault
-    modifier onlyXVSVault() {
-        if (msg.sender != xvsVault) revert OnlyXVSVaultAllowed();
-        _;
-    }
-
-    // ═══════════════════ DEPOSIT TRACKING ═══════════════════
+    // ═══════════════════ XVS VAULT CALLBACK ═══════════════════
 
     /**
-     * @notice Record a new XVS deposit for a user
-     * @param user The depositor's address
-     * @param amount The amount of XVS deposited
-     * @custom:access Only callable by XVSVault
-     * @custom:event Emits DepositRecorded
+     * @notice Called by XVSVault (via primeToken.xvsUpdated) when a user's stake changes
+     * @dev Reads the user's current vault balance, diffs against _lastKnownStake,
+     *      and records the appropriate deposit or withdrawal internally.
+     * @param user The user whose stake changed
      */
-    function recordDeposit(address user, uint256 amount) external override onlyXVSVault whenNotPaused {
+    function xvsUpdated(address user) external override whenNotPaused {
         if (user == address(0)) revert ZeroAddress();
-        if (amount == 0) revert InvalidValue();
 
-        Deposit[] storage deposits = _depositStacks[user];
+        (uint256 vaultStake, , ) = IXVSVault(xvsVault).getUserInfo(xvsVaultRewardToken, xvsVaultPoolId, user);
+        uint256 lastKnown = _lastKnownStake[user];
+        _lastKnownStake[user] = vaultStake;
 
-        // Check deposit limit - compact if needed
-        if (deposits.length >= MAX_DEPOSITS_PER_USER) {
-            _compactDeposits(user);
+        if (vaultStake > lastKnown) {
+            _recordDeposit(user, vaultStake - lastKnown);
+        } else if (vaultStake < lastKnown) {
+            _recordWithdrawal(user, lastKnown - vaultStake);
         }
-
-        // Add new deposit to the stack
-        deposits.push(Deposit({ amount: uint128(amount), timestamp: uint64(block.timestamp), _reserved: 0 }));
-
-        uint256 oldTotalStaked = totalStaked[user];
-        uint256 newTotalStaked = oldTotalStaked + amount;
-        totalStaked[user] = newTotalStaked;
-
-        // Add to participants if crossing minimum threshold
-        if (oldTotalStaked < minimumStake && newTotalStaked >= minimumStake) {
-            _addParticipant(user);
-        }
-
-        emit DepositRecorded(user, amount, block.timestamp, newTotalStaked, deposits.length);
-    }
-
-    /**
-     * @notice Process a withdrawal using LIFO order
-     * @param user The withdrawer's address
-     * @param amount The amount of XVS to withdraw
-     * @custom:access Only callable by XVSVault
-     * @custom:event Emits WithdrawalRecorded
-     */
-    function recordWithdrawal(address user, uint256 amount) external override onlyXVSVault whenNotPaused {
-        if (user == address(0)) revert ZeroAddress();
-        if (amount == 0) revert InvalidValue();
-        if (totalStaked[user] < amount) revert InsufficientStake();
-
-        Deposit[] storage deposits = _depositStacks[user];
-        uint256 remaining = amount;
-        uint256 withdrawnScore = 0;
-
-        // Process LIFO (from newest to oldest)
-        while (remaining > 0 && deposits.length > 0) {
-            uint256 lastIdx = deposits.length - 1;
-            Deposit storage deposit = deposits[lastIdx];
-
-            uint256 depositAmount = uint256(deposit.amount);
-            uint256 toWithdraw = remaining > depositAmount ? depositAmount : remaining;
-
-            // Calculate and lock the score for withdrawn amount
-            uint256 holdingDuration = block.timestamp - uint256(deposit.timestamp);
-            uint256 multiplier = _getMultiplier(holdingDuration);
-            withdrawnScore += (toWithdraw * multiplier) / EXP_SCALE;
-
-            remaining -= toWithdraw;
-
-            if (toWithdraw == depositAmount) {
-                // Fully consumed this deposit
-                deposits.pop();
-            } else {
-                // Partially consumed
-                deposit.amount = uint128(depositAmount - toWithdraw);
-            }
-        }
-
-        uint256 oldTotalStaked = totalStaked[user];
-        uint256 newTotalStaked = oldTotalStaked - amount;
-        totalStaked[user] = newTotalStaked;
-
-        // Track withdrawn score for current epoch
-        _updateWithdrawnScore(user, withdrawnScore);
-
-        // Remove from participants if falling below minimum
-        if (oldTotalStaked >= minimumStake && newTotalStaked < minimumStake) {
-            _removeParticipant(user);
-        }
-
-        emit WithdrawalRecorded(user, amount, withdrawnScore, newTotalStaked);
     }
 
     // ═══════════════════ SCORE CALCULATION ═══════════════════
@@ -186,22 +111,25 @@ contract PrimeLeaderboard is
     function getEffectiveStake(address user) public view override returns (uint256 effectiveStake) {
         Deposit[] storage deposits = _depositStacks[user];
         uint256 depositsLength = deposits.length;
+        uint256 maxCapSeconds = _multiplierDurations[_multiplierDurations.length - 1];
 
-        // Sum score from all active deposits
+        // Sum score from all active deposits: amount × multiplier × min(holdDays, capDays)
         for (uint256 i; i < depositsLength; ) {
             Deposit storage d = deposits[i];
             uint256 holdingDuration = block.timestamp - uint256(d.timestamp);
             uint256 multiplier = _getMultiplier(holdingDuration);
-            effectiveStake += (uint256(d.amount) * multiplier) / EXP_SCALE;
+            uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
+            uint256 durationDays = cappedDuration / 1 days;
+            effectiveStake += (uint256(d.amount) * multiplier * durationDays) / EXP_SCALE;
 
             unchecked {
                 ++i;
             }
         }
 
-        // Add withdrawn score if it's from the current epoch
-        if (_withdrawnScoreEpoch[user] == currentEpoch) {
-            effectiveStake += withdrawnScoreCurrentEpoch[user];
+        // Add withdrawn score if it's from the current round
+        if (_withdrawnScoreRound[user] == currentRound) {
+            effectiveStake += withdrawnScoreCurrentRound[user];
         }
 
         return effectiveStake;
@@ -232,6 +160,35 @@ contract PrimeLeaderboard is
      */
     function getDepositCount(address user) external view override returns (uint256 count) {
         return _depositStacks[user].length;
+    }
+
+    /**
+     * @notice Alias for getEffectiveStake - calculates current time-weighted score
+     * @param user The user's address
+     * @return score The current effective stake score
+     */
+    function calculateCurrentScore(address user) external view override returns (uint256 score) {
+        return getEffectiveStake(user);
+    }
+
+    /**
+     * @notice Batch view to get effective stakes for multiple users
+     * @param users Array of user addresses
+     * @return scores Array of effective stake scores
+     */
+    function getScores(address[] calldata users) external view override returns (uint256[] memory scores) {
+        uint256 usersLength = users.length;
+        scores = new uint256[](usersLength);
+
+        for (uint256 i; i < usersLength; ) {
+            scores[i] = getEffectiveStake(users[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        return scores;
     }
 
     /**
@@ -291,256 +248,37 @@ contract PrimeLeaderboard is
     }
 
     /**
-     * @notice Check if a user currently has Prime status
-     * @param user The user's address
-     * @return Whether user has Prime
-     */
-    function hasPrimeStatus(address user) external view override returns (bool) {
-        return hasPrime[user];
-    }
-
-    // ═══════════════════ EPOCH QUERIES ═══════════════════
-
-    /**
-     * @notice Get the current epoch number
-     * @return epoch The current epoch (1-indexed)
-     */
-    function getCurrentEpoch() external view override returns (uint256 epoch) {
-        return currentEpoch;
-    }
-
-    /**
-     * @notice Get the timestamp when current epoch ends
-     * @return endTime The epoch end timestamp
-     */
-    function getEpochEndTime() public view override returns (uint256 endTime) {
-        return epochStartTime + epochDuration;
-    }
-
-    /**
-     * @notice Get time remaining in current epoch
-     * @return remaining Seconds until epoch ends
-     */
-    function getTimeUntilEpochEnd() external view override returns (uint256 remaining) {
-        uint256 endTime = getEpochEndTime();
-        if (block.timestamp >= endTime) {
-            return 0;
-        }
-        return endTime - block.timestamp;
-    }
-
-    /**
-     * @notice Check if the current epoch is ready for processing
-     * @return isReady Whether epoch can be processed
-     */
-    function isEpochReadyForProcessing() public view override returns (bool isReady) {
-        return block.timestamp >= getEpochEndTime() && !_epochSnapshots[currentEpoch].finalized;
-    }
-
-    /**
-     * @notice Get epoch snapshot data
-     * @param epochId The epoch number
-     * @return snapshot The epoch snapshot data
-     */
-    function getEpochSnapshot(uint256 epochId) external view override returns (EpochSnapshot memory snapshot) {
-        return _epochSnapshots[epochId];
-    }
-
-    /**
      * @notice Get multiplier tier configuration
      * @return durations Array of duration thresholds
      * @return multipliers Array of multiplier values
      */
-    function getMultiplierTiers() external view returns (uint256[] memory durations, uint256[] memory multipliers) {
+    function getMultiplierTiers()
+        external
+        view
+        override
+        returns (uint256[] memory durations, uint256[] memory multipliers)
+    {
         return (_multiplierDurations, _multiplierValues);
     }
 
-    // ═══════════════════ EPOCH PROCESSING ═══════════════════
+    // ═══════════════════ ROUND MANAGEMENT ═══════════════════
 
     /**
-     * @notice Process a batch of users for the current epoch
-     * @param users Array of user addresses to process
-     * @param scores Pre-computed effective stakes (must match on-chain calculation)
+     * @notice Advance to the next round (resets withdrawn scores implicitly)
+     * @dev Withdrawn scores are tracked per-round via _withdrawnScoreRound mapping.
+     *      Advancing the round makes old withdrawn scores stale without explicit clearing.
      * @custom:access Controlled by ACM
-     * @custom:event Emits EpochBatchProcessed
+     * @custom:event Emits RoundAdvanced
      */
-    function processEpochBatch(
-        address[] calldata users,
-        uint256[] calldata scores
-    ) external override nonReentrant whenNotPaused {
-        _checkAccessAllowed("processEpochBatch(address[],uint256[])");
+    function advanceRound() external override {
+        _checkAccessAllowed("advanceRound()");
 
-        if (!isEpochReadyForProcessing()) revert EpochNotEnded();
-        if (users.length != scores.length) revert LengthMismatch();
+        currentRound++;
 
-        uint256 usersLength = users.length;
-        _ensureMaxLoops(usersLength);
-
-        for (uint256 i; i < usersLength; ) {
-            address user = users[i];
-            uint256 submittedScore = scores[i];
-
-            // Verify score matches on-chain calculation
-            uint256 computedScore = getEffectiveStake(user);
-            if (submittedScore != computedScore) revert ScoreVerificationFailed();
-
-            // Store verified score for this epoch
-            epochScores[currentEpoch][user] = submittedScore;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        epochProcessedCount += usersLength;
-
-        emit EpochBatchProcessed(currentEpoch, usersLength, epochProcessedCount);
-    }
-
-    /**
-     * @notice Finalize the epoch with ranked users
-     * @param rankedUsers Top N users in descending order by effective stake
-     * @custom:access Controlled by ACM
-     * @custom:event Emits EpochFinalized, PrimeStatusGranted, PrimeStatusRevoked
-     */
-    function finalizeEpoch(address[] calldata rankedUsers) external override nonReentrant whenNotPaused {
-        _checkAccessAllowed("finalizeEpoch(address[])");
-
-        if (!isEpochReadyForProcessing()) revert EpochNotEnded();
-        if (_epochSnapshots[currentEpoch].finalized) revert EpochAlreadyFinalized();
-
-        uint256 rankedCount = rankedUsers.length;
-        if (rankedCount > primeSlots) {
-            rankedCount = primeSlots;
-        }
-
-        _ensureMaxLoops(rankedCount);
-
-        // Verify ranking order (descending by score)
-        for (uint256 i = 1; i < rankedCount; ) {
-            uint256 prevScore = epochScores[currentEpoch][rankedUsers[i - 1]];
-            uint256 currScore = epochScores[currentEpoch][rankedUsers[i]];
-            if (prevScore < currScore) revert InvalidRankingOrder();
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Calculate cutoff score
-        uint256 cutoffScore = rankedCount > 0 ? epochScores[currentEpoch][rankedUsers[rankedCount - 1]] : 0;
-
-        // Track users to grant/revoke Prime
-        // First, mark all current Prime holders for potential revocation
-        // (We'll unmark those who are in the new top N)
-
-        // Grant Prime to new top N and update ranks
-        for (uint256 i; i < rankedCount; ) {
-            address user = rankedUsers[i];
-            uint256 userScore = epochScores[currentEpoch][user];
-
-            if (!hasPrime[user]) {
-                hasPrime[user] = true;
-                emit PrimeStatusGranted(user, currentEpoch, i + 1, userScore);
-            }
-
-            userRank[user] = i + 1;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Revoke Prime from those not in top N
-        // This is done by iterating through participants and checking if they're in the ranked list
-        // For gas efficiency, we rely on the caller to provide accurate rankedUsers list
-        // and verify against stored scores
-
-        // Store epoch snapshot
-        _epochSnapshots[currentEpoch] = EpochSnapshot({
-            cutoffScore: cutoffScore,
-            totalParticipants: _participants.length,
-            primeHoldersCount: rankedCount,
-            processedAt: block.timestamp,
-            finalized: true
-        });
-
-        emit EpochFinalized(currentEpoch, cutoffScore, rankedCount, _participants.length);
-
-        // Advance to next epoch
-        currentEpoch++;
-        epochStartTime = block.timestamp;
-        epochProcessedCount = 0;
-
-        // Reset withdrawn scores for all users (happens implicitly via epoch number check)
-    }
-
-    /**
-     * @notice Revoke Prime status for users not in top N
-     * @param users Array of users to revoke Prime from
-     * @custom:access Controlled by ACM
-     * @custom:event Emits PrimeStatusRevoked
-     */
-    function revokePrimeStatus(address[] calldata users) external nonReentrant whenNotPaused {
-        _checkAccessAllowed("revokePrimeStatus(address[])");
-
-        uint256 usersLength = users.length;
-        _ensureMaxLoops(usersLength);
-
-        uint256 previousEpoch = currentEpoch - 1;
-
-        for (uint256 i; i < usersLength; ) {
-            address user = users[i];
-
-            if (hasPrime[user]) {
-                // Verify user is not in top N of previous epoch
-                uint256 rank = userRank[user];
-                if (rank == 0 || rank > primeSlots) {
-                    hasPrime[user] = false;
-                    userRank[user] = 0;
-                    emit PrimeStatusRevoked(user, previousEpoch, epochScores[previousEpoch][user]);
-                }
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
+        emit RoundAdvanced(currentRound);
     }
 
     // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
-
-    /**
-     * @notice Set the epoch duration
-     * @param duration New duration in seconds
-     * @custom:access Controlled by ACM
-     * @custom:event Emits EpochDurationUpdated
-     */
-    function setEpochDuration(uint256 duration) external override {
-        _checkAccessAllowed("setEpochDuration(uint256)");
-        if (duration == 0) revert InvalidValue();
-
-        uint256 oldDuration = epochDuration;
-        epochDuration = duration;
-
-        emit EpochDurationUpdated(oldDuration, duration);
-    }
-
-    /**
-     * @notice Set the number of Prime slots (N)
-     * @param slots New number of Prime slots
-     * @custom:access Controlled by ACM
-     * @custom:event Emits PrimeSlotsUpdated
-     */
-    function setPrimeSlots(uint256 slots) external override {
-        _checkAccessAllowed("setPrimeSlots(uint256)");
-        if (slots == 0) revert InvalidValue();
-
-        uint256 oldSlots = primeSlots;
-        primeSlots = slots;
-
-        emit PrimeSlotsUpdated(oldSlots, slots);
-    }
 
     /**
      * @notice Set the minimum stake to participate
@@ -639,10 +377,27 @@ contract PrimeLeaderboard is
     }
 
     /**
+     * @notice Set the XVSVault pool configuration for getUserInfo calls
+     * @param rewardToken_ Reward token address in XVSVault
+     * @param poolId_ Pool ID in XVSVault
+     * @custom:access Controlled by ACM
+     * @custom:event Emits XVSVaultPoolConfigSet
+     */
+    function setXVSVaultPoolConfig(address rewardToken_, uint256 poolId_) external override {
+        _checkAccessAllowed("setXVSVaultPoolConfig(address,uint256)");
+        if (rewardToken_ == address(0)) revert ZeroAddress();
+
+        xvsVaultRewardToken = rewardToken_;
+        xvsVaultPoolId = poolId_;
+
+        emit XVSVaultPoolConfigSet(rewardToken_, poolId_);
+    }
+
+    /**
      * @notice Pause the contract
      * @custom:access Controlled by ACM
      */
-    function pause() external {
+    function pause() external override {
         _checkAccessAllowed("pause()");
         _pause();
     }
@@ -651,7 +406,7 @@ contract PrimeLeaderboard is
      * @notice Unpause the contract
      * @custom:access Controlled by ACM
      */
-    function unpause() external {
+    function unpause() external override {
         _checkAccessAllowed("unpause()");
         _unpause();
     }
@@ -661,12 +416,94 @@ contract PrimeLeaderboard is
      * @param loopsLimit New loops limit
      * @custom:access Controlled by ACM
      */
-    function setMaxLoopsLimit(uint256 loopsLimit) external {
+    function setMaxLoopsLimit(uint256 loopsLimit) external override {
         _checkAccessAllowed("setMaxLoopsLimit(uint256)");
         _setMaxLoopsLimit(loopsLimit);
     }
 
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════
+
+    /**
+     * @notice Record a new XVS deposit for a user
+     * @param user The depositor's address
+     * @param amount The amount of XVS deposited
+     */
+    function _recordDeposit(address user, uint256 amount) internal {
+        Deposit[] storage deposits = _depositStacks[user];
+
+        // Check deposit limit - compact if needed
+        if (deposits.length >= MAX_DEPOSITS_PER_USER) {
+            _compactDeposits(user);
+        }
+
+        // Add new deposit to the stack
+        deposits.push(Deposit({ amount: uint128(amount), timestamp: uint64(block.timestamp), _reserved: 0 }));
+
+        uint256 oldTotalStaked = totalStaked[user];
+        uint256 newTotalStaked = oldTotalStaked + amount;
+        totalStaked[user] = newTotalStaked;
+
+        // Add to participants if crossing minimum threshold
+        if (oldTotalStaked < minimumStake && newTotalStaked >= minimumStake) {
+            _addParticipant(user);
+        }
+
+        emit DepositRecorded(user, amount, block.timestamp, newTotalStaked, deposits.length);
+    }
+
+    /**
+     * @notice Process a withdrawal using LIFO order
+     * @param user The withdrawer's address
+     * @param amount The amount of XVS withdrawn
+     */
+    function _recordWithdrawal(address user, uint256 amount) internal {
+        if (totalStaked[user] < amount) revert InsufficientStake();
+
+        Deposit[] storage deposits = _depositStacks[user];
+        uint256 remaining = amount;
+        uint256 withdrawnScore = 0;
+        uint256 maxCapSeconds = _multiplierDurations[_multiplierDurations.length - 1];
+
+        // Process LIFO (from newest to oldest)
+        while (remaining > 0 && deposits.length > 0) {
+            uint256 lastIdx = deposits.length - 1;
+            Deposit storage deposit = deposits[lastIdx];
+
+            uint256 depositAmount = uint256(deposit.amount);
+            uint256 toWithdraw = remaining > depositAmount ? depositAmount : remaining;
+
+            // Calculate and lock the score for withdrawn amount (includes hold_duration)
+            uint256 holdingDuration = block.timestamp - uint256(deposit.timestamp);
+            uint256 multiplier = _getMultiplier(holdingDuration);
+            uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
+            uint256 durationDays = cappedDuration / 1 days;
+            withdrawnScore += (toWithdraw * multiplier * durationDays) / EXP_SCALE;
+
+            remaining -= toWithdraw;
+
+            if (toWithdraw == depositAmount) {
+                // Fully consumed this deposit
+                deposits.pop();
+            } else {
+                // Partially consumed
+                deposit.amount = uint128(depositAmount - toWithdraw);
+            }
+        }
+
+        uint256 oldTotalStaked = totalStaked[user];
+        uint256 newTotalStaked = oldTotalStaked - amount;
+        totalStaked[user] = newTotalStaked;
+
+        // Track withdrawn score for current round
+        _updateWithdrawnScore(user, withdrawnScore);
+
+        // Remove from participants if falling below minimum
+        if (oldTotalStaked >= minimumStake && newTotalStaked < minimumStake) {
+            _removeParticipant(user);
+        }
+
+        emit WithdrawalRecorded(user, amount, withdrawnScore, newTotalStaked);
+    }
 
     /**
      * @notice Get multiplier for holding duration
@@ -722,18 +559,18 @@ contract PrimeLeaderboard is
     }
 
     /**
-     * @notice Update withdrawn score for current epoch
+     * @notice Update withdrawn score for current round
      * @param user User address
      * @param score Score to add
      */
     function _updateWithdrawnScore(address user, uint256 score) internal {
-        if (_withdrawnScoreEpoch[user] != currentEpoch) {
-            // New epoch, reset and set
-            withdrawnScoreCurrentEpoch[user] = score;
-            _withdrawnScoreEpoch[user] = currentEpoch;
+        if (_withdrawnScoreRound[user] != currentRound) {
+            // New round, reset and set
+            withdrawnScoreCurrentRound[user] = score;
+            _withdrawnScoreRound[user] = currentRound;
         } else {
-            // Same epoch, accumulate
-            withdrawnScoreCurrentEpoch[user] += score;
+            // Same round, accumulate
+            withdrawnScoreCurrentRound[user] += score;
         }
     }
 
