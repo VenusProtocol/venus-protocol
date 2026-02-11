@@ -12,7 +12,6 @@ import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/t
 
 import { PrimeV2StorageV1 } from "./PrimeV2Storage.sol";
 import { Scores } from "./libs/Scores.sol";
-import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
@@ -218,57 +217,6 @@ contract PrimeV2 is
     }
 
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
-
-    /**
-     * @notice Sync Prime status from leaderboard
-     * @dev Mints or burns Prime token based on leaderboard status
-     * @param user User address to sync
-     */
-    function syncPrimeStatus(address user) external nonReentrant whenNotPaused {
-        if (primeLeaderboard == address(0)) revert InvalidAddress();
-
-        bool hasLeaderboardPrime = IPrimeLeaderboard(primeLeaderboard).hasPrimeStatus(user);
-        Token storage token = tokens[user];
-
-        if (hasLeaderboardPrime && !token.exists) {
-            // Grant Prime token
-            _mint(false, user);
-            _initializeMarkets(user);
-        } else if (!hasLeaderboardPrime && token.exists && !token.isIrrevocable) {
-            // Revoke Prime token (only revocable)
-            _burn(user);
-        }
-    }
-
-    /**
-     * @notice Batch sync Prime status for multiple users
-     * @param users Array of user addresses to sync
-     */
-    function batchSyncPrimeStatus(address[] calldata users) external nonReentrant whenNotPaused {
-        if (primeLeaderboard == address(0)) revert InvalidAddress();
-
-        uint256 usersLength = users.length;
-        _ensureMaxLoops(usersLength);
-
-        IPrimeLeaderboard leaderboard = IPrimeLeaderboard(primeLeaderboard);
-
-        for (uint256 i; i < usersLength; ) {
-            address user = users[i];
-            bool hasLeaderboardPrime = leaderboard.hasPrimeStatus(user);
-            Token storage token = tokens[user];
-
-            if (hasLeaderboardPrime && !token.exists) {
-                _mint(false, user);
-                _initializeMarkets(user);
-            } else if (!hasLeaderboardPrime && token.exists && !token.isIrrevocable) {
-                _burn(user);
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-    }
 
     /**
      * @notice Issue irrevocable Prime tokens (admin function)
