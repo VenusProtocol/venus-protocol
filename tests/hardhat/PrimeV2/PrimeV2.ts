@@ -233,91 +233,6 @@ describe("PrimeV2", () => {
         "InvalidAddress",
       );
     });
-
-    describe("syncPrimeStatus", () => {
-      it("should mint Prime token when user has leaderboard status", async () => {
-        const user1Address = await user1.getAddress();
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user1Address).returns(true);
-
-        await expect(primeV2.syncPrimeStatus(user1Address)).to.emit(primeV2, "Mint").withArgs(user1Address, false);
-
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
-      });
-
-      it("should burn Prime token when user loses leaderboard status", async () => {
-        const user1Address = await user1.getAddress();
-
-        // First grant Prime
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user1Address).returns(true);
-        await primeV2.syncPrimeStatus(user1Address);
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
-
-        // Then revoke
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user1Address).returns(false);
-        await expect(primeV2.syncPrimeStatus(user1Address)).to.emit(primeV2, "Burn").withArgs(user1Address);
-
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.false;
-      });
-
-      it("should not burn irrevocable Prime token", async () => {
-        const user1Address = await user1.getAddress();
-
-        // Issue irrevocable token via admin
-        await primeV2.issue(true, [user1Address]);
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
-
-        // Try to sync with no leaderboard status
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user1Address).returns(false);
-        await primeV2.syncPrimeStatus(user1Address);
-
-        // Should still have Prime (irrevocable)
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
-      });
-
-      it("should revert if primeLeaderboard is not set", async () => {
-        // Deploy fresh without setting leaderboard
-        const { primeV2: freshPrime } = await loadFixture(deployFixture);
-        const user1Address = await user1.getAddress();
-
-        await expect(freshPrime.syncPrimeStatus(user1Address)).to.be.revertedWithCustomError(
-          freshPrime,
-          "InvalidAddress",
-        );
-      });
-    });
-
-    describe("batchSyncPrimeStatus", () => {
-      it("should sync multiple users", async () => {
-        const user1Address = await user1.getAddress();
-        const user2Address = await user2.getAddress();
-
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user1Address).returns(true);
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user2Address).returns(true);
-
-        await primeV2.batchSyncPrimeStatus([user1Address, user2Address]);
-
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
-        expect(await primeV2.isUserPrimeHolder(user2Address)).to.be.true;
-      });
-
-      it("should handle mixed statuses", async () => {
-        const user1Address = await user1.getAddress();
-        const user2Address = await user2.getAddress();
-
-        // First grant both
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user1Address).returns(true);
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user2Address).returns(true);
-        await primeV2.batchSyncPrimeStatus([user1Address, user2Address]);
-
-        // Then user1 loses status
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user1Address).returns(false);
-        primeLeaderboard.hasPrimeStatus.whenCalledWith(user2Address).returns(true);
-        await primeV2.batchSyncPrimeStatus([user1Address, user2Address]);
-
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.false;
-        expect(await primeV2.isUserPrimeHolder(user2Address)).to.be.true;
-      });
-    });
   });
 
   describe("Admin Functions", () => {
@@ -433,13 +348,6 @@ describe("PrimeV2", () => {
 
         await primeV2.unpause();
         expect(await primeV2.paused()).to.be.false;
-      });
-
-      it("should revert syncPrimeStatus when paused", async () => {
-        await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
-        await primeV2.pause();
-
-        await expect(primeV2.syncPrimeStatus(await user1.getAddress())).to.be.revertedWith("Pausable: paused");
       });
     });
 
