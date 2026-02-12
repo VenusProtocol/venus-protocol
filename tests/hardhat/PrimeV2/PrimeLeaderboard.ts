@@ -129,14 +129,7 @@ describe("PrimeLeaderboard", () => {
       await expect(
         upgrades.deployProxy(
           PrimeLeaderboardFactory,
-          [
-            accessControlManager.address,
-            xvsVault.address,
-            ethers.constants.AddressZero,
-            0,
-            MINIMUM_STAKE,
-            LOOPS_LIMIT,
-          ],
+          [accessControlManager.address, xvsVault.address, ethers.constants.AddressZero, 0, MINIMUM_STAKE, LOOPS_LIMIT],
           { unsafeAllow: ["constructor"] },
         ),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "ZeroAddress");
@@ -489,10 +482,7 @@ describe("PrimeLeaderboard", () => {
     });
 
     it("should revert setMinimumStake with zero", async () => {
-      await expect(primeLeaderboard.setMinimumStake(0)).to.be.revertedWithCustomError(
-        primeLeaderboard,
-        "InvalidValue",
-      );
+      await expect(primeLeaderboard.setMinimumStake(0)).to.be.revertedWithCustomError(primeLeaderboard, "InvalidValue");
     });
 
     it("should update multiplier tiers", async () => {
