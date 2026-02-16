@@ -109,6 +109,7 @@ if (FORK_MAINNET) {
       let user2: Signer;
       let user3: Signer;
       let timelock: Signer;
+      let xvsVaultSigner: Signer;
 
       let deployerAddr: string;
       let user1Addr: string;
@@ -150,6 +151,9 @@ if (FORK_MAINNET) {
 
         // Impersonate Timelock for admin operations
         timelock = await initMainnetUser(Addr.TIMELOCK, parseEther("10"));
+
+        // Impersonate XVS Vault for xvsUpdated calls
+        const vaultSigner = await initMainnetUser(Addr.XVS_VAULT, parseEther("1"));
 
         // ── Contract instances (real mainnet) ──
         xvs = new ethers.Contract(Addr.XVS, ERC20_ABI, deployer);
@@ -225,7 +229,7 @@ if (FORK_MAINNET) {
         for (let i = 0; i < users.length; i++) {
           await fundXVS(addrs[i], xvsAmounts[i]);
           await depositToVault(users[i], xvsAmounts[i]);
-          await primeLeaderboard.xvsUpdated(addrs[i]);
+          await primeLeaderboard.connect(vaultSigner).xvsUpdated(addrs[i]);
         }
 
         // ── Fund user1 with USDT and supply to vUSDT for non-zero score ──
@@ -255,6 +259,7 @@ if (FORK_MAINNET) {
           user2,
           user3,
           timelock,
+          xvsVaultSigner: vaultSigner,
         };
       }
 
@@ -275,6 +280,7 @@ if (FORK_MAINNET) {
           user2,
           user3,
           timelock,
+          xvsVaultSigner,
         } = await loadFixture(deployFixture));
       });
 
@@ -640,7 +646,7 @@ if (FORK_MAINNET) {
           // user1 deposits 2000 more XVS
           await fundXVS(user1Addr, parseEther("2000"));
           await depositToVault(user1, parseEther("2000"));
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           expect(await primeLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("7000"));
           expect(await primeLeaderboard.getDepositCount(user1Addr)).to.equal(2);
@@ -663,7 +669,7 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
 
           // Sync leaderboard
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           // LIFO: 1000 consumed from newest deposit (2000 → 1000 remaining)
           expect(await primeLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("6000"));
@@ -677,7 +683,7 @@ if (FORK_MAINNET) {
           // Add a small deposit
           await fundXVS(user1Addr, parseEther("500"));
           await depositToVault(user1, parseEther("500"));
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           expect(await primeLeaderboard.getDepositCount(user1Addr)).to.equal(2);
 
@@ -688,7 +694,7 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           // Second deposit fully consumed, only original remains
           expect(await primeLeaderboard.getDepositCount(user1Addr)).to.equal(1);
@@ -707,7 +713,7 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("1000"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           // Withdrawn score should be preserved in current round
           // Active: 4000 × 1.3 × 52 = 270,400
@@ -800,7 +806,7 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           const stakeRound1 = await primeLeaderboard.getEffectiveStake(user1Addr);
           expect(stakeRound1).to.be.gt(0);
@@ -821,13 +827,13 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("200"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           // Second withdrawal in same round
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("200"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
           const stakeAfterSecond = await primeLeaderboard.getEffectiveStake(user1Addr);
 
           // Both withdrawn scores should accumulate in the same round.
@@ -957,7 +963,7 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user3).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("400"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user3).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.xvsUpdated(user3Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user3Addr);
 
           expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.false;
           expect(await primeLeaderboard.totalStaked(user3Addr)).to.equal(parseEther("400"));
@@ -968,13 +974,13 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user3).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("400"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user3).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.xvsUpdated(user3Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user3Addr);
           expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.false;
 
           // Deposit more to go above minimum
           await fundXVS(user3Addr, parseEther("200"));
           await depositToVault(user3, parseEther("200"));
-          await primeLeaderboard.xvsUpdated(user3Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user3Addr);
 
           expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.true;
           expect(await primeLeaderboard.totalStaked(user3Addr)).to.equal(parseEther("600"));
@@ -1000,12 +1006,14 @@ if (FORK_MAINNET) {
           await primeLeaderboard.pause();
 
           // xvsUpdated should revert when paused
-          await expect(primeLeaderboard.xvsUpdated(user1Addr)).to.be.revertedWith("Pausable: paused");
+          await expect(primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr)).to.be.revertedWith(
+            "Pausable: paused",
+          );
 
           await primeLeaderboard.unpause();
 
           // Should work after unpause
-          await expect(primeLeaderboard.xvsUpdated(user1Addr)).not.to.be.reverted;
+          await expect(primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr)).not.to.be.reverted;
         });
 
         it("should pause and unpause PrimeV2", async () => {
@@ -1027,17 +1035,16 @@ if (FORK_MAINNET) {
         });
 
         it("should revert xvsUpdated for zero address", async () => {
-          await expect(primeLeaderboard.xvsUpdated(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
-            primeLeaderboard,
-            "ZeroAddress",
-          );
+          await expect(
+            primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(ethers.constants.AddressZero),
+          ).to.be.revertedWithCustomError(primeLeaderboard, "ZeroAddress");
         });
 
         it("should handle xvsUpdated no-op when balance unchanged", async () => {
           const depositCount = await primeLeaderboard.getDepositCount(user1Addr);
 
           // Call again without any vault change - should be no-op
-          await primeLeaderboard.xvsUpdated(user1Addr);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           expect(await primeLeaderboard.getDepositCount(user1Addr)).to.equal(depositCount);
         });

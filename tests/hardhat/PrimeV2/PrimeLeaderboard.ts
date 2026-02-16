@@ -1,5 +1,5 @@
 import { FakeContract, smock } from "@defi-wonderland/smock";
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, setBalance, time } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
@@ -27,13 +27,13 @@ describe("PrimeLeaderboard", () => {
   // Helper: simulate a deposit by setting vault balance and calling xvsUpdated
   const simulateDeposit = async (user: string, newTotalBalance: string) => {
     xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user).returns([newTotalBalance, 0, 0]);
-    await primeLeaderboard.xvsUpdated(user);
+    await primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user);
   };
 
   // Helper: simulate a withdrawal by setting reduced vault balance and calling xvsUpdated
   const simulateWithdrawal = async (user: string, newTotalBalance: string) => {
     xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user).returns([newTotalBalance, 0, 0]);
-    await primeLeaderboard.xvsUpdated(user);
+    await primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user);
   };
 
   const deployFixture = async () => {
@@ -49,6 +49,7 @@ describe("PrimeLeaderboard", () => {
     xvsVault = await smock.fake<IXVSVault>("IXVSVault");
     xvsVault.xvsAddress.returns(xvsAddress);
     xvsVault.getUserInfo.returns([0, 0, 0]);
+    await setBalance(xvsVault.address, ethers.utils.parseEther("10"));
 
     // Deploy PrimeLeaderboard using upgrades plugin
     const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
@@ -154,7 +155,10 @@ describe("PrimeLeaderboard", () => {
       const amount = convertToUnit(1000, 18);
 
       xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([amount, 0, 0]);
-      await expect(primeLeaderboard.xvsUpdated(user1Address)).to.emit(primeLeaderboard, "DepositRecorded");
+      await expect(primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address)).to.emit(
+        primeLeaderboard,
+        "DepositRecorded",
+      );
 
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(amount);
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
@@ -162,10 +166,9 @@ describe("PrimeLeaderboard", () => {
     });
 
     it("should revert xvsUpdated with zero address", async () => {
-      await expect(primeLeaderboard.xvsUpdated(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
-        primeLeaderboard,
-        "ZeroAddress",
-      );
+      await expect(
+        primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(ethers.constants.AddressZero),
+      ).to.be.revertedWithCustomError(primeLeaderboard, "ZeroAddress");
     });
 
     it("should be no-op when vault balance unchanged", async () => {
@@ -175,7 +178,7 @@ describe("PrimeLeaderboard", () => {
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
 
       // Call again with same balance → no-op
-      await primeLeaderboard.xvsUpdated(user1Address);
+      await primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address);
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1000, 18));
     });
@@ -211,13 +214,14 @@ describe("PrimeLeaderboard", () => {
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(2);
     });
 
-    it("should allow anyone to call xvsUpdated (unrestricted by design)", async () => {
+    it("should only allow xvsVault to call xvsUpdated", async () => {
       const user1Address = await user1.getAddress();
 
       xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
-      await primeLeaderboard.connect(user2).xvsUpdated(user1Address);
-
-      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1000, 18));
+      await expect(primeLeaderboard.connect(user2).xvsUpdated(user1Address)).to.be.revertedWithCustomError(
+        primeLeaderboard,
+        "OnlyXVSVaultAllowed",
+      );
     });
 
     it("should return deposits via getDeposits view function", async () => {
@@ -276,7 +280,10 @@ describe("PrimeLeaderboard", () => {
 
       // Set vault balance to 600 (withdraw 200 from 800)
       xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(600, 18), 0, 0]);
-      await expect(primeLeaderboard.xvsUpdated(user1Address)).to.emit(primeLeaderboard, "WithdrawalRecorded");
+      await expect(primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address)).to.emit(
+        primeLeaderboard,
+        "WithdrawalRecorded",
+      );
     });
 
     it("should remove from participants if falling below minimum", async () => {
@@ -610,7 +617,9 @@ describe("PrimeLeaderboard", () => {
       await primeLeaderboard.pause();
 
       xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
-      await expect(primeLeaderboard.xvsUpdated(user1Address)).to.be.revertedWith("Pausable: paused");
+      await expect(primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address)).to.be.revertedWith(
+        "Pausable: paused",
+      );
     });
 
     it("should work after unpause", async () => {

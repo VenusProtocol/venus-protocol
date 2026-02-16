@@ -357,21 +357,6 @@ describe("PrimeV2", () => {
         expect(await primeV2.maxLoopsLimit()).to.equal(200);
       });
     });
-
-    describe("setPoolRegistry", () => {
-      it("should set pool registry", async () => {
-        const newRegistry = ethers.Wallet.createRandom().address;
-        await primeV2.setPoolRegistry(newRegistry);
-        expect(await primeV2.poolRegistry()).to.equal(newRegistry);
-      });
-
-      it("should revert with zero address", async () => {
-        await expect(primeV2.setPoolRegistry(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
-          primeV2,
-          "InvalidAddress",
-        );
-      });
-    });
   });
 
   describe("View Functions", () => {
