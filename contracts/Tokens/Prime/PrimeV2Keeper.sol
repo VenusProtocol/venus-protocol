@@ -96,7 +96,7 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
         _checkAccessAllowed("processScoreUpdates(address[])");
 
         uint256 usersLength = users.length;
-        _ensureMaxLoops(usersLength);
+        if (usersLength > batchSize) revert InvalidBatchSize();
 
         primeV2.updateScores(users);
 

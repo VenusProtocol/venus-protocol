@@ -16,7 +16,6 @@ import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.so
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
-import { PoolRegistryInterface } from "./Interfaces/IPoolRegistry.sol";
 
 /**
  * @title PrimeV2
@@ -100,6 +99,9 @@ contract PrimeV2 is
     /// @notice Emitted when PrimeLeaderboard address is set
     event PrimeLeaderboardSet(address indexed oldLeaderboard, address indexed newLeaderboard);
 
+    /// @notice Emitted when an incomplete score update round is discarded
+    event IncompleteRoundDiscarded(uint256 indexed roundId, uint256 remainingUpdates);
+
     // ═══════════════════ ERRORS ═══════════════════
 
     /// @notice Error thrown when market is not supported
@@ -140,6 +142,9 @@ contract PrimeV2 is
 
     /// @notice Error thrown when invalid comptroller is passed
     error InvalidComptroller();
+
+    /// @notice Error thrown when both market multipliers are zero
+    error InvalidMultipliers();
 
     /**
      * @notice PrimeV2 constructor
@@ -291,6 +296,7 @@ contract PrimeV2 is
 
     /**
      * @notice Accrue interest for a market
+     * @dev Intentionally not gated by whenNotPaused to ensure fair reward distribution during pauses
      * @param vToken Market address
      */
     function accrueInterest(address vToken) public {
@@ -321,6 +327,7 @@ contract PrimeV2 is
 
     /**
      * @notice Accrue interest and update score for a user
+     * @dev Intentionally not gated by whenNotPaused — called by Comptroller hooks
      * @param user User address
      * @param market Market address
      */
@@ -357,10 +364,39 @@ contract PrimeV2 is
         }
     }
 
+    /**
+     * @notice Get pending rewards for a user (view-only, does not accrue)
+     * @dev Returns rewards based on last accrued state without triggering new accrual
+     * @param user User address
+     * @return pendingRewards Array of pending rewards per market
+     */
+    function getPendingRewardsStatic(address user) external view returns (PendingReward[] memory pendingRewards) {
+        address[] storage allMarkets = _allMarkets;
+        uint256 marketsLength = allMarkets.length;
+        pendingRewards = new PendingReward[](marketsLength);
+
+        for (uint256 i; i < marketsLength; ) {
+            address vToken = allMarkets[i];
+
+            uint256 accrued = interests[vToken][user].accrued;
+            uint256 pending = _interestAccrued(vToken, user);
+            uint256 total = accrued + pending;
+
+            address underlying = _getUnderlying(vToken);
+
+            pendingRewards[i] = PendingReward({ vToken: vToken, rewardToken: underlying, amount: total });
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     // ═══════════════════ SCORE FUNCTIONS ═══════════════════
 
     /**
      * @notice Update scores for a batch of users
+     * @dev Intentionally not gated by whenNotPaused — keeper must complete rounds even during pauses
      * @param users Array of user addresses
      */
     function updateScores(address[] calldata users) external {
@@ -449,6 +485,7 @@ contract PrimeV2 is
         _checkAccessAllowed("addMarket(address,address,uint256,uint256)");
 
         if (markets[market].exists) revert MarketAlreadyExists();
+        if (supplyMultiplier == 0 && borrowMultiplier == 0) revert InvalidMultipliers();
 
         bool isListed = InterfaceComptroller(comptroller).markets(market);
         if (!isListed) revert InvalidVToken();
@@ -535,16 +572,6 @@ contract PrimeV2 is
     }
 
     /**
-     * @notice Set pool registry address
-     * @param poolRegistry_ Pool registry address
-     */
-    function setPoolRegistry(address poolRegistry_) external {
-        _checkAccessAllowed("setPoolRegistry(address)");
-        if (poolRegistry_ == address(0)) revert InvalidAddress();
-        poolRegistry = poolRegistry_;
-    }
-
-    /**
      * @notice Pause the contract
      */
     function pause() external {
@@ -606,6 +633,7 @@ contract PrimeV2 is
 
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
+        _ensureMaxLoops(marketsLength);
 
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
@@ -657,6 +685,7 @@ contract PrimeV2 is
     function _initializeMarkets(address account) internal {
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
+        _ensureMaxLoops(marketsLength);
 
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
@@ -701,6 +730,13 @@ contract PrimeV2 is
             IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
         }
 
+        uint256 available = asset.balanceOf(address(this));
+        if (amount > available) {
+            interests[vToken][user].accrued = amount - available;
+            amount = available;
+        }
+
+        if (amount == 0) return 0;
         asset.safeTransfer(user, amount);
 
         emit InterestClaimed(user, vToken, amount);
@@ -903,6 +939,9 @@ contract PrimeV2 is
      * @notice Queue score updates after parameter change
      */
     function _queueScoreUpdates() internal {
+        if (pendingScoreUpdates > 0) {
+            emit IncompleteRoundDiscarded(nextScoreUpdateRoundId, pendingScoreUpdates);
+        }
         ++nextScoreUpdateRoundId;
         pendingScoreUpdates = totalIrrevocable + totalRevocable;
     }
@@ -923,7 +962,7 @@ contract PrimeV2 is
      * @param user User address
      */
     function _updateRoundAfterTokenBurned(address user) internal {
-        if (pendingScoreUpdates > 0 && isScoreUpdated[nextScoreUpdateRoundId][user]) {
+        if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             --pendingScoreUpdates;
         }
     }

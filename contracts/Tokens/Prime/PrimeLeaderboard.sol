@@ -5,6 +5,7 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
+import { SafeCastUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
@@ -27,6 +28,8 @@ contract PrimeLeaderboard is
     MaxLoopsLimitHelper,
     PrimeLeaderboardStorageV1
 {
+    using SafeCastUpgradeable for uint256;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -88,6 +91,7 @@ contract PrimeLeaderboard is
      * @param user The user whose stake changed
      */
     function xvsUpdated(address user) external override whenNotPaused {
+        if (msg.sender != xvsVault) revert OnlyXVSVaultAllowed();
         if (user == address(0)) revert ZeroAddress();
 
         (uint256 vaultStake, , ) = IXVSVault(xvsVault).getUserInfo(xvsVaultRewardToken, xvsVaultPoolId, user);
@@ -429,6 +433,8 @@ contract PrimeLeaderboard is
      * @param amount The amount of XVS deposited
      */
     function _recordDeposit(address user, uint256 amount) internal {
+        if (amount == 0) return;
+
         Deposit[] storage deposits = _depositStacks[user];
 
         // Check deposit limit - compact if needed
@@ -437,7 +443,7 @@ contract PrimeLeaderboard is
         }
 
         // Add new deposit to the stack
-        deposits.push(Deposit({ amount: uint128(amount), timestamp: uint64(block.timestamp), _reserved: 0 }));
+        deposits.push(Deposit({ amount: amount.toUint128(), timestamp: block.timestamp.toUint64(), _reserved: 0 }));
 
         uint256 oldTotalStaked = totalStaked[user];
         uint256 newTotalStaked = oldTotalStaked + amount;
@@ -486,7 +492,7 @@ contract PrimeLeaderboard is
                 deposits.pop();
             } else {
                 // Partially consumed
-                deposit.amount = uint128(depositAmount - toWithdraw);
+                deposit.amount = (depositAmount - toWithdraw).toUint128();
             }
         }
 
@@ -627,8 +633,8 @@ contract PrimeLeaderboard is
 
             // Insert merged deposit at index 0 with timestamp that gives max multiplier
             deposits[0] = Deposit({
-                amount: uint128(mergedAmount),
-                timestamp: uint64(block.timestamp - maxTierDuration),
+                amount: mergedAmount.toUint128(),
+                timestamp: (block.timestamp - maxTierDuration).toUint64(),
                 _reserved: 0
             });
 

@@ -102,9 +102,6 @@ contract PrimeV2StorageV1 {
     /// @notice Core pool comptroller address
     address public corePoolComptroller;
 
-    /// @notice Isolated lending pool registry
-    address public poolRegistry;
-
     /// @notice Address of PrimeLeaderboard contract
     address public primeLeaderboard;
 
@@ -125,5 +122,5 @@ contract PrimeV2StorageV1 {
     uint256 public pendingScoreUpdates;
 
     /// @notice Storage gap for future upgrades
-    uint256[40] private __gap;
+    uint256[41] private __gap;
 }
