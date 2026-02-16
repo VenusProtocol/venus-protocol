@@ -181,6 +181,8 @@ contract PrimeV2 is
      * @param corePoolComptroller_ Address of core pool comptroller
      * @param oracle_ Address of Oracle
      * @param loopsLimit_ Maximum number of loops allowed in a single transaction
+     * @custom:error Throw InvalidAddress if any of the address is zero
+     * @custom:error Throw InvalidAlphaArguments if alpha arguments are invalid
      */
     function initialize(
         address xvsVault_,
@@ -227,6 +229,10 @@ contract PrimeV2 is
      * @notice Issue irrevocable Prime tokens (admin function)
      * @param isIrrevocable Whether tokens are irrevocable
      * @param users Array of user addresses
+     * @custom:event Emits Mint event on new token issuance
+     * @custom:event Emits TokenUpgraded event on upgrade from revocable to irrevocable
+     * @custom:error Throw InvalidLimit if mint limit would be exceeded
+     * @custom:access Controlled by ACM
      */
     function issue(bool isIrrevocable, address[] calldata users) external {
         _checkAccessAllowed("issue(bool,address[])");
@@ -256,6 +262,9 @@ contract PrimeV2 is
     /**
      * @notice Burn a user's Prime token (admin function)
      * @param user User address
+     * @custom:event Emits Burn event
+     * @custom:error Throw UserHasNoPrimeToken if user has no prime token
+     * @custom:access Controlled by ACM
      */
     function burn(address user) external {
         _checkAccessAllowed("burn(address)");
@@ -279,6 +288,9 @@ contract PrimeV2 is
      * @notice Claim accrued interest for a market
      * @param vToken Market address
      * @return amount Amount claimed
+     * @custom:event Emits InterestClaimed event
+     * @custom:error Throw UserHasNoPrimeToken if user has no prime token
+     * @custom:error Throw MarketNotSupported if market is not supported
      */
     function claimInterest(address vToken) external nonReentrant whenNotPaused returns (uint256) {
         return _claimInterest(vToken, msg.sender);
@@ -289,6 +301,9 @@ contract PrimeV2 is
      * @param vToken Market address
      * @param user Recipient address
      * @return amount Amount claimed
+     * @custom:event Emits InterestClaimed event
+     * @custom:error Throw UserHasNoPrimeToken if user has no prime token
+     * @custom:error Throw MarketNotSupported if market is not supported
      */
     function claimInterest(address vToken, address user) external nonReentrant whenNotPaused returns (uint256) {
         return _claimInterest(vToken, user);
@@ -298,6 +313,7 @@ contract PrimeV2 is
      * @notice Accrue interest for a market
      * @dev Intentionally not gated by whenNotPaused to ensure fair reward distribution during pauses
      * @param vToken Market address
+     * @custom:error Throw MarketNotSupported if market is not supported
      */
     function accrueInterest(address vToken) public {
         Market storage market = markets[vToken];
@@ -398,6 +414,8 @@ contract PrimeV2 is
      * @notice Update scores for a batch of users
      * @dev Intentionally not gated by whenNotPaused — keeper must complete rounds even during pauses
      * @param users Array of user addresses
+     * @custom:event Emits UserScoreUpdated event
+     * @custom:error Throw NoScoreUpdatesRequired if no score updates are required
      */
     function updateScores(address[] calldata users) external {
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
@@ -458,6 +476,9 @@ contract PrimeV2 is
     /**
      * @notice Set the PrimeLeaderboard contract address
      * @param primeLeaderboard_ Address of PrimeLeaderboard
+     * @custom:event Emits PrimeLeaderboardSet event
+     * @custom:error Throw InvalidAddress if address is zero
+     * @custom:access Controlled by ACM
      */
     function setPrimeLeaderboard(address primeLeaderboard_) external {
         _checkAccessAllowed("setPrimeLeaderboard(address)");
@@ -475,6 +496,12 @@ contract PrimeV2 is
      * @param market Market address
      * @param supplyMultiplier Supply multiplier
      * @param borrowMultiplier Borrow multiplier
+     * @custom:event Emits MarketAdded event
+     * @custom:error Throw MarketAlreadyExists if market already exists
+     * @custom:error Throw InvalidMultipliers if both multipliers are zero
+     * @custom:error Throw InvalidVToken if market is not listed
+     * @custom:error Throw AssetAlreadyExists if asset already has a market
+     * @custom:access Controlled by ACM
      */
     function addMarket(
         address comptroller,
@@ -513,6 +540,9 @@ contract PrimeV2 is
      * @notice Update mint limits
      * @param irrevocableLimit_ New irrevocable limit
      * @param revocableLimit_ New revocable limit
+     * @custom:event Emits MintLimitsUpdated event
+     * @custom:error Throw InvalidLimit if any limit is less than current count
+     * @custom:access Controlled by ACM
      */
     function setLimits(uint256 irrevocableLimit_, uint256 revocableLimit_) external {
         _checkAccessAllowed("setLimits(uint256,uint256)");
@@ -531,6 +561,9 @@ contract PrimeV2 is
      * @notice Update alpha parameter
      * @param alphaNumerator_ New alpha numerator
      * @param alphaDenominator_ New alpha denominator
+     * @custom:event Emits AlphaUpdated event
+     * @custom:error Throw InvalidAlphaArguments if alpha arguments are invalid
+     * @custom:access Controlled by ACM
      */
     function updateAlpha(uint128 alphaNumerator_, uint128 alphaDenominator_) external {
         _checkAccessAllowed("updateAlpha(uint128,uint128)");
@@ -549,6 +582,9 @@ contract PrimeV2 is
      * @param market Market address
      * @param supplyMultiplier New supply multiplier
      * @param borrowMultiplier New borrow multiplier
+     * @custom:event Emits MultiplierUpdated event
+     * @custom:error Throw MarketNotSupported if market is not supported
+     * @custom:access Controlled by ACM
      */
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
@@ -573,6 +609,8 @@ contract PrimeV2 is
 
     /**
      * @notice Pause the contract
+     * @custom:event Emits Paused event
+     * @custom:access Controlled by ACM
      */
     function pause() external {
         _checkAccessAllowed("pause()");
@@ -581,6 +619,8 @@ contract PrimeV2 is
 
     /**
      * @notice Unpause the contract
+     * @custom:event Emits Unpaused event
+     * @custom:access Controlled by ACM
      */
     function unpause() external {
         _checkAccessAllowed("unpause()");
@@ -590,6 +630,8 @@ contract PrimeV2 is
     /**
      * @notice Set max loops limit
      * @param loopsLimit New loops limit
+     * @custom:event Emits MaxLoopsLimitUpdated event
+     * @custom:access Controlled by ACM
      */
     function setMaxLoopsLimit(uint256 loopsLimit) external {
         _checkAccessAllowed("setMaxLoopsLimit(uint256)");

@@ -43,6 +43,8 @@ contract PrimeLeaderboard is
      * @param xvsVaultPoolId_ Pool ID in XVSVault
      * @param minimumStake_ Minimum XVS stake to participate
      * @param loopsLimit_ Maximum loops allowed in iterations
+     * @custom:error Throw ZeroAddress if any address is zero
+     * @custom:error Throw InvalidValue if minimumStake is zero
      */
     function initialize(
         address accessControlManager_,
@@ -89,6 +91,11 @@ contract PrimeLeaderboard is
      * @dev Reads the user's current vault balance, diffs against _lastKnownStake,
      *      and records the appropriate deposit or withdrawal internally.
      * @param user The user whose stake changed
+     * @custom:event Emits DepositRecorded event on deposit
+     * @custom:event Emits WithdrawalRecorded event on withdrawal
+     * @custom:event Emits DepositsCompacted event if deposits are compacted
+     * @custom:error Throw OnlyXVSVaultAllowed if caller is not XVSVault
+     * @custom:error Throw ZeroAddress if user address is zero
      */
     function xvsUpdated(address user) external override whenNotPaused {
         if (msg.sender != xvsVault) revert OnlyXVSVaultAllowed();
@@ -287,8 +294,9 @@ contract PrimeLeaderboard is
     /**
      * @notice Set the minimum stake to participate
      * @param minimum New minimum stake amount
+     * @custom:event Emits MinimumStakeUpdated event
+     * @custom:error Throw InvalidValue if minimum is zero
      * @custom:access Controlled by ACM
-     * @custom:event Emits MinimumStakeUpdated
      */
     function setMinimumStake(uint256 minimum) external override {
         _checkAccessAllowed("setMinimumStake(uint256)");
@@ -304,8 +312,11 @@ contract PrimeLeaderboard is
      * @notice Set the multiplier tiers
      * @param durations Array of duration thresholds in seconds
      * @param multipliers Array of multiplier values (scaled by 1e18)
+     * @custom:event Emits MultiplierTiersUpdated event
+     * @custom:error Throw LengthMismatch if durations and multipliers arrays have different lengths
+     * @custom:error Throw InvalidValue if durations array is empty
+     * @custom:error Throw InvalidMultiplierTiers if tiers are not in ascending order or multipliers below base
      * @custom:access Controlled by ACM
-     * @custom:event Emits MultiplierTiersUpdated
      */
     function setMultiplierTiers(uint256[] calldata durations, uint256[] calldata multipliers) external override {
         _checkAccessAllowed("setMultiplierTiers(uint256[],uint256[])");
@@ -351,8 +362,9 @@ contract PrimeLeaderboard is
     /**
      * @notice Set the PrimeV2 contract address
      * @param primeV2_ Address of PrimeV2 contract
+     * @custom:event Emits PrimeV2Set event
+     * @custom:error Throw ZeroAddress if address is zero
      * @custom:access Controlled by ACM
-     * @custom:event Emits PrimeV2Set
      */
     function setPrimeV2(address primeV2_) external override {
         _checkAccessAllowed("setPrimeV2(address)");
@@ -367,8 +379,9 @@ contract PrimeLeaderboard is
     /**
      * @notice Set the XVSVault contract address
      * @param xvsVault_ Address of XVSVault contract
+     * @custom:event Emits XVSVaultSet event
+     * @custom:error Throw ZeroAddress if address is zero
      * @custom:access Controlled by ACM
-     * @custom:event Emits XVSVaultSet
      */
     function setXVSVault(address xvsVault_) external override {
         _checkAccessAllowed("setXVSVault(address)");
@@ -384,8 +397,9 @@ contract PrimeLeaderboard is
      * @notice Set the XVSVault pool configuration for getUserInfo calls
      * @param rewardToken_ Reward token address in XVSVault
      * @param poolId_ Pool ID in XVSVault
+     * @custom:event Emits XVSVaultPoolConfigSet event
+     * @custom:error Throw ZeroAddress if rewardToken address is zero
      * @custom:access Controlled by ACM
-     * @custom:event Emits XVSVaultPoolConfigSet
      */
     function setXVSVaultPoolConfig(address rewardToken_, uint256 poolId_) external override {
         _checkAccessAllowed("setXVSVaultPoolConfig(address,uint256)");
@@ -399,6 +413,7 @@ contract PrimeLeaderboard is
 
     /**
      * @notice Pause the contract
+     * @custom:event Emits Paused event
      * @custom:access Controlled by ACM
      */
     function pause() external override {
@@ -408,6 +423,7 @@ contract PrimeLeaderboard is
 
     /**
      * @notice Unpause the contract
+     * @custom:event Emits Unpaused event
      * @custom:access Controlled by ACM
      */
     function unpause() external override {
@@ -418,6 +434,7 @@ contract PrimeLeaderboard is
     /**
      * @notice Set the max loops limit
      * @param loopsLimit New loops limit
+     * @custom:event Emits MaxLoopsLimitUpdated event
      * @custom:access Controlled by ACM
      */
     function setMaxLoopsLimit(uint256 loopsLimit) external override {

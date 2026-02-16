@@ -44,14 +44,24 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
 
     // ═══════════════════ EVENTS ═══════════════════
 
+    /// @notice Emitted when score updates are processed for a batch of users
     event ScoreUpdatesProcessed(uint256 count);
+
+    /// @notice Emitted when interest is accrued on all Prime markets
     event AllMarketsAccrued(uint256 marketCount);
+
+    /// @notice Emitted when the batch size is updated
     event BatchSizeUpdated(uint256 oldSize, uint256 newSize);
+
+    /// @notice Emitted when PrimeV2 or PrimeLeaderboard contract references are updated
     event ContractsUpdated(address primeV2, address primeLeaderboard);
 
     // ═══════════════════ ERRORS ═══════════════════
 
+    /// @notice Error thrown when a zero address is passed
     error InvalidAddress();
+
+    /// @notice Error thrown when batch size is zero or users array exceeds batch size
     error InvalidBatchSize();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -66,6 +76,8 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
      * @param primeLeaderboard_ PrimeLeaderboard address
      * @param batchSize_ Number of users to process per batch
      * @param loopsLimit_ Maximum loops allowed
+     * @custom:error Throw InvalidAddress if any address is zero
+     * @custom:error Throw InvalidBatchSize if batch size is zero
      */
     function initialize(
         address accessControlManager_,
@@ -91,6 +103,9 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
      * @notice Process pending score updates on PrimeV2 in batches
      * @param users Array of Prime holders whose scores need updating
      * @dev Called when pendingScoreUpdates > 0 (after alpha or multiplier changes)
+     * @custom:event Emits ScoreUpdatesProcessed event
+     * @custom:error Throw InvalidBatchSize if users array exceeds batch size
+     * @custom:access Controlled by ACM
      */
     function processScoreUpdates(address[] calldata users) external {
         _checkAccessAllowed("processScoreUpdates(address[])");
@@ -106,6 +121,8 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
     /**
      * @notice Accrue interest on all Prime markets
      * @dev Should be called periodically to keep reward indexes up to date
+     * @custom:event Emits AllMarketsAccrued event
+     * @custom:access Controlled by ACM
      */
     function accrueAllMarkets() external {
         _checkAccessAllowed("accrueAllMarkets()");
@@ -139,6 +156,9 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
     /**
      * @notice Update batch size
      * @param batchSize_ New batch size
+     * @custom:event Emits BatchSizeUpdated event
+     * @custom:error Throw InvalidBatchSize if batch size is zero
+     * @custom:access Controlled by ACM
      */
     function setBatchSize(uint256 batchSize_) external {
         _checkAccessAllowed("setBatchSize(uint256)");
@@ -154,6 +174,9 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
      * @notice Update contract references
      * @param primeV2_ New PrimeV2 address
      * @param primeLeaderboard_ New PrimeLeaderboard address
+     * @custom:event Emits ContractsUpdated event
+     * @custom:error Throw InvalidAddress if any address is zero
+     * @custom:access Controlled by ACM
      */
     function setContracts(address primeV2_, address primeLeaderboard_) external {
         _checkAccessAllowed("setContracts(address,address)");
@@ -168,6 +191,8 @@ contract PrimeV2Keeper is AccessControlledV8, MaxLoopsLimitHelper {
     /**
      * @notice Update max loops limit
      * @param loopsLimit New loops limit
+     * @custom:event Emits MaxLoopsLimitUpdated event
+     * @custom:access Controlled by ACM
      */
     function setMaxLoopsLimit(uint256 loopsLimit) external {
         _checkAccessAllowed("setMaxLoopsLimit(uint256)");
