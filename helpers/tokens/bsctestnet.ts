@@ -256,6 +256,12 @@ const tokens = [
     symbol: "U",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "Matrixdock Gold",
+    symbol: "XAUM",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
