@@ -33,8 +33,8 @@ interface IPrimeLeaderboard {
     /// @notice Emitted when deposits are compacted
     event DepositsCompacted(address indexed user, uint256 oldCount, uint256 newCount);
 
-    /// @notice Emitted when a round is advanced
-    event RoundAdvanced(uint256 round);
+    /// @notice Emitted when a user's withdrawn score is reset by backend
+    event WithdrawnScoreReset(address indexed user, uint256 oldScore);
 
     /// @notice Emitted when minimum stake is updated
     event MinimumStakeUpdated(uint256 oldMinimum, uint256 newMinimum);
@@ -131,12 +131,11 @@ interface IPrimeLeaderboard {
     /// @return users Array of participant addresses
     function getParticipants(uint256 start, uint256 end) external view returns (address[] memory users);
 
-    // ═══════════════════ ROUND MANAGEMENT ═══════════════════
-
-    /// @notice Advance to the next round (resets withdrawn scores)
-    function advanceRound() external;
-
     // ═══════════════════ CONFIGURATION ═══════════════════
+
+    /// @notice Reset withdrawn score for a user to zero (called by backend after processing)
+    /// @param user The user whose withdrawn score should be reset
+    function resetWithdrawnScore(address user) external;
 
     /// @notice Set the minimum stake to participate
     /// @param minimum New minimum stake amount

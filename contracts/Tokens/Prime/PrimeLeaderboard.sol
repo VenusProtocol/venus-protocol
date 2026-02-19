@@ -68,9 +68,6 @@ contract PrimeLeaderboard is
         xvsVaultPoolId = xvsVaultPoolId_;
         minimumStake = minimumStake_;
 
-        // Initialize round counter
-        currentRound = 1;
-
         // Initialize default multiplier tiers
         // Tier 1: 30 days -> 1.3x
         // Tier 2: 60 days -> 1.6x
@@ -136,11 +133,6 @@ contract PrimeLeaderboard is
             unchecked {
                 ++i;
             }
-        }
-
-        // Add withdrawn score if it's from the current round
-        if (_withdrawnScoreRound[user] == currentRound) {
-            effectiveStake += withdrawnScoreCurrentRound[user];
         }
 
         return effectiveStake;
@@ -272,24 +264,24 @@ contract PrimeLeaderboard is
         return (_multiplierDurations, _multiplierValues);
     }
 
-    // ═══════════════════ ROUND MANAGEMENT ═══════════════════
+    // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
 
     /**
-     * @notice Advance to the next round (resets withdrawn scores implicitly)
-     * @dev Withdrawn scores are tracked per-round via _withdrawnScoreRound mapping.
-     *      Advancing the round makes old withdrawn scores stale without explicit clearing.
+     * @notice Reset withdrawn score for a user to zero (called by backend after processing)
+     * @param user The user whose withdrawn score should be reset
+     * @custom:event Emits WithdrawnScoreReset event
+     * @custom:error Throw ZeroAddress if user address is zero
      * @custom:access Controlled by ACM
-     * @custom:event Emits RoundAdvanced
      */
-    function advanceRound() external override {
-        _checkAccessAllowed("advanceRound()");
+    function resetWithdrawnScore(address user) external override {
+        _checkAccessAllowed("resetWithdrawnScore(address)");
+        if (user == address(0)) revert ZeroAddress();
 
-        currentRound++;
+        uint256 oldScore = withdrawnScoreCurrentRound[user];
+        withdrawnScoreCurrentRound[user] = 0;
 
-        emit RoundAdvanced(currentRound);
+        emit WithdrawnScoreReset(user, oldScore);
     }
-
-    // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
 
     /**
      * @notice Set the minimum stake to participate
@@ -582,19 +574,12 @@ contract PrimeLeaderboard is
     }
 
     /**
-     * @notice Update withdrawn score for current round
+     * @notice Accumulate withdrawn score for a user (backend queries this separately)
      * @param user User address
      * @param score Score to add
      */
     function _updateWithdrawnScore(address user, uint256 score) internal {
-        if (_withdrawnScoreRound[user] != currentRound) {
-            // New round, reset and set
-            withdrawnScoreCurrentRound[user] = score;
-            _withdrawnScoreRound[user] = currentRound;
-        } else {
-            // Same round, accumulate
-            withdrawnScoreCurrentRound[user] += score;
-        }
+        withdrawnScoreCurrentRound[user] += score;
     }
 
     /**

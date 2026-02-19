@@ -81,7 +81,6 @@ describe("PrimeLeaderboard", () => {
     it("should initialize with correct values", async () => {
       expect(await primeLeaderboard.xvsVault()).to.equal(xvsVault.address);
       expect(await primeLeaderboard.minimumStake()).to.equal(MINIMUM_STAKE);
-      expect(await primeLeaderboard.currentRound()).to.equal(1);
       expect(await primeLeaderboard.xvsVaultRewardToken()).to.equal(xvsAddress);
       expect(await primeLeaderboard.xvsVaultPoolId()).to.equal(0);
     });
@@ -392,6 +391,38 @@ describe("PrimeLeaderboard", () => {
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
       expect(effectiveStake).to.equal(convertToUnit(38750, 18));
     });
+
+    it("should NOT include withdrawn score in effective stake", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(35 * DAY);
+
+      // Effective stake before withdrawal: 1000 × 1.3 × 35 = 45,500
+      const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Address);
+      expect(stakeBefore).to.equal(convertToUnit(45500, 18));
+
+      // Withdraw 500 XVS (vault balance drops to 500)
+      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
+
+      // Remaining active deposits only: 500 × 1.3 × 35 = 22,750
+      // Withdrawn score is NOT added to effective stake
+      const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Address);
+      expect(stakeAfter).to.equal(convertToUnit(22750, 18));
+    });
+
+    it("should return zero effective stake after full withdrawal", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(35 * DAY);
+
+      await simulateWithdrawal(user1Address, "0");
+
+      // No active deposits → effective stake is 0
+      const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Address);
+      expect(stakeAfter).to.equal(0);
+    });
   });
 
   describe("Multiplier Tiers", () => {
@@ -453,27 +484,171 @@ describe("PrimeLeaderboard", () => {
     });
   });
 
-  describe("Round Management", () => {
-    it("should start at round 1", async () => {
-      expect(await primeLeaderboard.currentRound()).to.equal(1);
+  describe("Withdrawn Score Tracking", () => {
+    it("should accumulate withdrawn score separately from effective stake", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(35 * DAY);
+
+      // Withdraw 500 XVS
+      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
+
+      // Withdrawn score: 500 × 1.3 × 35 = 22,750
+      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      expect(withdrawnScore).to.equal(convertToUnit(22750, 18));
+
+      // Effective stake only has active deposits: 500 × 1.3 × 35 = 22,750
+      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
+      expect(effectiveStake).to.equal(convertToUnit(22750, 18));
     });
 
-    it("should increment round on advanceRound", async () => {
-      await primeLeaderboard.advanceRound();
-      expect(await primeLeaderboard.currentRound()).to.equal(2);
+    it("should accumulate withdrawn scores across multiple withdrawals", async () => {
+      const user1Address = await user1.getAddress();
 
-      await primeLeaderboard.advanceRound();
-      expect(await primeLeaderboard.currentRound()).to.equal(3);
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(45 * DAY);
+
+      // First withdrawal: 100 XVS (vault balance → 900)
+      await simulateWithdrawal(user1Address, convertToUnit(900, 18));
+      const scoreAfterFirst = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+
+      // Withdrawn score: 100 × 1.3 × 45 = 5,850
+      expect(scoreAfterFirst).to.equal(convertToUnit(5850, 18));
+
+      // Second withdrawal: 100 XVS (vault balance → 800)
+      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
+      const scoreAfterSecond = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+
+      // Accumulated: 5,850 + (100 × 1.3 × 45) = 5,850 + 5,850 = 11,700
+      expect(scoreAfterSecond).to.equal(convertToUnit(11700, 18));
     });
 
-    it("should emit RoundAdvanced event", async () => {
-      await expect(primeLeaderboard.advanceRound()).to.emit(primeLeaderboard, "RoundAdvanced").withArgs(2);
+    it("should track withdrawn score on full withdrawal", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(10 * DAY);
+
+      // Full withdrawal
+      await simulateWithdrawal(user1Address, "0");
+
+      // Withdrawn score: 1000 × 1.0 × 10 = 10,000
+      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      expect(withdrawnScore).to.equal(convertToUnit(10000, 18));
+
+      // Effective stake is 0 (no active deposits)
+      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
+      expect(effectiveStake).to.equal(0);
+    });
+  });
+
+  describe("Reset Withdrawn Score", () => {
+    it("should reset withdrawn score to zero", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(10 * DAY);
+      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
+
+      // Withdrawn score exists: 500 × 1.0 × 10 = 5,000
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(5000, 18));
+
+      // Backend resets it
+      await primeLeaderboard.resetWithdrawnScore(user1Address);
+
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
     });
 
-    it("should revert advanceRound when access denied", async () => {
+    it("should emit WithdrawnScoreReset event", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(10 * DAY);
+      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
+
+      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+
+      await expect(primeLeaderboard.resetWithdrawnScore(user1Address))
+        .to.emit(primeLeaderboard, "WithdrawnScoreReset")
+        .withArgs(user1Address, withdrawnScore);
+    });
+
+    it("should allow new withdrawn scores to accumulate after reset", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(10 * DAY);
+
+      // First withdrawal
+      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(2000, 18));
+
+      // Backend resets
+      await primeLeaderboard.resetWithdrawnScore(user1Address);
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+
+      // More time passes, user withdraws again
+      await time.increase(5 * DAY);
+      await simulateWithdrawal(user1Address, convertToUnit(600, 18));
+
+      // New withdrawn score accumulates from zero
+      const newWithdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      expect(newWithdrawnScore).to.be.gt(0);
+    });
+
+    it("should revert resetWithdrawnScore with zero address", async () => {
+      await expect(primeLeaderboard.resetWithdrawnScore(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
+        primeLeaderboard,
+        "ZeroAddress",
+      );
+    });
+
+    it("should revert resetWithdrawnScore when access denied", async () => {
+      const user1Address = await user1.getAddress();
       accessControlManager.isAllowedToCall.returns(false);
 
-      await expect(primeLeaderboard.advanceRound()).to.be.reverted;
+      await expect(primeLeaderboard.resetWithdrawnScore(user1Address)).to.be.reverted;
+    });
+
+    it("should be no-op when resetting already-zero withdrawn score", async () => {
+      const user1Address = await user1.getAddress();
+
+      // No withdrawals, score is already 0
+      await expect(primeLeaderboard.resetWithdrawnScore(user1Address))
+        .to.emit(primeLeaderboard, "WithdrawnScoreReset")
+        .withArgs(user1Address, 0);
+
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+    });
+  });
+
+  describe("Batch Score Queries", () => {
+    it("should return correct scores for multiple users", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(10000, 18));
+      await simulateDeposit(user2Address, convertToUnit(5000, 18));
+
+      await time.increase(45 * DAY);
+
+      const scores = await primeLeaderboard.getScores([user1Address, user2Address]);
+      // User1: 10000 × 1.3 × 45 = 585,000
+      expect(scores[0]).to.equal(convertToUnit(585000, 18));
+      // User2: 5000 × 1.3 × 45 = 292,500
+      expect(scores[1]).to.equal(convertToUnit(292500, 18));
+    });
+
+    it("should match calculateCurrentScore with getEffectiveStake", async () => {
+      const user1Address = await user1.getAddress();
+
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+      await time.increase(50 * DAY);
+
+      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
+      const currentScore = await primeLeaderboard.calculateCurrentScore(user1Address);
+      expect(effectiveStake).to.equal(currentScore);
     });
   });
 
@@ -633,107 +808,6 @@ describe("PrimeLeaderboard", () => {
     });
   });
 
-  describe("Withdrawn Score Tracking", () => {
-    it("should preserve total effective stake when withdrawing within same round", async () => {
-      const user1Address = await user1.getAddress();
-
-      // Deposit and wait for multiplier
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(35 * DAY);
-
-      // Effective stake before withdrawal: 1000 × 1.3 × 35 = 45,500
-      const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(stakeBefore).to.equal(convertToUnit(45500, 18));
-
-      // Withdraw 500 XVS (vault balance drops to 500)
-      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
-
-      // Remaining: 500 × 1.3 × 35 = 22,750
-      // Withdrawn score (locked): 500 × 1.3 × 35 = 22,750
-      // Total: 22,750 + 22,750 = 45,500
-      const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(stakeAfter).to.equal(convertToUnit(45500, 18));
-    });
-
-    it("should reset withdrawn score after advanceRound", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(45 * DAY);
-
-      // Withdraw 200 XVS (vault balance drops to 800)
-      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-
-      // Score in round 1 includes withdrawn score
-      // Active: 800 × 1.3 × 45 = 46,800
-      // Withdrawn: 200 × 1.3 × 45 = 11,700
-      // Total: 58,500
-      const stakeRound1 = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(stakeRound1).to.equal(convertToUnit(58500, 18));
-
-      // Advance to round 2
-      await primeLeaderboard.advanceRound();
-      expect(await primeLeaderboard.currentRound()).to.equal(2);
-
-      // Score in round 2: only active deposits (withdrawn score not counted)
-      const stakeRound2 = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(stakeRound2).to.be.lt(stakeRound1);
-
-      // The difference should be approximately the withdrawn score (11,700)
-      const diff = stakeRound1.sub(stakeRound2);
-      expect(diff.gte(convertToUnit(11600, 18))).to.be.true;
-      expect(diff.lte(convertToUnit(11800, 18))).to.be.true;
-    });
-
-    it("should accumulate withdrawn scores within same round", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(45 * DAY);
-
-      // First withdrawal: 100 XVS (vault balance → 900)
-      await simulateWithdrawal(user1Address, convertToUnit(900, 18));
-      const stakeAfterFirst = await primeLeaderboard.getEffectiveStake(user1Address);
-
-      // Second withdrawal: 100 XVS (vault balance → 800, same round)
-      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-      const stakeAfterSecond = await primeLeaderboard.getEffectiveStake(user1Address);
-
-      // Both withdrawn scores accumulate, total effective should stay roughly the same
-      const diff = stakeAfterFirst.sub(stakeAfterSecond).abs();
-      expect(diff.lte(convertToUnit(200, 18))).to.be.true;
-    });
-  });
-
-  describe("Batch Score Queries", () => {
-    it("should return correct scores for multiple users", async () => {
-      const user1Address = await user1.getAddress();
-      const user2Address = await user2.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(10000, 18));
-      await simulateDeposit(user2Address, convertToUnit(5000, 18));
-
-      await time.increase(45 * DAY);
-
-      const scores = await primeLeaderboard.getScores([user1Address, user2Address]);
-      // User1: 10000 × 1.3 × 45 = 585,000
-      expect(scores[0]).to.equal(convertToUnit(585000, 18));
-      // User2: 5000 × 1.3 × 45 = 292,500
-      expect(scores[1]).to.equal(convertToUnit(292500, 18));
-    });
-
-    it("should match calculateCurrentScore with getEffectiveStake", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(50 * DAY);
-
-      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      const currentScore = await primeLeaderboard.calculateCurrentScore(user1Address);
-      expect(effectiveStake).to.equal(currentScore);
-    });
-  });
-
   describe("Access Control", () => {
     it("should revert admin functions when access denied", async () => {
       accessControlManager.isAllowedToCall.returns(false);
@@ -745,7 +819,213 @@ describe("PrimeLeaderboard", () => {
       await expect(primeLeaderboard.setXVSVaultPoolConfig(await user1.getAddress(), 0)).to.be.reverted;
       await expect(primeLeaderboard.pause()).to.be.reverted;
       await expect(primeLeaderboard.unpause()).to.be.reverted;
-      await expect(primeLeaderboard.advanceRound()).to.be.reverted;
+      await expect(primeLeaderboard.resetWithdrawnScore(await user1.getAddress())).to.be.reverted;
+    });
+  });
+
+  describe("Scenario: Large deposit-then-immediate-withdrawal (backend-driven)", () => {
+    // Scenario:
+    //   - Day 1: User deposits 1M XVS, backend calculates leaderboard and issues Prime
+    //   - Day 2: User withdraws all 1M XVS
+    //   - Backend updates leaderboard every 24 hours
+    //
+    // With the new design:
+    //   - Effective stake reflects ONLY active deposits (no withdrawn score inflation)
+    //   - Withdrawn score is tracked separately for backend to query
+    //   - Backend calls resetWithdrawnScore() after processing
+
+    const ONE_MILLION_XVS = convertToUnit(1_000_000, 18);
+
+    it("should immediately drop effective stake to zero after full withdrawal", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      // Day 1: Both users deposit
+      await simulateDeposit(user1Address, ONE_MILLION_XVS);
+      await simulateDeposit(user2Address, convertToUnit(500_000, 18));
+
+      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.true;
+      expect(await primeLeaderboard.isParticipant(user2Address)).to.be.true;
+
+      // Day 2: User1 withdraws everything
+      await time.increase(1 * DAY);
+
+      // Before withdrawal: user1 score = 1M × 1.0 × 1 = 1,000,000
+      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(1_000_000, 18));
+
+      // User1 withdraws all XVS
+      await simulateWithdrawal(user1Address, "0");
+
+      // Effective stake is immediately 0 (no phantom score)
+      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(0);
+      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.false;
+      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(0);
+
+      // Withdrawn score is tracked separately for backend
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(1_000_000, 18));
+
+      // User2 still active: 500K × 1.0 × 1 = 500,000
+      expect(await primeLeaderboard.getEffectiveStake(user2Address)).to.equal(convertToUnit(500_000, 18));
+    });
+
+    it("should show getScores() returns zero for withdrawn user (no phantom eligibility)", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+      const user3Address = await user3.getAddress();
+
+      // Day 1: Three users deposit
+      await simulateDeposit(user1Address, ONE_MILLION_XVS);
+      await simulateDeposit(user2Address, convertToUnit(800_000, 18));
+      await simulateDeposit(user3Address, convertToUnit(600_000, 18));
+
+      // Day 2: User1 withdraws everything
+      await time.increase(1 * DAY);
+      await simulateWithdrawal(user1Address, "0");
+
+      const allUsers = [user1Address, user2Address, user3Address];
+
+      // Day 5: Backend checks scores
+      await time.increase(3 * DAY);
+      let scores = await primeLeaderboard.getScores(allUsers);
+
+      // User1 has 0 effective stake (correctly reflects no XVS staked)
+      expect(scores[0]).to.equal(0);
+      // User2: 800K × 1.0 × 4 = 3,200,000
+      expect(scores[1]).to.equal(convertToUnit(3_200_000, 18));
+      // User3: 600K × 1.0 × 4 = 2,400,000
+      expect(scores[2]).to.equal(convertToUnit(2_400_000, 18));
+
+      // Day 15: Backend checks scores again
+      await time.increase(10 * DAY);
+      scores = await primeLeaderboard.getScores(allUsers);
+
+      // User1 is STILL 0 — no phantom eligibility at any point!
+      expect(scores[0]).to.equal(0);
+      // User2: 800K × 1.0 × 14 = 11,200,000
+      expect(scores[1]).to.equal(convertToUnit(11_200_000, 18));
+      // User3: 600K × 1.0 × 14 = 8,400,000
+      expect(scores[2]).to.equal(convertToUnit(8_400_000, 18));
+
+      // Day 30: End of backend reward cycle
+      await time.increase(16 * DAY);
+      scores = await primeLeaderboard.getScores(allUsers);
+
+      // User1 is still 0
+      expect(scores[0]).to.equal(0);
+      // User2: 800K × 1.3x × 30 = 31,200,000 (multiplier upgraded at 30 days)
+      expect(scores[1]).to.equal(convertToUnit(31_200_000, 18));
+      // User3: 600K × 1.3x × 30 = 23,400,000
+      expect(scores[2]).to.equal(convertToUnit(23_400_000, 18));
+    });
+
+    it("should correctly handle partial withdrawal with 24-hour backend updates", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Day 0: User deposits 1000 XVS
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+
+      // Day 35: User withdraws 100 XVS (vault balance → 900)
+      await time.increase(35 * DAY);
+
+      // Score before withdrawal: 1000 × 1.3 × 35 = 45,500
+      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(45500, 18));
+
+      await simulateWithdrawal(user1Address, convertToUnit(900, 18));
+
+      // Score after withdrawal: 900 × 1.3 × 35 = 40,950
+      // (Only active deposits count, withdrawn score tracked separately)
+      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(40950, 18));
+
+      // Withdrawn score: 100 × 1.3 × 35 = 4,550
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(4550, 18));
+
+      // Day 36: Backend checks 24 hours later
+      await time.increase(1 * DAY);
+
+      // Score: 900 × 1.3 × 36 = 42,120 (naturally grows based on active deposits)
+      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(42120, 18));
+    });
+
+    it("should allow backend to reset withdrawn score after processing", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Day 0: User deposits 1000 XVS
+      await simulateDeposit(user1Address, convertToUnit(1000, 18));
+
+      // Day 10: Withdraw 200 XVS
+      await time.increase(10 * DAY);
+      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
+
+      // Withdrawn score: 200 × 1.0 × 10 = 2,000
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(2000, 18));
+
+      // Backend processes withdrawn score and resets it
+      await primeLeaderboard.resetWithdrawnScore(user1Address);
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+
+      // Day 20: Another withdrawal of 100 XVS
+      await time.increase(10 * DAY);
+      await simulateWithdrawal(user1Address, convertToUnit(700, 18));
+
+      // Withdrawn score starts fresh from 0: 100 × 1.0 × 20 = 2,000
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(2000, 18));
+
+      // Effective stake only reflects active 700 XVS: 700 × 1.0 × 20 = 14,000
+      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(14000, 18));
+    });
+
+    it("should show the complete 30-day lifecycle with backend-driven leaderboard", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      // Day 1: User1 deposits 1M XVS, User2 deposits 500K XVS
+      await simulateDeposit(user1Address, ONE_MILLION_XVS);
+      await simulateDeposit(user2Address, convertToUnit(500_000, 18));
+
+      // Day 2: User1 withdraws everything
+      await time.increase(1 * DAY);
+      await simulateWithdrawal(user1Address, "0");
+
+      // Collect score snapshots throughout backend's 30-day cycle
+      const user1Scores: string[] = [];
+      const user2Scores: string[] = [];
+
+      // Day 2 scores (right after withdrawal)
+      user1Scores.push((await primeLeaderboard.getEffectiveStake(user1Address)).toString());
+      user2Scores.push((await primeLeaderboard.getEffectiveStake(user2Address)).toString());
+
+      // Day 10
+      await time.increase(8 * DAY);
+      user1Scores.push((await primeLeaderboard.getEffectiveStake(user1Address)).toString());
+      user2Scores.push((await primeLeaderboard.getEffectiveStake(user2Address)).toString());
+
+      // Day 20
+      await time.increase(10 * DAY);
+      user1Scores.push((await primeLeaderboard.getEffectiveStake(user1Address)).toString());
+      user2Scores.push((await primeLeaderboard.getEffectiveStake(user2Address)).toString());
+
+      // Day 30
+      await time.increase(10 * DAY);
+      user1Scores.push((await primeLeaderboard.getEffectiveStake(user1Address)).toString());
+      user2Scores.push((await primeLeaderboard.getEffectiveStake(user2Address)).toString());
+
+      // User1's score is ALWAYS 0 (no active deposits)
+      for (const score of user1Scores) {
+        expect(score).to.equal("0");
+      }
+
+      // User2's score ALWAYS increases
+      for (let i = 1; i < user2Scores.length; i++) {
+        expect(ethers.BigNumber.from(user2Scores[i])).to.be.gt(ethers.BigNumber.from(user2Scores[i - 1]));
+      }
+
+      // Backend can check withdrawn score for user1 anytime
+      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      expect(withdrawnScore).to.equal(convertToUnit(1_000_000, 18));
+
+      // Backend resets after processing
+      await primeLeaderboard.resetWithdrawnScore(user1Address);
+      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
     });
   });
 });

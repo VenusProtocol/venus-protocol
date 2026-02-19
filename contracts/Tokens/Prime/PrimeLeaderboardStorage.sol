@@ -28,11 +28,8 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice User's total staked XVS
     mapping(address => uint256) public totalStaked;
 
-    /// @notice User's withdrawn score for current round (resets each round)
+    /// @notice User's accumulated withdrawn score (reset by backend via resetWithdrawnScore)
     mapping(address => uint256) public withdrawnScoreCurrentRound;
-
-    /// @notice Round number when user's withdrawn score was last updated
-    mapping(address => uint256) internal _withdrawnScoreRound;
 
     /// @notice Last known staked amount per user (for xvsUpdated delta inference)
     mapping(address => uint256) internal _lastKnownStake;
@@ -45,10 +42,7 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice Index of participant in array (1-indexed, 0 = not participant)
     mapping(address => uint256) internal _participantIndex;
 
-    // ═══════════════════ ROUND STATE ═══════════════════
-
-    /// @notice Current round number (1-indexed), incremented by advanceRound()
-    uint256 public currentRound;
+    // ═══════════════════ CONTRACT STATE ═══════════════════
 
     /// @notice Minimum XVS stake to be a participant (default: 500 XVS)
     uint256 public minimumStake;
