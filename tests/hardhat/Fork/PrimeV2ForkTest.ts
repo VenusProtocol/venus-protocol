@@ -199,7 +199,7 @@ if (FORK_MAINNET) {
         ];
         const leaderboardPerms = [
           "setPrimeV2(address)",
-          "advanceRound()",
+          "resetWithdrawnScore(address)",
           "setMinimumStake(uint256)",
           "setMultiplierTiers(uint256[],uint256[])",
           "pause()",
@@ -701,13 +701,12 @@ if (FORK_MAINNET) {
           expect(await primeLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("5000"));
         });
 
-        it("should lock withdrawn score for current round", async () => {
+        it("should NOT include withdrawn score in effective stake (backend-driven)", async () => {
           await time.increase(45 * DAY);
 
           const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Addr);
           // 5000 × 1.3 × 45 = 292,500
           expect(stakeBefore).to.equal(parseEther("292500"));
-          console.log("Stake before withdrawal: " + stakeBefore.toString());
 
           // Withdraw 1000 XVS
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("1000"));
@@ -715,13 +714,15 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          // Withdrawn score should be preserved in current round
-          // Active: 4000 × 1.3 × 52 = 270,400
-          // Withdrawn: 1000 × 1.3 × 45 = 58,500 (locked at withdrawal time)
-          // Total should include both components
+          // Effective stake should only reflect ACTIVE deposits (no withdrawn score)
+          // Active: 4000 × 1.3 × 52 = 270,400 (52 days = 45 + 7 vault lock)
           const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stakeAfter).to.be.gt(parseEther("270000"));
-          console.log("Stake after withdrawal (with locked withdrawn score): " + stakeAfter.toString());
+          expect(stakeAfter).to.equal(parseEther("270400"));
+
+          // Withdrawn score is tracked separately for backend
+          const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Addr);
+          // 1000 × 1.3 × 52 = 67,600 (held 52 days at withdrawal time)
+          expect(withdrawnScore).to.equal(parseEther("67600"));
         });
       });
 
@@ -793,61 +794,106 @@ if (FORK_MAINNET) {
       });
 
       // ═══════════════════════════════════════════════════════════
-      // 8. ROUND MANAGEMENT
+      // 8. WITHDRAWN SCORE MANAGEMENT (BACKEND-DRIVEN)
       // ═══════════════════════════════════════════════════════════
-      describe("Round Management", () => {
-        it("should start at round 1", async () => {
-          expect(await primeLeaderboard.currentRound()).to.equal(1);
-        });
-
-        it("should advance round and reset withdrawn scores", async () => {
-          // Build up a withdrawn score
+      describe("Withdrawn Score Management", () => {
+        it("should track withdrawn score separately from effective stake", async () => {
           await time.increase(45 * DAY);
+
+          // Withdraw 500 XVS
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          const stakeRound1 = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stakeRound1).to.be.gt(0);
+          // Withdrawn score should be tracked
+          // 500 × 1.3 × 52 = 33,800 (held 52 days = 45 + 7 vault lock)
+          const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Addr);
+          expect(withdrawnScore).to.equal(parseEther("33800"));
 
-          // Advance to round 2
-          await primeLeaderboard.advanceRound();
-          expect(await primeLeaderboard.currentRound()).to.equal(2);
-
-          // Effective stake should decrease (withdrawn score from round 1 is gone)
-          const stakeRound2 = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stakeRound2).to.be.lt(stakeRound1);
+          // Effective stake should only reflect active deposits
+          // 4500 × 1.3 × 52 = 304,200
+          const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Addr);
+          expect(effectiveStake).to.equal(parseEther("304200"));
         });
 
-        it("should accumulate withdrawn scores within the same round", async () => {
+        it("should accumulate withdrawn scores across multiple withdrawals", async () => {
+          await time.increase(45 * DAY);
+
+          // First withdrawal: 200 XVS
+          await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("200"));
+          await time.increase(7 * DAY);
+          await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+
+          const scoreAfterFirst = await primeLeaderboard.withdrawnScore(user1Addr);
+          // 200 × 1.3 × 52 = 13,520 (held 52 days = 45 + 7 vault lock)
+          expect(scoreAfterFirst).to.equal(parseEther("13520"));
+
+          // Second withdrawal: 200 XVS
+          await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("200"));
+          await time.increase(7 * DAY);
+          await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+
+          const scoreAfterSecond = await primeLeaderboard.withdrawnScore(user1Addr);
+          // First: 13,520 + Second: 200 × 1.3 × 59 = 15,340 (59 days = 45 + 7 + 7)
+          // Total: 13,520 + 15,340 = 28,860
+          expect(scoreAfterSecond).to.equal(parseEther("28860"));
+
+          // Both scores accumulated, second didn't overwrite first
+          expect(scoreAfterSecond.gt(scoreAfterFirst)).to.be.true;
+        });
+
+        it("should allow backend to reset withdrawn score via resetWithdrawnScore", async () => {
+          await time.increase(45 * DAY);
+
+          // Build up withdrawn score
+          await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
+          await time.increase(7 * DAY);
+          await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+
+          const withdrawnBefore = await primeLeaderboard.withdrawnScore(user1Addr);
+          expect(withdrawnBefore).to.be.gt(0);
+
+          // Backend resets withdrawn score after processing
+          await primeLeaderboard.resetWithdrawnScore(user1Addr);
+
+          const withdrawnAfter = await primeLeaderboard.withdrawnScore(user1Addr);
+          expect(withdrawnAfter).to.equal(0);
+
+          // Effective stake should be unchanged (withdrawn score was never part of it)
+          const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Addr);
+          expect(effectiveStake).to.be.gt(0);
+        });
+
+        it("should reset withdrawn score to zero and allow new accumulation", async () => {
           await time.increase(45 * DAY);
 
           // First withdrawal
-          await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("200"));
+          await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          // Second withdrawal in same round
-          await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("200"));
+          const withdrawnBefore = await primeLeaderboard.withdrawnScore(user1Addr);
+          expect(withdrawnBefore).to.be.gt(0);
+
+          // Backend resets
+          await primeLeaderboard.resetWithdrawnScore(user1Addr);
+          expect(await primeLeaderboard.withdrawnScore(user1Addr)).to.equal(0);
+
+          // New withdrawal after reset should start fresh accumulation
+          await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
-          const stakeAfterSecond = await primeLeaderboard.getEffectiveStake(user1Addr);
 
-          // Both withdrawn scores should accumulate in the same round.
-          // The difference comes from 7 days of extra hold-time on the remaining
-          // active deposits between the two withdrawals (vault lock period).
-          // With ~4800 XVS active at 1.3x multiplier: 4800 × 1.3 × 7 ≈ 43,680
-          // So stakeAfterSecond can be lower by up to ~44k due to reduced active balance,
-          // but the withdrawn scores from both withdrawals are preserved.
-          expect(stakeAfterSecond).to.be.gt(0);
-          // Verify second withdrawal didn't wipe the first withdrawal's score:
-          // Without accumulation, only the second withdrawn score would exist.
-          // The withdrawn score from the first withdrawal (200 × 1.3 × 45 = 11,700)
-          // should still be present, so total stake stays meaningfully high.
-          expect(stakeAfterSecond).to.be.gt(parseEther("200000"));
+          const withdrawnAfterReset = await primeLeaderboard.withdrawnScore(user1Addr);
+          expect(withdrawnAfterReset).to.be.gt(0);
+          // New withdrawn score should be different from old (different hold times)
+          expect(withdrawnAfterReset).to.not.equal(withdrawnBefore);
         });
       });
 
