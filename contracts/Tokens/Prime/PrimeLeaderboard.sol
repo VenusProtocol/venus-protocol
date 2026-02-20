@@ -71,7 +71,7 @@ contract PrimeLeaderboard is
         // Initialize default multiplier tiers
         // Tier 1: 30 days -> 1.3x
         // Tier 2: 60 days -> 1.6x
-        // Tier 3: 90 days -> 2.0x
+        // Tier 3: 90 days -> 2.0x (cap)
         _multiplierDurations.push(30 days);
         _multiplierDurations.push(60 days);
         _multiplierDurations.push(90 days);
@@ -277,8 +277,8 @@ contract PrimeLeaderboard is
         _checkAccessAllowed("resetWithdrawnScore(address)");
         if (user == address(0)) revert ZeroAddress();
 
-        uint256 oldScore = withdrawnScoreCurrentRound[user];
-        withdrawnScoreCurrentRound[user] = 0;
+        uint256 oldScore = withdrawnScore[user];
+        withdrawnScore[user] = 0;
 
         emit WithdrawnScoreReset(user, oldScore);
     }
@@ -579,7 +579,7 @@ contract PrimeLeaderboard is
      * @param score Score to add
      */
     function _updateWithdrawnScore(address user, uint256 score) internal {
-        withdrawnScoreCurrentRound[user] += score;
+        withdrawnScore[user] += score;
     }
 
     /**

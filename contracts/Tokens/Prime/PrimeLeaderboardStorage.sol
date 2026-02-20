@@ -29,7 +29,7 @@ contract PrimeLeaderboardStorageV1 {
     mapping(address => uint256) public totalStaked;
 
     /// @notice User's accumulated withdrawn score (reset by backend via resetWithdrawnScore)
-    mapping(address => uint256) public withdrawnScoreCurrentRound;
+    mapping(address => uint256) public withdrawnScore;
 
     /// @notice Last known staked amount per user (for xvsUpdated delta inference)
     mapping(address => uint256) internal _lastKnownStake;
