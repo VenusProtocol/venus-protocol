@@ -1,7 +1,7 @@
 import { FakeContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
-import { Signer } from "ethers";
+import { Contract, Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -10,6 +10,7 @@ import {
   IPrimeLeaderboard,
   IPrimeLiquidityProvider,
   IXVSVault,
+  InterfaceComptroller,
   PrimeV2,
   ResilientOracleInterface,
 } from "../../../typechain";
@@ -33,17 +34,20 @@ describe("PrimeV2", () => {
   let user3: Signer;
 
   // Mock addresses
+  let comptroller: FakeContract<InterfaceComptroller>;
+  let vToken: FakeContract<Contract>;
   let xvsAddress: string;
   let comptrollerAddress: string;
   let wrappedNativeToken: string;
   let nativeMarket: string;
+  let underlyingToken: FakeContract<Contract>;
+  let underlyingAddress: string;
 
   const deployFixture = async () => {
     [admin, user1, user2, user3] = await ethers.getSigners();
 
     // Generate mock addresses
     xvsAddress = ethers.Wallet.createRandom().address;
-    comptrollerAddress = ethers.Wallet.createRandom().address;
     wrappedNativeToken = ethers.Wallet.createRandom().address;
     nativeMarket = ethers.Wallet.createRandom().address;
 
@@ -57,6 +61,18 @@ describe("PrimeV2", () => {
     primeLiquidityProvider = await smock.fake<IPrimeLiquidityProvider>("IPrimeLiquidityProvider");
     xvsVault = await smock.fake<IXVSVault>("IXVSVault");
     oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
+    comptroller = await smock.fake<InterfaceComptroller>(
+      "contracts/Tokens/Prime/Interfaces/InterfaceComptroller.sol:InterfaceComptroller",
+    );
+    vToken = await smock.fake("contracts/Tokens/Prime/Interfaces/IVToken.sol:IVToken");
+    comptrollerAddress = comptroller.address;
+
+    // Create underlying token mock with decimals()
+    underlyingToken = await smock.fake(
+      "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol:IERC20MetadataUpgradeable",
+    );
+    underlyingAddress = underlyingToken.address;
+    underlyingToken.decimals.returns(18);
 
     // Setup XVSVault mock
     xvsVault.xvsAddress.returns(xvsAddress);
@@ -67,6 +83,15 @@ describe("PrimeV2", () => {
     oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
     oracle.updateAssetPrice.returns();
     oracle.updatePrice.returns();
+
+    // Setup Comptroller mock
+    comptroller.markets.returns(true); // All markets listed by default
+
+    // Setup VToken mock
+    vToken.underlying.returns(underlyingAddress);
+    vToken.borrowBalanceStored.returns(0);
+    vToken.exchangeRateStored.returns(convertToUnit(1, 18));
+    vToken.balanceOf.returns(0);
 
     // Deploy PrimeV2
     const PrimeV2Factory = await ethers.getContractFactory("PrimeV2");
@@ -97,6 +122,9 @@ describe("PrimeV2", () => {
       primeLiquidityProvider,
       xvsVault,
       oracle,
+      comptroller,
+      vToken,
+      underlyingToken,
       admin,
       user1,
       user2,
@@ -112,6 +140,9 @@ describe("PrimeV2", () => {
       primeLiquidityProvider,
       xvsVault,
       oracle,
+      comptroller,
+      vToken,
+      underlyingToken,
       admin,
       user1,
       user2,
@@ -424,6 +455,128 @@ describe("PrimeV2", () => {
 
       // Try to issue a 3rd (should fail)
       await expect(primeV2.issue(false, [user3Address])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
+    });
+  });
+
+  describe("Market Management", () => {
+    describe("addMarket", () => {
+      beforeEach(() => {
+        comptroller.markets.returns(true);
+      });
+
+      it("should add a market successfully", async () => {
+        await expect(primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)))
+          .to.emit(primeV2, "MarketAdded")
+          .withArgs(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+        const allMarkets = await primeV2.getAllMarkets();
+        expect(allMarkets).to.have.lengthOf(1);
+        expect(allMarkets[0]).to.equal(vToken.address);
+
+        const market = await primeV2.markets(vToken.address);
+        expect(market.exists).to.be.true;
+        expect(market.supplyMultiplier).to.equal(convertToUnit(2, 18));
+        expect(market.borrowMultiplier).to.equal(convertToUnit(2, 18));
+      });
+
+      it("should revert when market already exists", async () => {
+        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+        await expect(
+          primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+        ).to.be.revertedWithCustomError(primeV2, "MarketAlreadyExists");
+      });
+
+      it("should revert when both multipliers are zero", async () => {
+        await expect(primeV2.addMarket(comptroller.address, vToken.address, 0, 0)).to.be.revertedWithCustomError(
+          primeV2,
+          "InvalidMultipliers",
+        );
+      });
+
+      it("should revert when market is not listed on comptroller", async () => {
+        comptroller.markets.returns(false);
+
+        await expect(
+          primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+        ).to.be.revertedWithCustomError(primeV2, "InvalidVToken");
+      });
+
+      it("should revert when asset already has a market", async () => {
+        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+        // Create a second vToken with the same underlying
+        const vToken2 = await smock.fake("contracts/Tokens/Prime/Interfaces/IVToken.sol:IVToken");
+        vToken2.underlying.returns(underlyingAddress); // Same underlying
+
+        await expect(
+          primeV2.addMarket(comptroller.address, vToken2.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+        ).to.be.revertedWithCustomError(primeV2, "AssetAlreadyExists");
+      });
+
+      it("should queue score updates when market is added", async () => {
+        await primeV2.issue(true, [await user1.getAddress()]);
+
+        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+        expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+      });
+
+      it("should revert when caller not authorized", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+
+        await expect(
+          primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+        ).to.be.revertedWithCustomError(primeV2, "Unauthorized");
+      });
+    });
+
+    describe("updateMultipliers", () => {
+      beforeEach(async () => {
+        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      });
+
+      it("should update market multipliers", async () => {
+        await expect(primeV2.updateMultipliers(vToken.address, convertToUnit(3, 18), convertToUnit(3, 18)))
+          .to.emit(primeV2, "MultiplierUpdated")
+          .withArgs(
+            vToken.address,
+            convertToUnit(2, 18),
+            convertToUnit(2, 18),
+            convertToUnit(3, 18),
+            convertToUnit(3, 18),
+          );
+
+        const market = await primeV2.markets(vToken.address);
+        expect(market.supplyMultiplier).to.equal(convertToUnit(3, 18));
+        expect(market.borrowMultiplier).to.equal(convertToUnit(3, 18));
+      });
+
+      it("should revert for unsupported market", async () => {
+        const fakeMarket = ethers.Wallet.createRandom().address;
+
+        await expect(
+          primeV2.updateMultipliers(fakeMarket, convertToUnit(3, 18), convertToUnit(3, 18)),
+        ).to.be.revertedWithCustomError(primeV2, "MarketNotSupported");
+      });
+
+      it("should queue score updates after multiplier change", async () => {
+        await primeV2.issue(true, [await user1.getAddress()]);
+
+        // addMarket queued 0 updates (no tokens existed at that time), issue didn't add more
+        expect(await primeV2.pendingScoreUpdates()).to.equal(0);
+
+        await primeV2.updateMultipliers(vToken.address, convertToUnit(3, 18), convertToUnit(3, 18));
+        expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+      });
+
+      it("should revert when caller not authorized", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+
+        await expect(
+          primeV2.updateMultipliers(vToken.address, convertToUnit(3, 18), convertToUnit(3, 18)),
+        ).to.be.revertedWithCustomError(primeV2, "Unauthorized");
+      });
     });
   });
 

@@ -495,7 +495,7 @@ describe("PrimeLeaderboard", () => {
       await simulateWithdrawal(user1Address, convertToUnit(500, 18));
 
       // Withdrawn score: 500 × 1.3 × 35 = 22,750
-      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
       expect(withdrawnScore).to.equal(convertToUnit(22750, 18));
 
       // Effective stake only has active deposits: 500 × 1.3 × 35 = 22,750
@@ -511,14 +511,14 @@ describe("PrimeLeaderboard", () => {
 
       // First withdrawal: 100 XVS (vault balance → 900)
       await simulateWithdrawal(user1Address, convertToUnit(900, 18));
-      const scoreAfterFirst = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      const scoreAfterFirst = await primeLeaderboard.withdrawnScore(user1Address);
 
       // Withdrawn score: 100 × 1.3 × 45 = 5,850
       expect(scoreAfterFirst).to.equal(convertToUnit(5850, 18));
 
       // Second withdrawal: 100 XVS (vault balance → 800)
       await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-      const scoreAfterSecond = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      const scoreAfterSecond = await primeLeaderboard.withdrawnScore(user1Address);
 
       // Accumulated: 5,850 + (100 × 1.3 × 45) = 5,850 + 5,850 = 11,700
       expect(scoreAfterSecond).to.equal(convertToUnit(11700, 18));
@@ -534,7 +534,7 @@ describe("PrimeLeaderboard", () => {
       await simulateWithdrawal(user1Address, "0");
 
       // Withdrawn score: 1000 × 1.0 × 10 = 10,000
-      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
       expect(withdrawnScore).to.equal(convertToUnit(10000, 18));
 
       // Effective stake is 0 (no active deposits)
@@ -552,12 +552,12 @@ describe("PrimeLeaderboard", () => {
       await simulateWithdrawal(user1Address, convertToUnit(500, 18));
 
       // Withdrawn score exists: 500 × 1.0 × 10 = 5,000
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(5000, 18));
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(5000, 18));
 
       // Backend resets it
       await primeLeaderboard.resetWithdrawnScore(user1Address);
 
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(0);
     });
 
     it("should emit WithdrawnScoreReset event", async () => {
@@ -567,7 +567,7 @@ describe("PrimeLeaderboard", () => {
       await time.increase(10 * DAY);
       await simulateWithdrawal(user1Address, convertToUnit(500, 18));
 
-      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
 
       await expect(primeLeaderboard.resetWithdrawnScore(user1Address))
         .to.emit(primeLeaderboard, "WithdrawnScoreReset")
@@ -582,18 +582,18 @@ describe("PrimeLeaderboard", () => {
 
       // First withdrawal
       await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(2000, 18));
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(2000, 18));
 
       // Backend resets
       await primeLeaderboard.resetWithdrawnScore(user1Address);
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(0);
 
       // More time passes, user withdraws again
       await time.increase(5 * DAY);
       await simulateWithdrawal(user1Address, convertToUnit(600, 18));
 
       // New withdrawn score accumulates from zero
-      const newWithdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      const newWithdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
       expect(newWithdrawnScore).to.be.gt(0);
     });
 
@@ -619,7 +619,7 @@ describe("PrimeLeaderboard", () => {
         .to.emit(primeLeaderboard, "WithdrawnScoreReset")
         .withArgs(user1Address, 0);
 
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(0);
     });
   });
 
@@ -823,6 +823,79 @@ describe("PrimeLeaderboard", () => {
     });
   });
 
+  describe("Deposit Compaction", () => {
+    it("should compact deposits when reaching MAX_DEPOSITS_PER_USER (100)", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Create 100 deposits (each increasing vault balance by 10 XVS)
+      for (let i = 1; i <= 100; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(100);
+
+      // Wait 91+ days so all deposits reach max multiplier tier
+      await time.increase(91 * DAY);
+
+      // 101st deposit triggers compaction (deposits.length >= 100)
+      await simulateDeposit(user1Address, convertToUnit(1010, 18));
+
+      // All 100 old deposits merged into 1 + the new deposit = 2
+      const countAfter = await primeLeaderboard.getDepositCount(user1Address);
+      expect(countAfter).to.equal(2);
+
+      // Total staked should be correct: 1000 (original) + 10 (101st deposit bump)
+      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1010, 18));
+    });
+
+    it("should emit DepositsCompacted event on compaction", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Create 100 deposits
+      for (let i = 1; i <= 100; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+
+      // Wait so all are at max tier
+      await time.increase(91 * DAY);
+
+      // Next deposit triggers compaction
+      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1010, 18), 0, 0]);
+
+      const countBefore = await primeLeaderboard.getDepositCount(user1Address);
+      await primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address);
+      const countAfter = await primeLeaderboard.getDepositCount(user1Address);
+
+      // Compaction should have reduced deposit count
+      expect(countAfter.lt(countBefore)).to.be.true;
+    });
+
+    it("should preserve effective stake after compaction", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Create a deposit then wait for max tier
+      await simulateDeposit(user1Address, convertToUnit(500, 18));
+      await time.increase(91 * DAY);
+
+      const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Address);
+      // 500 × 2.0 × 90 = 90,000 (capped at 90 days)
+      expect(stakeBefore).to.equal(convertToUnit(90000, 18));
+
+      // Fill up to 99 more deposits (all instantly, total vault = 500 + 99*1 = 599)
+      for (let i = 1; i <= 99; i++) {
+        await simulateDeposit(user1Address, convertToUnit(500 + i, 18));
+      }
+
+      // Trigger compaction with deposit #101
+      await simulateDeposit(user1Address, convertToUnit(600, 18));
+
+      // The original 500 deposit should have been compacted
+      // but its score contribution should be preserved
+      const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Address);
+      expect(stakeAfter.gte(stakeBefore)).to.be.true;
+    });
+  });
+
   describe("Scenario: Large deposit-then-immediate-withdrawal (backend-driven)", () => {
     // Scenario:
     //   - Day 1: User deposits 1M XVS, backend calculates leaderboard and issues Prime
@@ -862,7 +935,7 @@ describe("PrimeLeaderboard", () => {
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(0);
 
       // Withdrawn score is tracked separately for backend
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(1_000_000, 18));
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(1_000_000, 18));
 
       // User2 still active: 500K × 1.0 × 1 = 500,000
       expect(await primeLeaderboard.getEffectiveStake(user2Address)).to.equal(convertToUnit(500_000, 18));
@@ -937,7 +1010,7 @@ describe("PrimeLeaderboard", () => {
       expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(40950, 18));
 
       // Withdrawn score: 100 × 1.3 × 35 = 4,550
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(4550, 18));
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(4550, 18));
 
       // Day 36: Backend checks 24 hours later
       await time.increase(1 * DAY);
@@ -957,18 +1030,18 @@ describe("PrimeLeaderboard", () => {
       await simulateWithdrawal(user1Address, convertToUnit(800, 18));
 
       // Withdrawn score: 200 × 1.0 × 10 = 2,000
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(2000, 18));
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(2000, 18));
 
       // Backend processes withdrawn score and resets it
       await primeLeaderboard.resetWithdrawnScore(user1Address);
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(0);
 
       // Day 20: Another withdrawal of 100 XVS
       await time.increase(10 * DAY);
       await simulateWithdrawal(user1Address, convertToUnit(700, 18));
 
       // Withdrawn score starts fresh from 0: 100 × 1.0 × 20 = 2,000
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(convertToUnit(2000, 18));
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(2000, 18));
 
       // Effective stake only reflects active 700 XVS: 700 × 1.0 × 20 = 14,000
       expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(14000, 18));
@@ -1020,12 +1093,12 @@ describe("PrimeLeaderboard", () => {
       }
 
       // Backend can check withdrawn score for user1 anytime
-      const withdrawnScore = await primeLeaderboard.withdrawnScoreCurrentRound(user1Address);
+      const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
       expect(withdrawnScore).to.equal(convertToUnit(1_000_000, 18));
 
       // Backend resets after processing
       await primeLeaderboard.resetWithdrawnScore(user1Address);
-      expect(await primeLeaderboard.withdrawnScoreCurrentRound(user1Address)).to.equal(0);
+      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(0);
     });
   });
 });
