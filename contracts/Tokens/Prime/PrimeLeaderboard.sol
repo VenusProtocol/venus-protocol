@@ -105,11 +105,12 @@ contract PrimeLeaderboard is
         );
         uint256 vaultStake = xvs - pendingWithdrawals;
         uint256 lastKnown = _lastKnownStake[user];
-        _lastKnownStake[user] = vaultStake;
 
         if (vaultStake > lastKnown) {
+            _lastKnownStake[user] = vaultStake;
             _recordDeposit(user, vaultStake - lastKnown);
         } else if (vaultStake < lastKnown) {
+            _lastKnownStake[user] = vaultStake;
             _recordWithdrawal(user, lastKnown - vaultStake);
         }
     }
@@ -283,7 +284,7 @@ contract PrimeLeaderboard is
         if (user == address(0)) revert ZeroAddress();
 
         uint256 oldScore = withdrawnScore[user];
-        withdrawnScore[user] = 0;
+        delete withdrawnScore[user];
 
         emit WithdrawnScoreReset(user, oldScore);
     }

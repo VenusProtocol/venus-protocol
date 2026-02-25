@@ -44,7 +44,7 @@ contract PrimeLeaderboardStorageV1 {
 
     // ═══════════════════ CONTRACT STATE ═══════════════════
 
-    /// @notice Minimum XVS stake to be a participant (default: 500 XVS)
+    /// @notice Minimum XVS stake to be a participant
     uint256 public minimumStake;
 
     // ═══════════════════ MULTIPLIER CONFIGURATION ═══════════════════
