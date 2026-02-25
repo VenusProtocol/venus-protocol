@@ -290,6 +290,8 @@ contract PrimeLeaderboard is
      * @custom:event Emits MinimumStakeUpdated event
      * @custom:error Throw InvalidValue if minimum is zero
      * @custom:access Controlled by ACM
+     * @dev This does not retroactively remove existing participants whose stake is below the new minimum.
+     *  They will be removed naturally when their next withdrawal brings them below the threshold.
      */
     function setMinimumStake(uint256 minimum) external override {
         _checkAccessAllowed("setMinimumStake(uint256)");
@@ -466,7 +468,7 @@ contract PrimeLeaderboard is
 
         Deposit[] storage deposits = _depositStacks[user];
         uint256 remaining = amount;
-        uint256 withdrawnScore = 0;
+        uint256 scoreFromWithdrawal = 0;
         uint256 maxCapSeconds = _multiplierDurations[_multiplierDurations.length - 1];
 
         // Process LIFO (from newest to oldest)
@@ -482,7 +484,7 @@ contract PrimeLeaderboard is
             uint256 multiplier = _getMultiplier(holdingDuration);
             uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
             uint256 durationDays = cappedDuration / 1 days;
-            withdrawnScore += (toWithdraw * multiplier * durationDays) / EXP_SCALE;
+            scoreFromWithdrawal += (toWithdraw * multiplier * durationDays) / EXP_SCALE;
 
             remaining -= toWithdraw;
 
@@ -500,14 +502,14 @@ contract PrimeLeaderboard is
         totalStaked[user] = newTotalStaked;
 
         // Track withdrawn score for current round
-        _updateWithdrawnScore(user, withdrawnScore);
+        _updateWithdrawnScore(user, scoreFromWithdrawal);
 
         // Remove from participants if falling below minimum
         if (oldTotalStaked >= minimumStake && newTotalStaked < minimumStake) {
             _removeParticipant(user);
         }
 
-        emit WithdrawalRecorded(user, amount, withdrawnScore, newTotalStaked);
+        emit WithdrawalRecorded(user, amount, scoreFromWithdrawal, newTotalStaked);
     }
 
     /**
@@ -560,7 +562,7 @@ contract PrimeLeaderboard is
         }
 
         _participants.pop();
-        _participantIndex[user] = 0;
+        delete _participantIndex[user];
     }
 
     /**

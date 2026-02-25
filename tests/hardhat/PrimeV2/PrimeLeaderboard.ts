@@ -98,13 +98,7 @@ describe("PrimeLeaderboard", () => {
 
     it("should revert if initialized twice", async () => {
       await expect(
-        primeLeaderboard.initialize(
-          accessControlManager.address,
-          xvsVault.address,
-          xvsAddress,
-          0,
-          MINIMUM_STAKE,
-        ),
+        primeLeaderboard.initialize(accessControlManager.address, xvsVault.address, xvsAddress, 0, MINIMUM_STAKE),
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
 

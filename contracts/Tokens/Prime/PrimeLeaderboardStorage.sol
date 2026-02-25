@@ -59,7 +59,7 @@ contract PrimeLeaderboardStorageV1 {
 
     // ═══════════════════ EXTERNAL CONTRACTS ═══════════════════
 
-    /// @notice Address of PrimeV2 contract
+    /// @notice Address of PrimeV2 contract (stored for off-chain querying; not read on-chain)
     address public primeV2;
 
     /// @notice Address of XVSVault contract

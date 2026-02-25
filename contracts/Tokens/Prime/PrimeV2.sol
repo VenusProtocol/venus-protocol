@@ -573,12 +573,14 @@ contract PrimeV2 is
      * @param borrowMultiplier New borrow multiplier
      * @custom:event Emits MultiplierUpdated event
      * @custom:error Throw MarketNotSupported if market is not supported
+     * @custom:error Throw InvalidMultipliers if both multipliers are zero
      * @custom:access Controlled by ACM
      */
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
 
         if (!markets[market].exists) revert MarketNotSupported();
+        if (supplyMultiplier == 0 && borrowMultiplier == 0) revert InvalidMultipliers();
 
         accrueInterest(market);
 
@@ -649,7 +651,7 @@ contract PrimeV2 is
             if (totalRevocable > revocableLimit) revert InvalidLimit();
         }
 
-        _updateRoundAfterTokenMinted(user);
+        _updateRoundAfterTokenChanged(user);
 
         emit Mint(user, isIrrevocable);
     }
@@ -688,7 +690,7 @@ contract PrimeV2 is
         delete tokens[user].exists;
         delete tokens[user].isIrrevocable;
 
-        _updateRoundAfterTokenBurned(user);
+        _updateRoundAfterTokenChanged(user);
 
         emit Burn(user);
     }
@@ -978,26 +980,13 @@ contract PrimeV2 is
     }
 
     /**
-     * @notice Update round after token minted
+     * @notice Update round after token minted or burned
      * @param user User address
      */
-    function _updateRoundAfterTokenMinted(address user) internal {
+    function _updateRoundAfterTokenChanged(address user) internal {
         if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             isScoreUpdated[nextScoreUpdateRoundId][user] = true;
             --pendingScoreUpdates;
         }
     }
-
-    /**
-     * @notice Update round after token burned
-     * @param user User address
-     */
-    function _updateRoundAfterTokenBurned(address user) internal {
-        if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
-            --pendingScoreUpdates;
-        }
-    }
-
-    /// @dev Storage gap for future upgrades
-    uint256[50] private __gap;
 }
