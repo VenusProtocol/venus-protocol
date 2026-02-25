@@ -204,7 +204,6 @@ if (FORK_MAINNET) {
           "setMultiplierTiers(uint256[],uint256[])",
           "pause()",
           "unpause()",
-          "setMaxLoopsLimit(uint256)",
         ];
 
         for (const f of primeV2Perms) {

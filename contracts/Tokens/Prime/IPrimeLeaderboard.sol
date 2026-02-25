@@ -169,8 +169,4 @@ interface IPrimeLeaderboard {
 
     /// @notice Unpause the contract
     function unpause() external;
-
-    /// @notice Set the max loops limit
-    /// @param loopsLimit New loops limit
-    function setMaxLoopsLimit(uint256 loopsLimit) external;
 }

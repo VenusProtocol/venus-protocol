@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
 import { SafeCastUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
@@ -25,7 +24,6 @@ contract PrimeLeaderboard is
     AccessControlledV8,
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
-    MaxLoopsLimitHelper,
     PrimeLeaderboardStorageV1
 {
     using SafeCastUpgradeable for uint256;
@@ -42,7 +40,6 @@ contract PrimeLeaderboard is
      * @param xvsVaultRewardToken_ Reward token address in XVSVault
      * @param xvsVaultPoolId_ Pool ID in XVSVault
      * @param minimumStake_ Minimum XVS stake to participate
-     * @param loopsLimit_ Maximum loops allowed in iterations
      * @custom:error Throw ZeroAddress if any address is zero
      * @custom:error Throw InvalidValue if minimumStake is zero
      */
@@ -51,8 +48,7 @@ contract PrimeLeaderboard is
         address xvsVault_,
         address xvsVaultRewardToken_,
         uint256 xvsVaultPoolId_,
-        uint256 minimumStake_,
-        uint256 loopsLimit_
+        uint256 minimumStake_
     ) external initializer {
         if (xvsVault_ == address(0)) revert ZeroAddress();
         if (xvsVaultRewardToken_ == address(0)) revert ZeroAddress();
@@ -61,7 +57,6 @@ contract PrimeLeaderboard is
         __AccessControlled_init(accessControlManager_);
         __Pausable_init();
         __ReentrancyGuard_init();
-        _setMaxLoopsLimit(loopsLimit_);
 
         xvsVault = xvsVault_;
         xvsVaultRewardToken = xvsVaultRewardToken_;
@@ -427,17 +422,6 @@ contract PrimeLeaderboard is
     function unpause() external override {
         _checkAccessAllowed("unpause()");
         _unpause();
-    }
-
-    /**
-     * @notice Set the max loops limit
-     * @param loopsLimit New loops limit
-     * @custom:event Emits MaxLoopsLimitUpdated event
-     * @custom:access Controlled by ACM
-     */
-    function setMaxLoopsLimit(uint256 loopsLimit) external override {
-        _checkAccessAllowed("setMaxLoopsLimit(uint256)");
-        _setMaxLoopsLimit(loopsLimit);
     }
 
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════

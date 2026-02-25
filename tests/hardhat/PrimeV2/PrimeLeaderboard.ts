@@ -11,7 +11,6 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 const MINIMUM_STAKE = convertToUnit(500, 18); // 500 XVS
-const LOOPS_LIMIT = 100;
 const DAY = 24 * 60 * 60;
 
 describe("PrimeLeaderboard", () => {
@@ -61,7 +60,6 @@ describe("PrimeLeaderboard", () => {
         xvsAddress, // xvsVaultRewardToken
         0, // xvsVaultPoolId
         MINIMUM_STAKE,
-        LOOPS_LIMIT,
       ],
       { unsafeAllow: ["constructor"] },
     )) as PrimeLeaderboard;
@@ -106,7 +104,6 @@ describe("PrimeLeaderboard", () => {
           xvsAddress,
           0,
           MINIMUM_STAKE,
-          LOOPS_LIMIT,
         ),
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
@@ -117,7 +114,7 @@ describe("PrimeLeaderboard", () => {
       await expect(
         upgrades.deployProxy(
           PrimeLeaderboardFactory,
-          [accessControlManager.address, ethers.constants.AddressZero, xvsAddress, 0, MINIMUM_STAKE, LOOPS_LIMIT],
+          [accessControlManager.address, ethers.constants.AddressZero, xvsAddress, 0, MINIMUM_STAKE],
           { unsafeAllow: ["constructor"] },
         ),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "ZeroAddress");
@@ -129,7 +126,7 @@ describe("PrimeLeaderboard", () => {
       await expect(
         upgrades.deployProxy(
           PrimeLeaderboardFactory,
-          [accessControlManager.address, xvsVault.address, ethers.constants.AddressZero, 0, MINIMUM_STAKE, LOOPS_LIMIT],
+          [accessControlManager.address, xvsVault.address, ethers.constants.AddressZero, 0, MINIMUM_STAKE],
           { unsafeAllow: ["constructor"] },
         ),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "ZeroAddress");
@@ -141,7 +138,7 @@ describe("PrimeLeaderboard", () => {
       await expect(
         upgrades.deployProxy(
           PrimeLeaderboardFactory,
-          [accessControlManager.address, xvsVault.address, xvsAddress, 0, 0, LOOPS_LIMIT],
+          [accessControlManager.address, xvsVault.address, xvsAddress, 0, 0],
           { unsafeAllow: ["constructor"] },
         ),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "InvalidValue");
