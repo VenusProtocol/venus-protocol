@@ -110,9 +110,6 @@ contract PrimeV2 is
     /// @notice Error thrown when mint limit is reached
     error InvalidLimit();
 
-    /// @notice Error thrown when user is not eligible to claim prime token
-    error IneligibleToClaim();
-
     /// @notice Error thrown when user has no prime token
     error UserHasNoPrimeToken();
 
@@ -136,12 +133,6 @@ contract PrimeV2 is
 
     /// @notice Error thrown when invalid vToken is passed
     error InvalidVToken();
-
-    /// @notice Error thrown when invalid length is passed
-    error InvalidLength();
-
-    /// @notice Error thrown when invalid comptroller is passed
-    error InvalidComptroller();
 
     /// @notice Error thrown when both market multipliers are zero
     error InvalidMultipliers();
@@ -226,7 +217,7 @@ contract PrimeV2 is
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
 
     /**
-     * @notice Issue irrevocable Prime tokens (admin function)
+     * @notice Issue Prime tokens (admin function)
      * @param isIrrevocable Whether tokens are irrevocable
      * @param users Array of user addresses
      * @custom:event Emits Mint event on new token issuance
@@ -268,8 +259,6 @@ contract PrimeV2 is
      */
     function burn(address user) external {
         _checkAccessAllowed("burn(address)");
-
-        if (!tokens[user].exists) revert UserHasNoPrimeToken();
         _burn(user);
     }
 
