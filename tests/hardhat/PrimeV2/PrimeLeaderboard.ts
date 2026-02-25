@@ -786,15 +786,13 @@ describe("PrimeLeaderboard", () => {
       expect(await primeLeaderboard.paused()).to.be.false;
     });
 
-    it("should revert xvsUpdated when paused", async () => {
+    it("should not revert xvsUpdated when paused", async () => {
       const user1Address = await user1.getAddress();
 
       await primeLeaderboard.pause();
 
       xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
-      await expect(primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address)).to.be.revertedWith(
-        "Pausable: paused",
-      );
+      await expect(primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address)).not.to.be.reverted;
     });
 
     it("should work after unpause", async () => {

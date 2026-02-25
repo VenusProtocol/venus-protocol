@@ -94,11 +94,16 @@ contract PrimeLeaderboard is
      * @custom:error Throw OnlyXVSVaultAllowed if caller is not XVSVault
      * @custom:error Throw ZeroAddress if user address is zero
      */
-    function xvsUpdated(address user) external override whenNotPaused {
+    function xvsUpdated(address user) external override {
         if (msg.sender != xvsVault) revert OnlyXVSVaultAllowed();
         if (user == address(0)) revert ZeroAddress();
 
-        (uint256 vaultStake, , ) = IXVSVault(xvsVault).getUserInfo(xvsVaultRewardToken, xvsVaultPoolId, user);
+        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(
+            xvsVaultRewardToken,
+            xvsVaultPoolId,
+            user
+        );
+        uint256 vaultStake = xvs - pendingWithdrawals;
         uint256 lastKnown = _lastKnownStake[user];
         _lastKnownStake[user] = vaultStake;
 

@@ -1051,10 +1051,8 @@ if (FORK_MAINNET) {
         it("should pause and unpause PrimeLeaderboard", async () => {
           await primeLeaderboard.pause();
 
-          // xvsUpdated should revert when paused
-          await expect(primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr)).to.be.revertedWith(
-            "Pausable: paused",
-          );
+          // xvsUpdated should not revert when paused (to avoid blocking vault operations)
+          await expect(primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr)).not.to.be.reverted;
 
           await primeLeaderboard.unpause();
 
