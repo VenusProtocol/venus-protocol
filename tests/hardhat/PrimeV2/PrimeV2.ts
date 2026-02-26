@@ -465,9 +465,9 @@ describe("PrimeV2", () => {
       });
 
       it("should add a market successfully", async () => {
-        await expect(primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)))
+        await expect(primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)))
           .to.emit(primeV2, "MarketAdded")
-          .withArgs(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+          .withArgs(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
 
         const allMarkets = await primeV2.getAllMarkets();
         expect(allMarkets).to.have.lengthOf(1);
@@ -480,15 +480,15 @@ describe("PrimeV2", () => {
       });
 
       it("should revert when market already exists", async () => {
-        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+        await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
 
         await expect(
-          primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+          primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
         ).to.be.revertedWithCustomError(primeV2, "MarketAlreadyExists");
       });
 
       it("should revert when both multipliers are zero", async () => {
-        await expect(primeV2.addMarket(comptroller.address, vToken.address, 0, 0)).to.be.revertedWithCustomError(
+        await expect(primeV2.addMarket(vToken.address, 0, 0)).to.be.revertedWithCustomError(
           primeV2,
           "InvalidMultipliers",
         );
@@ -498,26 +498,26 @@ describe("PrimeV2", () => {
         comptroller.markets.returns(false);
 
         await expect(
-          primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+          primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
         ).to.be.revertedWithCustomError(primeV2, "InvalidVToken");
       });
 
       it("should revert when asset already has a market", async () => {
-        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+        await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
 
         // Create a second vToken with the same underlying
         const vToken2 = await smock.fake("contracts/Tokens/Prime/Interfaces/IVToken.sol:IVToken");
         vToken2.underlying.returns(underlyingAddress); // Same underlying
 
         await expect(
-          primeV2.addMarket(comptroller.address, vToken2.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+          primeV2.addMarket(vToken2.address, convertToUnit(2, 18), convertToUnit(2, 18)),
         ).to.be.revertedWithCustomError(primeV2, "AssetAlreadyExists");
       });
 
       it("should queue score updates when market is added", async () => {
         await primeV2.issue(true, [await user1.getAddress()]);
 
-        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+        await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
 
         expect(await primeV2.pendingScoreUpdates()).to.equal(1);
       });
@@ -526,14 +526,14 @@ describe("PrimeV2", () => {
         accessControlManager.isAllowedToCall.returns(false);
 
         await expect(
-          primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+          primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
         ).to.be.revertedWithCustomError(primeV2, "Unauthorized");
       });
     });
 
     describe("updateMultipliers", () => {
       beforeEach(async () => {
-        await primeV2.addMarket(comptroller.address, vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+        await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
       });
 
       it("should update market multipliers", async () => {

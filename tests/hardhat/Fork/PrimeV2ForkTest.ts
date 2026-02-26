@@ -16,6 +16,15 @@ import { ethers, upgrades } from "hardhat";
 import { PrimeLeaderboard, PrimeV2, PrimeV2Keeper } from "../../../typechain";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
+// With second-based duration, block timestamp increments (1 sec per tx) become visible.
+// Use 0.01% relative tolerance for assertions in multi-operation tests.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function expectApprox(actual: any, expected: any) {
+  const exp = ethers.BigNumber.from(expected);
+  const tolerance = exp.div(10000); // 0.01%
+  expect(actual).to.be.closeTo(exp, tolerance);
+}
+
 // ═══════════════════ BSC MAINNET ADDRESSES ═══════════════════
 const Addr = {
   COMPTROLLER: "0xfD36E2c2a6789Db23113685031d7F16329158384",
@@ -169,7 +178,7 @@ if (FORK_MAINNET) {
         const LeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
         primeLeaderboard = (await upgrades.deployProxy(
           LeaderboardFactory,
-          [Addr.ACM, Addr.XVS_VAULT, Addr.XVS, XVS_POOL_ID, MINIMUM_STAKE, 100],
+          [Addr.ACM, Addr.XVS_VAULT, Addr.XVS, XVS_POOL_ID, MINIMUM_STAKE],
           { unsafeAllow: ["constructor"] },
         )) as PrimeLeaderboard;
 
@@ -188,7 +197,7 @@ if (FORK_MAINNET) {
         const primeV2Perms = [
           "issue(bool,address[])",
           "burn(address)",
-          "addMarket(address,address,uint256,uint256)",
+          "addMarket(address,uint256,uint256)",
           "updateAlpha(uint128,uint128)",
           "updateMultipliers(address,uint256,uint256)",
           "setPrimeLeaderboard(address)",
@@ -218,7 +227,7 @@ if (FORK_MAINNET) {
         await primeLeaderboard.setPrimeV2(primeV2.address);
 
         // ── Add vUSDT market ──
-        await primeV2.addMarket(Addr.COMPTROLLER, Addr.vUSDT, parseEther("2"), parseEther("2"));
+        await primeV2.addMarket(Addr.vUSDT, parseEther("2"), parseEther("2"));
 
         // ── Fund test users with XVS and deposit to vault ──
         const xvsAmounts = [parseEther("5000"), parseEther("3000"), parseEther("800")];
@@ -366,37 +375,38 @@ if (FORK_MAINNET) {
           expect(primeXvsBalance).to.equal(parseEther("5000"));
         });
 
-        it("should have zero effective stake immediately after deposit (0 hold days)", async () => {
-          // Effective stake = amount × multiplier × durationDays
-          // With durationDays = 0, stake is 0
+        it("should have near-zero effective stake immediately after deposit", async () => {
+          // Effective stake = amount × multiplier × durationSeconds
+          // A few seconds elapse during fixture setup, so stake is small but not exactly 0
           const stake = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stake).to.equal(0);
+          // Should be negligible relative to a 1-day stake (5000 × 1.0 × 86400 = 4.32e11)
+          expect(stake.lt(parseEther("1000000"))).to.be.true;
         });
 
         it("should grow effective stake with time (base multiplier tier)", async () => {
           // Advance 10 days (< 30d threshold, so base 1.0x multiplier)
           await time.increase(10 * DAY);
 
-          // user1: 5000 × 1.0 × 10 = 50,000
+          // user1: 5000 × 1.0 × (10 * 86400) = 4,320,000,000
           const stake1 = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stake1).to.equal(parseEther("50000"));
+          expectApprox(stake1, parseEther("4320000000"));
 
-          // user2: 3000 × 1.0 × 10 = 30,000
+          // user2: 3000 × 1.0 × (10 * 86400) = 2,592,000,000
           const stake2 = await primeLeaderboard.getEffectiveStake(user2Addr);
-          expect(stake2).to.equal(parseEther("30000"));
+          expectApprox(stake2, parseEther("2592000000"));
 
-          // user3: 800 × 1.0 × 10 = 8,000
+          // user3: 800 × 1.0 × (10 * 86400) = 691,200,000
           const stake3 = await primeLeaderboard.getEffectiveStake(user3Addr);
-          expect(stake3).to.equal(parseEther("8000"));
+          expectApprox(stake3, parseEther("691200000"));
         });
 
         it("should batch query scores via getScores", async () => {
           await time.increase(10 * DAY);
 
           const scores = await primeLeaderboard.getScores([user1Addr, user2Addr, user3Addr]);
-          expect(scores[0]).to.equal(parseEther("50000"));
-          expect(scores[1]).to.equal(parseEther("30000"));
-          expect(scores[2]).to.equal(parseEther("8000"));
+          expectApprox(scores[0], parseEther("4320000000"));
+          expectApprox(scores[1], parseEther("2592000000"));
+          expectApprox(scores[2], parseEther("691200000"));
         });
 
         it("should return participants via paginated getParticipants", async () => {
@@ -418,33 +428,33 @@ if (FORK_MAINNET) {
         it("should apply 1.3x multiplier after 30 days", async () => {
           await time.increase(30 * DAY);
 
-          // user1: 5000 × 1.3 × 30 = 195,000
+          // user1: 5000 × 1.3 × (30 * 86400) = 16,848,000,000
           const stake = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stake).to.equal(parseEther("195000"));
+          expectApprox(stake, parseEther("16848000000"));
         });
 
         it("should apply 1.6x multiplier after 60 days", async () => {
           await time.increase(60 * DAY);
 
-          // user1: 5000 × 1.6 × 60 = 480,000
+          // user1: 5000 × 1.6 × (60 * 86400) = 41,472,000,000
           const stake = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stake).to.equal(parseEther("480000"));
+          expectApprox(stake, parseEther("41472000000"));
         });
 
         it("should apply 2.0x multiplier after 90 days, capped at 90 day duration", async () => {
           await time.increase(90 * DAY);
 
-          // user1: 5000 × 2.0 × 90 = 900,000
+          // user1: 5000 × 2.0 × (90 * 86400) = 77,760,000,000
           const stake = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stake).to.equal(parseEther("900000"));
+          expectApprox(stake, parseEther("77760000000"));
         });
 
         it("should remain capped at 90 days even after 180 days", async () => {
           await time.increase(180 * DAY);
 
-          // user1: 5000 × 2.0 × 90 = 900,000 (capped)
+          // user1: 5000 × 2.0 × (90 * 86400) = 77,760,000,000 (capped)
           const stake = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stake).to.equal(parseEther("900000"));
+          expectApprox(stake, parseEther("77760000000"));
         });
 
         it("should correctly report multiplier for each tier via getMultiplier", async () => {
@@ -654,11 +664,11 @@ if (FORK_MAINNET) {
           await time.increase(5 * DAY);
 
           // Before withdrawal:
-          // Deposit 1 (5000): 65 days × 1.6x → 5000 × 1.6 × 65 = 520,000
-          // Deposit 2 (2000): 5 days × 1.0x → 2000 × 1.0 × 5 = 10,000
-          // Total: 530,000
+          // Deposit 1 (5000): 65 days × 1.6x → 5000 × 1.6 × (65 * 86400) = 44,928,000,000
+          // Deposit 2 (2000): 5 days × 1.0x → 2000 × 1.0 × (5 * 86400) = 864,000,000
+          // Total: ~45,792,000,000
           const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stakeBefore).to.equal(parseEther("530000"));
+          expectApprox(stakeBefore, parseEther("45792000000"));
 
           // Request withdrawal of 1000 XVS from vault
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("1000"));
@@ -704,8 +714,8 @@ if (FORK_MAINNET) {
           await time.increase(45 * DAY);
 
           const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Addr);
-          // 5000 × 1.3 × 45 = 292,500
-          expect(stakeBefore).to.equal(parseEther("292500"));
+          // 5000 × 1.3 × (45 * 86400) = 25,272,000,000
+          expectApprox(stakeBefore, parseEther("25272000000"));
 
           // Withdraw 1000 XVS
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("1000"));
@@ -714,14 +724,14 @@ if (FORK_MAINNET) {
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           // Effective stake should only reflect ACTIVE deposits (no withdrawn score)
-          // Active: 4000 × 1.3 × 52 = 270,400 (52 days = 45 + 7 vault lock)
+          // Active: 4000 × 1.3 × (52 * 86400) = 23,362,560,000 (52 days = 45 + 7 vault lock)
           const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(stakeAfter).to.equal(parseEther("270400"));
+          expectApprox(stakeAfter, parseEther("23362560000"));
 
           // Withdrawn score is tracked separately for backend
           const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Addr);
-          // 1000 × 1.3 × 52 = 67,600 (held 52 days at withdrawal time)
-          expect(withdrawnScore).to.equal(parseEther("67600"));
+          // 1000 × 1.3 × (52 * 86400) = 5,840,640,000 (held 52 days at withdrawal time)
+          expectApprox(withdrawnScore, parseEther("5840640000"));
         });
       });
 
@@ -806,14 +816,14 @@ if (FORK_MAINNET) {
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           // Withdrawn score should be tracked
-          // 500 × 1.3 × 52 = 33,800 (held 52 days = 45 + 7 vault lock)
+          // 500 × 1.3 × (52 * 86400) = 2,920,320,000 (held 52 days = 45 + 7 vault lock)
           const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Addr);
-          expect(withdrawnScore).to.equal(parseEther("33800"));
+          expectApprox(withdrawnScore, parseEther("2920320000"));
 
           // Effective stake should only reflect active deposits
-          // 4500 × 1.3 × 52 = 304,200
+          // 4500 × 1.3 × (52 * 86400) = 26,282,880,000
           const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Addr);
-          expect(effectiveStake).to.equal(parseEther("304200"));
+          expectApprox(effectiveStake, parseEther("26282880000"));
         });
 
         it("should accumulate withdrawn scores across multiple withdrawals", async () => {
@@ -826,8 +836,8 @@ if (FORK_MAINNET) {
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           const scoreAfterFirst = await primeLeaderboard.withdrawnScore(user1Addr);
-          // 200 × 1.3 × 52 = 13,520 (held 52 days = 45 + 7 vault lock)
-          expect(scoreAfterFirst).to.equal(parseEther("13520"));
+          // 200 × 1.3 × (52 * 86400) = 1,168,128,000 (held 52 days = 45 + 7 vault lock)
+          expectApprox(scoreAfterFirst, parseEther("1168128000"));
 
           // Second withdrawal: 200 XVS
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("200"));
@@ -836,9 +846,9 @@ if (FORK_MAINNET) {
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           const scoreAfterSecond = await primeLeaderboard.withdrawnScore(user1Addr);
-          // First: 13,520 + Second: 200 × 1.3 × 59 = 15,340 (59 days = 45 + 7 + 7)
-          // Total: 13,520 + 15,340 = 28,860
-          expect(scoreAfterSecond).to.equal(parseEther("28860"));
+          // First: 1,168,128,000 + Second: 200 × 1.3 × (59 * 86400) = 1,325,376,000 (59 days = 45 + 7 + 7)
+          // Total: 1,168,128,000 + 1,325,376,000 = 2,493,504,000
+          expectApprox(scoreAfterSecond, parseEther("2493504000"));
 
           // Both scores accumulated, second didn't overwrite first
           expect(scoreAfterSecond.gt(scoreAfterFirst)).to.be.true;
@@ -1093,9 +1103,10 @@ if (FORK_MAINNET) {
         });
 
         it("should not allow adding duplicate market", async () => {
-          await expect(
-            primeV2.addMarket(Addr.COMPTROLLER, Addr.vUSDT, parseEther("2"), parseEther("2")),
-          ).to.be.revertedWithCustomError(primeV2, "MarketAlreadyExists");
+          await expect(primeV2.addMarket(Addr.vUSDT, parseEther("2"), parseEther("2"))).to.be.revertedWithCustomError(
+            primeV2,
+            "MarketAlreadyExists",
+          );
         });
 
         it("should update market multipliers", async () => {
@@ -1146,8 +1157,8 @@ if (FORK_MAINNET) {
           // Verify new tiers apply to scoring
           await time.increase(50 * DAY);
           const stake = await primeLeaderboard.getEffectiveStake(user1Addr);
-          // 5000 × 1.5 × 50 = 375,000
-          expect(stake).to.equal(parseEther("375000"));
+          // 5000 × 1.5 × (50 * 86400) = 32,400,000,000
+          expectApprox(stake, parseEther("32400000000"));
         });
       });
     });

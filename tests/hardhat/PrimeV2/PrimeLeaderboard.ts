@@ -13,6 +13,15 @@ chai.use(smock.matchers);
 const MINIMUM_STAKE = convertToUnit(500, 18); // 500 XVS
 const DAY = 24 * 60 * 60;
 
+// With second-based duration, block timestamp increments (1 sec per tx) become visible.
+// Use 0.01% relative tolerance for assertions in multi-operation tests.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function expectApprox(actual: any, expected: any) {
+  const exp = ethers.BigNumber.from(expected);
+  const tolerance = exp.div(10000); // 0.01%
+  expect(actual).to.be.closeTo(exp, tolerance);
+}
+
 describe("PrimeLeaderboard", () => {
   let primeLeaderboard: PrimeLeaderboard;
   let accessControlManager: FakeContract<IAccessControlManagerV8>;
@@ -305,7 +314,7 @@ describe("PrimeLeaderboard", () => {
 
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
 
-      // holdDays = 0 → effectiveStake = 1000 × 1.0 × 0 = 0
+      // holdSeconds = 0 → effectiveStake = 1000 × 1.0 × 0 = 0
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
       expect(effectiveStake).to.equal(0);
     });
@@ -316,9 +325,9 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
       await time.increase(10 * DAY);
 
-      // 1000 × 1.0 × 10 = 10,000
+      // 1000 × 1.0 × (10 * 86400) = 864,000,000
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(convertToUnit(10000, 18));
+      expect(effectiveStake).to.equal(convertToUnit(864_000_000, 18));
     });
 
     it("should calculate 1.3x multiplier for deposits 30-60 days", async () => {
@@ -327,9 +336,9 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
       await time.increase(35 * DAY);
 
-      // 1000 × 1.3 × 35 = 45,500
+      // 1000 × 1.3 × (35 * 86400) = 3,931,200,000
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(convertToUnit(45500, 18));
+      expect(effectiveStake).to.equal(convertToUnit(3_931_200_000, 18));
     });
 
     it("should calculate 1.6x multiplier for deposits 60-90 days", async () => {
@@ -338,9 +347,9 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
       await time.increase(65 * DAY);
 
-      // 1000 × 1.6 × 65 = 104,000
+      // 1000 × 1.6 × (65 * 86400) = 8,985,600,000
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(convertToUnit(104000, 18));
+      expect(effectiveStake).to.equal(convertToUnit(8_985_600_000, 18));
     });
 
     it("should calculate 2.0x multiplier for deposits 90+ days (capped at 90d)", async () => {
@@ -349,9 +358,9 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
       await time.increase(95 * DAY);
 
-      // 1000 × 2.0 × 90 = 180,000 (duration capped at 90 days)
+      // 1000 × 2.0 × (90 * 86400) = 15,552,000,000 (duration capped at 90 days)
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(convertToUnit(180000, 18));
+      expect(effectiveStake).to.equal(convertToUnit(15_552_000_000, 18));
     });
 
     it("should remain capped at 90 days for very long hold periods", async () => {
@@ -360,9 +369,9 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
       await time.increase(180 * DAY);
 
-      // Still 1000 × 2.0 × 90 = 180,000
+      // Still 1000 × 2.0 × (90 * 86400) = 15,552,000,000
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(convertToUnit(180000, 18));
+      expect(effectiveStake).to.equal(convertToUnit(15_552_000_000, 18));
     });
 
     it("should sum effective stake across multiple deposits with different ages", async () => {
@@ -376,11 +385,11 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, convertToUnit(800, 18));
       await time.increase(10 * DAY);
 
-      // Deposit 1: held for 55 days → 1.3x: 500 × 1.3 × 55 = 35,750
-      // Deposit 2: held for 10 days → 1.0x: 300 × 1.0 × 10 = 3,000
-      // Total: 38,750
+      // Deposit 1: held for 55 days → 1.3x: 500 × 1.3 × (55 * 86400) = 3,088,800,000
+      // Deposit 2: held for 10 days → 1.0x: 300 × 1.0 × (10 * 86400) = 259,200,000
+      // Total: ~3,348,000,000
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(convertToUnit(38750, 18));
+      expectApprox(effectiveStake, convertToUnit(3_348_000_000, 18));
     });
 
     it("should NOT include withdrawn score in effective stake", async () => {
@@ -389,17 +398,17 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
       await time.increase(35 * DAY);
 
-      // Effective stake before withdrawal: 1000 × 1.3 × 35 = 45,500
+      // Effective stake before withdrawal: 1000 × 1.3 × (35 * 86400) = ~3,931,200,000
       const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(stakeBefore).to.equal(convertToUnit(45500, 18));
+      expectApprox(stakeBefore, convertToUnit(3_931_200_000, 18));
 
       // Withdraw 500 XVS (vault balance drops to 500)
       await simulateWithdrawal(user1Address, convertToUnit(500, 18));
 
-      // Remaining active deposits only: 500 × 1.3 × 35 = 22,750
+      // Remaining active deposits only: 500 × 1.3 × (35 * 86400) = ~1,965,600,000
       // Withdrawn score is NOT added to effective stake
       const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(stakeAfter).to.equal(convertToUnit(22750, 18));
+      expectApprox(stakeAfter, convertToUnit(1_965_600_000, 18));
     });
 
     it("should return zero effective stake after full withdrawal", async () => {
@@ -485,13 +494,13 @@ describe("PrimeLeaderboard", () => {
       // Withdraw 500 XVS
       await simulateWithdrawal(user1Address, convertToUnit(500, 18));
 
-      // Withdrawn score: 500 × 1.3 × 35 = 22,750
+      // Withdrawn score: 500 × 1.3 × (35 * 86400) = ~1,965,600,000
       const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
-      expect(withdrawnScore).to.equal(convertToUnit(22750, 18));
+      expectApprox(withdrawnScore, convertToUnit(1_965_600_000, 18));
 
-      // Effective stake only has active deposits: 500 × 1.3 × 35 = 22,750
+      // Effective stake only has active deposits: 500 × 1.3 × (35 * 86400) = ~1,965,600,000
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(convertToUnit(22750, 18));
+      expectApprox(effectiveStake, convertToUnit(1_965_600_000, 18));
     });
 
     it("should accumulate withdrawn scores across multiple withdrawals", async () => {
@@ -504,15 +513,15 @@ describe("PrimeLeaderboard", () => {
       await simulateWithdrawal(user1Address, convertToUnit(900, 18));
       const scoreAfterFirst = await primeLeaderboard.withdrawnScore(user1Address);
 
-      // Withdrawn score: 100 × 1.3 × 45 = 5,850
-      expect(scoreAfterFirst).to.equal(convertToUnit(5850, 18));
+      // Withdrawn score: 100 × 1.3 × (45 * 86400) = ~505,440,000
+      expectApprox(scoreAfterFirst, convertToUnit(505_440_000, 18));
 
       // Second withdrawal: 100 XVS (vault balance → 800)
       await simulateWithdrawal(user1Address, convertToUnit(800, 18));
       const scoreAfterSecond = await primeLeaderboard.withdrawnScore(user1Address);
 
-      // Accumulated: 5,850 + (100 × 1.3 × 45) = 5,850 + 5,850 = 11,700
-      expect(scoreAfterSecond).to.equal(convertToUnit(11700, 18));
+      // Accumulated: ~505,440,000 + (100 × 1.3 × (45 * 86400)) = ~1,010,880,000
+      expectApprox(scoreAfterSecond, convertToUnit(1_010_880_000, 18));
     });
 
     it("should track withdrawn score on full withdrawal", async () => {
@@ -524,9 +533,9 @@ describe("PrimeLeaderboard", () => {
       // Full withdrawal
       await simulateWithdrawal(user1Address, "0");
 
-      // Withdrawn score: 1000 × 1.0 × 10 = 10,000
+      // Withdrawn score: 1000 × 1.0 × (10 * 86400) = ~864,000,000
       const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
-      expect(withdrawnScore).to.equal(convertToUnit(10000, 18));
+      expectApprox(withdrawnScore, convertToUnit(864_000_000, 18));
 
       // Effective stake is 0 (no active deposits)
       const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
@@ -542,8 +551,8 @@ describe("PrimeLeaderboard", () => {
       await time.increase(10 * DAY);
       await simulateWithdrawal(user1Address, convertToUnit(500, 18));
 
-      // Withdrawn score exists: 500 × 1.0 × 10 = 5,000
-      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(5000, 18));
+      // Withdrawn score exists: 500 × 1.0 × (10 * 86400) = ~432,000,000
+      expectApprox(await primeLeaderboard.withdrawnScore(user1Address), convertToUnit(432_000_000, 18));
 
       // Backend resets it
       await primeLeaderboard.resetWithdrawnScore(user1Address);
@@ -573,7 +582,7 @@ describe("PrimeLeaderboard", () => {
 
       // First withdrawal
       await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(2000, 18));
+      expectApprox(await primeLeaderboard.withdrawnScore(user1Address), convertToUnit(172_800_000, 18));
 
       // Backend resets
       await primeLeaderboard.resetWithdrawnScore(user1Address);
@@ -625,10 +634,10 @@ describe("PrimeLeaderboard", () => {
       await time.increase(45 * DAY);
 
       const scores = await primeLeaderboard.getScores([user1Address, user2Address]);
-      // User1: 10000 × 1.3 × 45 = 585,000
-      expect(scores[0]).to.equal(convertToUnit(585000, 18));
-      // User2: 5000 × 1.3 × 45 = 292,500
-      expect(scores[1]).to.equal(convertToUnit(292500, 18));
+      // User1: 10000 × 1.3 × (45 * 86400) = ~50,544,000,000
+      expectApprox(scores[0], convertToUnit(50_544_000_000, 18));
+      // User2: 5000 × 1.3 × (45 * 86400) = ~25,272,000,000
+      expectApprox(scores[1], convertToUnit(25_272_000_000, 18));
     });
 
     it("should match calculateCurrentScore with getEffectiveStake", async () => {
@@ -867,8 +876,8 @@ describe("PrimeLeaderboard", () => {
       await time.increase(91 * DAY);
 
       const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Address);
-      // 500 × 2.0 × 90 = 90,000 (capped at 90 days)
-      expect(stakeBefore).to.equal(convertToUnit(90000, 18));
+      // 500 × 2.0 × (90 * 86400) = ~7,776,000,000 (capped at 90 days)
+      expectApprox(stakeBefore, convertToUnit(7_776_000_000, 18));
 
       // Fill up to 99 more deposits (all instantly, total vault = 500 + 99*1 = 599)
       for (let i = 1; i <= 99; i++) {
@@ -912,8 +921,8 @@ describe("PrimeLeaderboard", () => {
       // Day 2: User1 withdraws everything
       await time.increase(1 * DAY);
 
-      // Before withdrawal: user1 score = 1M × 1.0 × 1 = 1,000,000
-      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(1_000_000, 18));
+      // Before withdrawal: user1 score = 1M × 1.0 × 86400 = ~86,400,000,000
+      expectApprox(await primeLeaderboard.getEffectiveStake(user1Address), convertToUnit(86_400_000_000, 18));
 
       // User1 withdraws all XVS
       await simulateWithdrawal(user1Address, "0");
@@ -924,10 +933,10 @@ describe("PrimeLeaderboard", () => {
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(0);
 
       // Withdrawn score is tracked separately for backend
-      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(1_000_000, 18));
+      expectApprox(await primeLeaderboard.withdrawnScore(user1Address), convertToUnit(86_400_000_000, 18));
 
-      // User2 still active: 500K × 1.0 × 1 = 500,000
-      expect(await primeLeaderboard.getEffectiveStake(user2Address)).to.equal(convertToUnit(500_000, 18));
+      // User2 still active: 500K × 1.0 × 86400 = ~43,200,000,000
+      expectApprox(await primeLeaderboard.getEffectiveStake(user2Address), convertToUnit(43_200_000_000, 18));
     });
 
     it("should show getScores() returns zero for withdrawn user (no phantom eligibility)", async () => {
@@ -952,10 +961,10 @@ describe("PrimeLeaderboard", () => {
 
       // User1 has 0 effective stake (correctly reflects no XVS staked)
       expect(scores[0]).to.equal(0);
-      // User2: 800K × 1.0 × 4 = 3,200,000
-      expect(scores[1]).to.equal(convertToUnit(3_200_000, 18));
-      // User3: 600K × 1.0 × 4 = 2,400,000
-      expect(scores[2]).to.equal(convertToUnit(2_400_000, 18));
+      // User2: 800K × 1.0 × (4 * 86400) = ~276,480,000,000
+      expectApprox(scores[1], convertToUnit(276_480_000_000, 18));
+      // User3: 600K × 1.0 × (4 * 86400) = ~207,360,000,000
+      expectApprox(scores[2], convertToUnit(207_360_000_000, 18));
 
       // Day 15: Backend checks scores again
       await time.increase(10 * DAY);
@@ -963,10 +972,10 @@ describe("PrimeLeaderboard", () => {
 
       // User1 is STILL 0 — no phantom eligibility at any point!
       expect(scores[0]).to.equal(0);
-      // User2: 800K × 1.0 × 14 = 11,200,000
-      expect(scores[1]).to.equal(convertToUnit(11_200_000, 18));
-      // User3: 600K × 1.0 × 14 = 8,400,000
-      expect(scores[2]).to.equal(convertToUnit(8_400_000, 18));
+      // User2: 800K × 1.0 × (14 * 86400) = ~967,680,000,000
+      expectApprox(scores[1], convertToUnit(967_680_000_000, 18));
+      // User3: 600K × 1.0 × (14 * 86400) = ~725,760,000,000
+      expectApprox(scores[2], convertToUnit(725_760_000_000, 18));
 
       // Day 30: End of backend reward cycle
       await time.increase(16 * DAY);
@@ -974,10 +983,10 @@ describe("PrimeLeaderboard", () => {
 
       // User1 is still 0
       expect(scores[0]).to.equal(0);
-      // User2: 800K × 1.3x × 30 = 31,200,000 (multiplier upgraded at 30 days)
-      expect(scores[1]).to.equal(convertToUnit(31_200_000, 18));
-      // User3: 600K × 1.3x × 30 = 23,400,000
-      expect(scores[2]).to.equal(convertToUnit(23_400_000, 18));
+      // User2: 800K × 1.3x × (30 * 86400) = ~2,695,680,000,000 (multiplier upgraded at 30 days)
+      expectApprox(scores[1], convertToUnit(2_695_680_000_000, 18));
+      // User3: 600K × 1.3x × (30 * 86400) = ~2,021,760,000,000
+      expectApprox(scores[2], convertToUnit(2_021_760_000_000, 18));
     });
 
     it("should correctly handle partial withdrawal with 24-hour backend updates", async () => {
@@ -989,23 +998,23 @@ describe("PrimeLeaderboard", () => {
       // Day 35: User withdraws 100 XVS (vault balance → 900)
       await time.increase(35 * DAY);
 
-      // Score before withdrawal: 1000 × 1.3 × 35 = 45,500
-      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(45500, 18));
+      // Score before withdrawal: 1000 × 1.3 × (35 * 86400) = ~3,931,200,000
+      expectApprox(await primeLeaderboard.getEffectiveStake(user1Address), convertToUnit(3_931_200_000, 18));
 
       await simulateWithdrawal(user1Address, convertToUnit(900, 18));
 
-      // Score after withdrawal: 900 × 1.3 × 35 = 40,950
+      // Score after withdrawal: 900 × 1.3 × (35 * 86400) = ~3,538,080,000
       // (Only active deposits count, withdrawn score tracked separately)
-      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(40950, 18));
+      expectApprox(await primeLeaderboard.getEffectiveStake(user1Address), convertToUnit(3_538_080_000, 18));
 
-      // Withdrawn score: 100 × 1.3 × 35 = 4,550
-      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(4550, 18));
+      // Withdrawn score: 100 × 1.3 × (35 * 86400) = ~393,120,000
+      expectApprox(await primeLeaderboard.withdrawnScore(user1Address), convertToUnit(393_120_000, 18));
 
       // Day 36: Backend checks 24 hours later
       await time.increase(1 * DAY);
 
-      // Score: 900 × 1.3 × 36 = 42,120 (naturally grows based on active deposits)
-      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(42120, 18));
+      // Score: 900 × 1.3 × (36 * 86400) = ~3,639,168,000 (naturally grows based on active deposits)
+      expectApprox(await primeLeaderboard.getEffectiveStake(user1Address), convertToUnit(3_639_168_000, 18));
     });
 
     it("should allow backend to reset withdrawn score after processing", async () => {
@@ -1018,8 +1027,8 @@ describe("PrimeLeaderboard", () => {
       await time.increase(10 * DAY);
       await simulateWithdrawal(user1Address, convertToUnit(800, 18));
 
-      // Withdrawn score: 200 × 1.0 × 10 = 2,000
-      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(2000, 18));
+      // Withdrawn score: 200 × 1.0 × (10 * 86400) = ~172,800,000
+      expectApprox(await primeLeaderboard.withdrawnScore(user1Address), convertToUnit(172_800_000, 18));
 
       // Backend processes withdrawn score and resets it
       await primeLeaderboard.resetWithdrawnScore(user1Address);
@@ -1029,11 +1038,11 @@ describe("PrimeLeaderboard", () => {
       await time.increase(10 * DAY);
       await simulateWithdrawal(user1Address, convertToUnit(700, 18));
 
-      // Withdrawn score starts fresh from 0: 100 × 1.0 × 20 = 2,000
-      expect(await primeLeaderboard.withdrawnScore(user1Address)).to.equal(convertToUnit(2000, 18));
+      // Withdrawn score starts fresh from 0: 100 × 1.0 × (20 * 86400) = ~172,800,000
+      expectApprox(await primeLeaderboard.withdrawnScore(user1Address), convertToUnit(172_800_000, 18));
 
-      // Effective stake only reflects active 700 XVS: 700 × 1.0 × 20 = 14,000
-      expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(convertToUnit(14000, 18));
+      // Effective stake only reflects active 700 XVS: 700 × 1.0 × (20 * 86400) = ~1,209,600,000
+      expectApprox(await primeLeaderboard.getEffectiveStake(user1Address), convertToUnit(1_209_600_000, 18));
     });
 
     it("should show the complete 30-day lifecycle with backend-driven leaderboard", async () => {
@@ -1083,7 +1092,7 @@ describe("PrimeLeaderboard", () => {
 
       // Backend can check withdrawn score for user1 anytime
       const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Address);
-      expect(withdrawnScore).to.equal(convertToUnit(1_000_000, 18));
+      expectApprox(withdrawnScore, convertToUnit(86_400_000_000, 18));
 
       // Backend resets after processing
       await primeLeaderboard.resetWithdrawnScore(user1Address);
