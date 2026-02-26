@@ -122,14 +122,13 @@ contract PrimeLeaderboard is
         uint256 depositsLength = deposits.length;
         uint256 maxCapSeconds = _multiplierDurations[_multiplierDurations.length - 1];
 
-        // Sum score from all active deposits: amount × multiplier × min(holdDays, capDays)
+        // Sum score from all active deposits: amount × multiplier × min(holdSeconds, capSeconds)
         for (uint256 i; i < depositsLength; ) {
             Deposit storage d = deposits[i];
             uint256 holdingDuration = block.timestamp - uint256(d.timestamp);
             uint256 multiplier = _getMultiplier(holdingDuration);
             uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
-            uint256 durationDays = cappedDuration / 1 days;
-            effectiveStake += (uint256(d.amount) * multiplier * durationDays) / EXP_SCALE;
+            effectiveStake += (uint256(d.amount) * multiplier * cappedDuration) / EXP_SCALE;
 
             unchecked {
                 ++i;
@@ -483,8 +482,7 @@ contract PrimeLeaderboard is
             uint256 holdingDuration = block.timestamp - uint256(deposit.timestamp);
             uint256 multiplier = _getMultiplier(holdingDuration);
             uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
-            uint256 durationDays = cappedDuration / 1 days;
-            scoreFromWithdrawal += (toWithdraw * multiplier * durationDays) / EXP_SCALE;
+            scoreFromWithdrawal += (toWithdraw * multiplier * cappedDuration) / EXP_SCALE;
 
             remaining -= toWithdraw;
 

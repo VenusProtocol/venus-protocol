@@ -55,12 +55,7 @@ contract PrimeV2 is
     event Burn(address indexed user);
 
     /// @notice Emitted when a market is added to prime program
-    event MarketAdded(
-        address indexed comptroller,
-        address indexed market,
-        uint256 supplyMultiplier,
-        uint256 borrowMultiplier
-    );
+    event MarketAdded(address indexed market, uint256 supplyMultiplier, uint256 borrowMultiplier);
 
     /// @notice Emitted when mint limits are updated
     event MintLimitsUpdated(
@@ -481,7 +476,6 @@ contract PrimeV2 is
 
     /**
      * @notice Add a market to Prime
-     * @param comptroller Comptroller address
      * @param market Market address
      * @param supplyMultiplier Supply multiplier
      * @param borrowMultiplier Borrow multiplier
@@ -492,18 +486,13 @@ contract PrimeV2 is
      * @custom:error Throw AssetAlreadyExists if asset already has a market
      * @custom:access Controlled by ACM
      */
-    function addMarket(
-        address comptroller,
-        address market,
-        uint256 supplyMultiplier,
-        uint256 borrowMultiplier
-    ) external {
-        _checkAccessAllowed("addMarket(address,address,uint256,uint256)");
+    function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
+        _checkAccessAllowed("addMarket(address,uint256,uint256)");
 
         if (markets[market].exists) revert MarketAlreadyExists();
         if (supplyMultiplier == 0 && borrowMultiplier == 0) revert InvalidMultipliers();
 
-        bool isListed = InterfaceComptroller(comptroller).markets(market);
+        bool isListed = InterfaceComptroller(corePoolComptroller).markets(market);
         if (!isListed) revert InvalidVToken();
 
         address underlying = _getUnderlying(market);
@@ -522,7 +511,7 @@ contract PrimeV2 is
 
         _queueScoreUpdates();
 
-        emit MarketAdded(comptroller, market, supplyMultiplier, borrowMultiplier);
+        emit MarketAdded(market, supplyMultiplier, borrowMultiplier);
     }
 
     /**
@@ -579,21 +568,23 @@ contract PrimeV2 is
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
 
-        if (!markets[market].exists) revert MarketNotSupported();
+        Market storage marketData = markets[market];
+
+        if (!marketData.exists) revert MarketNotSupported();
         if (supplyMultiplier == 0 && borrowMultiplier == 0) revert InvalidMultipliers();
 
         accrueInterest(market);
 
         emit MultiplierUpdated(
             market,
-            markets[market].supplyMultiplier,
-            markets[market].borrowMultiplier,
+            marketData.supplyMultiplier,
+            marketData.borrowMultiplier,
             supplyMultiplier,
             borrowMultiplier
         );
 
-        markets[market].supplyMultiplier = supplyMultiplier;
-        markets[market].borrowMultiplier = borrowMultiplier;
+        marketData.supplyMultiplier = supplyMultiplier;
+        marketData.borrowMultiplier = borrowMultiplier;
 
         _queueScoreUpdates();
     }
@@ -895,22 +886,21 @@ contract PrimeV2 is
         uint256 supplyCapUSD = (xvsPrice * xvsBalanceForScore * marketData.supplyMultiplier) / (EXP_SCALE * EXP_SCALE);
 
         uint256 tokenPrice = oracle.getUnderlyingPrice(market);
-        uint256 decimals = IERC20MetadataUpgradeable(_getUnderlying(market)).decimals();
 
         cappedSupply = supply;
         cappedBorrow = borrow;
 
         if (supply > 0 && tokenPrice > 0) {
-            uint256 supplyUSD = (supply * tokenPrice) / (10 ** decimals);
+            uint256 supplyUSD = (supply * tokenPrice) / EXP_SCALE;
             if (supplyUSD > supplyCapUSD) {
-                cappedSupply = (supplyCapUSD * (10 ** decimals)) / tokenPrice;
+                cappedSupply = (supplyCapUSD * EXP_SCALE) / tokenPrice;
             }
         }
 
         if (borrow > 0 && tokenPrice > 0) {
-            uint256 borrowUSD = (borrow * tokenPrice) / (10 ** decimals);
+            uint256 borrowUSD = (borrow * tokenPrice) / EXP_SCALE;
             if (borrowUSD > borrowCapUSD) {
-                cappedBorrow = (borrowCapUSD * (10 ** decimals)) / tokenPrice;
+                cappedBorrow = (borrowCapUSD * EXP_SCALE) / tokenPrice;
             }
         }
 
