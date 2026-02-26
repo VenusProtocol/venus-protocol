@@ -15,7 +15,7 @@ contract PrimeLeaderboardStorageV1 {
     uint256 internal constant BASE_MULTIPLIER = 1e18;
 
     /// @notice Maximum deposits per user (DoS protection)
-    uint256 internal constant MAX_DEPOSITS_PER_USER = 100;
+    uint256 internal constant MAX_DEPOSITS_PER_USER = 10;
 
     /// @notice Scaling factor for calculations
     uint256 internal constant EXP_SCALE = 1e18;

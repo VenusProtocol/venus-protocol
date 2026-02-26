@@ -633,22 +633,11 @@ describe("PrimeLeaderboard", () => {
 
       await time.increase(45 * DAY);
 
-      const scores = await primeLeaderboard.getScores([user1Address, user2Address]);
+      const scores = await primeLeaderboard.getEffectiveStakeBatch([user1Address, user2Address]);
       // User1: 10000 × 1.3 × (45 * 86400) = ~50,544,000,000
       expectApprox(scores[0], convertToUnit(50_544_000_000, 18));
       // User2: 5000 × 1.3 × (45 * 86400) = ~25,272,000,000
       expectApprox(scores[1], convertToUnit(25_272_000_000, 18));
-    });
-
-    it("should match calculateCurrentScore with getEffectiveStake", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(50 * DAY);
-
-      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      const currentScore = await primeLeaderboard.calculateCurrentScore(user1Address);
-      expect(effectiveStake).to.equal(currentScore);
     });
   });
 
@@ -822,35 +811,35 @@ describe("PrimeLeaderboard", () => {
   });
 
   describe("Deposit Compaction", () => {
-    it("should compact deposits when reaching MAX_DEPOSITS_PER_USER (100)", async () => {
+    it("should compact deposits when reaching MAX_DEPOSITS_PER_USER (10)", async () => {
       const user1Address = await user1.getAddress();
 
-      // Create 100 deposits (each increasing vault balance by 10 XVS)
-      for (let i = 1; i <= 100; i++) {
+      // Create 10 deposits (each increasing vault balance by 10 XVS)
+      for (let i = 1; i <= 10; i++) {
         await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
       }
 
-      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(100);
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(10);
 
       // Wait 91+ days so all deposits reach max multiplier tier
       await time.increase(91 * DAY);
 
-      // 101st deposit triggers compaction (deposits.length >= 100)
-      await simulateDeposit(user1Address, convertToUnit(1010, 18));
+      // 11th deposit triggers compaction (deposits.length >= 10)
+      await simulateDeposit(user1Address, convertToUnit(110, 18));
 
-      // All 100 old deposits merged into 1 + the new deposit = 2
+      // All 10 old deposits merged into 1 + the new deposit = 2
       const countAfter = await primeLeaderboard.getDepositCount(user1Address);
       expect(countAfter).to.equal(2);
 
-      // Total staked should be correct: 1000 (original) + 10 (101st deposit bump)
-      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1010, 18));
+      // Total staked should be correct: 100 (original) + 10 (11th deposit bump)
+      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(110, 18));
     });
 
     it("should emit DepositsCompacted event on compaction", async () => {
       const user1Address = await user1.getAddress();
 
-      // Create 100 deposits
-      for (let i = 1; i <= 100; i++) {
+      // Create 10 deposits
+      for (let i = 1; i <= 10; i++) {
         await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
       }
 
@@ -858,7 +847,7 @@ describe("PrimeLeaderboard", () => {
       await time.increase(91 * DAY);
 
       // Next deposit triggers compaction
-      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1010, 18), 0, 0]);
+      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(110, 18), 0, 0]);
 
       const countBefore = await primeLeaderboard.getDepositCount(user1Address);
       await primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address);
@@ -879,13 +868,13 @@ describe("PrimeLeaderboard", () => {
       // 500 × 2.0 × (90 * 86400) = ~7,776,000,000 (capped at 90 days)
       expectApprox(stakeBefore, convertToUnit(7_776_000_000, 18));
 
-      // Fill up to 99 more deposits (all instantly, total vault = 500 + 99*1 = 599)
-      for (let i = 1; i <= 99; i++) {
+      // Fill up to 9 more deposits (all instantly, total vault = 500 + 9*1 = 509)
+      for (let i = 1; i <= 9; i++) {
         await simulateDeposit(user1Address, convertToUnit(500 + i, 18));
       }
 
-      // Trigger compaction with deposit #101
-      await simulateDeposit(user1Address, convertToUnit(600, 18));
+      // Trigger compaction with deposit #11
+      await simulateDeposit(user1Address, convertToUnit(510, 18));
 
       // The original 500 deposit should have been compacted
       // but its score contribution should be preserved
@@ -939,7 +928,7 @@ describe("PrimeLeaderboard", () => {
       expectApprox(await primeLeaderboard.getEffectiveStake(user2Address), convertToUnit(43_200_000_000, 18));
     });
 
-    it("should show getScores() returns zero for withdrawn user (no phantom eligibility)", async () => {
+    it("should show getEffectiveStakeBatch() returns zero for withdrawn user (no phantom eligibility)", async () => {
       const user1Address = await user1.getAddress();
       const user2Address = await user2.getAddress();
       const user3Address = await user3.getAddress();
@@ -957,7 +946,7 @@ describe("PrimeLeaderboard", () => {
 
       // Day 5: Backend checks scores
       await time.increase(3 * DAY);
-      let scores = await primeLeaderboard.getScores(allUsers);
+      let scores = await primeLeaderboard.getEffectiveStakeBatch(allUsers);
 
       // User1 has 0 effective stake (correctly reflects no XVS staked)
       expect(scores[0]).to.equal(0);
@@ -968,7 +957,7 @@ describe("PrimeLeaderboard", () => {
 
       // Day 15: Backend checks scores again
       await time.increase(10 * DAY);
-      scores = await primeLeaderboard.getScores(allUsers);
+      scores = await primeLeaderboard.getEffectiveStakeBatch(allUsers);
 
       // User1 is STILL 0 — no phantom eligibility at any point!
       expect(scores[0]).to.equal(0);
@@ -979,7 +968,7 @@ describe("PrimeLeaderboard", () => {
 
       // Day 30: End of backend reward cycle
       await time.increase(16 * DAY);
-      scores = await primeLeaderboard.getScores(allUsers);
+      scores = await primeLeaderboard.getEffectiveStakeBatch(allUsers);
 
       // User1 is still 0
       expect(scores[0]).to.equal(0);

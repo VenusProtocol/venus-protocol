@@ -104,15 +104,10 @@ interface IPrimeLeaderboard {
     /// @return multiplier The multiplier (scaled by 1e18)
     function getMultiplier(uint256 holdingDuration) external view returns (uint256 multiplier);
 
-    /// @notice Alias for getEffectiveStake - calculates current time-weighted score
-    /// @param user The user's address
-    /// @return score The current effective stake score
-    function calculateCurrentScore(address user) external view returns (uint256 score);
-
     /// @notice Batch view to get effective stakes for multiple users
     /// @param users Array of user addresses
     /// @return scores Array of effective stake scores
-    function getScores(address[] calldata users) external view returns (uint256[] memory scores);
+    function getEffectiveStakeBatch(address[] calldata users) external view returns (uint256[] memory scores);
 
     // ═══════════════════ LEADERBOARD QUERIES ═══════════════════
 

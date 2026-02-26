@@ -400,10 +400,10 @@ if (FORK_MAINNET) {
           expectApprox(stake3, parseEther("691200000"));
         });
 
-        it("should batch query scores via getScores", async () => {
+        it("should batch query effective stakes via getEffectiveStakeBatch", async () => {
           await time.increase(10 * DAY);
 
-          const scores = await primeLeaderboard.getScores([user1Addr, user2Addr, user3Addr]);
+          const scores = await primeLeaderboard.getEffectiveStakeBatch([user1Addr, user2Addr, user3Addr]);
           expectApprox(scores[0], parseEther("4320000000"));
           expectApprox(scores[1], parseEther("2592000000"));
           expectApprox(scores[2], parseEther("691200000"));

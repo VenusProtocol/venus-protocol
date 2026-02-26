@@ -16,7 +16,7 @@ import { PrimeLeaderboardStorageV1 } from "./PrimeLeaderboardStorage.sol";
  * @notice Manages the Prime V2 leaderboard with time-weighted scoring
  * @dev Tracks per-deposit timestamps for LIFO withdrawals and calculates effective stake.
  *      Called by XVSVault via the existing primeToken.xvsUpdated() callback.
- *      Admin reads getScores() off-chain, ranks users, and calls PrimeV2.issue()/burn() directly.
+ *      Admin reads getEffectiveStakeBatch() off-chain, ranks users, and calls PrimeV2.issue()/burn() directly.
  * @custom:security-contract https://github.com/VenusProtocol/venus-protocol
  */
 contract PrimeLeaderboard is
@@ -166,20 +166,11 @@ contract PrimeLeaderboard is
     }
 
     /**
-     * @notice Alias for getEffectiveStake - calculates current time-weighted score
-     * @param user The user's address
-     * @return score The current effective stake score
-     */
-    function calculateCurrentScore(address user) external view override returns (uint256 score) {
-        return getEffectiveStake(user);
-    }
-
-    /**
      * @notice Batch view to get effective stakes for multiple users
      * @param users Array of user addresses
      * @return scores Array of effective stake scores
      */
-    function getScores(address[] calldata users) external view override returns (uint256[] memory scores) {
+    function getEffectiveStakeBatch(address[] calldata users) external view override returns (uint256[] memory scores) {
         uint256 usersLength = users.length;
         scores = new uint256[](usersLength);
 
@@ -642,7 +633,4 @@ contract PrimeLeaderboard is
             emit DepositsCompacted(user, oldCount, deposits.length);
         }
     }
-
-    /// @dev Storage gap for future upgrades
-    uint256[50] private __gap;
 }
