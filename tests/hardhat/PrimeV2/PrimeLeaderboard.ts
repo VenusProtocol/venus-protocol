@@ -161,7 +161,6 @@ describe("PrimeLeaderboard", () => {
 
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(amount);
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.true;
     });
 
     it("should revert xvsUpdated with zero address", async () => {
@@ -180,27 +179,6 @@ describe("PrimeLeaderboard", () => {
       await primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address);
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1000, 18));
-    });
-
-    it("should not add as participant if below minimum stake", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(100, 18)); // Below 500 XVS minimum
-
-      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(100, 18));
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.false;
-    });
-
-    it("should add as participant when crossing minimum threshold", async () => {
-      const user1Address = await user1.getAddress();
-
-      // First deposit: 400 XVS (below minimum)
-      await simulateDeposit(user1Address, convertToUnit(400, 18));
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.false;
-
-      // Second deposit: total 600 XVS (above minimum)
-      await simulateDeposit(user1Address, convertToUnit(600, 18));
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.true;
     });
 
     it("should track multiple deposits for a user", async () => {
@@ -285,18 +263,6 @@ describe("PrimeLeaderboard", () => {
       );
     });
 
-    it("should remove from participants if falling below minimum", async () => {
-      const user1Address = await user1.getAddress();
-
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.true;
-
-      // Withdraw most of the stake (800 → 300)
-      await simulateWithdrawal(user1Address, convertToUnit(300, 18));
-
-      // 300 XVS < 500 minimum
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.false;
-    });
-
     it("should handle full withdrawal to zero", async () => {
       const user1Address = await user1.getAddress();
 
@@ -304,7 +270,6 @@ describe("PrimeLeaderboard", () => {
 
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(0);
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(0);
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.false;
     });
   });
 
@@ -439,48 +404,6 @@ describe("PrimeLeaderboard", () => {
 
     it("should return highest applicable multiplier for durations beyond max tier", async () => {
       expect(await primeLeaderboard.getMultiplier(120 * DAY)).to.equal(convertToUnit("2", 18));
-    });
-  });
-
-  describe("Participant Management", () => {
-    it("should correctly track participant count", async () => {
-      expect(await primeLeaderboard.getParticipantCount()).to.equal(0);
-
-      await simulateDeposit(await user1.getAddress(), convertToUnit(600, 18));
-      expect(await primeLeaderboard.getParticipantCount()).to.equal(1);
-
-      await simulateDeposit(await user2.getAddress(), convertToUnit(700, 18));
-      expect(await primeLeaderboard.getParticipantCount()).to.equal(2);
-    });
-
-    it("should return participants in range", async () => {
-      const user1Address = await user1.getAddress();
-      const user2Address = await user2.getAddress();
-      const user3Address = await user3.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(600, 18));
-      await simulateDeposit(user2Address, convertToUnit(700, 18));
-      await simulateDeposit(user3Address, convertToUnit(800, 18));
-
-      const participants = await primeLeaderboard.getParticipants(0, 3);
-      expect(participants.length).to.equal(3);
-      expect(participants[0]).to.equal(user1Address);
-      expect(participants[1]).to.equal(user2Address);
-      expect(participants[2]).to.equal(user3Address);
-    });
-
-    it("should handle out of range queries gracefully", async () => {
-      await simulateDeposit(await user1.getAddress(), convertToUnit(600, 18));
-
-      const participants = await primeLeaderboard.getParticipants(0, 100);
-      expect(participants.length).to.equal(1);
-    });
-
-    it("should return empty array for start >= length", async () => {
-      await simulateDeposit(await user1.getAddress(), convertToUnit(600, 18));
-
-      const participants = await primeLeaderboard.getParticipants(5, 10);
-      expect(participants.length).to.equal(0);
     });
   });
 
@@ -766,35 +689,6 @@ describe("PrimeLeaderboard", () => {
     });
   });
 
-  describe("Pause functionality", () => {
-    it("should pause and unpause", async () => {
-      await primeLeaderboard.pause();
-      expect(await primeLeaderboard.paused()).to.be.true;
-
-      await primeLeaderboard.unpause();
-      expect(await primeLeaderboard.paused()).to.be.false;
-    });
-
-    it("should not revert xvsUpdated when paused", async () => {
-      const user1Address = await user1.getAddress();
-
-      await primeLeaderboard.pause();
-
-      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
-      await expect(primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address)).not.to.be.reverted;
-    });
-
-    it("should work after unpause", async () => {
-      const user1Address = await user1.getAddress();
-
-      await primeLeaderboard.pause();
-      await primeLeaderboard.unpause();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1000, 18));
-    });
-  });
-
   describe("Access Control", () => {
     it("should revert admin functions when access denied", async () => {
       accessControlManager.isAllowedToCall.returns(false);
@@ -804,8 +698,6 @@ describe("PrimeLeaderboard", () => {
       await expect(primeLeaderboard.setPrimeV2(await user1.getAddress())).to.be.reverted;
       await expect(primeLeaderboard.setXVSVault(await user1.getAddress())).to.be.reverted;
       await expect(primeLeaderboard.setXVSVaultPoolConfig(await user1.getAddress(), 0)).to.be.reverted;
-      await expect(primeLeaderboard.pause()).to.be.reverted;
-      await expect(primeLeaderboard.unpause()).to.be.reverted;
       await expect(primeLeaderboard.resetWithdrawnScore(await user1.getAddress())).to.be.reverted;
     });
   });
@@ -904,9 +796,6 @@ describe("PrimeLeaderboard", () => {
       await simulateDeposit(user1Address, ONE_MILLION_XVS);
       await simulateDeposit(user2Address, convertToUnit(500_000, 18));
 
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.true;
-      expect(await primeLeaderboard.isParticipant(user2Address)).to.be.true;
-
       // Day 2: User1 withdraws everything
       await time.increase(1 * DAY);
 
@@ -918,7 +807,6 @@ describe("PrimeLeaderboard", () => {
 
       // Effective stake is immediately 0 (no phantom score)
       expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(0);
-      expect(await primeLeaderboard.isParticipant(user1Address)).to.be.false;
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(0);
 
       // Withdrawn score is tracked separately for backend

@@ -211,8 +211,6 @@ if (FORK_MAINNET) {
           "resetWithdrawnScore(address)",
           "setMinimumStake(uint256)",
           "setMultiplierTiers(uint256[],uint256[])",
-          "pause()",
-          "unpause()",
         ];
 
         for (const f of primeV2Perms) {
@@ -353,13 +351,6 @@ if (FORK_MAINNET) {
       // 2. LEADERBOARD REGISTRATION & SCORING
       // ═══════════════════════════════════════════════════════════
       describe("Leaderboard Registration & Scoring", () => {
-        it("should register all stakers as participants", async () => {
-          expect(await primeLeaderboard.isParticipant(user1Addr)).to.be.true;
-          expect(await primeLeaderboard.isParticipant(user2Addr)).to.be.true;
-          expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.true;
-          expect(await primeLeaderboard.getParticipantCount()).to.equal(3);
-        });
-
         it("should track correct total staked amounts from real vault", async () => {
           expect(await primeLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("5000"));
           expect(await primeLeaderboard.totalStaked(user2Addr)).to.equal(parseEther("3000"));
@@ -407,17 +398,6 @@ if (FORK_MAINNET) {
           expectApprox(scores[0], parseEther("4320000000"));
           expectApprox(scores[1], parseEther("2592000000"));
           expectApprox(scores[2], parseEther("691200000"));
-        });
-
-        it("should return participants via paginated getParticipants", async () => {
-          const all = await primeLeaderboard.getParticipants(0, 3);
-          expect(all).to.have.lengthOf(3);
-          expect(all).to.include(user1Addr);
-          expect(all).to.include(user2Addr);
-          expect(all).to.include(user3Addr);
-
-          const partial = await primeLeaderboard.getParticipants(0, 2);
-          expect(partial).to.have.lengthOf(2);
         });
       });
 
@@ -1011,36 +991,6 @@ if (FORK_MAINNET) {
       // 11. EDGE CASES & SECURITY
       // ═══════════════════════════════════════════════════════════
       describe("Edge Cases & Security", () => {
-        it("should remove participant when stake falls below minimum", async () => {
-          expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.true;
-
-          // user3 has 800 XVS, withdraw 400 → 400 (< 500 minimum)
-          await xvsVault.connect(user3).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("400"));
-          await time.increase(7 * DAY);
-          await xvsVault.connect(user3).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user3Addr);
-
-          expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.false;
-          expect(await primeLeaderboard.totalStaked(user3Addr)).to.equal(parseEther("400"));
-        });
-
-        it("should re-add participant when stake returns above minimum", async () => {
-          // Drop below minimum
-          await xvsVault.connect(user3).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("400"));
-          await time.increase(7 * DAY);
-          await xvsVault.connect(user3).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
-          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user3Addr);
-          expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.false;
-
-          // Deposit more to go above minimum
-          await fundXVS(user3Addr, parseEther("200"));
-          await depositToVault(user3, parseEther("200"));
-          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user3Addr);
-
-          expect(await primeLeaderboard.isParticipant(user3Addr)).to.be.true;
-          expect(await primeLeaderboard.totalStaked(user3Addr)).to.equal(parseEther("600"));
-        });
-
         it("should cap XVS balance at MAXIMUM_XVS_CAP for scoring", async () => {
           // Fund user with more than 100k XVS
           await fundXVS(user1Addr, parseEther("200000"));
@@ -1055,18 +1005,6 @@ if (FORK_MAINNET) {
           const interest = await primeV2.interests(Addr.vUSDT, user1Addr);
           // Score should be based on capped XVS, verified by it being > 0
           expect(interest.score).to.be.gt(0);
-        });
-
-        it("should pause and unpause PrimeLeaderboard", async () => {
-          await primeLeaderboard.pause();
-
-          // xvsUpdated should not revert when paused (to avoid blocking vault operations)
-          await expect(primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr)).not.to.be.reverted;
-
-          await primeLeaderboard.unpause();
-
-          // Should work after unpause
-          await expect(primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr)).not.to.be.reverted;
         });
 
         it("should pause and unpause PrimeV2", async () => {

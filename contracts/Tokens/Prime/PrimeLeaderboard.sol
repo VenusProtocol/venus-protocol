@@ -2,7 +2,6 @@
 pragma solidity 0.8.25;
 
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { SafeCastUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
@@ -22,7 +21,6 @@ import { PrimeLeaderboardStorageV1 } from "./PrimeLeaderboardStorage.sol";
 contract PrimeLeaderboard is
     IPrimeLeaderboard,
     AccessControlledV8,
-    PausableUpgradeable,
     ReentrancyGuardUpgradeable,
     PrimeLeaderboardStorageV1
 {
@@ -55,7 +53,6 @@ contract PrimeLeaderboard is
         if (minimumStake_ == 0) revert InvalidValue();
 
         __AccessControlled_init(accessControlManager_);
-        __Pausable_init();
         __ReentrancyGuard_init();
 
         xvsVault = xvsVault_;
@@ -113,32 +110,6 @@ contract PrimeLeaderboard is
     // ═══════════════════ SCORE CALCULATION ═══════════════════
 
     /**
-     * @notice Get a user's current Effective Stake
-     * @param user The user's address
-     * @return effectiveStake The time-weighted score
-     */
-    function getEffectiveStake(address user) public view override returns (uint256 effectiveStake) {
-        Deposit[] storage deposits = _depositStacks[user];
-        uint256 depositsLength = deposits.length;
-        uint256 maxCapSeconds = _multiplierDurations[_multiplierDurations.length - 1];
-
-        // Sum score from all active deposits: amount × multiplier × min(holdSeconds, capSeconds)
-        for (uint256 i; i < depositsLength; ) {
-            Deposit storage d = deposits[i];
-            uint256 holdingDuration = block.timestamp - uint256(d.timestamp);
-            uint256 multiplier = _getMultiplier(holdingDuration);
-            uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
-            effectiveStake += (uint256(d.amount) * multiplier * cappedDuration) / EXP_SCALE;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        return effectiveStake;
-    }
-
-    /**
      * @notice Get a user's total staked amount
      * @param user The user's address
      * @return The total XVS staked
@@ -194,53 +165,6 @@ contract PrimeLeaderboard is
         return _getMultiplier(holdingDuration);
     }
 
-    // ═══════════════════ LEADERBOARD QUERIES ═══════════════════
-
-    /**
-     * @notice Check if a user is a participant (has stake >= minimum)
-     * @param user The user's address
-     * @return Whether user is a participant
-     */
-    function isParticipant(address user) external view override returns (bool) {
-        return _participantIndex[user] > 0;
-    }
-
-    /**
-     * @notice Get the total number of participants
-     * @return count Number of participants
-     */
-    function getParticipantCount() external view override returns (uint256 count) {
-        return _participants.length;
-    }
-
-    /**
-     * @notice Get participants in a range (for off-chain processing)
-     * @param start Start index
-     * @param end End index (exclusive)
-     * @return users Array of participant addresses
-     */
-    function getParticipants(uint256 start, uint256 end) external view override returns (address[] memory users) {
-        uint256 length = _participants.length;
-        if (start >= length) {
-            return new address[](0);
-        }
-        if (end > length) {
-            end = length;
-        }
-
-        uint256 resultLength = end - start;
-        users = new address[](resultLength);
-
-        for (uint256 i; i < resultLength; ) {
-            users[i] = _participants[start + i];
-            unchecked {
-                ++i;
-            }
-        }
-
-        return users;
-    }
-
     /**
      * @notice Get multiplier tier configuration
      * @return durations Array of duration thresholds
@@ -253,6 +177,32 @@ contract PrimeLeaderboard is
         returns (uint256[] memory durations, uint256[] memory multipliers)
     {
         return (_multiplierDurations, _multiplierValues);
+    }
+
+    /**
+     * @notice Get a user's current Effective Stake
+     * @param user The user's address
+     * @return effectiveStake The time-weighted score
+     */
+    function getEffectiveStake(address user) public view override returns (uint256 effectiveStake) {
+        Deposit[] storage deposits = _depositStacks[user];
+        uint256 depositsLength = deposits.length;
+        uint256 maxCapSeconds = _multiplierDurations[_multiplierDurations.length - 1];
+
+        // Sum score from all active deposits: amount × multiplier × min(holdSeconds, capSeconds)
+        for (uint256 i; i < depositsLength; ) {
+            Deposit storage d = deposits[i];
+            uint256 holdingDuration = block.timestamp - uint256(d.timestamp);
+            uint256 multiplier = _getMultiplier(holdingDuration);
+            uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
+            effectiveStake += (uint256(d.amount) * multiplier * cappedDuration) / EXP_SCALE;
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        return effectiveStake;
     }
 
     // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
@@ -280,8 +230,6 @@ contract PrimeLeaderboard is
      * @custom:event Emits MinimumStakeUpdated event
      * @custom:error Throw InvalidValue if minimum is zero
      * @custom:access Controlled by ACM
-     * @dev This does not retroactively remove existing participants whose stake is below the new minimum.
-     *  They will be removed naturally when their next withdrawal brings them below the threshold.
      */
     function setMinimumStake(uint256 minimum) external override {
         _checkAccessAllowed("setMinimumStake(uint256)");
@@ -396,26 +344,6 @@ contract PrimeLeaderboard is
         emit XVSVaultPoolConfigSet(rewardToken_, poolId_);
     }
 
-    /**
-     * @notice Pause the contract
-     * @custom:event Emits Paused event
-     * @custom:access Controlled by ACM
-     */
-    function pause() external override {
-        _checkAccessAllowed("pause()");
-        _pause();
-    }
-
-    /**
-     * @notice Unpause the contract
-     * @custom:event Emits Unpaused event
-     * @custom:access Controlled by ACM
-     */
-    function unpause() external override {
-        _checkAccessAllowed("unpause()");
-        _unpause();
-    }
-
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════
 
     /**
@@ -436,14 +364,8 @@ contract PrimeLeaderboard is
         // Add new deposit to the stack
         deposits.push(Deposit({ amount: amount.toUint128(), timestamp: block.timestamp.toUint64(), _reserved: 0 }));
 
-        uint256 oldTotalStaked = totalStaked[user];
-        uint256 newTotalStaked = oldTotalStaked + amount;
+        uint256 newTotalStaked = totalStaked[user] + amount;
         totalStaked[user] = newTotalStaked;
-
-        // Add to participants if crossing minimum threshold
-        if (oldTotalStaked < minimumStake && newTotalStaked >= minimumStake) {
-            _addParticipant(user);
-        }
 
         emit DepositRecorded(user, amount, block.timestamp, newTotalStaked, deposits.length);
     }
@@ -493,11 +415,6 @@ contract PrimeLeaderboard is
         // Track withdrawn score for current round
         _updateWithdrawnScore(user, scoreFromWithdrawal);
 
-        // Remove from participants if falling below minimum
-        if (oldTotalStaked >= minimumStake && newTotalStaked < minimumStake) {
-            _removeParticipant(user);
-        }
-
         emit WithdrawalRecorded(user, amount, scoreFromWithdrawal, newTotalStaked);
     }
 
@@ -520,38 +437,6 @@ contract PrimeLeaderboard is
         }
 
         return BASE_MULTIPLIER;
-    }
-
-    /**
-     * @notice Add a user to the participants list
-     * @param user User address
-     */
-    function _addParticipant(address user) internal {
-        if (_participantIndex[user] == 0) {
-            _participants.push(user);
-            _participantIndex[user] = _participants.length;
-        }
-    }
-
-    /**
-     * @notice Remove a user from the participants list
-     * @param user User address
-     */
-    function _removeParticipant(address user) internal {
-        uint256 indexToRemove = _participantIndex[user];
-        if (indexToRemove == 0) return;
-
-        uint256 lastIndex = _participants.length;
-
-        if (indexToRemove != lastIndex) {
-            // Swap with last element
-            address lastParticipant = _participants[lastIndex - 1];
-            _participants[indexToRemove - 1] = lastParticipant;
-            _participantIndex[lastParticipant] = indexToRemove;
-        }
-
-        _participants.pop();
-        delete _participantIndex[user];
     }
 
     /**

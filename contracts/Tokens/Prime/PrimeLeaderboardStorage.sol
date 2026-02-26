@@ -34,17 +34,9 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice Last known staked amount per user (for xvsUpdated delta inference)
     mapping(address => uint256) internal _lastKnownStake;
 
-    // ═══════════════════ PARTICIPANT TRACKING ═══════════════════
-
-    /// @notice Array of all participants (addresses with stake >= minimum)
-    address[] internal _participants;
-
-    /// @notice Index of participant in array (1-indexed, 0 = not participant)
-    mapping(address => uint256) internal _participantIndex;
-
     // ═══════════════════ CONTRACT STATE ═══════════════════
 
-    /// @notice Minimum XVS stake to be a participant
+    /// @notice Minimum XVS stake for leaderboard eligibility (checked off-chain)
     uint256 public minimumStake;
 
     // ═══════════════════ MULTIPLIER CONFIGURATION ═══════════════════

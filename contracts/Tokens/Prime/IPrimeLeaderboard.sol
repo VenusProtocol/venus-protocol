@@ -109,23 +109,6 @@ interface IPrimeLeaderboard {
     /// @return scores Array of effective stake scores
     function getEffectiveStakeBatch(address[] calldata users) external view returns (uint256[] memory scores);
 
-    // ═══════════════════ LEADERBOARD QUERIES ═══════════════════
-
-    /// @notice Check if a user is a participant (has stake >= minimum)
-    /// @param user The user's address
-    /// @return isParticipant Whether user is a participant
-    function isParticipant(address user) external view returns (bool isParticipant);
-
-    /// @notice Get the total number of participants
-    /// @return count Number of participants
-    function getParticipantCount() external view returns (uint256 count);
-
-    /// @notice Get participants in a range (for off-chain processing)
-    /// @param start Start index
-    /// @param end End index (exclusive)
-    /// @return users Array of participant addresses
-    function getParticipants(uint256 start, uint256 end) external view returns (address[] memory users);
-
     // ═══════════════════ CONFIGURATION ═══════════════════
 
     /// @notice Reset withdrawn score for a user to zero (called by backend after processing)
@@ -158,10 +141,4 @@ interface IPrimeLeaderboard {
     /// @return durations Array of duration thresholds
     /// @return multipliers Array of multiplier values
     function getMultiplierTiers() external view returns (uint256[] memory durations, uint256[] memory multipliers);
-
-    /// @notice Pause the contract
-    function pause() external;
-
-    /// @notice Unpause the contract
-    function unpause() external;
 }
