@@ -121,9 +121,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._supportMarket(vusdt.address);
   await comptroller._supportMarket(veth.address);
   await comptroller._supportMarket(vbnb.address);
-  await comptroller["setLiquidationIncentive(address,uint256)"](vusdt.address, convertToUnit("1", 18));
-  await comptroller["setLiquidationIncentive(address,uint256)"](veth.address, convertToUnit("1", 18));
-  await comptroller["setLiquidationIncentive(address,uint256)"](vbnb.address, convertToUnit("1", 18));
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vusdt.address, convertToUnit("1", 18));
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](veth.address, convertToUnit("1", 18));
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vbnb.address, convertToUnit("1", 18));
 
   //0.2 reserve factor
   await veth.harnessSetReserveFactorFresh(bigNumber16.mul(20));

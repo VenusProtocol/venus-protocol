@@ -10,7 +10,8 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV18Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
+import { ComptrollerV19Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
 
@@ -19,17 +20,14 @@ import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is IFacetBase, ComptrollerV18Storage, ExponentialNoError, ComptrollerErrorReporter {
+contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, ComptrollerErrorReporter {
     using SafeERC20 for IERC20;
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
+
     // poolId for core Pool
     uint96 public constant corePoolId = 0;
-    // closeFactorMantissa must be strictly greater than this value
-    uint256 internal constant closeFactorMinMantissa = 0.05e18; // 0.05
-    // closeFactorMantissa must not exceed this value
-    uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
 
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
@@ -134,9 +132,9 @@ contract FacetBase is IFacetBase, ComptrollerV18Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
-     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @notice Determine what the liquidity would be if the given amounts were redeemed/borrowed on the basis of collateral factor or liquidation threshold
      * @param account The account to determine liquidity for
+     * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
      * @param weightingStrategy The weighting strategy to use:
@@ -164,6 +162,37 @@ contract FacetBase is IFacetBase, ComptrollerV18Storage, ExponentialNoError, Com
             weightingStrategy
         );
         return (Error(err), liquidity, shortfall);
+    }
+
+    /**
+     * @notice Internal function to get a snapshot of the health of an account
+     * @param account The account to get the health snapshot for
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param redeemTokens The number of tokens to hypothetically redeem
+     * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @param weightingStrategy The weighting strategy to use:
+     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
+     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
+     * @return err Error code
+     * @return snapshot Snapshot of the account's health and collateral status
+     * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
+     *  without calculating accumulated interest.
+     */
+    function _getHypotheticalHealthSnapshotInternal(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount,
+        WeightFunction weightingStrategy
+    ) internal view returns (uint256 err, ComptrollerLensInterface.AccountSnapshot memory snapshot) {
+        (err, snapshot) = comptrollerLens.getAccountHealthSnapshot(
+            address(this),
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount,
+            weightingStrategy
+        );
     }
 
     /**
@@ -236,6 +265,20 @@ contract FacetBase is IFacetBase, ComptrollerV18Storage, ExponentialNoError, Com
     }
 
     /**
+     * @notice Get the Effective Liquidation Incentive for a given account and market
+     * @dev The incentive is determined by the pool entered by the account and the specified vToken via
+     *      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the
+     *      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used
+     * @param account The account whose pool is used to determine the market's risk parameters
+     * @param vToken The address of the vToken market
+     * @return The liquidation Incentive for the vToken, scaled by 1e18
+     */
+    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256) {
+        (, , uint256 li) = getLiquidationParams(userPoolId[account], vToken);
+        return li;
+    }
+
+    /**
      * @notice Returns the unique market index for the given poolId and vToken pair
      * @dev Computes a unique key for a (poolId, market) pair used in the `_poolMarkets` mapping
      * - For the core pool (`poolId == 0`), this results in the address being left-padded to 32 bytes,
@@ -282,5 +325,43 @@ contract FacetBase is IFacetBase, ComptrollerV18Storage, ExponentialNoError, Com
         );
 
         return (uint256(err), liquidity, shortfall);
+    }
+
+    /**
+     * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.
+     * @dev If the pool is inactive, or if the vToken is not configured in the given pool and
+     *      `allowCorePoolFallback` is enabled, falls back to the core pool (poolId = 0) values.
+     * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
+     * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
+     * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
+     */
+    function getLiquidationParams(
+        uint96 poolId,
+        address vToken
+    )
+        internal
+        view
+        returns (
+            uint256 collateralFactorMantissa,
+            uint256 liquidationThresholdMantissa,
+            uint256 maxLiquidationIncentiveMantissa
+        )
+    {
+        PoolData storage pool = pools[poolId];
+        Market storage market;
+
+        if (poolId == corePoolId || !pool.isActive) {
+            market = getCorePoolMarket(vToken);
+        } else {
+            PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
+            Market storage poolMarket = _poolMarkets[poolKey];
+            market = (!poolMarket.isListed && pool.allowCorePoolFallback) ? getCorePoolMarket(vToken) : poolMarket;
+        }
+
+        return (
+            market.collateralFactorMantissa,
+            market.liquidationThresholdMantissa,
+            market.maxLiquidationIncentiveMantissa
+        );
     }
 }

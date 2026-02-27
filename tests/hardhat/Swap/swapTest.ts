@@ -137,6 +137,7 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
     reserve1: DEFAULT_RESERVE,
     blockTimestampLast: 0,
   });
+
   vToken.borrowBalanceCurrent.returns(MIN_AMOUNT_OUT);
   wBNB.withdraw.returns();
   wBNB.transfer.returns(true);
@@ -174,7 +175,7 @@ async function getValidDeadline(): Promise<number> {
 describe("Swap Contract", () => {
   let user: SignerWithAddress;
   let vToken: FakeContract<VBep20Immutable>;
-  let wBNB: FakeContract<IWBNB>;
+  let wBNB: MockContract<IWBNB>;
   let swapRouter: MockContract<SwapRouter>;
   let tokenA: FakeContract<EIP20Interface>;
   let tokenB: FakeContract<EIP20Interface>;
@@ -186,6 +187,11 @@ describe("Swap Contract", () => {
     const contracts = await loadFixture(deploySwapContract);
     await configure(contracts, user);
     ({ vToken, wBNB, swapRouter, tokenA, tokenB, dToken, comptroller } = contracts);
+
+    await ethers.provider.send("hardhat_setBalance", [
+      user.address,
+      ethers.utils.hexValue(ethers.utils.parseEther("1000")),
+    ]);
   });
 
   it("revert if vToken address is not listed", async () => {

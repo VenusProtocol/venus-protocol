@@ -119,6 +119,10 @@ const setupLocal = async (): Promise<TokenRedeemerFixture> => {
     [vToken.address, vToken2.address, vBNB.address],
     [ethers.constants.MaxUint256, ethers.constants.MaxUint256, ethers.constants.MaxUint256],
   );
+
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken.address, parseUnits("1.1", 18));
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vToken2.address, parseUnits("1.1", 18));
+  await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](vBNB.address, parseUnits("1.1", 18));
   await comptroller["setCollateralFactor(address,uint256,uint256)"](
     vToken.address,
     parseUnits("0.9", 18),
@@ -175,8 +179,9 @@ const setupFork = async (): Promise<TokenRedeemerFixture> => {
   const underlying2 = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await vToken2.underlying());
   const treasuryAddress = await comptroller.treasuryAddress();
   const treasury = await initMainnetUser(treasuryAddress, SUPPLIED_AMOUNT.mul(2).add(parseEther("3")));
+  // initialize timelock actor on the fork
+  const timelock = await initMainnetUser(addresses.bscmainnet.TIMELOCK, parseUnits("2"));
 
-  const timelock = await initMainnetUser(addresses.bscmainnet.TIMELOCK, parseEther("1"));
   const redeemer = await deployTokenRedeemer(timelock, vBNB);
   await comptroller.connect(timelock)._setMarketSupplyCaps([vToken.address], [ethers.constants.MaxUint256]);
   const actions = { MINT: 0, ENTER_MARKET: 7 };

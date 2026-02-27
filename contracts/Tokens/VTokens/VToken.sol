@@ -9,6 +9,7 @@ import { TokenErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VTokenInterface } from "./VTokenInterfaces.sol";
+import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
 import { MANTISSA_ONE } from "@venusprotocol/solidity-utilities/contracts/constants.sol";
 
 /**
@@ -599,58 +600,28 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint borrowIndexNew;
 
         (mathErr, simpleInterestFactor) = mulScalar(Exp({ mantissa: borrowRateMantissa }), blockDelta);
-        if (mathErr != MathError.NO_ERROR) {
-            return
-                failOpaque(
-                    Error.MATH_ERROR,
-                    FailureInfo.ACCRUE_INTEREST_SIMPLE_INTEREST_FACTOR_CALCULATION_FAILED,
-                    uint(mathErr)
-                );
-        }
+        if (checkMathError(mathErr, FailureInfo.ACCRUE_INTEREST_SIMPLE_INTEREST_FACTOR_CALCULATION_FAILED))
+            return uint(Error.MATH_ERROR);
 
         (mathErr, interestAccumulated) = mulScalarTruncate(simpleInterestFactor, borrowsPrior);
-        if (mathErr != MathError.NO_ERROR) {
-            return
-                failOpaque(
-                    Error.MATH_ERROR,
-                    FailureInfo.ACCRUE_INTEREST_ACCUMULATED_INTEREST_CALCULATION_FAILED,
-                    uint(mathErr)
-                );
-        }
+        if (checkMathError(mathErr, FailureInfo.ACCRUE_INTEREST_ACCUMULATED_INTEREST_CALCULATION_FAILED))
+            return uint(Error.MATH_ERROR);
 
         (mathErr, totalBorrowsNew) = addUInt(interestAccumulated, borrowsPrior);
-        if (mathErr != MathError.NO_ERROR) {
-            return
-                failOpaque(
-                    Error.MATH_ERROR,
-                    FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_BORROWS_CALCULATION_FAILED,
-                    uint(mathErr)
-                );
-        }
+        if (checkMathError(mathErr, FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_BORROWS_CALCULATION_FAILED))
+            return uint(Error.MATH_ERROR);
 
         (mathErr, totalReservesNew) = mulScalarTruncateAddUInt(
             Exp({ mantissa: reserveFactorMantissa }),
             interestAccumulated,
             reservesPrior
         );
-        if (mathErr != MathError.NO_ERROR) {
-            return
-                failOpaque(
-                    Error.MATH_ERROR,
-                    FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_RESERVES_CALCULATION_FAILED,
-                    uint(mathErr)
-                );
-        }
+        if (checkMathError(mathErr, FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_RESERVES_CALCULATION_FAILED))
+            return uint(Error.MATH_ERROR);
 
         (mathErr, borrowIndexNew) = mulScalarTruncateAddUInt(simpleInterestFactor, borrowIndexPrior, borrowIndexPrior);
-        if (mathErr != MathError.NO_ERROR) {
-            return
-                failOpaque(
-                    Error.MATH_ERROR,
-                    FailureInfo.ACCRUE_INTEREST_NEW_BORROW_INDEX_CALCULATION_FAILED,
-                    uint(mathErr)
-                );
-        }
+        if (checkMathError(mathErr, FailureInfo.ACCRUE_INTEREST_NEW_BORROW_INDEX_CALCULATION_FAILED))
+            return uint(Error.MATH_ERROR);
 
         /////////////////////////
         // EFFECTS & INTERACTIONS
@@ -823,29 +794,29 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Do the calculations, checking for {under,over}flow */
         MathError mathErr;
         uint allowanceNew;
-        uint srvTokensNew;
+        uint srcTokensNew;
         uint dstTokensNew;
 
         (mathErr, allowanceNew) = subUInt(startingAllowance, tokens);
-        if (mathErr != MathError.NO_ERROR) {
-            return fail(Error.MATH_ERROR, FailureInfo.TRANSFER_NOT_ALLOWED);
+        if (checkMathError(mathErr, FailureInfo.TRANSFER_NOT_ALLOWED)) {
+            return uint(Error.MATH_ERROR);
         }
 
-        (mathErr, srvTokensNew) = subUInt(accountTokens[src], tokens);
-        if (mathErr != MathError.NO_ERROR) {
-            return fail(Error.MATH_ERROR, FailureInfo.TRANSFER_NOT_ENOUGH);
+        (mathErr, srcTokensNew) = subUInt(accountTokens[src], tokens);
+        if (checkMathError(mathErr, FailureInfo.TRANSFER_NOT_ENOUGH)) {
+            return uint(Error.MATH_ERROR);
         }
 
         (mathErr, dstTokensNew) = addUInt(accountTokens[dst], tokens);
-        if (mathErr != MathError.NO_ERROR) {
-            return fail(Error.MATH_ERROR, FailureInfo.TRANSFER_TOO_MUCH);
+        if (checkMathError(mathErr, FailureInfo.TRANSFER_TOO_MUCH)) {
+            return uint(Error.MATH_ERROR);
         }
 
         /////////////////////////
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
 
-        accountTokens[src] = srvTokensNew;
+        accountTokens[src] = srcTokensNew;
         accountTokens[dst] = dstTokensNew;
 
         /* Eat some of the allowance (if necessary) */
@@ -875,82 +846,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         // mintFresh emits the actual Mint event if successful and logs on errors, so we don't need to
-        return mintFresh(msg.sender, mintAmount);
-    }
-
-    /**
-     * @notice User supplies assets into the market and receives vTokens in exchange
-     * @dev Assumes interest has already been accrued up to the current block
-     * @param minter The address of the account which is supplying the assets
-     * @param mintAmount The amount of the underlying asset to supply
-     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
-     */
-    function mintFresh(address minter, uint mintAmount) internal returns (uint, uint) {
-        /* Fail if mint not allowed */
-        uint allowed = comptroller.mintAllowed(address(this), minter, mintAmount);
-        if (allowed != 0) {
-            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.MINT_COMPTROLLER_REJECTION, allowed), 0);
-        }
-
-        /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != block.number) {
-            return (fail(Error.MARKET_NOT_FRESH, FailureInfo.MINT_FRESHNESS_CHECK), 0);
-        }
-
-        MintLocalVars memory vars;
-
-        (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
-        if (vars.mathErr != MathError.NO_ERROR) {
-            return (failOpaque(Error.MATH_ERROR, FailureInfo.MINT_EXCHANGE_RATE_READ_FAILED, uint(vars.mathErr)), 0);
-        }
-
-        /////////////////////////
-        // EFFECTS & INTERACTIONS
-        // (No safe failures beyond this point)
-
-        /*
-         *  We call `doTransferIn` for the minter and the mintAmount.
-         *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
-         *  `doTransferIn` reverts if anything goes wrong, since we can't be sure if
-         *  side-effects occurred. The function returns the amount actually transferred,
-         *  in case of a fee. On success, the vToken holds an additional `actualMintAmount`
-         *  of cash.
-         */
-        vars.actualMintAmount = doTransferIn(minter, mintAmount);
-
-        /*
-         * We get the current exchange rate and calculate the number of vTokens to be minted:
-         *  mintTokens = actualMintAmount / exchangeRate
-         */
-
-        (vars.mathErr, vars.mintTokens) = divScalarByExpTruncate(
-            vars.actualMintAmount,
-            Exp({ mantissa: vars.exchangeRateMantissa })
-        );
-        ensureNoMathError(vars.mathErr);
-
-        /*
-         * We calculate the new total supply of vTokens and minter token balance, checking for overflow:
-         *  totalSupplyNew = totalSupply + mintTokens
-         *  accountTokensNew = accountTokens[minter] + mintTokens
-         */
-        (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
-        ensureNoMathError(vars.mathErr);
-        (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
-        ensureNoMathError(vars.mathErr);
-
-        /* We write previously calculated values into storage */
-        totalSupply = vars.totalSupplyNew;
-        accountTokens[minter] = vars.accountTokensNew;
-
-        /* We emit a Mint event, and a Transfer event */
-        emit Mint(minter, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
-        emit Transfer(address(this), minter, vars.mintTokens);
-
-        /* We call the defense and prime accrue interest hook */
-        comptroller.mintVerify(address(this), minter, vars.actualMintAmount, vars.mintTokens);
-
-        return (uint(Error.NO_ERROR), vars.actualMintAmount);
+        // return mintFresh(msg.sender, mintAmount);
+        return _mintFresh(msg.sender, msg.sender, mintAmount);
     }
 
     /**
@@ -968,7 +865,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         // mintBehalfFresh emits the actual Mint event if successful and logs on errors, so we don't need to
-        return mintBehalfFresh(msg.sender, receiver, mintAmount);
+        return _mintFresh(msg.sender, receiver, mintAmount);
     }
 
     /**
@@ -979,7 +876,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param mintAmount The amount of the underlying asset to supply
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
-    function mintBehalfFresh(address payer, address receiver, uint mintAmount) internal returns (uint, uint) {
+    function _mintFresh(address payer, address receiver, uint mintAmount) internal returns (uint, uint) {
         ensureNonZeroAddress(receiver);
         /* Fail if mint not allowed */
         uint allowed = comptroller.mintAllowed(address(this), receiver, mintAmount);
@@ -995,8 +892,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         MintLocalVars memory vars;
 
         (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
-        if (vars.mathErr != MathError.NO_ERROR) {
-            return (failOpaque(Error.MATH_ERROR, FailureInfo.MINT_EXCHANGE_RATE_READ_FAILED, uint(vars.mathErr)), 0);
+        if (checkMathError(vars.mathErr, FailureInfo.MINT_EXCHANGE_RATE_READ_FAILED)) {
+            return (uint(Error.MATH_ERROR), 0);
         }
 
         /////////////////////////
@@ -1039,8 +936,12 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalSupply = vars.totalSupplyNew;
         accountTokens[receiver] = vars.accountTokensNew;
 
-        /* We emit a MintBehalf event, and a Transfer event */
-        emit MintBehalf(payer, receiver, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
+        /* We emit a Mint or MintBehalf event, and a Transfer event */
+        if (payer == receiver) {
+            emit Mint(payer, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
+        } else {
+            emit MintBehalf(payer, receiver, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
+        }
         emit Transfer(address(this), receiver, vars.mintTokens);
 
         /* We call the defense and prime accrue interest hook */
@@ -1400,12 +1301,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             );
         }
 
-        /* If repayAmount == type(uint256).max, repayAmount = accountBorrows */
-        if (repayAmount == type(uint256).max) {
-            vars.repayAmount = vars.accountBorrows;
-        } else {
-            vars.repayAmount = repayAmount;
-        }
+        // caps the repayAmount to the actual owed amount
+        vars.repayAmount = repayAmount >= vars.accountBorrows ? vars.accountBorrows : repayAmount;
 
         /////////////////////////
         // EFFECTS & INTERACTIONS
@@ -1472,6 +1369,144 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         // liquidateBorrowFresh emits borrow-specific logs on errors, so we don't need to
         return liquidateBorrowFresh(msg.sender, borrower, repayAmount, vTokenCollateral);
+    }
+
+    /**
+     * @notice The sender liquidates the borrowers collateral.
+     *  The collateral seized is transferred to the liquidator.
+     * @param borrower The borrower of this vToken to be liquidated
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param repayAmount The amount of the underlying borrowed asset to repay
+     * @param snapshot The account snapshot of the borrower
+     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     */
+    function liquidateBorrowInternal(
+        address borrower,
+        uint repayAmount,
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) internal nonReentrant returns (uint, uint) {
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
+            return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
+        }
+
+        error = vTokenCollateral.accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
+            return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
+        }
+
+        // liquidateBorrowFresh emits borrow-specific logs on errors, so we don't need to
+        return liquidateBorrowFresh(msg.sender, borrower, repayAmount, vTokenCollateral, snapshot);
+    }
+
+    /**
+     * @notice The liquidator liquidates the borrowers collateral.
+     *  The collateral seized is transferred to the liquidator.
+     * @param liquidator The address repaying the borrow and seizing collateral
+     * @param borrower The borrower of this vToken to be liquidated
+     * @param repayAmount The amount of the underlying borrowed asset to repay
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param snapshot The account snapshot of the borrower
+     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     */
+    // solhint-disable-next-line code-complexity
+    function liquidateBorrowFresh(
+        address liquidator,
+        address borrower,
+        uint repayAmount,
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
+    ) internal returns (uint, uint) {
+        /* Fail if liquidate not allowed */
+        uint errorCode;
+        errorCode = comptroller.liquidateBorrowAllowed(
+            address(this),
+            address(vTokenCollateral),
+            liquidator,
+            borrower,
+            repayAmount,
+            snapshot
+        );
+        if (errorCode != 0) {
+            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.LIQUIDATE_COMPTROLLER_REJECTION, errorCode), 0);
+        }
+
+        /* Verify market's block number equals current block number */
+        if (accrualBlockNumber != block.number) {
+            return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_FRESHNESS_CHECK), 0);
+        }
+
+        /* Verify vTokenCollateral market's block number equals current block number */
+        if (vTokenCollateral.accrualBlockNumber() != block.number) {
+            return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
+        }
+
+        /* Fail if borrower = liquidator */
+        if (borrower == liquidator) {
+            return (fail(Error.INVALID_ACCOUNT_PAIR, FailureInfo.LIQUIDATE_LIQUIDATOR_IS_BORROWER), 0);
+        }
+
+        /* Fail if repayAmount = 0 */
+        if (repayAmount == 0) {
+            return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
+        }
+
+        /* Fail if repayAmount = -1 */
+        if (repayAmount == type(uint256).max) {
+            return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
+        }
+
+        /* Fail if repayBorrow fails */
+        uint actualRepayAmount;
+        (errorCode, actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
+        if (errorCode != uint(Error.NO_ERROR)) {
+            return (fail(Error(errorCode), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
+        }
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        /* We calculate the number of collateral tokens that will be seized */
+        uint seizeTokens;
+        (errorCode, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
+            address(this),
+            address(vTokenCollateral),
+            actualRepayAmount,
+            snapshot.dynamicLiquidationIncentiveMantissa
+        );
+        require(errorCode == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
+
+        /* Revert if borrower collateral token balance < seizeTokens */
+        require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
+
+        // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
+        if (address(vTokenCollateral) == address(this)) {
+            errorCode = seizeInternal(address(this), liquidator, borrower, seizeTokens);
+        } else {
+            errorCode = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
+        }
+
+        /* Revert if seize tokens fails (since we cannot be sure of side effects) */
+        require(errorCode == uint(Error.NO_ERROR), "token seizure failed");
+
+        /* We emit a LiquidateBorrow event */
+        emit LiquidateBorrow(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
+
+        /* We call the defense and prime accrue interest hook */
+        comptroller.liquidateBorrowVerify(
+            address(this),
+            address(vTokenCollateral),
+            liquidator,
+            borrower,
+            actualRepayAmount,
+            seizeTokens
+        );
+
+        return (uint(Error.NO_ERROR), actualRepayAmount);
     }
 
     /**
@@ -1911,6 +1946,14 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function ensureNonZeroAddress(address address_) private pure {
         require(address_ != address(0), "zero address");
+    }
+
+    function checkMathError(MathError mathErr, FailureInfo info) private returns (bool) {
+        if (mathErr != MathError.NO_ERROR) {
+            failOpaque(Error.MATH_ERROR, info, uint(mathErr));
+            return true;
+        }
+        return false;
     }
 
     /*** Safe Token ***/

@@ -18,12 +18,14 @@ interface IMarketFacet {
     function liquidateCalculateSeizeTokens(
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256);
 
     function checkMembership(address account, VToken vToken) external view returns (bool);
@@ -66,7 +68,7 @@ interface IMarketFacet {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );
@@ -82,7 +84,7 @@ interface IMarketFacet {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         );
@@ -95,13 +97,20 @@ interface IMarketFacet {
 
     function getLiquidationIncentive(address vToken) external view returns (uint256);
 
+    function getDynamicLiquidationIncentive(address borrower, address vToken) external view returns (uint256);
+
+    function getDynamicLiquidationIncentive(
+        address vToken,
+        address borrower,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256);
+
     function getEffectiveLtvFactor(
         address account,
         address vToken,
         WeightFunction weightingStrategy
     ) external view returns (uint256);
-
-    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
 
     function getPoolVTokens(uint96 poolId) external view returns (address[] memory);
 }

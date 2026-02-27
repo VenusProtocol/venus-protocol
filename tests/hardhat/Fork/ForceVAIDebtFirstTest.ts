@@ -1,12 +1,16 @@
-import { FakeContract, smock } from "@defi-wonderland/smock";
+import { smock } from "@defi-wonderland/smock";
 import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Signer } from "ethers";
 
 import { convertToUnit } from "../../../helpers/utils";
+import { FacetCutAction, getSelectors } from "../../../script/deploy/comptroller/diamond";
 import {
-  ComptrollerHarness as Comptroller,
+  ComptrollerMock,
+  ComptrollerMock__factory,
   ComptrollerHarness__factory as Comptroller__factory,
+  Diamond,
+  Diamond__factory,
   FaucetToken__factory,
   IAccessControlManagerV8__factory,
   IProtocolShareReserve,
@@ -14,6 +18,7 @@ import {
   Liquidator__factory,
   PriceOracle,
   ProxyAdmin__factory,
+  Unitroller__factory,
   VAI,
   VAIController,
   VAIController__factory,
@@ -48,10 +53,76 @@ let impersonatedTimelock: Signer;
 let accessControlManager: IAccessControlManagerV8;
 let liquidatorOld: Liquidator;
 let liquidatorNew: Liquidator;
-let comptroller: Comptroller;
+let comptroller: ComptrollerMock;
 let vaiController: VAIController;
 let vai: VAI;
-let protocolShareReserve: FakeContract<IProtocolShareReserve>;
+let diamond: Diamond;
+
+async function upgradeComptroller() {
+  const DiamondFactory = await ethers.getContractFactory("Diamond");
+  const newDiamond = await DiamondFactory.deploy();
+
+  const Unitroller = Unitroller__factory.connect(UNITROLLER, impersonatedTimelock);
+  await Unitroller._setPendingImplementation(newDiamond.address);
+  await newDiamond.connect(impersonatedTimelock)._become(Unitroller.address);
+
+  diamond = Diamond__factory.connect(UNITROLLER, impersonatedTimelock);
+
+  // remove existing facets (excluding reward which has no changes)
+  const excludeFacets = ["0xc2F6bDCEa4907E8CB7480d3d315bc01c125fb63C"];
+  const cut: any[] = [];
+
+  const facets = await diamond.facets();
+  for (const facet of facets) {
+    if (excludeFacets.includes(facet.facetAddress)) continue;
+    cut.push({
+      facetAddress: ethers.constants.AddressZero,
+      action: FacetCutAction.Remove,
+      functionSelectors: facet.functionSelectors,
+    });
+  }
+
+  await diamond.diamondCut(cut);
+  cut.length = 0; // clear array
+
+  // deploy and add new facets
+  const FacetNames = ["MarketFacet", "PolicyFacet", "SetterFacet"];
+  for (const FacetName of FacetNames) {
+    const Facet = await ethers.getContractFactory(FacetName);
+    const facet = await Facet.deploy();
+    await facet.deployed();
+
+    const facetInterface = await ethers.getContractAt(`I${FacetName}`, facet.address);
+    cut.push({
+      facetAddress: facet.address,
+      action: FacetCutAction.Add,
+      functionSelectors: getSelectors(facetInterface),
+    });
+
+    if (FacetName === "MarketFacet") {
+      const baseIface = await ethers.getContractAt("IFacetBase", facet.address);
+      let selectors = getSelectors(baseIface);
+      // exclude duplicate selectors
+      selectors = selectors.filter(x => !["0xbf32442d", "0xe85a2960"].includes(x));
+      cut.push({
+        facetAddress: facet.address,
+        action: FacetCutAction.Add,
+        functionSelectors: selectors,
+      });
+    }
+  }
+
+  await diamond.diamondCut(cut);
+
+  comptroller = ComptrollerMock__factory.connect(UNITROLLER, impersonatedTimelock);
+
+  // set updated lens
+  const ComptrollerLens = await ethers.getContractFactory("ComptrollerLens");
+  const lens = await ComptrollerLens.deploy();
+  await comptroller._setComptrollerLens(lens.address);
+
+  return comptroller;
+}
 
 async function deployAndConfigureLiquidator() {
   /*
@@ -61,22 +132,47 @@ async function deployAndConfigureLiquidator() {
   impersonatedTimelock = await ethers.getSigner(NORMAL_TIMELOCK);
   await setBalance(NORMAL_TIMELOCK, ethers.utils.parseEther("2"));
 
+  comptroller = await upgradeComptroller();
+
+  const comptrollerLensFactory = await ethers.getContractFactory("ComptrollerLens");
+  const comptrollerLens = await comptrollerLensFactory.deploy();
+  await comptrollerLens.deployed();
+
+  accessControlManager = await IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
+  const tx = await accessControlManager
+    .connect(impersonatedTimelock)
+    .giveCallPermission(UNITROLLER, "setLiquidationManager(address)", NORMAL_TIMELOCK);
+  await tx.wait();
+
+  const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
+
+  // constructor parameters
+  const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+  const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+  const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+
+  const liquidationManager = await LiquidationManager.deploy(
+    baseCloseFactorMantissa,
+    defaultCloseFactorMantissa,
+    targetHealthFactor,
+  );
+  await liquidationManager.deployed();
+  await liquidationManager.initialize(accessControlManager.address);
+
+  await comptroller.setLiquidationManager(liquidationManager.address);
+
+  // const vBNB = await deployVBNB({ comptroller });
   const liquidatorNewFactory = await ethers.getContractFactory("Liquidator");
-  const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB);
+  const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB, comptrollerLens.address);
 
   const proxyAdmin = ProxyAdmin__factory.connect("0x2b40B43AC5F7949905b0d2Ed9D6154a8ce06084a", impersonatedTimelock);
   protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
 
-  const data = liquidatorNewImpl.interface.encodeFunctionData("initialize", [
-    convertToUnit(5, 16),
-    ACM,
-    protocolShareReserve.address,
-  ]);
-  await proxyAdmin.connect(impersonatedTimelock).upgradeAndCall(LIQUIDATOR, liquidatorNewImpl.address, data),
-    { value: "1000000000" };
+  await proxyAdmin.connect(impersonatedTimelock).upgrade(LIQUIDATOR, liquidatorNewImpl.address);
 
   liquidatorNew = Liquidator__factory.connect(LIQUIDATOR, impersonatedTimelock);
 }
+
 async function grantPermissions() {
   accessControlManager = await IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
   let tx = await accessControlManager
@@ -115,12 +211,14 @@ async function configureOldliquidator() {
   await setBalance(NORMAL_TIMELOCK, ethers.utils.parseEther("2"));
   liquidatorOld = Liquidator__factory.connect(LIQUIDATOR, impersonatedTimelock);
 }
+
 async function configure() {
+  await setForkBlock(58948164);
   await deployAndConfigureLiquidator();
   // await deployAndConfigureComptroller();
   await grantPermissions();
   vai = VAI__factory.connect("0x4bd17003473389a42daf6a0a729f6fdb328bbbd7", impersonatedTimelock);
-  comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
+  // comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
   vaiController = VAIController__factory.connect(VAI_CONTROLLER, impersonatedTimelock);
   await liquidatorNew.connect(impersonatedTimelock).setPendingRedeemChunkLength(5);
   await liquidatorNew.connect(impersonatedTimelock).resumeForceVAILiquidate();
@@ -130,7 +228,7 @@ async function configure() {
 if (FORK_MAINNET) {
   describe("FORCE VAI DEBT FIRST TEST", async () => {
     it("Should match storage slots", async () => {
-      const blockNumber = 31937695;
+      const blockNumber = 58948164;
       await setForkBlock(blockNumber);
       await configureOldliquidator();
       await configure();

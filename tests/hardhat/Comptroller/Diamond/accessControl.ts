@@ -67,17 +67,57 @@ describe("Comptroller", () => {
           "setCollateralFactor(address,uint256,uint256)",
         );
       });
-    });
 
-    describe("setLiquidationIncentive", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user)["setLiquidationIncentive(address,uint256)"](ethers.constants.AddressZero, 1),
+          comptroller
+            .connect(user)
+            ["setCollateralFactor(uint96,address,uint256,uint256)"](1, ethers.constants.AddressZero, 1, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "setLiquidationIncentive(address,uint256)",
+          "setCollateralFactor(uint96,address,uint256,uint256)",
         );
+      });
+    });
+
+    describe("setMarketMaxLiquidaitonIncentive", () => {
+      it("Should have AccessControl", async () => {
+        await expect(
+          comptroller
+            .connect(user)
+            ["setMarketMaxLiquidationIncentive(address,uint256)"](ethers.constants.AddressZero, 1),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "setMarketMaxLiquidationIncentive(address,uint256)",
+        );
+      });
+
+      it("Should have AccessControl", async () => {
+        await expect(
+          comptroller
+            .connect(user)
+            ["setMarketMaxLiquidationIncentive(uint96,address,uint256)"](1, ethers.constants.AddressZero, 1),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "setMarketMaxLiquidationIncentive(uint96,address,uint256)",
+        );
+      });
+    });
+
+    describe("setLiquidationManager", () => {
+      let liquidationModule: FakeContract;
+      beforeEach(async () => {
+        liquidationModule = await smock.fake("LiquidationManager");
+      });
+
+      it("Should have AccessControl", async () => {
+        await expect(comptroller.connect(user).setLiquidationManager(liquidationModule.address)).to.be.revertedWith(
+          "access denied",
+        );
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "setLiquidationManager(address)");
       });
     });
 
@@ -91,6 +131,7 @@ describe("Comptroller", () => {
         );
       });
     });
+
     describe("setMarketSupplyCaps", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setMarketSupplyCaps([], [])).to.be.revertedWith("access denied");
@@ -100,12 +141,14 @@ describe("Comptroller", () => {
         );
       });
     });
+
     describe("setProtocolPaused", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setProtocolPaused(true)).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setProtocolPaused(bool)");
       });
     });
+
     describe("setActionsPaused", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setActionsPaused([], [], true)).to.be.revertedWith("access denied");
@@ -115,6 +158,7 @@ describe("Comptroller", () => {
         );
       });
     });
+
     describe("_supportMarket", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._supportMarket(ethers.constants.AddressZero)).to.be.revertedWith(

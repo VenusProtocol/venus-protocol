@@ -66,7 +66,6 @@ async function deploySimpleComptroller() {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(parseUnits("1", 18));
   return { oracle, comptroller, comptrollerLens, accessControl };
 }
 
@@ -195,7 +194,6 @@ if (FORK_MAINNET) {
           await comptroller._supportMarket(vBUSD.address);
           await comptroller._supportMarket(vUSDT.address);
           await comptroller._supportMarket(vBNB.address);
-          await comptroller._setPriceOracle(oracle.address);
           await expect(comptroller.connect(usdtUser).enterMarkets([vBUSD.address])).to.emit(
             comptroller,
             "MarketEntered",
@@ -207,9 +205,9 @@ if (FORK_MAINNET) {
           await comptroller._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
           await comptroller._setMarketSupplyCaps([vUSDT.address], [parseUnits("100000", 18)]);
           await comptroller._setMarketSupplyCaps([vBNB.address], [parseUnits("100000", 18)]);
-          await comptroller._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
-          await comptroller._setCollateralFactor(vUSDT.address, parseUnits("0.5", 18));
-          await comptroller._setCollateralFactor(vBNB.address, parseUnits("0.5", 18));
+          await comptroller.setCollateralFactor(vBUSD.address, parseUnits("0.7", 18), parseUnits("0.7", 18));
+          await comptroller.setCollateralFactor(vUSDT.address, parseUnits("0.5", 18), parseUnits("0.5", 18));
+          await comptroller.setCollateralFactor(vBNB.address, parseUnits("0.5", 18), parseUnits("0.5", 18));
 
           const [signer] = await ethers.getSigners();
           await signer.sendTransaction({
@@ -591,9 +589,9 @@ if (FORK_MAINNET) {
           await comptroller._setMarketSupplyCaps([vSFM.address], [parseUnits("100000", 18)]);
           await comptroller._setMarketSupplyCaps([vBNB.address], [parseUnits("100000", 18)]);
 
-          await comptroller._setCollateralFactor(vBabyDoge.address, parseUnits("0.7", 18));
-          await comptroller._setCollateralFactor(vSFM.address, parseUnits("0.5", 18));
-          await comptroller._setCollateralFactor(vBNB.address, parseUnits("0.5", 18));
+          await comptroller.setCollateralFactor(vBabyDoge.address, parseUnits("0.7", 18), parseUnits("0.7", 18));
+          await comptroller.setCollateralFactor(vSFM.address, parseUnits("0.5", 18), parseUnits("0.5", 18));
+          await comptroller.setCollateralFactor(vBNB.address, parseUnits("0.5", 18), parseUnits("0.5", 18));
 
           const [signer] = await ethers.getSigners();
           await signer.sendTransaction({

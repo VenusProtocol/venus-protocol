@@ -179,7 +179,7 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @param vTokenCollateral The vToken representing the collateral asset
     /// @return effectiveIncentiveMantissa The incentive after accounting the Liquidatior Contract treasury share
     function _getEffectiveIncentive(address borrower, address vTokenCollateral) internal view returns (uint256) {
-        uint256 totalIncentive = comptroller.getEffectiveLiquidationIncentive(borrower, vTokenCollateral);
+        uint256 totalIncentive = comptroller.getDynamicLiquidationIncentive(borrower, vTokenCollateral);
         uint256 treasuryPercent = ILiquidator(comptroller.liquidatorContract()).treasuryPercentMantissa();
 
         // Bonus portion after subtracting treasury share

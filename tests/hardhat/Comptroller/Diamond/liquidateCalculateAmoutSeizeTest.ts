@@ -28,11 +28,13 @@ async function calculateSeizeTokens(
   vTokenBorrowed: FakeContract<VBep20Immutable>,
   vTokenCollateral: FakeContract<VBep20Immutable>,
   repayAmount: BigNumberish,
+  liquidationIncentiveMantissa: BigNumberish,
 ) {
-  return comptroller["liquidateCalculateSeizeTokens(address,address,uint256)"](
+  return comptroller["liquidateCalculateSeizeTokens(address,address,uint256,uint256)"](
     vTokenBorrowed.address,
     vTokenCollateral.address,
     repayAmount,
+    liquidationIncentiveMantissa,
   );
 }
 
@@ -67,9 +69,26 @@ describe("Comptroller", () => {
     const comptrollerLens = await ComptrollerLensFactory.deploy();
     const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
+
+    const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
+
+    // constructor parameters
+    const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+    const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+    const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+
+    const liquidationManager = await LiquidationManager.deploy(
+      baseCloseFactorMantissa,
+      defaultCloseFactorMantissa,
+      targetHealthFactor,
+    );
+    await liquidationManager.deployed();
+    await liquidationManager.initialize(accessControl.address);
+
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
+    await comptroller.setLiquidationManager(liquidationManager.address);
 
     const vTokenBorrowed = await smock.fake<VBep20Immutable>(
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
@@ -80,8 +99,14 @@ describe("Comptroller", () => {
 
     await comptroller._supportMarket(vTokenBorrowed.address);
     await comptroller._supportMarket(vTokenCollateral.address);
-    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenBorrowed.address, convertToUnit("1.1", 18));
-    await comptroller["setLiquidationIncentive(address,uint256)"](vTokenCollateral.address, convertToUnit("1.1", 18));
+    await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](
+      vTokenBorrowed.address,
+      convertToUnit("1.1", 18),
+    );
+    await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](
+      vTokenCollateral.address,
+      convertToUnit("1.1", 18),
+    );
 
     return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
@@ -91,6 +116,7 @@ describe("Comptroller", () => {
     for (const vToken of [vTokenBorrowed, vTokenCollateral]) {
       vToken.comptroller.returns(comptroller.address);
       vToken.isVToken.returns(true);
+      await comptroller._supportMarket(vToken.address);
     }
 
     vTokenCollateral.exchangeRateStored.returns(5e9);
@@ -105,28 +131,51 @@ describe("Comptroller", () => {
   });
 
   describe("liquidateCalculateAmountSeize", () => {
+    const liquidationIncentiveMantissa = convertToUnit("1.1", 18);
+
     it("fails if borrowed asset price is 0", async () => {
       setOraclePrice(vTokenBorrowed, 0);
-      const [err, result] = await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount);
+      const [err, result] = await calculateSeizeTokens(
+        comptroller,
+        vTokenBorrowed,
+        vTokenCollateral,
+        repayAmount,
+        liquidationIncentiveMantissa,
+      );
       expect(err).to.equal(ComptrollerErrorReporter.Error.PRICE_ERROR);
       expect(result).to.equal(0);
     });
 
     it("fails if collateral asset price is 0", async () => {
       setOraclePrice(vTokenCollateral, 0);
-      const [err, result] = await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount);
+      const [err, result] = await calculateSeizeTokens(
+        comptroller,
+        vTokenBorrowed,
+        vTokenCollateral,
+        repayAmount,
+        liquidationIncentiveMantissa,
+      );
       expect(err).to.equal(ComptrollerErrorReporter.Error.PRICE_ERROR);
       expect(result).to.equal(0);
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256)).to.be
-        .reverted;
+      await expect(
+        calculateSeizeTokens(
+          comptroller,
+          vTokenBorrowed,
+          vTokenCollateral,
+          constants.MaxUint256,
+          liquidationIncentiveMantissa,
+        ),
+      ).to.be.reverted;
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {
       setOraclePrice(vTokenBorrowed, constants.MaxUint256);
-      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.reverted;
+      await expect(
+        calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount, liquidationIncentiveMantissa),
+      ).to.be.reverted;
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {
@@ -134,10 +183,11 @@ describe("Comptroller", () => {
       ethers.provider.getBlockNumber();
       /// TODO: Somehow the error message does not get propagated into the resulting tx. Smock bug?
       await expect(
-        comptroller["liquidateCalculateSeizeTokens(address,address,uint256)"](
+        comptroller["liquidateCalculateSeizeTokens(address,address,uint256,uint256)"](
           vTokenBorrowed.address,
           vTokenCollateral.address,
           repayAmount,
+          liquidationIncentiveMantissa,
         ),
       ).to.be.reverted; // revertedWith("exchangeRateStored: exchangeRateStoredInternal failed");
     });
@@ -157,13 +207,22 @@ describe("Comptroller", () => {
 
         setOraclePrice(vTokenCollateral, collateralPrice);
         setOraclePrice(vTokenBorrowed, borrowedPrice);
-        await comptroller["setLiquidationIncentive(address,uint256)"](vTokenCollateral.address, liquidationIncentive);
+        await comptroller["setMarketMaxLiquidationIncentive(address,uint256)"](
+          vTokenCollateral.address,
+          liquidationIncentive,
+        );
         vTokenCollateral.exchangeRateStored.returns(exchangeRate);
 
         const seizeAmount = (repayAmount * liquidationIncentive * borrowedPrice) / collateralPrice;
         const seizeTokens = seizeAmount / exchangeRate;
 
-        const [err, result] = await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount);
+        const [err, result] = await calculateSeizeTokens(
+          comptroller,
+          vTokenBorrowed,
+          vTokenCollateral,
+          repayAmount,
+          liquidationIncentive,
+        );
         expect(err).to.equal(ComptrollerErrorReporter.Error.NO_ERROR);
         expect(Number(result)).to.be.approximately(Number(seizeTokens), 1e7);
       });

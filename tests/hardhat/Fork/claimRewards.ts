@@ -53,7 +53,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
-  await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
 
   const vusdt = await ethers.getContractAt("VBep20Harness", VUSDT_ADDRESS);
   const timeLockUser = await initMainnetUser(TIMELOCK_ADDRESS);
@@ -79,9 +78,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const half = convertToUnit("0.5", 18);
 
   await comptroller._supportMarket(VUSDT_ADDRESS);
-  await comptroller._setCollateralFactor(VUSDT_ADDRESS, half);
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](VUSDT_ADDRESS, half, half);
   await comptroller._supportMarket(VETH_ADDRESS);
-  await comptroller._setCollateralFactor(VETH_ADDRESS, half);
+  await comptroller["setCollateralFactor(address,uint256,uint256)"](VETH_ADDRESS, half, half);
 
   await comptroller._setMarketSupplyCaps(
     [VUSDT_ADDRESS, VETH_ADDRESS],
@@ -91,6 +90,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     [VUSDT_ADDRESS, VETH_ADDRESS],
     [parseUnits("10000", 30), parseUnits("10000", 30)],
   );
+  await comptroller._setXVSToken(XVS_ADDRESS);
 
   return {
     oracle,

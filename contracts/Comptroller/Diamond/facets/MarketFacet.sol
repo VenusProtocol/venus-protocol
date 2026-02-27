@@ -8,6 +8,7 @@ import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { WeightFunction } from "../interfaces/IFacetBase.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title MarketFacet
@@ -86,29 +87,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
-     * @param vTokenBorrowed The address of the borrowed vToken
-     * @param vTokenCollateral The address of the collateral vToken
-     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
-     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
-     */
-    function liquidateCalculateSeizeTokens(
-        address vTokenBorrowed,
-        address vTokenCollateral,
-        uint256 actualRepayAmount
-    ) external view returns (uint256, uint256) {
-        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            address(this),
-            vTokenBorrowed,
-            vTokenCollateral,
-            actualRepayAmount
-        );
-        return (err, seizeTokens);
-    }
-
-    /**
-     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
-     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
-     * @param borrower Address of borrower whose collateral is being seized
+     * @param borrower The address of the borrower to be liquidated
      * @param vTokenBorrowed The address of the borrowed vToken
      * @param vTokenCollateral The address of the collateral vToken
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
@@ -132,19 +111,48 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev This will be used only in vBNB
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param vTokenBorrowed The address of the borrowed vToken
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @param liquidationIncentiveMantissa The liquidation incentive to apply
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
+    ) external view returns (uint256, uint256) {
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
+            address(this),
+            vTokenBorrowed,
+            vTokenCollateral,
+            actualRepayAmount,
+            liquidationIncentiveMantissa
+        );
+        return (err, seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
      * @param vTokenCollateral The address of the collateral vToken
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @param liquidationIncentiveMantissa The liquidation incentive to apply
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
-        uint256 actualRepayAmount
+        uint256 actualRepayAmount,
+        uint256 liquidationIncentiveMantissa
     ) external view returns (uint256, uint256) {
         (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
             address(this),
             vTokenCollateral,
-            actualRepayAmount
+            actualRepayAmount,
+            liquidationIncentiveMantissa
         );
         return (err, seizeTokens);
     }
@@ -448,6 +456,67 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Get the dynamic liquidation incentive for a borrower
+     * @dev Calculates incentive based on provided health factor and liquidation threshold average,
+     *      without reading borrower's account state from storage
+     * @param vToken The address of the vToken to be seized
+     * @param borrower The address of the borrower
+     * @param liquidationThresholdAvg The average liquidation threshold for the borrower
+     * @param healthFactor The health factor of the borrower
+     * @return incentive The dynamic liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address vToken,
+        address borrower,
+        uint256 liquidationThresholdAvg,
+        uint256 healthFactor
+    ) external view returns (uint256 incentive) {
+        uint256 effectiveLiquidationIncentive = this.getEffectiveLiquidationIncentive(borrower, vToken);
+
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
+            healthFactor,
+            liquidationThresholdAvg,
+            effectiveLiquidationIncentive
+        );
+    }
+
+    /**
+     * @notice Get the dynamic liquidation incentive for a borrower
+     * @dev Reads borrower's account state to calculate health factor and liquidation threshold average,
+     *      then computes the dynamic incentive using the liquidation manager
+     * @param borrower The address of the borrower
+     * @param vToken The address of the vToken to be seized
+     * @return incentive The dynamic liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address borrower,
+        address vToken
+    ) external view returns (uint256 incentive) {
+        uint256 effectiveLiquidationIncentive = this.getEffectiveLiquidationIncentive(borrower, vToken);
+        (
+            uint256 err,
+            ComptrollerLensInterface.AccountSnapshot memory snapshot
+        ) = _getHypotheticalHealthSnapshotInternal(
+                borrower,
+                VToken(vToken),
+                0,
+                0,
+                WeightFunction.USE_LIQUIDATION_THRESHOLD
+            );
+        if (err != uint256(Error.NO_ERROR)) {
+            return err;
+        }
+
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            vToken,
+            snapshot.healthFactor,
+            snapshot.liquidationThresholdAvg,
+            effectiveLiquidationIncentive
+        );
+    }
+
+    /**
      * @notice Get the core pool collateral factor for a vToken
      * @param vToken The address of the vToken to get the collateral factor for
      * @return The collateral factor for the vToken, scaled by 1e18
@@ -502,20 +571,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Get the Effective Liquidation Incentive for a given account and market
-     * @dev The incentive is determined by the pool entered by the account and the specified vToken via
-     *      `getLiquidationParams()`. If the pool is inactive, or if the vToken is not configured in the
-     *      account's pool and `allowCorePoolFallback` is enabled, the core pool (poolId = 0) values are used
-     * @param account The account whose pool is used to determine the market's risk parameters
-     * @param vToken The address of the vToken market
-     * @return The liquidation Incentive for the vToken, scaled by 1e18
-     */
-    function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256) {
-        (, , uint256 li) = getLiquidationParams(userPoolId[account], vToken);
-        return li;
-    }
-
-    /**
      * @notice Returns the full list of vTokens for a given pool ID.
      * @param poolId The ID of the pool whose vTokens are being queried.
      * @return An array of vToken addresses associated with the pool.
@@ -567,7 +622,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return collateralFactorMantissa The maximum borrowable percentage of collateral, in mantissa.
      * @return isVenus Whether this market is eligible for XVS rewards.
      * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
-     * @return liquidationIncentiveMantissa The liquidation incentive allowed for this market, in mantissa.
+     * @return maxLiquidationIncentiveMantissa The max liquidation incentive allowed for this market, in mantissa.
      * @return marketPoolId The pool ID this market belongs to.
      * @return isBorrowAllowed Whether borrowing is allowed in this market.
      * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
@@ -583,7 +638,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             uint256 collateralFactorMantissa,
             bool isVenus,
             uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa,
+            uint256 maxLiquidationIncentiveMantissa,
             uint96 marketPoolId,
             bool isBorrowAllowed
         )
@@ -597,7 +652,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
             m.collateralFactorMantissa,
             m.isVenus,
             m.liquidationThresholdMantissa,
-            m.liquidationIncentiveMantissa,
+            m.maxLiquidationIncentiveMantissa,
             m.poolId,
             m.isBorrowAllowed
         );
@@ -710,43 +765,5 @@ contract MarketFacet is IMarketFacet, FacetBase {
         pools[poolId].vTokens.push(vToken);
 
         emit PoolMarketInitialized(poolId, vToken);
-    }
-
-    /**
-     * @notice Returns only the core risk parameters (CF, LI, LT) for a vToken in a specific pool.
-     * @dev If the pool is inactive, or if the vToken is not configured in the given pool and
-     *      `allowCorePoolFallback` is enabled, falls back to the core pool (poolId = 0) values.
-     * @return collateralFactorMantissa The max borrowable percentage of collateral, in mantissa.
-     * @return liquidationThresholdMantissa The threshold at which liquidation is triggered, in mantissa.
-     * @return liquidationIncentiveMantissa The liquidation incentive allowed for this market, in mantissa.
-     */
-    function getLiquidationParams(
-        uint96 poolId,
-        address vToken
-    )
-        internal
-        view
-        returns (
-            uint256 collateralFactorMantissa,
-            uint256 liquidationThresholdMantissa,
-            uint256 liquidationIncentiveMantissa
-        )
-    {
-        PoolData storage pool = pools[poolId];
-        Market storage market;
-
-        if (poolId == corePoolId || !pool.isActive) {
-            market = getCorePoolMarket(vToken);
-        } else {
-            PoolMarketId poolKey = getPoolMarketIndex(poolId, vToken);
-            Market storage poolMarket = _poolMarkets[poolKey];
-            market = (!poolMarket.isListed && pool.allowCorePoolFallback) ? getCorePoolMarket(vToken) : poolMarket;
-        }
-
-        return (
-            market.collateralFactorMantissa,
-            market.liquidationThresholdMantissa,
-            market.liquidationIncentiveMantissa
-        );
     }
 }

@@ -8,6 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { InterestRateModelV8 } from "../InterestRateModels/InterestRateModelV8.sol";
 import { VBep20Interface, VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
+import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title Venus's VBep20 Contract
@@ -164,9 +165,10 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external returns (uint) {
-        (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
+        (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral, snapshot);
         return err;
     }
 

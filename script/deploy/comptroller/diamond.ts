@@ -74,9 +74,4 @@ function findAddressPositionInFacets(facetAddress, facets) {
   }
 }
 
-exports.getSelectors = getSelectors;
-exports.getSelector = getSelector;
-exports.FacetCutAction = FacetCutAction;
-exports.remove = remove;
-exports.removeSelectors = removeSelectors;
-exports.findAddressPositionInFacets = findAddressPositionInFacets;
+export { getSelectors, getSelector, FacetCutAction, remove, removeSelectors, findAddressPositionInFacets };

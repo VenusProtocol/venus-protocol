@@ -9,6 +9,7 @@ import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VBep20Interface, VTokenInterface } from "./VTokenInterfaces.sol";
 import { VToken } from "./VToken.sol";
+import { ComptrollerLensInterface } from "../../Comptroller/ComptrollerLensInterface.sol";
 
 /**
  * @title Venus's VBep20 Contract
@@ -159,15 +160,17 @@ contract VBep20 is VToken, VBep20Interface {
      * @param borrower The borrower of this vToken to be liquidated
      * @param repayAmount The amount of the underlying borrowed asset to repay
      * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param snapshot The account snapshot of the borrower
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emit LiquidateBorrow event on success
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterface vTokenCollateral,
+        ComptrollerLensInterface.AccountSnapshot memory snapshot
     ) external returns (uint) {
-        (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
+        (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral, snapshot);
         return err;
     }
 

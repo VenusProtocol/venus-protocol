@@ -5,9 +5,13 @@ import { Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
+import { FacetCutAction, getSelectors } from "../../../script/deploy/comptroller/diamond";
 import {
-  ComptrollerHarness as Comptroller,
+  ComptrollerMock,
+  ComptrollerMock__factory,
   ComptrollerHarness__factory as Comptroller__factory,
+  Diamond,
+  Diamond__factory,
   IAccessControlManagerV8,
   IAccessControlManagerV8__factory,
   IProtocolShareReserve,
@@ -15,6 +19,7 @@ import {
   Liquidator,
   Liquidator__factory,
   ProxyAdmin__factory,
+  Unitroller__factory,
 } from "../../../typechain";
 import { IBEP20__factory } from "../../../typechain/factories/contracts/Utils";
 import { initMainnetUser, setForkBlock } from "./utils";
@@ -37,8 +42,75 @@ const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
 let impersonatedTimelock: Signer;
 let liquidator: Liquidator;
 let protocolShareReserve: FakeContract<IProtocolShareReserve>;
-let comptroller: Comptroller;
+let comptroller: ComptrollerMock;
 let accessControlManager: IAccessControlManagerV8;
+let diamond: Diamond;
+
+async function upgradeComptroller() {
+  const DiamondFactory = await ethers.getContractFactory("Diamond");
+  const newDiamond = await DiamondFactory.deploy();
+
+  const Unitroller = Unitroller__factory.connect(UNITROLLER, impersonatedTimelock);
+  await Unitroller._setPendingImplementation(newDiamond.address);
+  await newDiamond.connect(impersonatedTimelock)._become(Unitroller.address);
+
+  diamond = Diamond__factory.connect(UNITROLLER, impersonatedTimelock);
+
+  // remove existing facets (excluding reward which has no changes)
+  const excludeFacets = ["0xc2F6bDCEa4907E8CB7480d3d315bc01c125fb63C"];
+  const cut: any[] = [];
+
+  const facets = await diamond.facets();
+  for (const facet of facets) {
+    if (excludeFacets.includes(facet.facetAddress)) continue;
+    cut.push({
+      facetAddress: ethers.constants.AddressZero,
+      action: FacetCutAction.Remove,
+      functionSelectors: facet.functionSelectors,
+    });
+  }
+
+  await diamond.diamondCut(cut);
+  cut.length = 0; // clear array
+
+  // deploy and add new facets
+  const FacetNames = ["MarketFacet", "PolicyFacet", "SetterFacet"];
+  for (const FacetName of FacetNames) {
+    const Facet = await ethers.getContractFactory(FacetName);
+    const facet = await Facet.deploy();
+    await facet.deployed();
+
+    const facetInterface = await ethers.getContractAt(`I${FacetName}`, facet.address);
+    cut.push({
+      facetAddress: facet.address,
+      action: FacetCutAction.Add,
+      functionSelectors: getSelectors(facetInterface),
+    });
+
+    if (FacetName === "MarketFacet") {
+      const baseIface = await ethers.getContractAt("IFacetBase", facet.address);
+      let selectors = getSelectors(baseIface);
+      // exclude duplicate selectors
+      selectors = selectors.filter(x => !["0xbf32442d"].includes(x));
+      cut.push({
+        facetAddress: facet.address,
+        action: FacetCutAction.Add,
+        functionSelectors: selectors,
+      });
+    }
+  }
+
+  await diamond.diamondCut(cut);
+
+  comptroller = ComptrollerMock__factory.connect(UNITROLLER, impersonatedTimelock);
+
+  // set updated lens
+  const ComptrollerLens = await ethers.getContractFactory("ComptrollerLens");
+  const lens = await ComptrollerLens.deploy();
+  await comptroller._setComptrollerLens(lens.address);
+
+  return comptroller;
+}
 
 async function deployAndConfigureLiquidator() {
   /*
@@ -48,8 +120,37 @@ async function deployAndConfigureLiquidator() {
   impersonatedTimelock = await ethers.getSigner(NORMAL_TIMELOCK);
   await setBalance(NORMAL_TIMELOCK, ethers.utils.parseEther("2"));
 
+  const comptrollerLensFactory = await ethers.getContractFactory("ComptrollerLens");
+  const comptrollerLens = await comptrollerLensFactory.deploy();
+  await comptrollerLens.deployed();
+  console.log("Comptroller lens deployed at:", comptrollerLens.address);
+
+  comptroller = await upgradeComptroller();
+  console.log("Comptroller upgraded at:", comptroller.address);
+  const LiquidationManager = await ethers.getContractFactory("LiquidationManager");
+  accessControlManager = IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
+  const tx = await accessControlManager
+    .connect(impersonatedTimelock)
+    .giveCallPermission(UNITROLLER, "setLiquidationManager(address)", NORMAL_TIMELOCK);
+  await tx.wait();
+
+  // constructor parameters
+  const baseCloseFactorMantissa = ethers.utils.parseUnits("0.05", 18); // 5%
+  const defaultCloseFactorMantissa = ethers.utils.parseUnits("0.5", 18); // 50%
+  const targetHealthFactor = ethers.utils.parseUnits("1.1", 18); // 1.1
+
+  const liquidationManager = await LiquidationManager.deploy(
+    baseCloseFactorMantissa,
+    defaultCloseFactorMantissa,
+    targetHealthFactor,
+  );
+  await liquidationManager.deployed();
+  await liquidationManager.initialize(accessControlManager.address);
+
+  await comptroller.setLiquidationManager(liquidationManager.address);
+
   const liquidatorNewFactory = await ethers.getContractFactory("Liquidator");
-  const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB);
+  const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB, comptrollerLens.address);
   protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const proxyAdmin = ProxyAdmin__factory.connect("0x2b40B43AC5F7949905b0d2Ed9D6154a8ce06084a", impersonatedTimelock);
   const data = liquidatorNewImpl.interface.encodeFunctionData("initialize", [
@@ -61,7 +162,6 @@ async function deployAndConfigureLiquidator() {
     { value: "1000000000" };
   liquidator = Liquidator__factory.connect(LIQUIDATOR, impersonatedTimelock);
 
-  accessControlManager = IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
   await accessControlManager.giveCallPermission(LIQUIDATOR, "setPendingRedeemChunkLength(uint256)", NORMAL_TIMELOCK);
   await expect(liquidator.connect(impersonatedTimelock).setPendingRedeemChunkLength(0)).to.be.revertedWith(
     "Invalid chunk size",
@@ -179,7 +279,6 @@ if (FORK_MAINNET) {
 
       await setForkBlock(blockNumber);
       await configure();
-      comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
       await comptroller._setActionsPaused([collateralToken], [1], true);
 
       const borrowedUnderlyingToken = IBEP20__factory.connect(borrowedUnderlying, impersonatedTimelock);
