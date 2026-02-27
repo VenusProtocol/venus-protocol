@@ -310,6 +310,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xcE24439F2D9C6a2289F741120FE202248B666666",
   },
+  {
+    isMock: false,
+    name: "Matrixdock Gold",
+    symbol: "XAUM",
+    decimals: 18,
+    tokenAddress: "0x23AE4fd8E7844cdBc97775496eBd0E8248656028",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

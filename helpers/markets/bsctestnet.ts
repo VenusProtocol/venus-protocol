@@ -750,4 +750,26 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus Matrixdock Gold",
+    symbol: "vXAUM",
+    asset: "XAUM",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.02",
+      jumpMultiplierPerYear: "0.04",
+      kink: "0.8",
+    },
+    riskParameters: {
+      collateralFactor: "0.65",
+      reserveFactor: "0.2",
+      supplyCap: "200",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.025",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
