@@ -1,3 +1,11 @@
+## 10.2.0-dev.2 (2026-02-27)
+
+* Merge pull request #662 from VenusProtocol/feat/vpd-606 ([6d29baf](https://github.com/VenusProtocol/venus-protocol/commit/6d29baf)), closes [#662](https://github.com/VenusProtocol/venus-protocol/issues/662)
+* feat: add XAUM market deployments on bscmainnet ([7d1cf0f](https://github.com/VenusProtocol/venus-protocol/commit/7d1cf0f))
+* feat: add XAUM market deployments on bsctestnet ([b5bcc8f](https://github.com/VenusProtocol/venus-protocol/commit/b5bcc8f))
+* feat: updating deployment files ([1b75fde](https://github.com/VenusProtocol/venus-protocol/commit/1b75fde))
+* feat: updating deployment files ([9ee9c91](https://github.com/VenusProtocol/venus-protocol/commit/9ee9c91))
+
 ## 10.2.0-dev.1 (2026-01-21)
 
 * Merge branch 'develop' into feat/vpd-404 ([2e1f342](https://github.com/VenusProtocol/venus-protocol/commit/2e1f342))
