@@ -27,38 +27,48 @@ contract PrimeLeaderboard is
 {
     using SafeCastUpgradeable for uint256;
 
+    /// @notice Address of XVSVault contract
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable xvsVault;
+
+    /// @notice Reward token address in XVSVault
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable xvsVaultRewardToken;
+
+    /// @notice Pool ID in XVSVault
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable xvsVaultPoolId;
+
+    /// @param xvsVault_ Address of XVSVault contract
+    /// @param xvsVaultRewardToken_ Reward token address in XVSVault
+    /// @param xvsVaultPoolId_ Pool ID in XVSVault
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(address xvsVault_, address xvsVaultRewardToken_, uint256 xvsVaultPoolId_) {
+        if (xvsVault_ == address(0)) revert ZeroAddress();
+        if (xvsVaultRewardToken_ == address(0)) revert ZeroAddress();
+
+        xvsVault = xvsVault_;
+        xvsVaultRewardToken = xvsVaultRewardToken_;
+        xvsVaultPoolId = xvsVaultPoolId_;
+
         _disableInitializers();
     }
 
     /**
      * @notice Initialize the PrimeLeaderboard contract
      * @param accessControlManager_ Address of access control manager
-     * @param xvsVault_ Address of XVSVault contract
-     * @param xvsVaultRewardToken_ Reward token address in XVSVault
-     * @param xvsVaultPoolId_ Pool ID in XVSVault
      * @param minimumStake_ Minimum XVS stake to participate
-     * @custom:error Throw ZeroAddress if any address is zero
      * @custom:error Throw InvalidValue if minimumStake is zero
      */
     function initialize(
         address accessControlManager_,
-        address xvsVault_,
-        address xvsVaultRewardToken_,
-        uint256 xvsVaultPoolId_,
         uint256 minimumStake_
     ) external initializer {
-        if (xvsVault_ == address(0)) revert ZeroAddress();
-        if (xvsVaultRewardToken_ == address(0)) revert ZeroAddress();
         if (minimumStake_ == 0) revert InvalidValue();
 
         __AccessControlled_init(accessControlManager_);
         __ReentrancyGuard_init();
 
-        xvsVault = xvsVault_;
-        xvsVaultRewardToken = xvsVaultRewardToken_;
-        xvsVaultPoolId = xvsVaultPoolId_;
         minimumStake = minimumStake_;
 
         // Initialize default multiplier tiers
@@ -312,41 +322,6 @@ contract PrimeLeaderboard is
         emit PrimeV2Set(oldPrimeV2, primeV2_);
     }
 
-    /**
-     * @notice Set the XVSVault contract address
-     * @param xvsVault_ Address of XVSVault contract
-     * @custom:event Emits XVSVaultSet event
-     * @custom:error Throw ZeroAddress if address is zero
-     * @custom:access Controlled by ACM
-     */
-    function setXVSVault(address xvsVault_) external override {
-        _checkAccessAllowed("setXVSVault(address)");
-        if (xvsVault_ == address(0)) revert ZeroAddress();
-
-        address oldVault = xvsVault;
-        xvsVault = xvsVault_;
-
-        emit XVSVaultSet(oldVault, xvsVault_);
-    }
-
-    /**
-     * @notice Set the XVSVault pool configuration for getUserInfo calls
-     * @param rewardToken_ Reward token address in XVSVault
-     * @param poolId_ Pool ID in XVSVault
-     * @custom:event Emits XVSVaultPoolConfigSet event
-     * @custom:error Throw ZeroAddress if rewardToken address is zero
-     * @custom:access Controlled by ACM
-     */
-    function setXVSVaultPoolConfig(address rewardToken_, uint256 poolId_) external override {
-        _checkAccessAllowed("setXVSVaultPoolConfig(address,uint256)");
-        if (rewardToken_ == address(0)) revert ZeroAddress();
-
-        xvsVaultRewardToken = rewardToken_;
-        xvsVaultPoolId = poolId_;
-
-        emit XVSVaultPoolConfigSet(rewardToken_, poolId_);
-    }
-
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════
 
     /**
@@ -468,6 +443,7 @@ contract PrimeLeaderboard is
         uint256 maxTierDuration = _multiplierDurations[_multiplierDurations.length - 1];
 
         uint256 mergedAmount = 0;
+        uint64 earliestTimestamp = type(uint64).max;
         uint256 writeIndex = 0;
 
         for (uint256 readIndex; readIndex < depositsLength; ) {
@@ -477,6 +453,9 @@ contract PrimeLeaderboard is
             if (holdingDuration >= maxTierDuration) {
                 // This deposit has max multiplier, accumulate for merging
                 mergedAmount += uint256(d.amount);
+                if (d.timestamp < earliestTimestamp) {
+                    earliestTimestamp = d.timestamp;
+                }
             } else {
                 // Keep this deposit as-is
                 if (writeIndex != readIndex) {
@@ -502,10 +481,11 @@ contract PrimeLeaderboard is
                 deposits[i + 1] = deposits[i];
             }
 
-            // Insert merged deposit at index 0 with timestamp that gives max multiplier
+            // Insert merged deposit at index 0, preserving the earliest original timestamp
+            // so that if multiplier tiers are later increased, the true hold duration is retained
             deposits[0] = Deposit({
                 amount: mergedAmount.toUint128(),
-                timestamp: (block.timestamp - maxTierDuration).toUint64(),
+                timestamp: earliestTimestamp,
                 _reserved: 0
             });
 

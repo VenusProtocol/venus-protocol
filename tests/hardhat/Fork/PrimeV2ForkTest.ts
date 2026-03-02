@@ -178,8 +178,11 @@ if (FORK_MAINNET) {
         const LeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
         primeLeaderboard = (await upgrades.deployProxy(
           LeaderboardFactory,
-          [Addr.ACM, Addr.XVS_VAULT, Addr.XVS, XVS_POOL_ID, MINIMUM_STAKE],
-          { unsafeAllow: ["constructor"] },
+          [Addr.ACM, MINIMUM_STAKE],
+          {
+            unsafeAllow: ["constructor", "state-variable-immutable"],
+            constructorArgs: [Addr.XVS_VAULT, Addr.XVS, XVS_POOL_ID],
+          },
         )) as PrimeLeaderboard;
 
         // ── Deploy PrimeV2 ──

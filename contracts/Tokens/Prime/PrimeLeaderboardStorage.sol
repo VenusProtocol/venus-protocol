@@ -48,18 +48,9 @@ contract PrimeLeaderboardStorageV1 {
 
     // ═══════════════════ EXTERNAL CONTRACTS ═══════════════════
 
-    /// @notice Address of PrimeV2 contract (stored for off-chain querying; not read on-chain)
+    /// @notice Address of PrimeV2 contract
     address public primeV2;
 
-    /// @notice Address of XVSVault contract
-    address public xvsVault;
-
-    /// @notice XVSVault reward token address (for getUserInfo calls)
-    address public xvsVaultRewardToken;
-
-    /// @notice XVSVault pool ID (for getUserInfo calls)
-    uint256 public xvsVaultPoolId;
-
     /// @notice Storage gap for future upgrades
-    uint256[45] private __gap;
+    uint256[48] private __gap;
 }

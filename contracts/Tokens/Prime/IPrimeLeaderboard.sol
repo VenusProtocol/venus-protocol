@@ -45,12 +45,6 @@ interface IPrimeLeaderboard {
     /// @notice Emitted when PrimeV2 contract address is set
     event PrimeV2Set(address indexed oldPrimeV2, address indexed newPrimeV2);
 
-    /// @notice Emitted when XVSVault address is set
-    event XVSVaultSet(address indexed oldVault, address indexed newVault);
-
-    /// @notice Emitted when XVSVault pool config is updated
-    event XVSVaultPoolConfigSet(address rewardToken, uint256 poolId);
-
     // ═══════════════════ ERRORS ═══════════════════
 
     /// @notice Thrown when caller is not the XVSVault
@@ -127,15 +121,6 @@ interface IPrimeLeaderboard {
     /// @notice Set the PrimeV2 contract address
     /// @param primeV2 Address of PrimeV2 contract
     function setPrimeV2(address primeV2) external;
-
-    /// @notice Set the XVSVault contract address
-    /// @param xvsVault Address of XVSVault contract
-    function setXVSVault(address xvsVault) external;
-
-    /// @notice Set the XVSVault pool configuration for getUserInfo calls
-    /// @param rewardToken Reward token address in XVSVault
-    /// @param poolId Pool ID in XVSVault
-    function setXVSVaultPoolConfig(address rewardToken, uint256 poolId) external;
 
     /// @notice Get multiplier tier configuration
     /// @return durations Array of duration thresholds

@@ -63,14 +63,11 @@ describe("PrimeLeaderboard", () => {
     const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
     primeLeaderboard = (await upgrades.deployProxy(
       PrimeLeaderboardFactory,
-      [
-        accessControlManager.address,
-        xvsVault.address,
-        xvsAddress, // xvsVaultRewardToken
-        0, // xvsVaultPoolId
-        MINIMUM_STAKE,
-      ],
-      { unsafeAllow: ["constructor"] },
+      [accessControlManager.address, MINIMUM_STAKE],
+      {
+        unsafeAllow: ["constructor", "state-variable-immutable"],
+        constructorArgs: [xvsVault.address, xvsAddress, 0],
+      },
     )) as PrimeLeaderboard;
 
     return { primeLeaderboard, accessControlManager, xvsVault, admin, user1, user2, user3 };
@@ -107,31 +104,29 @@ describe("PrimeLeaderboard", () => {
 
     it("should revert if initialized twice", async () => {
       await expect(
-        primeLeaderboard.initialize(accessControlManager.address, xvsVault.address, xvsAddress, 0, MINIMUM_STAKE),
+        primeLeaderboard.initialize(accessControlManager.address, MINIMUM_STAKE),
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
 
-    it("should revert with zero xvsVault address", async () => {
+    it("should revert with zero xvsVault address in constructor", async () => {
       const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
 
       await expect(
-        upgrades.deployProxy(
-          PrimeLeaderboardFactory,
-          [accessControlManager.address, ethers.constants.AddressZero, xvsAddress, 0, MINIMUM_STAKE],
-          { unsafeAllow: ["constructor"] },
-        ),
+        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, MINIMUM_STAKE], {
+          unsafeAllow: ["constructor", "state-variable-immutable"],
+          constructorArgs: [ethers.constants.AddressZero, xvsAddress, 0],
+        }),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "ZeroAddress");
     });
 
-    it("should revert with zero xvsVaultRewardToken address", async () => {
+    it("should revert with zero xvsVaultRewardToken address in constructor", async () => {
       const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
 
       await expect(
-        upgrades.deployProxy(
-          PrimeLeaderboardFactory,
-          [accessControlManager.address, xvsVault.address, ethers.constants.AddressZero, 0, MINIMUM_STAKE],
-          { unsafeAllow: ["constructor"] },
-        ),
+        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, MINIMUM_STAKE], {
+          unsafeAllow: ["constructor", "state-variable-immutable"],
+          constructorArgs: [xvsVault.address, ethers.constants.AddressZero, 0],
+        }),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "ZeroAddress");
     });
 
@@ -139,11 +134,10 @@ describe("PrimeLeaderboard", () => {
       const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
 
       await expect(
-        upgrades.deployProxy(
-          PrimeLeaderboardFactory,
-          [accessControlManager.address, xvsVault.address, xvsAddress, 0, 0],
-          { unsafeAllow: ["constructor"] },
-        ),
+        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, 0], {
+          unsafeAllow: ["constructor", "state-variable-immutable"],
+          constructorArgs: [xvsVault.address, xvsAddress, 0],
+        }),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "InvalidValue");
     });
   });
@@ -653,40 +647,6 @@ describe("PrimeLeaderboard", () => {
       );
     });
 
-    it("should set XVSVault address", async () => {
-      const newVault = await user1.getAddress();
-
-      await expect(primeLeaderboard.setXVSVault(newVault))
-        .to.emit(primeLeaderboard, "XVSVaultSet")
-        .withArgs(xvsVault.address, newVault);
-
-      expect(await primeLeaderboard.xvsVault()).to.equal(newVault);
-    });
-
-    it("should revert when setting zero XVSVault address", async () => {
-      await expect(primeLeaderboard.setXVSVault(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
-        primeLeaderboard,
-        "ZeroAddress",
-      );
-    });
-
-    it("should set XVSVault pool config", async () => {
-      const newRewardToken = await user1.getAddress();
-      const newPoolId = 5;
-
-      await expect(primeLeaderboard.setXVSVaultPoolConfig(newRewardToken, newPoolId))
-        .to.emit(primeLeaderboard, "XVSVaultPoolConfigSet")
-        .withArgs(newRewardToken, newPoolId);
-
-      expect(await primeLeaderboard.xvsVaultRewardToken()).to.equal(newRewardToken);
-      expect(await primeLeaderboard.xvsVaultPoolId()).to.equal(newPoolId);
-    });
-
-    it("should revert when setting zero reward token in pool config", async () => {
-      await expect(
-        primeLeaderboard.setXVSVaultPoolConfig(ethers.constants.AddressZero, 0),
-      ).to.be.revertedWithCustomError(primeLeaderboard, "ZeroAddress");
-    });
   });
 
   describe("Access Control", () => {
@@ -696,8 +656,6 @@ describe("PrimeLeaderboard", () => {
       await expect(primeLeaderboard.setMinimumStake(convertToUnit(1000, 18))).to.be.reverted;
       await expect(primeLeaderboard.setMultiplierTiers([30 * DAY], [convertToUnit("1.3", 18)])).to.be.reverted;
       await expect(primeLeaderboard.setPrimeV2(await user1.getAddress())).to.be.reverted;
-      await expect(primeLeaderboard.setXVSVault(await user1.getAddress())).to.be.reverted;
-      await expect(primeLeaderboard.setXVSVaultPoolConfig(await user1.getAddress(), 0)).to.be.reverted;
       await expect(primeLeaderboard.resetWithdrawnStake(await user1.getAddress())).to.be.reverted;
     });
   });
