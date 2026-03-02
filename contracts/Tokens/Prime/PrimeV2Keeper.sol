@@ -5,13 +5,7 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
 
 import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
-
-interface IPrimeV2 {
-    function updateScores(address[] calldata users) external;
-    function accrueInterest(address vToken) external;
-    function pendingScoreUpdates() external view returns (uint256);
-    function getAllMarkets() external view returns (address[] memory);
-}
+import { IPrimeV2 } from "./Interfaces/IPrimeV2.sol";
 
 /**
  * @title PrimeV2Keeper

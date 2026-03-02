@@ -6,6 +6,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { SafeCastUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
+import { IPrimeV2 } from "./Interfaces/IPrimeV2.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { PrimeLeaderboardStorageV1 } from "./PrimeLeaderboardStorage.sol";
 
@@ -104,6 +105,10 @@ contract PrimeLeaderboard is
         } else if (vaultStake < lastKnown) {
             _lastKnownStake[user] = vaultStake;
             _recordWithdrawal(user, lastKnown - vaultStake);
+        }
+
+        if (primeV2 != address(0)) {
+            IPrimeV2(primeV2).accrueInterestAndUpdateScore(user);
         }
     }
 

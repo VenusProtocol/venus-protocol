@@ -1,0 +1,168 @@
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity ^0.8.25;
+
+/**
+ * @title IPrimeV2
+ * @author Venus
+ * @notice Interface for PrimeV2 Token with leaderboard-based distribution
+ */
+interface IPrimeV2 {
+    struct PendingReward {
+        address vToken;
+        address rewardToken;
+        uint256 amount;
+    }
+
+    // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
+
+    /**
+     * @notice Issue Prime tokens to users
+     * @param users List of addresses to issue tokens to
+     */
+    function issue(address[] calldata users) external;
+
+    /**
+     * @notice Burn a user's Prime token
+     * @param user User address
+     */
+    function burn(address user) external;
+
+    /**
+     * @notice Check if user has Prime token
+     * @param user User address
+     * @return isPrimeHolder true if user has Prime token
+     */
+    function isUserPrimeHolder(address user) external view returns (bool);
+
+    // ═══════════════════ INTEREST FUNCTIONS ═══════════════════
+
+    /**
+     * @notice Claim accrued interest for a market
+     * @param vToken Market address
+     * @return amount Amount claimed
+     */
+    function claimInterest(address vToken) external returns (uint256);
+
+    /**
+     * @notice Claim accrued interest for a market to a specific address
+     * @param vToken Market address
+     * @param user Recipient address
+     * @return amount Amount claimed
+     */
+    function claimInterest(address vToken, address user) external returns (uint256);
+
+    /**
+     * @notice Accrue interest for a market
+     * @param vToken Market address
+     */
+    function accrueInterest(address vToken) external;
+
+    /**
+     * @notice Accrue interest and update score for a user in a specific market
+     * @param user User address
+     * @param market Market address
+     */
+    function accrueInterestAndUpdateScore(address user, address market) external;
+
+    /**
+     * @notice Accrue interest and update score for a user across all markets
+     * @param user User address
+     */
+    function accrueInterestAndUpdateScore(address user) external;
+
+    /**
+     * @notice Get pending rewards for a user (triggers accrual)
+     * @param user User address
+     * @return pendingRewards Array of pending rewards per market
+     */
+    function getPendingRewards(address user) external returns (PendingReward[] memory pendingRewards);
+
+    /**
+     * @notice Get pending rewards for a user (view-only, does not accrue)
+     * @param user User address
+     * @return pendingRewards Array of pending rewards per market
+     */
+    function getPendingRewardsStatic(address user) external view returns (PendingReward[] memory pendingRewards);
+
+    // ═══════════════════ SCORE FUNCTIONS ═══════════════════
+
+    /**
+     * @notice Update scores for a batch of users
+     * @param users Array of user addresses
+     */
+    function updateScores(address[] calldata users) external;
+
+    // ═══════════════════ VIEW FUNCTIONS ═══════════════════
+
+    /**
+     * @notice Retrieves all Prime-participating markets
+     * @return Array of vToken addresses
+     */
+    function getAllMarkets() external view returns (address[] memory);
+
+    /**
+     * @notice Get XVS balance of a user from the vault
+     * @param user User address
+     * @return XVS balance
+     */
+    function xvsBalanceOfUser(address user) external view returns (uint256);
+
+    /**
+     * @notice Get number of pending score updates
+     * @return Number of pending updates
+     */
+    function pendingScoreUpdates() external view returns (uint256);
+
+    // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
+
+    /**
+     * @notice Set PrimeLeaderboard contract address
+     * @param primeLeaderboard Address of PrimeLeaderboard
+     */
+    function setPrimeLeaderboard(address primeLeaderboard) external;
+
+    /**
+     * @notice Add a market to the Prime program
+     * @param market Market vToken address
+     * @param supplyMultiplier Supply multiplier (scaled by 1e18)
+     * @param borrowMultiplier Borrow multiplier (scaled by 1e18)
+     */
+    function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external;
+
+    /**
+     * @notice Set maximum token limit
+     * @param tokenLimit Maximum number of Prime tokens
+     */
+    function setLimit(uint256 tokenLimit) external;
+
+    /**
+     * @notice Update alpha parameters for score calculation
+     * @param alphaNumerator Numerator of alpha
+     * @param alphaDenominator Denominator of alpha
+     */
+    function updateAlpha(uint128 alphaNumerator, uint128 alphaDenominator) external;
+
+    /**
+     * @notice Update multipliers for a market
+     * @param market Market vToken address
+     * @param supplyMultiplier New supply multiplier (scaled by 1e18)
+     * @param borrowMultiplier New borrow multiplier (scaled by 1e18)
+     */
+    function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external;
+
+    /**
+     * @notice Pause the contract
+     */
+    function pause() external;
+
+    /**
+     * @notice Unpause the contract
+     */
+    function unpause() external;
+
+    /**
+     * @notice Set the max loops limit
+     * @param loopsLimit Number of loops limit
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external;
+}

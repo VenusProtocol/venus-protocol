@@ -308,7 +308,7 @@ contract PrimeV2 is
     }
 
     /**
-     * @notice Accrue interest and update score for a user
+     * @notice Accrue interest and update score for a user in a specific market
      * @dev Intentionally not gated by whenNotPaused — called by Comptroller hooks
      * @param user User address
      * @param market Market address
@@ -316,6 +316,16 @@ contract PrimeV2 is
     function accrueInterestAndUpdateScore(address user, address market) external {
         _executeBoost(user, market);
         _updateScore(user, market);
+    }
+
+    /**
+     * @notice Accrue interest and update score for a user across all markets
+     * @dev Called by PrimeLeaderboard when a user's XVS stake changes to ensure
+     *      rewards are accrued at the old score before the score is recalculated
+     * @param user User address
+     */
+    function accrueInterestAndUpdateScore(address user) external {
+        _accrueInterestAndUpdateScore(user);
     }
 
     /**

@@ -27,7 +27,7 @@ describe("PrimeV2Keeper", () => {
     accessControlManager = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
     accessControlManager.isAllowedToCall.returns(true);
 
-    primeV2 = await smock.fake<IPrimeV2>("contracts/Tokens/Prime/PrimeV2Keeper.sol:IPrimeV2");
+    primeV2 = await smock.fake<IPrimeV2>("contracts/Tokens/Prime/Interfaces/IPrimeV2.sol:IPrimeV2");
     primeLeaderboard = await smock.fake<IPrimeLeaderboard>(
       "contracts/Tokens/Prime/IPrimeLeaderboard.sol:IPrimeLeaderboard",
     );
