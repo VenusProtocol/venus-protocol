@@ -19,23 +19,16 @@ contract PrimeV2StorageV1 {
     /// @notice Struct to represent a Prime token
     struct Token {
         bool exists; // Whether user has a Prime token
-        bool isIrrevocable; // Whether token is irrevocable (admin-granted)
     }
 
     /// @notice Mapping of user to their Prime token
     mapping(address => Token) public tokens;
 
-    /// @notice Total count of irrevocable Prime tokens
-    uint256 public totalIrrevocable;
+    /// @notice Total count of Prime tokens
+    uint256 public totalTokens;
 
-    /// @notice Total count of revocable Prime tokens
-    uint256 public totalRevocable;
-
-    /// @notice Maximum number of irrevocable tokens allowed
-    uint256 public irrevocableLimit;
-
-    /// @notice Maximum number of revocable tokens allowed
-    uint256 public revocableLimit;
+    /// @notice Maximum number of Prime tokens allowed
+    uint256 public tokenLimit;
 
     // ═══════════════════ MARKET STATE ═══════════════════
 

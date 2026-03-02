@@ -49,7 +49,7 @@ contract PrimeV2 is
     // ═══════════════════ EVENTS ═══════════════════
 
     /// @notice Emitted when prime token is minted
-    event Mint(address indexed user, bool isIrrevocable);
+    event Mint(address indexed user);
 
     /// @notice Emitted when prime token is burned
     event Burn(address indexed user);
@@ -57,13 +57,8 @@ contract PrimeV2 is
     /// @notice Emitted when a market is added to prime program
     event MarketAdded(address indexed market, uint256 supplyMultiplier, uint256 borrowMultiplier);
 
-    /// @notice Emitted when mint limits are updated
-    event MintLimitsUpdated(
-        uint256 indexed oldIrrevocableLimit,
-        uint256 indexed oldRevocableLimit,
-        uint256 indexed newIrrevocableLimit,
-        uint256 newRevocableLimit
-    );
+    /// @notice Emitted when mint limit is updated
+    event MintLimitUpdated(uint256 indexed oldLimit, uint256 indexed newLimit);
 
     /// @notice Emitted when user score is updated
     event UserScoreUpdated(address indexed user);
@@ -87,9 +82,6 @@ contract PrimeV2 is
 
     /// @notice Emitted when interest is claimed
     event InterestClaimed(address indexed user, address indexed market, uint256 amount);
-
-    /// @notice Emitted when revocable token is upgraded to irrevocable token
-    event TokenUpgraded(address indexed user);
 
     /// @notice Emitted when PrimeLeaderboard address is set
     event PrimeLeaderboardSet(address indexed oldLeaderboard, address indexed newLeaderboard);
@@ -204,38 +196,30 @@ contract PrimeV2 is
         corePoolComptroller = corePoolComptroller_;
         oracle = ResilientOracleInterface(oracle_);
 
-        // Default limits
-        irrevocableLimit = 100;
-        revocableLimit = 500;
+        // Default limit
+        tokenLimit = 500;
     }
 
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
 
     /**
      * @notice Issue Prime tokens (admin function)
-     * @param isIrrevocable Whether tokens are irrevocable
      * @param users Array of user addresses
      * @custom:event Emits Mint event on new token issuance
-     * @custom:event Emits TokenUpgraded event on upgrade from revocable to irrevocable
      * @custom:error Throw InvalidLimit if mint limit would be exceeded
      * @custom:access Controlled by ACM
      */
-    function issue(bool isIrrevocable, address[] calldata users) external {
-        _checkAccessAllowed("issue(bool,address[])");
+    function issue(address[] calldata users) external {
+        _checkAccessAllowed("issue(address[])");
 
         uint256 usersLength = users.length;
         _ensureMaxLoops(usersLength);
 
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
-            Token storage token = tokens[user];
 
-            if (token.exists) {
-                if (isIrrevocable && !token.isIrrevocable) {
-                    _upgrade(user);
-                }
-            } else {
-                _mint(isIrrevocable, user);
+            if (!tokens[user].exists) {
+                _mint(user);
                 _initializeMarkets(user);
             }
 
@@ -515,24 +499,22 @@ contract PrimeV2 is
     }
 
     /**
-     * @notice Update mint limits
-     * @param irrevocableLimit_ New irrevocable limit
-     * @param revocableLimit_ New revocable limit
-     * @custom:event Emits MintLimitsUpdated event
-     * @custom:error Throw InvalidLimit if any limit is less than current count
+     * @notice Update mint limit
+     * @param tokenLimit_ New token limit
+     * @custom:event Emits MintLimitUpdated event
+     * @custom:error Throw InvalidLimit if limit is less than current count
      * @custom:access Controlled by ACM
      */
-    function setLimits(uint256 irrevocableLimit_, uint256 revocableLimit_) external {
-        _checkAccessAllowed("setLimits(uint256,uint256)");
+    function setLimit(uint256 tokenLimit_) external {
+        _checkAccessAllowed("setLimit(uint256)");
 
-        if (irrevocableLimit_ < totalIrrevocable || revocableLimit_ < totalRevocable) {
+        if (tokenLimit_ < totalTokens) {
             revert InvalidLimit();
         }
 
-        emit MintLimitsUpdated(irrevocableLimit, revocableLimit, irrevocableLimit_, revocableLimit_);
+        emit MintLimitUpdated(tokenLimit, tokenLimit_);
 
-        irrevocableLimit = irrevocableLimit_;
-        revocableLimit = revocableLimit_;
+        tokenLimit = tokenLimit_;
     }
 
     /**
@@ -624,27 +606,20 @@ contract PrimeV2 is
 
     /**
      * @notice Mint a Prime token
-     * @param isIrrevocable Whether token is irrevocable
      * @param user User address
      */
-    function _mint(bool isIrrevocable, address user) internal {
+    function _mint(address user) internal {
         Token storage token = tokens[user];
         if (token.exists) revert UserAlreadyHasPrimeToken();
 
         token.exists = true;
-        token.isIrrevocable = isIrrevocable;
 
-        if (isIrrevocable) {
-            ++totalIrrevocable;
-            if (totalIrrevocable > irrevocableLimit) revert InvalidLimit();
-        } else {
-            ++totalRevocable;
-            if (totalRevocable > revocableLimit) revert InvalidLimit();
-        }
+        ++totalTokens;
+        if (totalTokens > tokenLimit) revert InvalidLimit();
 
         _updateRoundAfterTokenChanged(user);
 
-        emit Mint(user, isIrrevocable);
+        emit Mint(user);
     }
 
     /**
@@ -672,34 +647,13 @@ contract PrimeV2 is
             }
         }
 
-        if (token.isIrrevocable) {
-            --totalIrrevocable;
-        } else {
-            --totalRevocable;
-        }
+        --totalTokens;
 
         delete tokens[user].exists;
-        delete tokens[user].isIrrevocable;
 
         _updateRoundAfterTokenChanged(user);
 
         emit Burn(user);
-    }
-
-    /**
-     * @notice Upgrade a token to irrevocable
-     * @param user User address
-     */
-    function _upgrade(address user) internal {
-        Token storage userToken = tokens[user];
-
-        userToken.isIrrevocable = true;
-        ++totalIrrevocable;
-        --totalRevocable;
-
-        if (totalIrrevocable > irrevocableLimit) revert InvalidLimit();
-
-        emit TokenUpgraded(user);
     }
 
     /**
@@ -966,7 +920,7 @@ contract PrimeV2 is
             emit IncompleteRoundDiscarded(nextScoreUpdateRoundId, pendingScoreUpdates);
         }
         ++nextScoreUpdateRoundId;
-        pendingScoreUpdates = totalIrrevocable + totalRevocable;
+        pendingScoreUpdates = totalTokens;
     }
 
     /**

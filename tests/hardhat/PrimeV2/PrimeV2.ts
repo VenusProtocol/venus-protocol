@@ -164,9 +164,8 @@ describe("PrimeV2", () => {
       expect(await primeV2.corePoolComptroller()).to.equal(comptrollerAddress);
     });
 
-    it("should set default limits", async () => {
-      expect(await primeV2.irrevocableLimit()).to.equal(100);
-      expect(await primeV2.revocableLimit()).to.equal(500);
+    it("should set default limit", async () => {
+      expect(await primeV2.tokenLimit()).to.equal(500);
     });
 
     it("should revert if initialized twice", async () => {
@@ -268,52 +267,32 @@ describe("PrimeV2", () => {
 
   describe("Admin Functions", () => {
     describe("issue", () => {
-      it("should issue irrevocable Prime token", async () => {
+      it("should issue Prime token", async () => {
         const user1Address = await user1.getAddress();
 
-        await expect(primeV2.issue(true, [user1Address]))
+        await expect(primeV2.issue([user1Address]))
           .to.emit(primeV2, "Mint")
-          .withArgs(user1Address, true);
-
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
-        expect(await primeV2.totalIrrevocable()).to.equal(1);
-      });
-
-      it("should issue revocable Prime token", async () => {
-        const user1Address = await user1.getAddress();
-
-        await expect(primeV2.issue(false, [user1Address]))
-          .to.emit(primeV2, "Mint")
-          .withArgs(user1Address, false);
-
-        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
-        expect(await primeV2.totalRevocable()).to.equal(1);
-      });
-
-      it("should upgrade revocable to irrevocable", async () => {
-        const user1Address = await user1.getAddress();
-
-        // First issue revocable
-        await primeV2.issue(false, [user1Address]);
-        expect(await primeV2.totalRevocable()).to.equal(1);
-        expect(await primeV2.totalIrrevocable()).to.equal(0);
-
-        // Upgrade to irrevocable
-        await expect(primeV2.issue(true, [user1Address]))
-          .to.emit(primeV2, "TokenUpgraded")
           .withArgs(user1Address);
 
-        expect(await primeV2.totalRevocable()).to.equal(0);
-        expect(await primeV2.totalIrrevocable()).to.equal(1);
+        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
+        expect(await primeV2.totalTokens()).to.equal(1);
+      });
+
+      it("should skip issuing to user who already has Prime", async () => {
+        const user1Address = await user1.getAddress();
+
+        await primeV2.issue([user1Address]);
+        expect(await primeV2.totalTokens()).to.equal(1);
+
+        // Second issue should be a no-op (not revert)
+        await expect(primeV2.issue([user1Address])).not.to.be.reverted;
+        expect(await primeV2.totalTokens()).to.equal(1);
       });
 
       it("should revert if caller not authorized", async () => {
         accessControlManager.isAllowedToCall.returns(false);
 
-        await expect(primeV2.issue(true, [await user1.getAddress()])).to.be.revertedWithCustomError(
-          primeV2,
-          "Unauthorized",
-        );
+        await expect(primeV2.issue([await user1.getAddress()])).to.be.revertedWithCustomError(primeV2, "Unauthorized");
       });
     });
 
@@ -322,7 +301,7 @@ describe("PrimeV2", () => {
         const user1Address = await user1.getAddress();
 
         // First issue
-        await primeV2.issue(false, [user1Address]);
+        await primeV2.issue([user1Address]);
         expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
 
         // Then burn
@@ -338,20 +317,19 @@ describe("PrimeV2", () => {
       });
     });
 
-    describe("setLimits", () => {
-      it("should update limits", async () => {
-        await expect(primeV2.setLimits(200, 1000)).to.emit(primeV2, "MintLimitsUpdated").withArgs(100, 500, 200, 1000);
+    describe("setLimit", () => {
+      it("should update limit", async () => {
+        await expect(primeV2.setLimit(1000)).to.emit(primeV2, "MintLimitUpdated").withArgs(500, 1000);
 
-        expect(await primeV2.irrevocableLimit()).to.equal(200);
-        expect(await primeV2.revocableLimit()).to.equal(1000);
+        expect(await primeV2.tokenLimit()).to.equal(1000);
       });
 
       it("should revert if new limit less than current count", async () => {
         // Issue some tokens first
-        await primeV2.issue(true, [await user1.getAddress()]);
+        await primeV2.issue([await user1.getAddress()]);
 
         // Try to set limit below current count
-        await expect(primeV2.setLimits(0, 500)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
+        await expect(primeV2.setLimit(0)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
       });
     });
 
@@ -427,34 +405,19 @@ describe("PrimeV2", () => {
   });
 
   describe("Token Limits", () => {
-    it("should enforce irrevocable limit", async () => {
+    it("should enforce token limit", async () => {
       // Set limit to 2
-      await primeV2.setLimits(2, 500);
+      await primeV2.setLimit(2);
 
       const user1Address = await user1.getAddress();
       const user2Address = await user2.getAddress();
       const user3Address = await user3.getAddress();
 
-      // Issue 2 irrevocable tokens (should succeed)
-      await primeV2.issue(true, [user1Address, user2Address]);
+      // Issue 2 tokens (should succeed)
+      await primeV2.issue([user1Address, user2Address]);
 
       // Try to issue a 3rd (should fail)
-      await expect(primeV2.issue(true, [user3Address])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
-    });
-
-    it("should enforce revocable limit", async () => {
-      // Set limit to 2
-      await primeV2.setLimits(100, 2);
-
-      const user1Address = await user1.getAddress();
-      const user2Address = await user2.getAddress();
-      const user3Address = await user3.getAddress();
-
-      // Issue 2 revocable tokens (should succeed)
-      await primeV2.issue(false, [user1Address, user2Address]);
-
-      // Try to issue a 3rd (should fail)
-      await expect(primeV2.issue(false, [user3Address])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
+      await expect(primeV2.issue([user3Address])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
     });
   });
 
@@ -515,7 +478,7 @@ describe("PrimeV2", () => {
       });
 
       it("should queue score updates when market is added", async () => {
-        await primeV2.issue(true, [await user1.getAddress()]);
+        await primeV2.issue([await user1.getAddress()]);
 
         await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
 
@@ -561,7 +524,7 @@ describe("PrimeV2", () => {
       });
 
       it("should queue score updates after multiplier change", async () => {
-        await primeV2.issue(true, [await user1.getAddress()]);
+        await primeV2.issue([await user1.getAddress()]);
 
         // addMarket queued 0 updates (no tokens existed at that time), issue didn't add more
         expect(await primeV2.pendingScoreUpdates()).to.equal(0);
@@ -583,7 +546,7 @@ describe("PrimeV2", () => {
   describe("Score Updates", () => {
     it("should queue score updates when alpha changes", async () => {
       // Issue some tokens first
-      await primeV2.issue(true, [await user1.getAddress()]);
+      await primeV2.issue([await user1.getAddress()]);
 
       const roundBefore = await primeV2.nextScoreUpdateRoundId();
       await primeV2.updateAlpha(2, 3);

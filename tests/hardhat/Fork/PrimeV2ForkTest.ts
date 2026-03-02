@@ -195,13 +195,13 @@ if (FORK_MAINNET) {
 
         // ── Grant ACM permissions (via Timelock) ──
         const primeV2Perms = [
-          "issue(bool,address[])",
+          "issue(address[])",
           "burn(address)",
           "addMarket(address,uint256,uint256)",
           "updateAlpha(uint128,uint128)",
           "updateMultipliers(address,uint256,uint256)",
           "setPrimeLeaderboard(address)",
-          "setLimits(uint256,uint256)",
+          "setLimit(uint256)",
           "pause()",
           "unpause()",
           "setMaxLoopsLimit(uint256)",
@@ -453,28 +453,18 @@ if (FORK_MAINNET) {
       // 4. PRIME TOKEN ISSUANCE & SCORING
       // ═══════════════════════════════════════════════════════════
       describe("Prime Token Issuance & Scoring", () => {
-        it("should issue revocable Prime tokens to users", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+        it("should issue Prime tokens to users", async () => {
+          await primeV2.issue([user1Addr, user2Addr]);
 
           expect(await primeV2.isUserPrimeHolder(user1Addr)).to.be.true;
           expect(await primeV2.isUserPrimeHolder(user2Addr)).to.be.true;
           expect(await primeV2.isUserPrimeHolder(user3Addr)).to.be.false;
-          expect(await primeV2.totalRevocable()).to.equal(2);
-          expect(await primeV2.totalIrrevocable()).to.equal(0);
-        });
-
-        it("should issue irrevocable Prime tokens", async () => {
-          await primeV2.issue(true, [user1Addr]);
-
-          const token = await primeV2.tokens(user1Addr);
-          expect(token.exists).to.be.true;
-          expect(token.isIrrevocable).to.be.true;
-          expect(await primeV2.totalIrrevocable()).to.equal(1);
+          expect(await primeV2.totalTokens()).to.equal(2);
         });
 
         it("should calculate user score using real oracle prices", async () => {
           // Issue Prime so user1 gets a score in vUSDT market
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.issue([user1Addr]);
 
           // User1 has vUSDT supply (from fixture) and XVS stake
           const interest = await primeV2.interests(Addr.vUSDT, user1Addr);
@@ -486,7 +476,7 @@ if (FORK_MAINNET) {
         });
 
         it("should update sumOfMembersScore when multiple users have Prime", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+          await primeV2.issue([user1Addr, user2Addr]);
 
           const interest1 = await primeV2.interests(Addr.vUSDT, user1Addr);
           const interest2 = await primeV2.interests(Addr.vUSDT, user2Addr);
@@ -495,31 +485,18 @@ if (FORK_MAINNET) {
           expect(market.sumOfMembersScore).to.equal(interest1.score.add(interest2.score));
         });
 
-        it("should upgrade revocable to irrevocable token", async () => {
-          await primeV2.issue(false, [user1Addr]);
-          expect(await primeV2.totalRevocable()).to.equal(1);
-          expect(await primeV2.totalIrrevocable()).to.equal(0);
-
-          // Calling issue(true, ...) on existing revocable holder upgrades it
-          await primeV2.issue(true, [user1Addr]);
-          const token = await primeV2.tokens(user1Addr);
-          expect(token.isIrrevocable).to.be.true;
-          expect(await primeV2.totalRevocable()).to.equal(0);
-          expect(await primeV2.totalIrrevocable()).to.equal(1);
-        });
-
-        it("should respect revocable limit", async () => {
+        it("should respect token limit", async () => {
           // Set tight limit
-          await primeV2.setLimits(100, 1);
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.setLimit(1);
+          await primeV2.issue([user1Addr]);
 
           // Second issuance should revert
-          await expect(primeV2.issue(false, [user2Addr])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
+          await expect(primeV2.issue([user2Addr])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
         });
 
         it("should revert issuing to user who already has Prime", async () => {
-          await primeV2.issue(false, [user1Addr]);
-          await expect(primeV2.issue(false, [user1Addr])).not.to.be.reverted; // no-op for existing, not revert
+          await primeV2.issue([user1Addr]);
+          await expect(primeV2.issue([user1Addr])).not.to.be.reverted; // no-op for existing, not revert
         });
       });
 
@@ -529,7 +506,7 @@ if (FORK_MAINNET) {
       describe("Interest Accrual & Claiming", () => {
         beforeEach(async () => {
           // Issue Prime to user1 and user2 (both have vUSDT supply)
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+          await primeV2.issue([user1Addr, user2Addr]);
         });
 
         it("should accrue interest from real PrimeLiquidityProvider", async () => {
@@ -720,7 +697,7 @@ if (FORK_MAINNET) {
       // ═══════════════════════════════════════════════════════════
       describe("Score Update Rounds", () => {
         it("should queue score updates after alpha change", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+          await primeV2.issue([user1Addr, user2Addr]);
 
           expect(await primeV2.pendingScoreUpdates()).to.equal(0);
 
@@ -731,7 +708,7 @@ if (FORK_MAINNET) {
         });
 
         it("should process batch score updates", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+          await primeV2.issue([user1Addr, user2Addr]);
 
           const scoreBefore = (await primeV2.interests(Addr.vUSDT, user1Addr)).score;
 
@@ -751,7 +728,7 @@ if (FORK_MAINNET) {
         });
 
         it("should queue score updates after multiplier change", async () => {
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.issue([user1Addr]);
 
           await primeV2.updateMultipliers(Addr.vUSDT, parseEther("3"), parseEther("3"));
 
@@ -762,7 +739,7 @@ if (FORK_MAINNET) {
         });
 
         it("should skip already-updated users in batch", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+          await primeV2.issue([user1Addr, user2Addr]);
           await primeV2.updateAlpha(1, 3);
 
           // Update user1 only
@@ -890,18 +867,18 @@ if (FORK_MAINNET) {
       // 9. TOKEN BURN & RE-ISSUANCE
       // ═══════════════════════════════════════════════════════════
       describe("Token Burn & Re-issuance", () => {
-        it("should burn a user's revocable Prime token", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
-          expect(await primeV2.totalRevocable()).to.equal(2);
+        it("should burn a user's Prime token", async () => {
+          await primeV2.issue([user1Addr, user2Addr]);
+          expect(await primeV2.totalTokens()).to.equal(2);
 
           await primeV2.burn(user1Addr);
 
           expect(await primeV2.isUserPrimeHolder(user1Addr)).to.be.false;
-          expect(await primeV2.totalRevocable()).to.equal(1);
+          expect(await primeV2.totalTokens()).to.equal(1);
         });
 
         it("should remove user score from market on burn", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+          await primeV2.issue([user1Addr, user2Addr]);
 
           const marketBefore = await primeV2.markets(Addr.vUSDT);
 
@@ -917,26 +894,17 @@ if (FORK_MAINNET) {
         });
 
         it("should allow re-issuance to a different user after burn", async () => {
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.issue([user1Addr]);
           await primeV2.burn(user1Addr);
 
           // Issue to user3 who didn't have Prime
-          await primeV2.issue(false, [user3Addr]);
+          await primeV2.issue([user3Addr]);
           expect(await primeV2.isUserPrimeHolder(user3Addr)).to.be.true;
-          expect(await primeV2.totalRevocable()).to.equal(1);
+          expect(await primeV2.totalTokens()).to.equal(1);
         });
 
         it("should revert burn for non-Prime holder", async () => {
           await expect(primeV2.burn(user3Addr)).to.be.revertedWithCustomError(primeV2, "UserHasNoPrimeToken");
-        });
-
-        it("should burn irrevocable token", async () => {
-          await primeV2.issue(true, [user1Addr]);
-          expect(await primeV2.totalIrrevocable()).to.equal(1);
-
-          await primeV2.burn(user1Addr);
-          expect(await primeV2.isUserPrimeHolder(user1Addr)).to.be.false;
-          expect(await primeV2.totalIrrevocable()).to.equal(0);
         });
       });
 
@@ -968,7 +936,7 @@ if (FORK_MAINNET) {
         });
 
         it("should process score updates via keeper", async () => {
-          await primeV2.issue(false, [user1Addr, user2Addr]);
+          await primeV2.issue([user1Addr, user2Addr]);
           await primeV2.updateAlpha(1, 3);
 
           expect(await keeper.getPendingScoreUpdates()).to.equal(2);
@@ -1001,14 +969,14 @@ if (FORK_MAINNET) {
           expect(xvsBalance).to.equal(parseEther("205000")); // 5000 + 200000
 
           // But when issuing Prime, the internal _xvsBalanceForScore caps it
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.issue([user1Addr]);
           const interest = await primeV2.interests(Addr.vUSDT, user1Addr);
           // Score should be based on capped XVS, verified by it being > 0
           expect(interest.score).to.be.gt(0);
         });
 
         it("should pause and unpause PrimeV2", async () => {
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.issue([user1Addr]);
           await primeV2.pause();
 
           // Claiming should revert when paused
@@ -1048,7 +1016,7 @@ if (FORK_MAINNET) {
         });
 
         it("should update market multipliers", async () => {
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.issue([user1Addr]);
 
           await primeV2.updateMultipliers(Addr.vUSDT, parseEther("3"), parseEther("3"));
 
@@ -1058,27 +1026,22 @@ if (FORK_MAINNET) {
         });
 
         it("should handle accrueInterestAndUpdateScore for a Prime holder", async () => {
-          await primeV2.issue(false, [user1Addr]);
+          await primeV2.issue([user1Addr]);
 
           // Should not revert
           await primeV2.accrueInterestAndUpdateScore(user1Addr, Addr.vUSDT);
         });
 
-        it("should update mint limits", async () => {
-          await primeV2.setLimits(200, 1000);
-          expect(await primeV2.irrevocableLimit()).to.equal(200);
-          expect(await primeV2.revocableLimit()).to.equal(1000);
+        it("should update mint limit", async () => {
+          await primeV2.setLimit(1000);
+          expect(await primeV2.tokenLimit()).to.equal(1000);
         });
 
-        it("should not allow setting limits below current counts", async () => {
-          await primeV2.issue(true, [user1Addr]);
-          await primeV2.issue(false, [user2Addr, user3Addr]);
+        it("should not allow setting limit below current count", async () => {
+          await primeV2.issue([user1Addr, user2Addr, user3Addr]);
 
-          // Try to set irrevocable limit below current (1)
-          await expect(primeV2.setLimits(0, 500)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
-
-          // Try to set revocable limit below current (2)
-          await expect(primeV2.setLimits(100, 1)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
+          // Try to set limit below current count (3)
+          await expect(primeV2.setLimit(2)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
         });
 
         it("should handle custom multiplier tiers", async () => {
