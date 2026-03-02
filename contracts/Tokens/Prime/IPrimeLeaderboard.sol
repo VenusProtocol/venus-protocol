@@ -16,6 +16,12 @@ interface IPrimeLeaderboard {
         uint64 _reserved; // Reserved for future use
     }
 
+    /// @notice Withdrawn stake with auto-expiry at month boundary
+    struct WithdrawnStakeInfo {
+        uint192 stake; // Accumulated withdrawn stake score
+        uint64 expiration; // Auto-expires at first day of next month (UTC)
+    }
+
     // ═══════════════════ EVENTS ═══════════════════
 
     /// @notice Emitted when a user deposits XVS
@@ -32,9 +38,6 @@ interface IPrimeLeaderboard {
 
     /// @notice Emitted when deposits are compacted
     event DepositsCompacted(address indexed user, uint256 oldCount, uint256 newCount);
-
-    /// @notice Emitted when a user's withdrawn stake is reset by backend
-    event WithdrawnStakeReset(address indexed user, uint256 oldStake);
 
     /// @notice Emitted when minimum stake is updated
     event MinimumStakeUpdated(uint256 oldMinimum, uint256 newMinimum);
@@ -103,11 +106,12 @@ interface IPrimeLeaderboard {
     /// @return scores Array of effective stake scores
     function getEffectiveStakeBatch(address[] calldata users) external view returns (uint256[] memory scores);
 
-    // ═══════════════════ CONFIGURATION ═══════════════════
+    /// @notice Get a user's currently active withdrawn stake (0 if expired)
+    /// @param user The user's address
+    /// @return stake The accumulated withdrawn stake score for the current period
+    function getWithdrawnStake(address user) external view returns (uint256 stake);
 
-    /// @notice Reset withdrawn stake for a user to zero (called by backend after processing)
-    /// @param user The user whose withdrawn stake should be reset
-    function resetWithdrawnStake(address user) external;
+    // ═══════════════════ CONFIGURATION ═══════════════════
 
     /// @notice Set the minimum stake to participate
     /// @param minimum New minimum stake amount

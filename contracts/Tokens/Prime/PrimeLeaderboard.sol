@@ -60,10 +60,7 @@ contract PrimeLeaderboard is
      * @param minimumStake_ Minimum XVS stake to participate
      * @custom:error Throw InvalidValue if minimumStake is zero
      */
-    function initialize(
-        address accessControlManager_,
-        uint256 minimumStake_
-    ) external initializer {
+    function initialize(address accessControlManager_, uint256 minimumStake_) external initializer {
         if (minimumStake_ == 0) revert InvalidValue();
 
         __AccessControlled_init(accessControlManager_);
@@ -218,24 +215,20 @@ contract PrimeLeaderboard is
         return effectiveStake;
     }
 
-    // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
-
     /**
-     * @notice Reset withdrawn stake for a user to zero (called by backend after processing)
-     * @param user The user whose withdrawn stake should be reset
-     * @custom:event Emits WithdrawnStakeReset event
-     * @custom:error Throw ZeroAddress if user address is zero
-     * @custom:access Controlled by ACM
+     * @notice Get a user's currently active withdrawn stake (0 if expired)
+     * @param user The user's address
+     * @return stake The accumulated withdrawn stake score for the current period
      */
-    function resetWithdrawnStake(address user) external override {
-        _checkAccessAllowed("resetWithdrawnStake(address)");
-        if (user == address(0)) revert ZeroAddress();
-
-        uint256 oldStake = withdrawnStake[user];
-        delete withdrawnStake[user];
-
-        emit WithdrawnStakeReset(user, oldStake);
+    function getWithdrawnStake(address user) external view override returns (uint256 stake) {
+        WithdrawnStakeInfo storage info = _withdrawnStakes[user];
+        if (block.timestamp >= uint256(info.expiration)) {
+            return 0;
+        }
+        return uint256(info.stake);
     }
+
+    // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
 
     /**
      * @notice Set the minimum stake to participate
@@ -418,12 +411,84 @@ contract PrimeLeaderboard is
     }
 
     /**
-     * @notice Accumulate withdrawn stake for a user (backend queries this separately)
+     * @notice Accumulate withdrawn stake for a user with auto-expiry at month boundary
+     * @dev If the previous period has expired, starts a new period with expiration = 1st of next month.
+     *      Otherwise, accumulates into the existing period.
      * @param user User address
-     * @param stake Stake to add
+     * @param score Score to add
      */
-    function _updateWithdrawnStake(address user, uint256 stake) internal {
-        withdrawnStake[user] += stake;
+    function _updateWithdrawnStake(address user, uint256 score) internal {
+        WithdrawnStakeInfo storage info = _withdrawnStakes[user];
+
+        if (block.timestamp >= uint256(info.expiration)) {
+            // Previous period expired (or first ever): start a new period
+            info.stake = score.toUint192();
+            info.expiration = _getNextMonthStart(block.timestamp).toUint64();
+        } else {
+            // Same period: accumulate
+            info.stake = (uint256(info.stake) + score).toUint192();
+        }
+    }
+
+    /**
+     * @notice Compute the Unix timestamp for the 1st day of the next calendar month at 00:00 UTC
+     * @dev Uses the civil calendar algorithm (adapted from BokkyPooBah's DateTime Library, MIT license)
+     * @param timestamp Current Unix timestamp
+     * @return The Unix timestamp for the start of the next month
+     */
+    function _getNextMonthStart(uint256 timestamp) internal pure returns (uint256) {
+        (uint256 year, uint256 month, ) = _timestampToDate(timestamp);
+        if (month == 12) {
+            year += 1;
+            month = 1;
+        } else {
+            month += 1;
+        }
+        return _timestampFromDate(year, month, 1);
+    }
+
+    /**
+     * @notice Convert Unix timestamp to calendar date
+     * @dev Adapted from BokkyPooBah's DateTime Library (MIT license)
+     */
+    function _timestampToDate(uint256 timestamp) private pure returns (uint256 year, uint256 month, uint256 day) {
+        uint256 _days = timestamp / 86400;
+        int256 L = int256(_days) + 68569 + 2440588;
+        int256 N = (4 * L) / 146097;
+        L = L - (146097 * N + 3) / 4;
+        int256 _year = (4000 * (L + 1)) / 1461001;
+        L = L - (1461 * _year) / 4 + 31;
+        int256 _month = (80 * L) / 2447;
+        int256 _day = L - (2447 * _month) / 80;
+        L = _month / 11;
+        _month = _month + 2 - 12 * L;
+        _year = 100 * (N - 49) + _year + L;
+
+        year = uint256(_year);
+        month = uint256(_month);
+        day = uint256(_day);
+    }
+
+    /**
+     * @notice Convert calendar date to Unix timestamp
+     * @dev Adapted from BokkyPooBah's DateTime Library (MIT license)
+     */
+    function _timestampFromDate(uint256 year, uint256 month, uint256 day) private pure returns (uint256) {
+        int256 _year = int256(year);
+        int256 _month = int256(month);
+        int256 _day = int256(day);
+
+        int256 __days = _day -
+            32075 +
+            (1461 * (_year + 4800 + (_month - 14) / 12)) /
+            4 +
+            (367 * (_month - 2 - ((_month - 14) / 12) * 12)) /
+            12 -
+            (3 * ((_year + 4900 + (_month - 14) / 12) / 100)) /
+            4 -
+            2440588;
+
+        return uint256(__days) * 86400;
     }
 
     /**
@@ -483,11 +548,7 @@ contract PrimeLeaderboard is
 
             // Insert merged deposit at index 0, preserving the earliest original timestamp
             // so that if multiplier tiers are later increased, the true hold duration is retained
-            deposits[0] = Deposit({
-                amount: mergedAmount.toUint128(),
-                timestamp: earliestTimestamp,
-                _reserved: 0
-            });
+            deposits[0] = Deposit({ amount: mergedAmount.toUint128(), timestamp: earliestTimestamp, _reserved: 0 });
 
             writeIndex++;
         }

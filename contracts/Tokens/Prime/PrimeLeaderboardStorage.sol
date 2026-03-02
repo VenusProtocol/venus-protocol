@@ -28,8 +28,8 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice User's total staked XVS
     mapping(address => uint256) public totalStaked;
 
-    /// @notice User's accumulated withdrawn stake (reset by backend via resetWithdrawnStake)
-    mapping(address => uint256) public withdrawnStake;
+    /// @notice User's accumulated withdrawn stake with auto-expiry at month boundary
+    mapping(address => IPrimeLeaderboard.WithdrawnStakeInfo) internal _withdrawnStakes;
 
     // ═══════════════════ CONTRACT STATE ═══════════════════
 

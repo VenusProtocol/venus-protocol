@@ -97,12 +97,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true,
     deterministicDeployment: false,
+    args: [xvsVaultAddress, xvsAddress, xVSVaultPoolId[networkName]],
     proxy: {
       owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
       proxyContract: "OptimizedTransparentUpgradeableProxy",
       execute: {
         methodName: "initialize",
-        args: [acmAddress, xvsVaultAddress, xvsAddress, xVSVaultPoolId[networkName], minimumStake],
+        args: [acmAddress, minimumStake],
       },
       viaAdminContract: {
         name: "DefaultProxyAdmin",
