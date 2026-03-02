@@ -1,8 +1,11 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "10.1.0-dev.4",
+  "version": "10.2.0-dev.2",
   "description": "The Venus Money Market",
-  "repository": "git@github.com:VenusProtocol/venus-protocol.git",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/VenusProtocol/venus-protocol.git"
+  },
   "author": "Venus",
   "license": "BSD-3-Clause",
   "engines": {
@@ -61,9 +64,8 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
     "@nomicfoundation/hardhat-verify": "^2.0.14",
     "@openzeppelin/hardhat-upgrades": "^1.21.0",
-    "@semantic-release/changelog": "^6.0.1",
+    "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/npm": "^9.0.1",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
@@ -87,7 +89,7 @@
     "husky": "^8.0.1",
     "prettier": "^3.2.5",
     "prettier-plugin-solidity": "^1.4.2",
-    "semantic-release": "^19.0.3",
+    "semantic-release": "^25.0.2",
     "solhint": "^3.3.7",
     "solidity-coverage": "^0.8.4",
     "solidity-docgen": "^0.6.0-beta.30",
@@ -106,6 +108,7 @@
     "provenance": true
   },
   "resolutions": {
-    "hardhat": "2.22.18"
+    "hardhat": "2.22.18",
+    "@defi-wonderland/smock": "2.4.0"
   }
 }

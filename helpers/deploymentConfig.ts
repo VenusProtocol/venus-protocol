@@ -4,7 +4,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Chain, blocksPerYear } from "./chains";
 import { ParsedVTokenConfig } from "./markets/types";
 
-export const DEFAULT_BLOCKS_PER_YEAR = 42048000;
+export const DEFAULT_BLOCKS_PER_YEAR = 70080000;
 
 export type TokenConfig =
   | {

@@ -752,11 +752,11 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         await vai.mint(redeemer.address, 3);
         expect(await vai.balanceOf(redeemer.address)).to.equal(3);
         await ethers.provider.send("evm_setAutomine", [false]);
-        await vaiController.setBaseRate(parseUnits("420480", 18)); // 1% each block
+        await vaiController.setBaseRate(parseUnits("700800", 18)); // 1% each block
         await mine(99);
         await vaiController.accrueVAIInterest();
         await mine();
-        // 100 blocks here, so debt before the repayment is twice the initial amount
+        // 100 blocks here, with higher BaseRate debt grows more than twice the initial amount
         expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(2);
         expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(4);
         expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(6);

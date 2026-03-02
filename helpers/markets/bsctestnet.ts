@@ -703,4 +703,73 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus PT Lista collateral BNB 25JUN2026",
+    symbol: "vPT-clisBNB-25JUN2026",
+    asset: "PT-clisBNB-25JUN2026",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "25000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.14",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus United Stables",
+    symbol: "vU",
+    asset: "U",
+    interestRateModel: {
+      model: "two-kinks",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0625",
+      kink: "0.8",
+      baseRatePerYear2: "0",
+      multiplierPerYear2: "0.6",
+      kink2: "0.9",
+      jumpMultiplierPerYear: "3.4",
+    },
+    riskParameters: {
+      collateralFactor: "0.75",
+      reserveFactor: "0.1",
+      supplyCap: "20000000",
+      borrowCap: "20000000",
+    },
+    initialSupply: {
+      amount: "100",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus Matrixdock Gold",
+    symbol: "vXAUM",
+    asset: "XAUM",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.02",
+      jumpMultiplierPerYear: "0.04",
+      kink: "0.8",
+    },
+    riskParameters: {
+      collateralFactor: "0.65",
+      reserveFactor: "0.2",
+      supplyCap: "200",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.025",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];

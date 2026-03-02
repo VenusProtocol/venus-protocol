@@ -244,6 +244,24 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xd2aF6A916Bc77764dc63742BC30f71AF4cF423F4",
   },
+  {
+    isMock: true,
+    name: "PT Lista collateral BNB 25JUN2026",
+    symbol: "PT-clisBNB-25JUN2026",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "United Stables",
+    symbol: "U",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "Matrixdock Gold",
+    symbol: "XAUM",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
