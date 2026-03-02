@@ -257,7 +257,6 @@ contract PrimeV2 is
      * @param vToken Market address
      * @return amount Amount claimed
      * @custom:event Emits InterestClaimed event
-     * @custom:error Throw UserHasNoPrimeToken if user has no prime token
      * @custom:error Throw MarketNotSupported if market is not supported
      */
     function claimInterest(address vToken) external nonReentrant whenNotPaused returns (uint256) {
@@ -270,7 +269,6 @@ contract PrimeV2 is
      * @param user Recipient address
      * @return amount Amount claimed
      * @custom:event Emits InterestClaimed event
-     * @custom:error Throw UserHasNoPrimeToken if user has no prime token
      * @custom:error Throw MarketNotSupported if market is not supported
      */
     function claimInterest(address vToken, address user) external nonReentrant whenNotPaused returns (uint256) {
@@ -688,11 +686,13 @@ contract PrimeV2 is
      * @return amount Amount claimed
      */
     function _claimInterest(address vToken, address user) internal returns (uint256) {
-        if (!tokens[user].exists) revert UserHasNoPrimeToken();
         if (!markets[vToken].exists) revert MarketNotSupported();
 
-        accrueInterest(vToken);
-        uint256 amount = _interestAccrued(vToken, user);
+        uint256 amount;
+        if (tokens[user].exists) {
+            accrueInterest(vToken);
+            amount = _interestAccrued(vToken, user);
+        }
         amount += interests[vToken][user].accrued;
 
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;

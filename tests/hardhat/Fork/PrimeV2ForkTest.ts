@@ -584,11 +584,11 @@ if (FORK_MAINNET) {
           }
         });
 
-        it("should revert claim for non-Prime holder", async () => {
-          await expect(primeV2.connect(user3)["claimInterest(address)"](Addr.vUSDT)).to.be.revertedWithCustomError(
-            primeV2,
-            "UserHasNoPrimeToken",
-          );
+        it("should allow claim for non-Prime holder with zero accrued", async () => {
+          const balanceBefore = await usdt.balanceOf(user3Addr);
+          await primeV2.connect(user3)["claimInterest(address)"](Addr.vUSDT);
+          const balanceAfter = await usdt.balanceOf(user3Addr);
+          expect(balanceAfter).to.equal(balanceBefore);
         });
 
         it("should revert claim for unsupported market", async () => {
