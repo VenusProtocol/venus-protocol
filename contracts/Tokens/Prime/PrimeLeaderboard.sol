@@ -213,20 +213,20 @@ contract PrimeLeaderboard is
     // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
 
     /**
-     * @notice Reset withdrawn score for a user to zero (called by backend after processing)
-     * @param user The user whose withdrawn score should be reset
-     * @custom:event Emits WithdrawnScoreReset event
+     * @notice Reset withdrawn stake for a user to zero (called by backend after processing)
+     * @param user The user whose withdrawn stake should be reset
+     * @custom:event Emits WithdrawnStakeReset event
      * @custom:error Throw ZeroAddress if user address is zero
      * @custom:access Controlled by ACM
      */
-    function resetWithdrawnScore(address user) external override {
-        _checkAccessAllowed("resetWithdrawnScore(address)");
+    function resetWithdrawnStake(address user) external override {
+        _checkAccessAllowed("resetWithdrawnStake(address)");
         if (user == address(0)) revert ZeroAddress();
 
-        uint256 oldScore = withdrawnScore[user];
-        delete withdrawnScore[user];
+        uint256 oldStake = withdrawnStake[user];
+        delete withdrawnStake[user];
 
-        emit WithdrawnScoreReset(user, oldScore);
+        emit WithdrawnStakeReset(user, oldStake);
     }
 
     /**
@@ -417,8 +417,8 @@ contract PrimeLeaderboard is
         uint256 newTotalStaked = oldTotalStaked - amount;
         totalStaked[user] = newTotalStaked;
 
-        // Track withdrawn score for current round
-        _updateWithdrawnScore(user, scoreFromWithdrawal);
+        // Track withdrawn stake for current round
+        _updateWithdrawnStake(user, scoreFromWithdrawal);
 
         emit WithdrawalRecorded(user, amount, scoreFromWithdrawal, newTotalStaked);
     }
@@ -445,12 +445,12 @@ contract PrimeLeaderboard is
     }
 
     /**
-     * @notice Accumulate withdrawn score for a user (backend queries this separately)
+     * @notice Accumulate withdrawn stake for a user (backend queries this separately)
      * @param user User address
-     * @param score Score to add
+     * @param stake Stake to add
      */
-    function _updateWithdrawnScore(address user, uint256 score) internal {
-        withdrawnScore[user] += score;
+    function _updateWithdrawnStake(address user, uint256 stake) internal {
+        withdrawnStake[user] += stake;
     }
 
     /**

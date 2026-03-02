@@ -208,7 +208,7 @@ if (FORK_MAINNET) {
         ];
         const leaderboardPerms = [
           "setPrimeV2(address)",
-          "resetWithdrawnScore(address)",
+          "resetWithdrawnStake(address)",
           "setMinimumStake(uint256)",
           "setMultiplierTiers(uint256[],uint256[])",
         ];
@@ -667,7 +667,7 @@ if (FORK_MAINNET) {
           expect(await primeLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("5000"));
         });
 
-        it("should NOT include withdrawn score in effective stake (backend-driven)", async () => {
+        it("should NOT include withdrawn stake in effective stake (backend-driven)", async () => {
           await time.increase(45 * DAY);
 
           const stakeBefore = await primeLeaderboard.getEffectiveStake(user1Addr);
@@ -680,15 +680,15 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          // Effective stake should only reflect ACTIVE deposits (no withdrawn score)
+          // Effective stake should only reflect ACTIVE deposits (no withdrawn stake)
           // Active: 4000 × 1.3 × (52 * 86400) = 23,362,560,000 (52 days = 45 + 7 vault lock)
           const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Addr);
           expectApprox(stakeAfter, parseEther("23362560000"));
 
           // Withdrawn score is tracked separately for backend
-          const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Addr);
+          const withdrawnStake = await primeLeaderboard.withdrawnStake(user1Addr);
           // 1000 × 1.3 × (52 * 86400) = 5,840,640,000 (held 52 days at withdrawal time)
-          expectApprox(withdrawnScore, parseEther("5840640000"));
+          expectApprox(withdrawnStake, parseEther("5840640000"));
         });
       });
 
@@ -762,8 +762,8 @@ if (FORK_MAINNET) {
       // ═══════════════════════════════════════════════════════════
       // 8. WITHDRAWN SCORE MANAGEMENT (BACKEND-DRIVEN)
       // ═══════════════════════════════════════════════════════════
-      describe("Withdrawn Score Management", () => {
-        it("should track withdrawn score separately from effective stake", async () => {
+      describe("Withdrawn Stake Management", () => {
+        it("should track withdrawn stake separately from effective stake", async () => {
           await time.increase(45 * DAY);
 
           // Withdraw 500 XVS
@@ -774,8 +774,8 @@ if (FORK_MAINNET) {
 
           // Withdrawn score should be tracked
           // 500 × 1.3 × (52 * 86400) = 2,920,320,000 (held 52 days = 45 + 7 vault lock)
-          const withdrawnScore = await primeLeaderboard.withdrawnScore(user1Addr);
-          expectApprox(withdrawnScore, parseEther("2920320000"));
+          const withdrawnStake = await primeLeaderboard.withdrawnStake(user1Addr);
+          expectApprox(withdrawnStake, parseEther("2920320000"));
 
           // Effective stake should only reflect active deposits
           // 4500 × 1.3 × (52 * 86400) = 26,282,880,000
@@ -783,7 +783,7 @@ if (FORK_MAINNET) {
           expectApprox(effectiveStake, parseEther("26282880000"));
         });
 
-        it("should accumulate withdrawn scores across multiple withdrawals", async () => {
+        it("should accumulate withdrawn stakes across multiple withdrawals", async () => {
           await time.increase(45 * DAY);
 
           // First withdrawal: 200 XVS
@@ -792,7 +792,7 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          const scoreAfterFirst = await primeLeaderboard.withdrawnScore(user1Addr);
+          const scoreAfterFirst = await primeLeaderboard.withdrawnStake(user1Addr);
           // 200 × 1.3 × (52 * 86400) = 1,168,128,000 (held 52 days = 45 + 7 vault lock)
           expectApprox(scoreAfterFirst, parseEther("1168128000"));
 
@@ -802,7 +802,7 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          const scoreAfterSecond = await primeLeaderboard.withdrawnScore(user1Addr);
+          const scoreAfterSecond = await primeLeaderboard.withdrawnStake(user1Addr);
           // First: 1,168,128,000 + Second: 200 × 1.3 × (59 * 86400) = 1,325,376,000 (59 days = 45 + 7 + 7)
           // Total: 1,168,128,000 + 1,325,376,000 = 2,493,504,000
           expectApprox(scoreAfterSecond, parseEther("2493504000"));
@@ -811,30 +811,30 @@ if (FORK_MAINNET) {
           expect(scoreAfterSecond.gt(scoreAfterFirst)).to.be.true;
         });
 
-        it("should allow backend to reset withdrawn score via resetWithdrawnScore", async () => {
+        it("should allow backend to reset withdrawn stake via resetWithdrawnStake", async () => {
           await time.increase(45 * DAY);
 
-          // Build up withdrawn score
+          // Build up withdrawn stake
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
           await time.increase(7 * DAY);
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          const withdrawnBefore = await primeLeaderboard.withdrawnScore(user1Addr);
+          const withdrawnBefore = await primeLeaderboard.withdrawnStake(user1Addr);
           expect(withdrawnBefore).to.be.gt(0);
 
-          // Backend resets withdrawn score after processing
-          await primeLeaderboard.resetWithdrawnScore(user1Addr);
+          // Backend resets withdrawn stake after processing
+          await primeLeaderboard.resetWithdrawnStake(user1Addr);
 
-          const withdrawnAfter = await primeLeaderboard.withdrawnScore(user1Addr);
+          const withdrawnAfter = await primeLeaderboard.withdrawnStake(user1Addr);
           expect(withdrawnAfter).to.equal(0);
 
-          // Effective stake should be unchanged (withdrawn score was never part of it)
+          // Effective stake should be unchanged (withdrawn stake was never part of it)
           const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Addr);
           expect(effectiveStake).to.be.gt(0);
         });
 
-        it("should reset withdrawn score to zero and allow new accumulation", async () => {
+        it("should reset withdrawn stake to zero and allow new accumulation", async () => {
           await time.increase(45 * DAY);
 
           // First withdrawal
@@ -843,12 +843,12 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          const withdrawnBefore = await primeLeaderboard.withdrawnScore(user1Addr);
+          const withdrawnBefore = await primeLeaderboard.withdrawnStake(user1Addr);
           expect(withdrawnBefore).to.be.gt(0);
 
           // Backend resets
-          await primeLeaderboard.resetWithdrawnScore(user1Addr);
-          expect(await primeLeaderboard.withdrawnScore(user1Addr)).to.equal(0);
+          await primeLeaderboard.resetWithdrawnStake(user1Addr);
+          expect(await primeLeaderboard.withdrawnStake(user1Addr)).to.equal(0);
 
           // New withdrawal after reset should start fresh accumulation
           await xvsVault.connect(user1).requestWithdrawal(Addr.XVS, XVS_POOL_ID, parseEther("500"));
@@ -856,9 +856,9 @@ if (FORK_MAINNET) {
           await xvsVault.connect(user1).executeWithdrawal(Addr.XVS, XVS_POOL_ID);
           await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
-          const withdrawnAfterReset = await primeLeaderboard.withdrawnScore(user1Addr);
+          const withdrawnAfterReset = await primeLeaderboard.withdrawnStake(user1Addr);
           expect(withdrawnAfterReset).to.be.gt(0);
-          // New withdrawn score should be different from old (different hold times)
+          // New withdrawn stake should be different from old (different hold times)
           expect(withdrawnAfterReset).to.not.equal(withdrawnBefore);
         });
       });

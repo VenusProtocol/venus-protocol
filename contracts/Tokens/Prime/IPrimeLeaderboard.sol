@@ -28,13 +28,13 @@ interface IPrimeLeaderboard {
     );
 
     /// @notice Emitted when a user withdraws XVS
-    event WithdrawalRecorded(address indexed user, uint256 amount, uint256 withdrawnScore, uint256 newTotalStaked);
+    event WithdrawalRecorded(address indexed user, uint256 amount, uint256 withdrawnStake, uint256 newTotalStaked);
 
     /// @notice Emitted when deposits are compacted
     event DepositsCompacted(address indexed user, uint256 oldCount, uint256 newCount);
 
-    /// @notice Emitted when a user's withdrawn score is reset by backend
-    event WithdrawnScoreReset(address indexed user, uint256 oldScore);
+    /// @notice Emitted when a user's withdrawn stake is reset by backend
+    event WithdrawnStakeReset(address indexed user, uint256 oldStake);
 
     /// @notice Emitted when minimum stake is updated
     event MinimumStakeUpdated(uint256 oldMinimum, uint256 newMinimum);
@@ -111,9 +111,9 @@ interface IPrimeLeaderboard {
 
     // ═══════════════════ CONFIGURATION ═══════════════════
 
-    /// @notice Reset withdrawn score for a user to zero (called by backend after processing)
-    /// @param user The user whose withdrawn score should be reset
-    function resetWithdrawnScore(address user) external;
+    /// @notice Reset withdrawn stake for a user to zero (called by backend after processing)
+    /// @param user The user whose withdrawn stake should be reset
+    function resetWithdrawnStake(address user) external;
 
     /// @notice Set the minimum stake to participate
     /// @param minimum New minimum stake amount
