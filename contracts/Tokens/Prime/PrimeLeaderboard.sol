@@ -78,7 +78,7 @@ contract PrimeLeaderboard is
 
     /**
      * @notice Called by XVSVault (via primeToken.xvsUpdated) when a user's stake changes
-     * @dev Reads the user's current vault balance, diffs against _lastKnownStake,
+     * @dev Reads the user's current vault balance, diffs against totalStaked,
      *      and records the appropriate deposit or withdrawal internally.
      * @param user The user whose stake changed
      * @custom:event Emits DepositRecorded event on deposit
@@ -97,13 +97,11 @@ contract PrimeLeaderboard is
             user
         );
         uint256 vaultStake = xvs - pendingWithdrawals;
-        uint256 lastKnown = _lastKnownStake[user];
+        uint256 lastKnown = totalStaked[user];
 
         if (vaultStake > lastKnown) {
-            _lastKnownStake[user] = vaultStake;
             _recordDeposit(user, vaultStake - lastKnown);
         } else if (vaultStake < lastKnown) {
-            _lastKnownStake[user] = vaultStake;
             _recordWithdrawal(user, lastKnown - vaultStake);
         }
 

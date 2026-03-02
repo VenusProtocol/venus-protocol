@@ -31,9 +31,6 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice User's accumulated withdrawn stake (reset by backend via resetWithdrawnStake)
     mapping(address => uint256) public withdrawnStake;
 
-    /// @notice Last known staked amount per user (for xvsUpdated delta inference)
-    mapping(address => uint256) internal _lastKnownStake;
-
     // ═══════════════════ CONTRACT STATE ═══════════════════
 
     /// @notice Minimum XVS stake for leaderboard eligibility (checked off-chain)
