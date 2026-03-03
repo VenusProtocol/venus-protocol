@@ -28,9 +28,6 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice User's total staked XVS
     mapping(address => uint256) public totalStaked;
 
-    /// @notice User's accumulated withdrawn stake with auto-expiry at month boundary
-    mapping(address => IPrimeLeaderboard.WithdrawnStakeInfo) internal _withdrawnStakes;
-
     // ═══════════════════ CONTRACT STATE ═══════════════════
 
     /// @notice Minimum XVS stake for leaderboard eligibility (checked off-chain)

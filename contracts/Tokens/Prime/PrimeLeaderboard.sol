@@ -215,19 +215,6 @@ contract PrimeLeaderboard is
         return effectiveStake;
     }
 
-    /**
-     * @notice Get a user's currently active withdrawn stake (0 if expired)
-     * @param user The user's address
-     * @return stake The accumulated withdrawn stake score for the current period
-     */
-    function getWithdrawnStake(address user) external view override returns (uint256 stake) {
-        WithdrawnStakeInfo storage info = _withdrawnStakes[user];
-        if (block.timestamp >= uint256(info.expiration)) {
-            return 0;
-        }
-        return uint256(info.stake);
-    }
-
     // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
 
     /**
@@ -351,8 +338,6 @@ contract PrimeLeaderboard is
 
         Deposit[] storage deposits = _depositStacks[user];
         uint256 remaining = amount;
-        uint256 scoreFromWithdrawal = 0;
-        uint256 maxCapSeconds = _multiplierDurations[_multiplierDurations.length - 1];
 
         // Process LIFO (from newest to oldest)
         while (remaining > 0 && deposits.length > 0) {
@@ -362,31 +347,19 @@ contract PrimeLeaderboard is
             uint256 depositAmount = uint256(deposit.amount);
             uint256 toWithdraw = remaining > depositAmount ? depositAmount : remaining;
 
-            // Calculate and lock the score for withdrawn amount (includes hold_duration)
-            uint256 holdingDuration = block.timestamp - uint256(deposit.timestamp);
-            uint256 multiplier = _getMultiplier(holdingDuration);
-            uint256 cappedDuration = holdingDuration > maxCapSeconds ? maxCapSeconds : holdingDuration;
-            scoreFromWithdrawal += (toWithdraw * multiplier * cappedDuration) / EXP_SCALE;
-
             remaining -= toWithdraw;
 
             if (toWithdraw == depositAmount) {
-                // Fully consumed this deposit
                 deposits.pop();
             } else {
-                // Partially consumed
                 deposit.amount = (depositAmount - toWithdraw).toUint128();
             }
         }
 
-        uint256 oldTotalStaked = totalStaked[user];
-        uint256 newTotalStaked = oldTotalStaked - amount;
+        uint256 newTotalStaked = totalStaked[user] - amount;
         totalStaked[user] = newTotalStaked;
 
-        // Track withdrawn stake for current round
-        _updateWithdrawnStake(user, scoreFromWithdrawal);
-
-        emit WithdrawalRecorded(user, amount, scoreFromWithdrawal, newTotalStaked);
+        emit WithdrawalRecorded(user, amount, newTotalStaked);
     }
 
     /**
@@ -408,87 +381,6 @@ contract PrimeLeaderboard is
         }
 
         return BASE_MULTIPLIER;
-    }
-
-    /**
-     * @notice Accumulate withdrawn stake for a user with auto-expiry at month boundary
-     * @dev If the previous period has expired, starts a new period with expiration = 1st of next month.
-     *      Otherwise, accumulates into the existing period.
-     * @param user User address
-     * @param score Score to add
-     */
-    function _updateWithdrawnStake(address user, uint256 score) internal {
-        WithdrawnStakeInfo storage info = _withdrawnStakes[user];
-
-        if (block.timestamp >= uint256(info.expiration)) {
-            // Previous period expired (or first ever): start a new period
-            info.stake = score.toUint192();
-            info.expiration = _getNextMonthStart(block.timestamp).toUint64();
-        } else {
-            // Same period: accumulate
-            info.stake = (uint256(info.stake) + score).toUint192();
-        }
-    }
-
-    /**
-     * @notice Compute the Unix timestamp for the 1st day of the next calendar month at 00:00 UTC
-     * @dev Uses the civil calendar algorithm (adapted from BokkyPooBah's DateTime Library, MIT license)
-     * @param timestamp Current Unix timestamp
-     * @return The Unix timestamp for the start of the next month
-     */
-    function _getNextMonthStart(uint256 timestamp) internal pure returns (uint256) {
-        (uint256 year, uint256 month, ) = _timestampToDate(timestamp);
-        if (month == 12) {
-            year += 1;
-            month = 1;
-        } else {
-            month += 1;
-        }
-        return _timestampFromDate(year, month, 1);
-    }
-
-    /**
-     * @notice Convert Unix timestamp to calendar date
-     * @dev Adapted from BokkyPooBah's DateTime Library (MIT license)
-     */
-    function _timestampToDate(uint256 timestamp) private pure returns (uint256 year, uint256 month, uint256 day) {
-        uint256 _days = timestamp / 86400;
-        int256 L = int256(_days) + 68569 + 2440588;
-        int256 N = (4 * L) / 146097;
-        L = L - (146097 * N + 3) / 4;
-        int256 _year = (4000 * (L + 1)) / 1461001;
-        L = L - (1461 * _year) / 4 + 31;
-        int256 _month = (80 * L) / 2447;
-        int256 _day = L - (2447 * _month) / 80;
-        L = _month / 11;
-        _month = _month + 2 - 12 * L;
-        _year = 100 * (N - 49) + _year + L;
-
-        year = uint256(_year);
-        month = uint256(_month);
-        day = uint256(_day);
-    }
-
-    /**
-     * @notice Convert calendar date to Unix timestamp
-     * @dev Adapted from BokkyPooBah's DateTime Library (MIT license)
-     */
-    function _timestampFromDate(uint256 year, uint256 month, uint256 day) private pure returns (uint256) {
-        int256 _year = int256(year);
-        int256 _month = int256(month);
-        int256 _day = int256(day);
-
-        int256 __days = _day -
-            32075 +
-            (1461 * (_year + 4800 + (_month - 14) / 12)) /
-            4 +
-            (367 * (_month - 2 - ((_month - 14) / 12) * 12)) /
-            12 -
-            (3 * ((_year + 4900 + (_month - 14) / 12) / 100)) /
-            4 -
-            2440588;
-
-        return uint256(__days) * 86400;
     }
 
     /**

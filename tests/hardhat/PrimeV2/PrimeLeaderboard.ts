@@ -351,7 +351,7 @@ describe("PrimeLeaderboard", () => {
       expectApprox(effectiveStake, convertToUnit(3_348_000_000, 18));
     });
 
-    it("should NOT include withdrawn stake in effective stake", async () => {
+    it("should reduce effective stake after partial withdrawal", async () => {
       const user1Address = await user1.getAddress();
 
       await simulateDeposit(user1Address, convertToUnit(1000, 18));
@@ -365,7 +365,6 @@ describe("PrimeLeaderboard", () => {
       await simulateWithdrawal(user1Address, convertToUnit(500, 18));
 
       // Remaining active deposits only: 500 × 1.3 × (35 * 86400) = ~1,965,600,000
-      // Withdrawn score is NOT added to effective stake
       const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Address);
       expectApprox(stakeAfter, convertToUnit(1_965_600_000, 18));
     });
@@ -398,153 +397,6 @@ describe("PrimeLeaderboard", () => {
 
     it("should return highest applicable multiplier for durations beyond max tier", async () => {
       expect(await primeLeaderboard.getMultiplier(120 * DAY)).to.equal(convertToUnit("2", 18));
-    });
-  });
-
-  describe("Withdrawn Stake Tracking", () => {
-    it("should accumulate withdrawn stake separately from effective stake", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(35 * DAY);
-
-      // Withdraw 500 XVS
-      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
-
-      // Withdrawn score: 500 × 1.3 × (35 * 86400) = ~1,965,600,000
-      const withdrawnStake = await primeLeaderboard.getWithdrawnStake(user1Address);
-      expectApprox(withdrawnStake, convertToUnit(1_965_600_000, 18));
-
-      // Effective stake only has active deposits: 500 × 1.3 × (35 * 86400) = ~1,965,600,000
-      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expectApprox(effectiveStake, convertToUnit(1_965_600_000, 18));
-    });
-
-    it("should accumulate withdrawn stakes across multiple withdrawals", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(45 * DAY);
-
-      // First withdrawal: 100 XVS (vault balance → 900)
-      await simulateWithdrawal(user1Address, convertToUnit(900, 18));
-      const scoreAfterFirst = await primeLeaderboard.getWithdrawnStake(user1Address);
-
-      // Withdrawn score: 100 × 1.3 × (45 * 86400) = ~505,440,000
-      expectApprox(scoreAfterFirst, convertToUnit(505_440_000, 18));
-
-      // Second withdrawal: 100 XVS (vault balance → 800)
-      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-      const scoreAfterSecond = await primeLeaderboard.getWithdrawnStake(user1Address);
-
-      // Accumulated: ~505,440,000 + (100 × 1.3 × (45 * 86400)) = ~1,010,880,000
-      expectApprox(scoreAfterSecond, convertToUnit(1_010_880_000, 18));
-    });
-
-    it("should track withdrawn stake on full withdrawal", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(10 * DAY);
-
-      // Full withdrawal
-      await simulateWithdrawal(user1Address, "0");
-
-      // Withdrawn score: 1000 × 1.0 × (10 * 86400) = ~864,000,000
-      const withdrawnStake = await primeLeaderboard.getWithdrawnStake(user1Address);
-      expectApprox(withdrawnStake, convertToUnit(864_000_000, 18));
-
-      // Effective stake is 0 (no active deposits)
-      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.equal(0);
-    });
-  });
-
-  describe("Withdrawn Stake Auto-Expiry", () => {
-    it("should return zero withdrawn stake when no withdrawals exist", async () => {
-      const user1Address = await user1.getAddress();
-      expect(await primeLeaderboard.getWithdrawnStake(user1Address)).to.equal(0);
-    });
-
-    it("should auto-expire withdrawn stake at month boundary", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(10 * DAY);
-      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
-
-      // Withdrawn stake exists within the current month
-      const withdrawnStake = await primeLeaderboard.getWithdrawnStake(user1Address);
-      expect(withdrawnStake).to.be.gt(0);
-
-      // Advance past the month boundary (32 days to ensure we cross into next month)
-      await time.increase(32 * DAY);
-
-      // Withdrawn stake should auto-expire to 0
-      expect(await primeLeaderboard.getWithdrawnStake(user1Address)).to.equal(0);
-    });
-
-    it("should start fresh accumulation after expiry on new withdrawal", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(10 * DAY);
-
-      // Withdraw in current month
-      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-      const scoreMonth1 = await primeLeaderboard.getWithdrawnStake(user1Address);
-      expect(scoreMonth1).to.be.gt(0);
-
-      // Advance past month boundary
-      await time.increase(32 * DAY);
-      expect(await primeLeaderboard.getWithdrawnStake(user1Address)).to.equal(0);
-
-      // New withdrawal in the new month starts fresh
-      await simulateWithdrawal(user1Address, convertToUnit(600, 18));
-      const scoreMonth2 = await primeLeaderboard.getWithdrawnStake(user1Address);
-      expect(scoreMonth2).to.be.gt(0);
-    });
-
-    it("should accumulate within the same calendar month", async () => {
-      const user1Address = await user1.getAddress();
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(10 * DAY);
-
-      // First withdrawal
-      await simulateWithdrawal(user1Address, convertToUnit(900, 18));
-      const scoreAfterFirst = await primeLeaderboard.getWithdrawnStake(user1Address);
-
-      // Second withdrawal (same month, just 1 day later)
-      await time.increase(1 * DAY);
-      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-      const scoreAfterSecond = await primeLeaderboard.getWithdrawnStake(user1Address);
-
-      // Should accumulate (both are BigNumbers from the same period)
-      expect(scoreAfterSecond.gt(scoreAfterFirst)).to.be.true;
-    });
-
-    it("should handle year boundary (December to January)", async () => {
-      const user1Address = await user1.getAddress();
-
-      // Set time to Dec 15, 2025 (Unix timestamp: 1734220800 = Dec 15 2024 00:00 UTC)
-      // Use a known Dec 15 date
-      const dec15 = Math.floor(new Date("2025-12-15T00:00:00Z").getTime() / 1000);
-      await time.increaseTo(dec15);
-
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-      await time.increase(5 * DAY);
-      await simulateWithdrawal(user1Address, convertToUnit(500, 18));
-
-      // Withdrawn stake should exist
-      expect(await primeLeaderboard.getWithdrawnStake(user1Address)).to.be.gt(0);
-
-      // Advance to Jan 2, 2026 (past Dec→Jan boundary)
-      const jan2 = Math.floor(new Date("2026-01-02T00:00:00Z").getTime() / 1000);
-      await time.increaseTo(jan2);
-
-      // Should be expired
-      expect(await primeLeaderboard.getWithdrawnStake(user1Address)).to.equal(0);
     });
   });
 
@@ -837,9 +689,8 @@ describe("PrimeLeaderboard", () => {
     //   - Backend updates leaderboard every 24 hours
     //
     // With the new design:
-    //   - Effective stake reflects ONLY active deposits (no withdrawn stake inflation)
-    //   - Withdrawn score is tracked separately for backend to query
-    //   - Withdrawn stake auto-expires at the start of the next calendar month
+    //   - Effective stake reflects ONLY active deposits
+    //   - Backend can detect withdrawals via WithdrawalRecorded events
 
     const ONE_MILLION_XVS = convertToUnit(1_000_000, 18);
 
@@ -863,9 +714,6 @@ describe("PrimeLeaderboard", () => {
       // Effective stake is immediately 0 (no phantom score)
       expect(await primeLeaderboard.getEffectiveStake(user1Address)).to.equal(0);
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(0);
-
-      // Withdrawn score is tracked separately for backend
-      expectApprox(await primeLeaderboard.getWithdrawnStake(user1Address), convertToUnit(86_400_000_000, 18));
 
       // User2 still active: 500K × 1.0 × 86400 = ~43,200,000,000
       expectApprox(await primeLeaderboard.getEffectiveStake(user2Address), convertToUnit(43_200_000_000, 18));
@@ -936,44 +784,14 @@ describe("PrimeLeaderboard", () => {
       await simulateWithdrawal(user1Address, convertToUnit(900, 18));
 
       // Score after withdrawal: 900 × 1.3 × (35 * 86400) = ~3,538,080,000
-      // (Only active deposits count, withdrawn stake tracked separately)
+      // (Only active deposits count)
       expectApprox(await primeLeaderboard.getEffectiveStake(user1Address), convertToUnit(3_538_080_000, 18));
-
-      // Withdrawn score: 100 × 1.3 × (35 * 86400) = ~393,120,000
-      expectApprox(await primeLeaderboard.getWithdrawnStake(user1Address), convertToUnit(393_120_000, 18));
 
       // Day 36: Backend checks 24 hours later
       await time.increase(1 * DAY);
 
       // Score: 900 × 1.3 × (36 * 86400) = ~3,639,168,000 (naturally grows based on active deposits)
       expectApprox(await primeLeaderboard.getEffectiveStake(user1Address), convertToUnit(3_639_168_000, 18));
-    });
-
-    it("should auto-expire withdrawn stake at month boundary and start fresh", async () => {
-      const user1Address = await user1.getAddress();
-
-      // Day 0: User deposits 1000 XVS
-      await simulateDeposit(user1Address, convertToUnit(1000, 18));
-
-      // Day 10: Withdraw 200 XVS
-      await time.increase(10 * DAY);
-      await simulateWithdrawal(user1Address, convertToUnit(800, 18));
-
-      // Withdrawn score: 200 × 1.0 × (10 * 86400) = ~172,800,000
-      expectApprox(await primeLeaderboard.getWithdrawnStake(user1Address), convertToUnit(172_800_000, 18));
-
-      // Advance past month boundary (withdrawn stake auto-expires)
-      await time.increase(32 * DAY);
-      expect(await primeLeaderboard.getWithdrawnStake(user1Address)).to.equal(0);
-
-      // New withdrawal in new month starts fresh
-      await simulateWithdrawal(user1Address, convertToUnit(700, 18));
-      const newWithdrawnStake = await primeLeaderboard.getWithdrawnStake(user1Address);
-      expect(newWithdrawnStake).to.be.gt(0);
-
-      // Effective stake only reflects active 700 XVS
-      const effectiveStake = await primeLeaderboard.getEffectiveStake(user1Address);
-      expect(effectiveStake).to.be.gt(0);
     });
 
     it("should show the complete 30-day lifecycle with backend-driven leaderboard", async () => {
@@ -987,10 +805,6 @@ describe("PrimeLeaderboard", () => {
       // Day 2: User1 withdraws everything
       await time.increase(1 * DAY);
       await simulateWithdrawal(user1Address, "0");
-
-      // Withdrawn stake is tracked right after withdrawal (before month-end expiry)
-      const withdrawnStake = await primeLeaderboard.getWithdrawnStake(user1Address);
-      expectApprox(withdrawnStake, convertToUnit(86_400_000_000, 18));
 
       // Collect score snapshots throughout backend's 30-day cycle
       const user1Scores: string[] = [];
@@ -1024,9 +838,6 @@ describe("PrimeLeaderboard", () => {
       for (let i = 1; i < user2Scores.length; i++) {
         expect(ethers.BigNumber.from(user2Scores[i])).to.be.gt(ethers.BigNumber.from(user2Scores[i - 1]));
       }
-
-      // By Day 30, withdrawn stake has auto-expired (crossed month boundary)
-      expect(await primeLeaderboard.getWithdrawnStake(user1Address)).to.equal(0);
     });
   });
 });

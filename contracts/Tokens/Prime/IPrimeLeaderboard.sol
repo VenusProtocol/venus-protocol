@@ -16,12 +16,6 @@ interface IPrimeLeaderboard {
         uint64 _reserved; // Reserved for future use
     }
 
-    /// @notice Withdrawn stake with auto-expiry at month boundary
-    struct WithdrawnStakeInfo {
-        uint192 stake; // Accumulated withdrawn stake score
-        uint64 expiration; // Auto-expires at first day of next month (UTC)
-    }
-
     // ═══════════════════ EVENTS ═══════════════════
 
     /// @notice Emitted when a user deposits XVS
@@ -34,7 +28,7 @@ interface IPrimeLeaderboard {
     );
 
     /// @notice Emitted when a user withdraws XVS
-    event WithdrawalRecorded(address indexed user, uint256 amount, uint256 withdrawnStake, uint256 newTotalStaked);
+    event WithdrawalRecorded(address indexed user, uint256 amount, uint256 newTotalStaked);
 
     /// @notice Emitted when deposits are compacted
     event DepositsCompacted(address indexed user, uint256 oldCount, uint256 newCount);
@@ -105,11 +99,6 @@ interface IPrimeLeaderboard {
     /// @param users Array of user addresses
     /// @return scores Array of effective stake scores
     function getEffectiveStakeBatch(address[] calldata users) external view returns (uint256[] memory scores);
-
-    /// @notice Get a user's currently active withdrawn stake (0 if expired)
-    /// @param user The user's address
-    /// @return stake The accumulated withdrawn stake score for the current period
-    function getWithdrawnStake(address user) external view returns (uint256 stake);
 
     // ═══════════════════ CONFIGURATION ═══════════════════
 
