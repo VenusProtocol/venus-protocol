@@ -1400,12 +1400,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             );
         }
 
-        /* If repayAmount == type(uint256).max, repayAmount = accountBorrows */
-        if (repayAmount == type(uint256).max) {
-            vars.repayAmount = vars.accountBorrows;
-        } else {
-            vars.repayAmount = repayAmount;
-        }
+        // caps the repayAmount to the actual owed amount
+        vars.repayAmount = repayAmount >= vars.accountBorrows ? vars.accountBorrows : repayAmount;
 
         /////////////////////////
         // EFFECTS & INTERACTIONS

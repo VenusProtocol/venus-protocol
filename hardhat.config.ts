@@ -259,7 +259,7 @@ const config: HardhatUserConfig = {
     },
   },
   sourcify: {
-    enabled: true,
+    enabled: false,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
