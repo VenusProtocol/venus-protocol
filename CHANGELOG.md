@@ -1,3 +1,15 @@
+## 10.2.0-dev.3 (2026-03-03)
+
+* Merge branch 'develop' into feat/VPD-233 ([d3c78a7](https://github.com/VenusProtocol/venus-protocol/commit/d3c78a7))
+* Merge pull request #646 from VenusProtocol/feat/VPD-233 ([8f2c1bb](https://github.com/VenusProtocol/venus-protocol/commit/8f2c1bb)), closes [#646](https://github.com/VenusProtocol/venus-protocol/issues/646)
+* docs: add HashDit audit report for repay improvisation ([05d3cd3](https://github.com/VenusProtocol/venus-protocol/commit/05d3cd3))
+* feat: deploy VBep20Delegate with updated repayAmount logic ([a33aef3](https://github.com/VenusProtocol/venus-protocol/commit/a33aef3))
+* feat: Redeploy VBep20Delegate on bscmainnet and bsctestnet ([6b52bf0](https://github.com/VenusProtocol/venus-protocol/commit/6b52bf0))
+* feat: update repayAmount logic ([1bd7262](https://github.com/VenusProtocol/venus-protocol/commit/1bd7262))
+* feat: updating deployment files ([eb0d728](https://github.com/VenusProtocol/venus-protocol/commit/eb0d728))
+* feat: updating deployment files ([9f22dad](https://github.com/VenusProtocol/venus-protocol/commit/9f22dad))
+* chore: remove list-markets script ([2c5431e](https://github.com/VenusProtocol/venus-protocol/commit/2c5431e))
+
 ## 10.2.0-dev.2 (2026-02-27)
 
 * Merge pull request #662 from VenusProtocol/feat/vpd-606 ([6d29baf](https://github.com/VenusProtocol/venus-protocol/commit/6d29baf)), closes [#662](https://github.com/VenusProtocol/venus-protocol/issues/662)
