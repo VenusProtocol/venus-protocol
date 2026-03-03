@@ -492,7 +492,12 @@ contract PrimeLeaderboard is
     }
 
     /**
-     * @notice Compact deposits by merging oldest deposits with same multiplier tier
+     * @notice Compact deposits using a two-pass approach
+     * @dev Pass 1 (lossless): Merge deposits that have reached the max multiplier tier.
+     *      Pass 2 (fallback): If still at limit, merge all deposits within the same
+     *      multiplier tier using the earliest timestamp per group. Guarantees reduction
+     *      to at most (tiersCount) deposits. Minor score overestimate within a tier
+     *      is acceptable since the score is only used for off-chain ranking.
      * @param user User address
      */
     function _compactDeposits(address user) internal {
@@ -503,8 +508,7 @@ contract PrimeLeaderboard is
 
         uint256 oldCount = depositsLength;
 
-        // Find deposits that have reached max multiplier (90+ days)
-        // and can be merged
+        // ── Pass 1: merge deposits that have reached max multiplier tier (lossless) ──
         uint256 maxTierDuration = _multiplierDurations[_multiplierDurations.length - 1];
 
         uint256 mergedAmount = 0;
@@ -553,13 +557,98 @@ contract PrimeLeaderboard is
             writeIndex++;
         }
 
-        // Pop excess entries
+        // Pop excess entries from pass 1
         while (deposits.length > writeIndex) {
             deposits.pop();
+        }
+
+        // ── Pass 2 (fallback): if still at limit, merge deposits by multiplier tier ──
+        if (deposits.length >= MAX_DEPOSITS_PER_USER) {
+            _compactByTier(deposits);
         }
 
         if (deposits.length < oldCount) {
             emit DepositsCompacted(user, oldCount, deposits.length);
         }
+    }
+
+    /**
+     * @notice Fallback compaction: merge deposits within the same multiplier tier
+     * @dev Groups deposits by their current multiplier tier and merges each group
+     *      into a single deposit using the earliest timestamp. With N configured tiers,
+     *      this guarantees at most N+1 deposits (one per tier bucket including base).
+     *      Tradeoff: younger deposits within a tier inherit the oldest timestamp in
+     *      their group, causing a slight score overestimate. Acceptable since scores
+     *      are only used for off-chain ranking.
+     * @param deposits Storage reference to the user's deposit array
+     */
+    function _compactByTier(Deposit[] storage deposits) internal {
+        uint256 tiersCount = _multiplierDurations.length + 1; // base tier + configured tiers
+        uint256[] memory tierAmounts = new uint256[](tiersCount);
+        uint64[] memory tierTimestamps = new uint64[](tiersCount);
+
+        for (uint256 i; i < tiersCount; ) {
+            tierTimestamps[i] = type(uint64).max;
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Group deposits by tier
+        uint256 depositsLength = deposits.length;
+        for (uint256 i; i < depositsLength; ) {
+            Deposit storage d = deposits[i];
+            uint256 holdingDuration = block.timestamp - uint256(d.timestamp);
+            uint256 tierIndex = _getTierIndex(holdingDuration);
+
+            tierAmounts[tierIndex] += uint256(d.amount);
+            if (d.timestamp < tierTimestamps[tierIndex]) {
+                tierTimestamps[tierIndex] = d.timestamp;
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Write back non-empty tiers, oldest first (highest tier index = longest duration)
+        uint256 newCount = 0;
+        for (uint256 i = tiersCount; i > 0; ) {
+            unchecked {
+                --i;
+            }
+            if (tierAmounts[i] > 0) {
+                deposits[newCount] = Deposit({
+                    amount: tierAmounts[i].toUint128(),
+                    timestamp: tierTimestamps[i],
+                    _reserved: 0
+                });
+                unchecked {
+                    ++newCount;
+                }
+            }
+        }
+
+        while (deposits.length > newCount) {
+            deposits.pop();
+        }
+    }
+
+    /**
+     * @notice Determine which multiplier tier a holding duration falls into
+     * @param holdingDuration Duration in seconds
+     * @return tierIndex Index of the tier (0 = base, 1+ = configured tiers)
+     */
+    function _getTierIndex(uint256 holdingDuration) internal view returns (uint256 tierIndex) {
+        uint256 tiersLength = _multiplierDurations.length;
+        for (uint256 i = tiersLength; i > 0; ) {
+            unchecked {
+                --i;
+            }
+            if (holdingDuration >= _multiplierDurations[i]) {
+                return i + 1;
+            }
+        }
+        return 0;
     }
 }

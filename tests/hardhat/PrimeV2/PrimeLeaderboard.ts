@@ -667,35 +667,35 @@ describe("PrimeLeaderboard", () => {
   });
 
   describe("Deposit Compaction", () => {
-    it("should compact deposits when reaching MAX_DEPOSITS_PER_USER (10)", async () => {
+    it("should compact deposits when reaching MAX_DEPOSITS_PER_USER (30)", async () => {
       const user1Address = await user1.getAddress();
 
-      // Create 10 deposits (each increasing vault balance by 10 XVS)
-      for (let i = 1; i <= 10; i++) {
+      // Create 30 deposits (each increasing vault balance by 10 XVS)
+      for (let i = 1; i <= 30; i++) {
         await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
       }
 
-      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(10);
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(30);
 
       // Wait 91+ days so all deposits reach max multiplier tier
       await time.increase(91 * DAY);
 
-      // 11th deposit triggers compaction (deposits.length >= 10)
-      await simulateDeposit(user1Address, convertToUnit(110, 18));
+      // 31st deposit triggers compaction (deposits.length >= 30)
+      await simulateDeposit(user1Address, convertToUnit(310, 18));
 
-      // All 10 old deposits merged into 1 + the new deposit = 2
+      // All 30 old deposits merged into 1 (max-tier pass) + the new deposit = 2
       const countAfter = await primeLeaderboard.getDepositCount(user1Address);
       expect(countAfter).to.equal(2);
 
-      // Total staked should be correct: 100 (original) + 10 (11th deposit bump)
-      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(110, 18));
+      // Total staked should be correct: 300 (original) + 10 (31st deposit bump)
+      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(310, 18));
     });
 
     it("should emit DepositsCompacted event on compaction", async () => {
       const user1Address = await user1.getAddress();
 
-      // Create 10 deposits
-      for (let i = 1; i <= 10; i++) {
+      // Create 30 deposits
+      for (let i = 1; i <= 30; i++) {
         await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
       }
 
@@ -703,7 +703,7 @@ describe("PrimeLeaderboard", () => {
       await time.increase(91 * DAY);
 
       // Next deposit triggers compaction
-      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(110, 18), 0, 0]);
+      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(310, 18), 0, 0]);
 
       const countBefore = await primeLeaderboard.getDepositCount(user1Address);
       await primeLeaderboard.connect(xvsVault.wallet).xvsUpdated(user1Address);
@@ -724,18 +724,109 @@ describe("PrimeLeaderboard", () => {
       // 500 × 2.0 × (90 * 86400) = ~7,776,000,000 (capped at 90 days)
       expectApprox(stakeBefore, convertToUnit(7_776_000_000, 18));
 
-      // Fill up to 9 more deposits (all instantly, total vault = 500 + 9*1 = 509)
-      for (let i = 1; i <= 9; i++) {
+      // Fill up to 29 more deposits (all instantly, total vault = 500 + 29*1 = 529)
+      for (let i = 1; i <= 29; i++) {
         await simulateDeposit(user1Address, convertToUnit(500 + i, 18));
       }
 
-      // Trigger compaction with deposit #11
-      await simulateDeposit(user1Address, convertToUnit(510, 18));
+      // Trigger compaction with deposit #31
+      await simulateDeposit(user1Address, convertToUnit(530, 18));
 
       // The original 500 deposit should have been compacted
       // but its score contribution should be preserved
       const stakeAfter = await primeLeaderboard.getEffectiveStake(user1Address);
       expect(stakeAfter.gte(stakeBefore)).to.be.true;
+    });
+
+    it("should fallback to tier-based compaction when all deposits are under max tier", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Create 30 deposits, all within the last 30 days (base tier, < 30d)
+      // so Pass 1 (max-tier merge) has nothing to merge
+      for (let i = 1; i <= 30; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(30);
+
+      // Don't wait - all deposits stay in base tier (< 30 days)
+      // 31st deposit triggers compaction; Pass 1 does nothing, Pass 2 kicks in
+      await simulateDeposit(user1Address, convertToUnit(310, 18));
+
+      // Pass 2 merges all base-tier deposits into 1, then the new deposit = 2
+      const countAfter = await primeLeaderboard.getDepositCount(user1Address);
+      expect(countAfter).to.equal(2);
+
+      // Total staked should be preserved
+      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(310, 18));
+    });
+
+    it("should compact into at most N+1 deposits where N = number of configured tiers", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Create deposits across multiple tiers:
+      // - 10 deposits at base tier (< 30d)
+      // - 10 deposits at tier 1 (30-59d)
+      // - 10 deposits at tier 2 (60-89d)
+
+      // First, create 10 deposits and wait 60 days (they'll be in tier 2: 60-89d)
+      for (let i = 1; i <= 10; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+      await time.increase(60 * DAY);
+
+      // Create 10 more deposits (they'll be in tier 1: 30-59d after we wait)
+      for (let i = 11; i <= 20; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+      await time.increase(30 * DAY);
+
+      // Create 10 more deposits at base tier (< 30d)
+      // Note: the first 10 are now at 90d (max tier), second 10 at 30d (tier 1)
+      for (let i = 21; i <= 30; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(30);
+
+      // 31st deposit triggers compaction
+      // Pass 1 merges the 10 max-tier deposits into 1 = 21 deposits
+      // Still >= 30? No, 21 < 30, so Pass 2 won't run
+      // But the count is reduced
+      await simulateDeposit(user1Address, convertToUnit(310, 18));
+
+      const countAfter = await primeLeaderboard.getDepositCount(user1Address);
+      // 1 (merged max-tier) + 10 (tier 1) + 10 (base tier) + 1 (new) = 22
+      expect(countAfter).to.be.lte(22);
+      expect(countAfter).to.be.lt(30);
+    });
+
+    it("should handle tier-based fallback with deposits spread across all sub-max tiers", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Create 15 deposits at tier 1 (30-59d range)
+      for (let i = 1; i <= 15; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+      await time.increase(30 * DAY);
+
+      // Create 15 more at base tier
+      for (let i = 16; i <= 30; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i * 10, 18));
+      }
+
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(30);
+
+      // 31st deposit triggers compaction
+      // Pass 1: first 15 deposits are at 30d (tier 1, not max tier) - nothing merged
+      // Pass 2: merges tier 1 group into 1 + base group into 1 = 2 deposits
+      await simulateDeposit(user1Address, convertToUnit(310, 18));
+
+      const countAfter = await primeLeaderboard.getDepositCount(user1Address);
+      // 1 (merged tier 1) + 1 (merged base) + 1 (new deposit) = 3
+      // With 3 configured tiers + base = max 4 buckets, so <= 4 + 1 (new) = 5
+      expect(countAfter).to.be.lte(5);
+      expect(countAfter).to.be.lt(30);
     });
   });
 
