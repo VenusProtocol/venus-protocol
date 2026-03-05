@@ -16,13 +16,8 @@ contract PrimeV2StorageV1 {
 
     // ═══════════════════ PRIME TOKEN STATE ═══════════════════
 
-    /// @notice Struct to represent a Prime token
-    struct Token {
-        bool exists; // Whether user has a Prime token
-    }
-
-    /// @notice Mapping of user to their Prime token
-    mapping(address => Token) public tokens;
+    /// @notice Whether a user holds a Prime token
+    mapping(address => bool) public isPrimeHolder;
 
     /// @notice Total count of Prime tokens
     uint256 public totalTokens;

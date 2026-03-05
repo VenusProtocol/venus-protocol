@@ -224,7 +224,7 @@ contract PrimeV2 is
     function issue(address user) external {
         _checkAccessAllowed("issue(address)");
         if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
-        if (tokens[user].exists) revert UserAlreadyHasPrimeToken();
+        if (isPrimeHolder[user]) revert UserAlreadyHasPrimeToken();
 
         _mint(user);
         _initializeMarkets(user);
@@ -249,7 +249,7 @@ contract PrimeV2 is
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
 
-            if (!tokens[user].exists) {
+            if (!isPrimeHolder[user]) {
                 _mint(user);
                 _initializeMarketsWithoutAccrual(user);
             }
@@ -304,7 +304,7 @@ contract PrimeV2 is
      * @return exists Whether user has Prime token
      */
     function isUserPrimeHolder(address user) external view returns (bool) {
-        return tokens[user].exists;
+        return isPrimeHolder[user];
     }
 
     // ═══════════════════ INTEREST FUNCTIONS ═══════════════════
@@ -456,10 +456,12 @@ contract PrimeV2 is
         uint256 usersLength = users.length;
         _ensureMaxLoops(usersLength);
 
+        _accrueAllMarkets();
+
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
 
-            if (!tokens[user].exists) {
+            if (!isPrimeHolder[user]) {
                 unchecked {
                     ++i;
                 }
@@ -473,7 +475,7 @@ contract PrimeV2 is
                 continue;
             }
 
-            _accrueInterestAndUpdateScore(user);
+            _accrueInterestAndUpdateScoreWithoutAccrual(user);
             isScoreUpdated[nextScoreUpdateRoundId][user] = true;
 
             unchecked {
@@ -675,9 +677,7 @@ contract PrimeV2 is
      * @param user User address
      */
     function _mint(address user) internal {
-        Token storage token = tokens[user];
-
-        token.exists = true;
+        isPrimeHolder[user] = true;
 
         ++totalTokens;
         if (totalTokens > tokenLimit) revert InvalidLimit();
@@ -700,8 +700,7 @@ contract PrimeV2 is
      * @param user User address
      */
     function _burnWithoutAccrual(address user) internal {
-        Token memory token = tokens[user];
-        if (!token.exists) revert UserHasNoPrimeToken();
+        if (!isPrimeHolder[user]) revert UserHasNoPrimeToken();
 
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
@@ -722,7 +721,7 @@ contract PrimeV2 is
 
         --totalTokens;
 
-        delete tokens[user].exists;
+        delete isPrimeHolder[user];
 
         emit Burn(user);
     }
@@ -771,7 +770,7 @@ contract PrimeV2 is
         if (!markets[vToken].exists) revert MarketNotSupported();
 
         uint256 amount;
-        if (tokens[user].exists) {
+        if (isPrimeHolder[user]) {
             accrueInterest(vToken);
             amount = _interestAccrued(vToken, user);
             interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
@@ -785,12 +784,12 @@ contract PrimeV2 is
         address underlying = _getUnderlying(vToken);
         IERC20Upgradeable asset = IERC20Upgradeable(underlying);
 
-        if (amount > asset.balanceOf(address(this))) {
+        uint256 available = asset.balanceOf(address(this));
+        if (amount > available) {
             delete unreleasedPLPIncome[underlying];
             IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
+            available = asset.balanceOf(address(this));
         }
-
-        uint256 available = asset.balanceOf(address(this));
         if (amount > available) {
             interests[vToken][user].accrued = amount - available;
             amount = available;
@@ -825,10 +824,18 @@ contract PrimeV2 is
      * @param user User address
      */
     function _accrueInterestAndUpdateScore(address user) internal {
+        _accrueAllMarkets();
+        _accrueInterestAndUpdateScoreWithoutAccrual(user);
+    }
+
+    /**
+     * @notice Update score for a user across all markets (without calling accrueAllMarkets)
+     * @dev Caller must ensure _accrueAllMarkets() was called beforehand
+     * @param user User address
+     */
+    function _accrueInterestAndUpdateScoreWithoutAccrual(address user) internal {
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
-
-        _accrueAllMarkets();
 
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
@@ -864,7 +871,7 @@ contract PrimeV2 is
      * @param vToken Market address
      */
     function _executeBoost(address user, address vToken) internal {
-        if (!markets[vToken].exists || !tokens[user].exists) {
+        if (!markets[vToken].exists || !isPrimeHolder[user]) {
             return;
         }
 
@@ -880,7 +887,7 @@ contract PrimeV2 is
      * @param vToken Market address
      */
     function _executeBoostWithoutAccrual(address user, address vToken) internal {
-        if (!markets[vToken].exists || !tokens[user].exists) {
+        if (!markets[vToken].exists || !isPrimeHolder[user]) {
             return;
         }
 
@@ -895,7 +902,7 @@ contract PrimeV2 is
      */
     function _updateScore(address user, address market) internal {
         Market storage _market = markets[market];
-        if (!_market.exists || !tokens[user].exists) {
+        if (!_market.exists || !isPrimeHolder[user]) {
             return;
         }
 
@@ -919,8 +926,7 @@ contract PrimeV2 is
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
-        address xvsToken = IXVSVault(xvsVault).xvsAddress();
-        oracle.updateAssetPrice(xvsToken);
+        oracle.updateAssetPrice(xvsVaultRewardToken);
         oracle.updatePrice(market);
 
         (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
@@ -949,8 +955,7 @@ contract PrimeV2 is
     ) internal view returns (uint256 capital, uint256 cappedSupply, uint256 cappedBorrow) {
         Market storage marketData = markets[market];
 
-        address xvsToken = IXVSVault(xvsVault).xvsAddress();
-        uint256 xvsPrice = oracle.getPrice(xvsToken);
+        uint256 xvsPrice = oracle.getPrice(xvsVaultRewardToken);
 
         uint256 borrowCapUSD = (xvsPrice * xvsBalanceForScore * marketData.borrowMultiplier) / (EXP_SCALE * EXP_SCALE);
         uint256 supplyCapUSD = (xvsPrice * xvsBalanceForScore * marketData.supplyMultiplier) / (EXP_SCALE * EXP_SCALE);
