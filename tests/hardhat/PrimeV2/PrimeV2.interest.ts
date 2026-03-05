@@ -162,21 +162,22 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
   });
 
   it("should revert claimInterest on removed market when user has no accrued interest", async () => {
-
     // Remove market (no members, so sumOfMembersScore == 0 after burn)
     await f.primeV2.burn(user1Address);
     await f.primeV2.removeMarket(f.vToken.address);
 
     // user2 never had any interest — should revert
-    await expect(
-      f.primeV2.connect(f.user2)["claimInterest(address)"](f.vToken.address),
-    ).to.be.revertedWithCustomError(f.primeV2, "MarketNotSupported");
+    await expect(f.primeV2.connect(f.user2)["claimInterest(address)"](f.vToken.address)).to.be.revertedWithCustomError(
+      f.primeV2,
+      "MarketNotSupported",
+    );
 
     // Random address should also revert
     const fakeMarket = (await import("ethers")).ethers.Wallet.createRandom().address;
-    await expect(
-      f.primeV2.connect(f.user2)["claimInterest(address)"](fakeMarket),
-    ).to.be.revertedWithCustomError(f.primeV2, "MarketNotSupported");
+    await expect(f.primeV2.connect(f.user2)["claimInterest(address)"](fakeMarket)).to.be.revertedWithCustomError(
+      f.primeV2,
+      "MarketNotSupported",
+    );
   });
 
   it("should accrue interest and update score for a single market", async () => {
