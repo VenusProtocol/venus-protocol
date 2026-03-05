@@ -287,8 +287,10 @@ contract PrimeV2 is
         uint256 usersLength = users.length;
         _ensureMaxLoops(usersLength);
 
+        _accrueAllMarkets();
+
         for (uint256 i; i < usersLength; ) {
-            _burn(users[i]);
+            _burnWithoutAccrual(users[i]);
 
             unchecked {
                 ++i;
@@ -688,14 +690,22 @@ contract PrimeV2 is
      * @param user User address
      */
     function _burn(address user) internal {
+        _accrueAllMarkets();
+        _burnWithoutAccrual(user);
+    }
+
+    /**
+     * @notice Burn a Prime token (without calling accrueAllMarkets)
+     * @dev Caller must ensure _accrueAllMarkets() was called beforehand
+     * @param user User address
+     */
+    function _burnWithoutAccrual(address user) internal {
         Token memory token = tokens[user];
         if (!token.exists) revert UserHasNoPrimeToken();
 
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
         _ensureMaxLoops(marketsLength);
-
-        _accrueAllMarkets();
 
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
