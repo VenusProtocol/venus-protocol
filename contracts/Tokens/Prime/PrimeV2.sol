@@ -70,24 +70,19 @@ contract PrimeV2 is
     event MarketAdded(address indexed market, uint256 supplyMultiplier, uint256 borrowMultiplier);
 
     /// @notice Emitted when mint limit is updated
-    event MintLimitUpdated(uint256 indexed oldLimit, uint256 indexed newLimit);
+    event MintLimitUpdated(uint256 oldLimit, uint256 newLimit);
 
     /// @notice Emitted when user score is updated
     event UserScoreUpdated(address indexed user);
 
     /// @notice Emitted when alpha is updated
-    event AlphaUpdated(
-        uint128 indexed oldNumerator,
-        uint128 indexed oldDenominator,
-        uint128 indexed newNumerator,
-        uint128 newDenominator
-    );
+    event AlphaUpdated(uint128 oldNumerator, uint128 oldDenominator, uint128 newNumerator, uint128 newDenominator);
 
     /// @notice Emitted when multiplier is updated
     event MultiplierUpdated(
         address indexed market,
-        uint256 indexed oldSupplyMultiplier,
-        uint256 indexed oldBorrowMultiplier,
+        uint256 oldSupplyMultiplier,
+        uint256 oldBorrowMultiplier,
         uint256 newSupplyMultiplier,
         uint256 newBorrowMultiplier
     );

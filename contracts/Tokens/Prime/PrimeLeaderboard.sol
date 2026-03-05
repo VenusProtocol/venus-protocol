@@ -116,6 +116,8 @@ contract PrimeLeaderboard is
                     })
                 );
                 totalStaked[user] = amounts[i];
+
+                emit StakerInitialized(user, amounts[i], timestamps[i]);
             }
 
             unchecked {
@@ -135,6 +137,8 @@ contract PrimeLeaderboard is
         if (stakersInitialized) revert StakersAlreadyInitialized();
 
         stakersInitialized = true;
+
+        emit StakersInitializationFinalized();
     }
 
     // ═══════════════════ XVS VAULT CALLBACK ═══════════════════

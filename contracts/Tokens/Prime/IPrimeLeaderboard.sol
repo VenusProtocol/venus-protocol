@@ -39,6 +39,12 @@ interface IPrimeLeaderboard {
     /// @notice Emitted when PrimeV2 contract address is set
     event PrimeV2Set(address indexed oldPrimeV2, address indexed newPrimeV2);
 
+    /// @notice Emitted when a staker is seeded during initialization
+    event StakerInitialized(address indexed user, uint256 amount, uint64 timestamp);
+
+    /// @notice Emitted when staker initialization is finalized
+    event StakersInitializationFinalized();
+
     // ═══════════════════ ERRORS ═══════════════════
 
     /// @notice Thrown when caller is not the XVSVault
