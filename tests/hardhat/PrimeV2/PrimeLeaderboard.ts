@@ -10,7 +10,6 @@ import { IAccessControlManagerV8, IXVSVault, PrimeLeaderboard } from "../../../t
 const { expect } = chai;
 chai.use(smock.matchers);
 
-const MINIMUM_STAKE = convertToUnit(500, 18); // 500 XVS
 const DAY = 24 * 60 * 60;
 
 // With second-based duration, block timestamp increments (1 sec per tx) become visible.
@@ -63,7 +62,7 @@ describe("PrimeLeaderboard", () => {
     const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
     primeLeaderboard = (await upgrades.deployProxy(
       PrimeLeaderboardFactory,
-      [accessControlManager.address, MINIMUM_STAKE],
+      [accessControlManager.address],
       {
         unsafeAllow: ["constructor", "state-variable-immutable"],
         constructorArgs: [xvsVault.address, xvsAddress, 0],
@@ -84,7 +83,6 @@ describe("PrimeLeaderboard", () => {
   describe("Initialization", () => {
     it("should initialize with correct values", async () => {
       expect(await primeLeaderboard.xvsVault()).to.equal(xvsVault.address);
-      expect(await primeLeaderboard.minimumStake()).to.equal(MINIMUM_STAKE);
       expect(await primeLeaderboard.xvsVaultRewardToken()).to.equal(xvsAddress);
       expect(await primeLeaderboard.xvsVaultPoolId()).to.equal(0);
     });
@@ -103,7 +101,7 @@ describe("PrimeLeaderboard", () => {
     });
 
     it("should revert if initialized twice", async () => {
-      await expect(primeLeaderboard.initialize(accessControlManager.address, MINIMUM_STAKE)).to.be.revertedWith(
+      await expect(primeLeaderboard.initialize(accessControlManager.address)).to.be.revertedWith(
         "Initializable: contract is already initialized",
       );
     });
@@ -112,7 +110,7 @@ describe("PrimeLeaderboard", () => {
       const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
 
       await expect(
-        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, MINIMUM_STAKE], {
+        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address], {
           unsafeAllow: ["constructor", "state-variable-immutable"],
           constructorArgs: [ethers.constants.AddressZero, xvsAddress, 0],
         }),
@@ -123,23 +121,13 @@ describe("PrimeLeaderboard", () => {
       const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
 
       await expect(
-        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, MINIMUM_STAKE], {
+        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address], {
           unsafeAllow: ["constructor", "state-variable-immutable"],
           constructorArgs: [xvsVault.address, ethers.constants.AddressZero, 0],
         }),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "ZeroAddress");
     });
 
-    it("should revert with zero minimum stake", async () => {
-      const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
-
-      await expect(
-        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, 0], {
-          unsafeAllow: ["constructor", "state-variable-immutable"],
-          constructorArgs: [xvsVault.address, xvsAddress, 0],
-        }),
-      ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "InvalidValue");
-    });
   });
 
   describe("Deposit Recording via xvsUpdated", () => {
@@ -419,20 +407,6 @@ describe("PrimeLeaderboard", () => {
   });
 
   describe("Admin Functions", () => {
-    it("should update minimum stake", async () => {
-      const newMinimum = convertToUnit(1000, 18);
-
-      await expect(primeLeaderboard.setMinimumStake(newMinimum))
-        .to.emit(primeLeaderboard, "MinimumStakeUpdated")
-        .withArgs(MINIMUM_STAKE, newMinimum);
-
-      expect(await primeLeaderboard.minimumStake()).to.equal(newMinimum);
-    });
-
-    it("should revert setMinimumStake with zero", async () => {
-      await expect(primeLeaderboard.setMinimumStake(0)).to.be.revertedWithCustomError(primeLeaderboard, "InvalidValue");
-    });
-
     it("should update multiplier tiers", async () => {
       const newDurations = [15 * DAY, 30 * DAY, 45 * DAY];
       const newMultipliers = [convertToUnit("1.2", 18), convertToUnit("1.5", 18), convertToUnit("1.8", 18)];
@@ -512,7 +486,6 @@ describe("PrimeLeaderboard", () => {
     it("should revert admin functions when access denied", async () => {
       accessControlManager.isAllowedToCall.returns(false);
 
-      await expect(primeLeaderboard.setMinimumStake(convertToUnit(1000, 18))).to.be.reverted;
       await expect(primeLeaderboard.setMultiplierTiers([30 * DAY], [convertToUnit("1.3", 18)])).to.be.reverted;
       await expect(primeLeaderboard.setPrimeV2(await user1.getAddress())).to.be.reverted;
     });

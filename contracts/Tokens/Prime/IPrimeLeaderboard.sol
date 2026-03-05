@@ -33,9 +33,6 @@ interface IPrimeLeaderboard {
     /// @notice Emitted when deposits are compacted
     event DepositsCompacted(address indexed user, uint256 oldCount, uint256 newCount);
 
-    /// @notice Emitted when minimum stake is updated
-    event MinimumStakeUpdated(uint256 oldMinimum, uint256 newMinimum);
-
     /// @notice Emitted when multiplier tiers are updated
     event MultiplierTiersUpdated(uint256[] durations, uint256[] multipliers);
 
@@ -101,10 +98,6 @@ interface IPrimeLeaderboard {
     function getEffectiveStakeBatch(address[] calldata users) external view returns (uint256[] memory scores);
 
     // ═══════════════════ CONFIGURATION ═══════════════════
-
-    /// @notice Set the minimum stake to participate
-    /// @param minimum New minimum stake amount
-    function setMinimumStake(uint256 minimum) external;
 
     /// @notice Set the multiplier tiers
     /// @param durations Array of duration thresholds in seconds

@@ -30,8 +30,8 @@ contract PrimeLeaderboardStorageV1 {
 
     // ═══════════════════ CONTRACT STATE ═══════════════════
 
-    /// @notice Minimum XVS stake for leaderboard eligibility (checked off-chain)
-    uint256 public minimumStake;
+    /// @dev Deprecated: minimumStake was removed. Slot preserved for proxy compatibility.
+    uint256 private __deprecated_minimumStake;
 
     // ═══════════════════ MULTIPLIER CONFIGURATION ═══════════════════
 

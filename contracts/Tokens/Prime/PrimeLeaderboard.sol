@@ -57,16 +57,10 @@ contract PrimeLeaderboard is
     /**
      * @notice Initialize the PrimeLeaderboard contract
      * @param accessControlManager_ Address of access control manager
-     * @param minimumStake_ Minimum XVS stake to participate
-     * @custom:error Throw InvalidValue if minimumStake is zero
      */
-    function initialize(address accessControlManager_, uint256 minimumStake_) external initializer {
-        if (minimumStake_ == 0) revert InvalidValue();
-
+    function initialize(address accessControlManager_) external initializer {
         __AccessControlled_init(accessControlManager_);
         __ReentrancyGuard_init();
-
-        minimumStake = minimumStake_;
 
         // Initialize default multiplier tiers
         // Tier 1: 30 days -> 1.3x
@@ -216,23 +210,6 @@ contract PrimeLeaderboard is
     }
 
     // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
-
-    /**
-     * @notice Set the minimum stake to participate
-     * @param minimum New minimum stake amount
-     * @custom:event Emits MinimumStakeUpdated event
-     * @custom:error Throw InvalidValue if minimum is zero
-     * @custom:access Controlled by ACM
-     */
-    function setMinimumStake(uint256 minimum) external override {
-        _checkAccessAllowed("setMinimumStake(uint256)");
-        if (minimum == 0) revert InvalidValue();
-
-        uint256 oldMinimum = minimumStake;
-        minimumStake = minimum;
-
-        emit MinimumStakeUpdated(oldMinimum, minimum);
-    }
 
     /**
      * @notice Set the multiplier tiers
