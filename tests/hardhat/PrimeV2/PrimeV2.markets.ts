@@ -124,7 +124,13 @@ describe("PrimeV2 - Market Management", () => {
     });
 
     it("should queue score updates when market is removed", async () => {
-      await f.primeV2.issueBatch([await f.user1.getAddress()]);
+      const user1Address = await f.user1.getAddress();
+
+      // Ensure zero balances so user gets score 0 (won't block removeMarket)
+      f.vToken.balanceOf.whenCalledWith(user1Address).returns(0);
+      f.xvsVault.getUserInfo.whenCalledWith(f.xvsAddress, 0, user1Address).returns([0, 0, 0]);
+
+      await f.primeV2.issueBatch([user1Address]);
 
       await f.primeV2.removeMarket(f.vToken.address);
 

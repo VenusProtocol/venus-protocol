@@ -807,20 +807,25 @@ contract PrimeV2 is
 
     /**
      * @notice Claim interest for a user
+     * @dev Allows claiming residual accrued interest even after a market is removed.
+     *      Reverts with MarketNotSupported only if the market is removed AND the user has no accrued balance.
      * @param vToken Market address
      * @param user User address
      * @return amount Amount claimed
      */
     function _claimInterest(address vToken, address user) internal returns (uint256) {
-        if (!markets[vToken].exists) revert MarketNotSupported();
+        bool marketExists = markets[vToken].exists;
 
         uint256 amount;
-        if (isPrimeHolder[user]) {
+        if (marketExists && isPrimeHolder[user]) {
             accrueInterest(vToken);
             amount = _interestAccrued(vToken, user);
             interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
         }
         amount += interests[vToken][user].accrued;
+
+        // If market was removed and user has no residual accrued interest, revert
+        if (!marketExists && amount == 0) revert MarketNotSupported();
 
         delete interests[vToken][user].accrued;
 
