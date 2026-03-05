@@ -614,11 +614,11 @@ contract PrimeV2 is
 
     /**
      * @notice Mint a Prime token
+     * @dev Caller must ensure user does not already have a token (e.g. issue() checks this)
      * @param user User address
      */
     function _mint(address user) internal {
         Token storage token = tokens[user];
-        if (token.exists) revert UserAlreadyHasPrimeToken();
 
         token.exists = true;
 
