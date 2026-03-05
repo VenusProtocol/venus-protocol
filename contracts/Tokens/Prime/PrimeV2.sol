@@ -46,6 +46,18 @@ contract PrimeV2 is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable MAXIMUM_XVS_CAP;
 
+    /// @notice Address of XVSVault contract
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable xvsVault;
+
+    /// @notice Reward token address in XVSVault
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable xvsVaultRewardToken;
+
+    /// @notice Pool ID in XVSVault
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable xvsVaultPoolId;
+
     // ═══════════════════ EVENTS ═══════════════════
 
     /// @notice Emitted when prime token is minted
@@ -132,6 +144,9 @@ contract PrimeV2 is
      * @param wrappedNativeToken_ Address of wrapped native token
      * @param nativeMarket_ Address of native market
      * @param maximumXVSCap_ Maximum XVS taken in account when calculating user score
+     * @param xvsVault_ Address of XVSVault contract
+     * @param xvsVaultRewardToken_ Reward token address in XVSVault
+     * @param xvsVaultPoolId_ Pool ID in XVSVault
      * @param timeBased_ A boolean indicating whether the contract is based on time or block
      * @param blocksPerYear_ Total blocks per year
      */
@@ -140,21 +155,27 @@ contract PrimeV2 is
         address wrappedNativeToken_,
         address nativeMarket_,
         uint256 maximumXVSCap_,
+        address xvsVault_,
+        address xvsVaultRewardToken_,
+        uint256 xvsVaultPoolId_,
         bool timeBased_,
         uint256 blocksPerYear_
     ) TimeManagerV8(timeBased_, blocksPerYear_) {
+        if (xvsVault_ == address(0)) revert InvalidAddress();
+        if (xvsVaultRewardToken_ == address(0)) revert InvalidAddress();
+
         WRAPPED_NATIVE_TOKEN = wrappedNativeToken_;
         NATIVE_MARKET = nativeMarket_;
         MAXIMUM_XVS_CAP = maximumXVSCap_;
+        xvsVault = xvsVault_;
+        xvsVaultRewardToken = xvsVaultRewardToken_;
+        xvsVaultPoolId = xvsVaultPoolId_;
 
         _disableInitializers();
     }
 
     /**
      * @notice PrimeV2 initializer
-     * @param xvsVault_ Address of XVSVault
-     * @param xvsVaultRewardToken_ Address of XVSVault reward token
-     * @param xvsVaultPoolId_ Pool id of XVSVault
      * @param alphaNumerator_ Numerator of alpha (if alpha is 0.5 then numerator is 1)
      * @param alphaDenominator_ Denominator of alpha (if alpha is 0.5 then denominator is 2)
      * @param accessControlManager_ Address of AccessControlManager
@@ -166,9 +187,6 @@ contract PrimeV2 is
      * @custom:error Throw InvalidAlphaArguments if alpha arguments are invalid
      */
     function initialize(
-        address xvsVault_,
-        address xvsVaultRewardToken_,
-        uint256 xvsVaultPoolId_,
         uint128 alphaNumerator_,
         uint128 alphaDenominator_,
         address accessControlManager_,
@@ -177,8 +195,6 @@ contract PrimeV2 is
         address oracle_,
         uint256 loopsLimit_
     ) external initializer {
-        if (xvsVault_ == address(0)) revert InvalidAddress();
-        if (xvsVaultRewardToken_ == address(0)) revert InvalidAddress();
         if (primeLiquidityProvider_ == address(0)) revert InvalidAddress();
         if (corePoolComptroller_ == address(0)) revert InvalidAddress();
         if (oracle_ == address(0)) revert InvalidAddress();
@@ -190,9 +206,6 @@ contract PrimeV2 is
         __ReentrancyGuard_init();
         _setMaxLoopsLimit(loopsLimit_);
 
-        xvsVault = xvsVault_;
-        xvsVaultRewardToken = xvsVaultRewardToken_;
-        xvsVaultPoolId = xvsVaultPoolId_;
         alphaNumerator = alphaNumerator_;
         alphaDenominator = alphaDenominator_;
         primeLiquidityProvider = primeLiquidityProvider_;

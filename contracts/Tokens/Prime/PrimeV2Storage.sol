@@ -77,15 +77,6 @@ contract PrimeV2StorageV1 {
 
     // ═══════════════════ EXTERNAL CONTRACT REFERENCES ═══════════════════
 
-    /// @notice Address of XVSVault contract
-    address public xvsVault;
-
-    /// @notice Reward token address in XVSVault
-    address public xvsVaultRewardToken;
-
-    /// @notice Pool ID in XVSVault
-    uint256 public xvsVaultPoolId;
-
     /// @notice Address of PrimeLiquidityProvider
     address public primeLiquidityProvider;
 
@@ -115,5 +106,5 @@ contract PrimeV2StorageV1 {
     uint256 public pendingScoreUpdates;
 
     /// @notice Storage gap for future upgrades
-    uint256[41] private __gap;
+    uint256[44] private __gap;
 }

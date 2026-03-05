@@ -98,9 +98,6 @@ describe("PrimeV2", () => {
     primeV2 = (await upgrades.deployProxy(
       PrimeV2Factory,
       [
-        xvsVault.address,
-        xvsAddress,
-        0, // xvsVaultPoolId
         1, // alphaNumerator
         2, // alphaDenominator
         accessControlManager.address,
@@ -110,8 +107,17 @@ describe("PrimeV2", () => {
         100, // loopsLimit
       ],
       {
-        constructorArgs: [wrappedNativeToken, nativeMarket, MAXIMUM_XVS_CAP, false, BLOCKS_PER_YEAR],
-        unsafeAllow: ["constructor", "internal-function-storage"],
+        constructorArgs: [
+          wrappedNativeToken,
+          nativeMarket,
+          MAXIMUM_XVS_CAP,
+          xvsVault.address,
+          xvsAddress,
+          0, // xvsVaultPoolId
+          false,
+          BLOCKS_PER_YEAR,
+        ],
+        unsafeAllow: ["constructor", "state-variable-immutable", "internal-function-storage"],
       },
     )) as PrimeV2;
 
@@ -171,9 +177,6 @@ describe("PrimeV2", () => {
     it("should revert if initialized twice", async () => {
       await expect(
         primeV2.initialize(
-          xvsVault.address,
-          xvsAddress,
-          0,
           1,
           2,
           accessControlManager.address,
@@ -185,27 +188,25 @@ describe("PrimeV2", () => {
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
 
-    it("should revert with zero xvsVault address", async () => {
+    it("should revert with zero xvsVault address in constructor", async () => {
       const PrimeV2Factory = await ethers.getContractFactory("PrimeV2");
 
       await expect(
         upgrades.deployProxy(
           PrimeV2Factory,
-          [
-            ethers.constants.AddressZero,
-            xvsAddress,
-            0,
-            1,
-            2,
-            accessControlManager.address,
-            primeLiquidityProvider.address,
-            comptrollerAddress,
-            oracle.address,
-            100,
-          ],
+          [1, 2, accessControlManager.address, primeLiquidityProvider.address, comptrollerAddress, oracle.address, 100],
           {
-            constructorArgs: [wrappedNativeToken, nativeMarket, MAXIMUM_XVS_CAP, false, BLOCKS_PER_YEAR],
-            unsafeAllow: ["constructor", "internal-function-storage"],
+            constructorArgs: [
+              wrappedNativeToken,
+              nativeMarket,
+              MAXIMUM_XVS_CAP,
+              ethers.constants.AddressZero,
+              xvsAddress,
+              0,
+              false,
+              BLOCKS_PER_YEAR,
+            ],
+            unsafeAllow: ["constructor", "state-variable-immutable", "internal-function-storage"],
           },
         ),
       ).to.be.revertedWithCustomError(PrimeV2Factory, "InvalidAddress");
@@ -219,9 +220,6 @@ describe("PrimeV2", () => {
         upgrades.deployProxy(
           PrimeV2Factory,
           [
-            xvsVault.address,
-            xvsAddress,
-            0,
             3, // numerator > denominator
             2,
             accessControlManager.address,
@@ -231,8 +229,17 @@ describe("PrimeV2", () => {
             100,
           ],
           {
-            constructorArgs: [wrappedNativeToken, nativeMarket, MAXIMUM_XVS_CAP, false, BLOCKS_PER_YEAR],
-            unsafeAllow: ["constructor", "internal-function-storage"],
+            constructorArgs: [
+              wrappedNativeToken,
+              nativeMarket,
+              MAXIMUM_XVS_CAP,
+              xvsVault.address,
+              xvsAddress,
+              0,
+              false,
+              BLOCKS_PER_YEAR,
+            ],
+            unsafeAllow: ["constructor", "state-variable-immutable", "internal-function-storage"],
           },
         ),
       ).to.be.revertedWithCustomError(PrimeV2Factory, "InvalidAlphaArguments");
