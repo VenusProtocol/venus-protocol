@@ -886,6 +886,7 @@ contract PrimeV2 is
     function _accrueInterestAndUpdateScoreWithoutAccrual(address user) internal {
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
+        _ensureMaxLoops(marketsLength);
 
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
