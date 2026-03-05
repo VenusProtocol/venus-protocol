@@ -60,14 +60,10 @@ describe("PrimeLeaderboard", () => {
 
     // Deploy PrimeLeaderboard using upgrades plugin
     const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
-    primeLeaderboard = (await upgrades.deployProxy(
-      PrimeLeaderboardFactory,
-      [accessControlManager.address],
-      {
-        unsafeAllow: ["constructor", "state-variable-immutable"],
-        constructorArgs: [xvsVault.address, xvsAddress, 0],
-      },
-    )) as PrimeLeaderboard;
+    primeLeaderboard = (await upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address], {
+      unsafeAllow: ["constructor", "state-variable-immutable"],
+      constructorArgs: [xvsVault.address, xvsAddress, 0],
+    })) as PrimeLeaderboard;
 
     return { primeLeaderboard, accessControlManager, xvsVault, admin, user1, user2, user3 };
   };
@@ -127,7 +123,6 @@ describe("PrimeLeaderboard", () => {
         }),
       ).to.be.revertedWithCustomError(PrimeLeaderboardFactory, "ZeroAddress");
     });
-
   });
 
   describe("Deposit Recording via xvsUpdated", () => {
@@ -510,18 +505,10 @@ describe("PrimeLeaderboard", () => {
     it("should be idempotent (skip already seeded users)", async () => {
       const user1Address = await user1.getAddress();
 
-      await primeLeaderboard.initializeStakers(
-        [user1Address],
-        [convertToUnit(1000, 18)],
-        [1700000000],
-      );
+      await primeLeaderboard.initializeStakers([user1Address], [convertToUnit(1000, 18)], [1700000000]);
 
       // Call again with different amount - should be skipped
-      await primeLeaderboard.initializeStakers(
-        [user1Address],
-        [convertToUnit(5000, 18)],
-        [1700200000],
-      );
+      await primeLeaderboard.initializeStakers([user1Address], [convertToUnit(5000, 18)], [1700200000]);
 
       expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1000, 18));
       expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
@@ -531,11 +518,7 @@ describe("PrimeLeaderboard", () => {
       await primeLeaderboard.finalizeInitialization();
 
       await expect(
-        primeLeaderboard.initializeStakers(
-          [await user1.getAddress()],
-          [convertToUnit(1000, 18)],
-          [1700000000],
-        ),
+        primeLeaderboard.initializeStakers([await user1.getAddress()], [convertToUnit(1000, 18)], [1700000000]),
       ).to.be.revertedWithCustomError(primeLeaderboard, "StakersAlreadyInitialized");
     });
 
@@ -562,11 +545,7 @@ describe("PrimeLeaderboard", () => {
       accessControlManager.isAllowedToCall.returns(false);
 
       await expect(
-        primeLeaderboard.initializeStakers(
-          [await user1.getAddress()],
-          [convertToUnit(1000, 18)],
-          [1700000000],
-        ),
+        primeLeaderboard.initializeStakers([await user1.getAddress()], [convertToUnit(1000, 18)], [1700000000]),
       ).to.be.reverted;
     });
   });

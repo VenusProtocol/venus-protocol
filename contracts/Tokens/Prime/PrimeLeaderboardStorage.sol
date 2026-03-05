@@ -28,11 +28,6 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice User's total staked XVS
     mapping(address => uint256) public totalStaked;
 
-    // ═══════════════════ CONTRACT STATE ═══════════════════
-
-    /// @dev Deprecated: minimumStake was removed. Slot preserved for proxy compatibility.
-    uint256 private __deprecated_minimumStake;
-
     // ═══════════════════ MULTIPLIER CONFIGURATION ═══════════════════
 
     /// @notice Multiplier tier duration thresholds (in seconds)
@@ -52,5 +47,5 @@ contract PrimeLeaderboardStorageV1 {
     bool public stakersInitialized;
 
     /// @notice Storage gap for future upgrades
-    uint256[47] private __gap;
+    uint256[48] private __gap;
 }

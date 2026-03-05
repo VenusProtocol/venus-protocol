@@ -57,7 +57,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const networkName: string = network.name;
   const maximumXVSCap = ethers.utils.parseEther("100000");
-  const minimumStake = ethers.utils.parseEther("500");
   const xvsVaultAlphaNumerator = 1;
   const xvsVaultAlphaDenominator = 2;
   const loopsLimit = 20;
@@ -103,7 +102,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OptimizedTransparentUpgradeableProxy",
       execute: {
         methodName: "initialize",
-        args: [acmAddress, minimumStake],
+        args: [acmAddress],
       },
       viaAdminContract: {
         name: "DefaultProxyAdmin",
@@ -125,6 +124,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
       nativeMarket ? nativeMarket : ZERO_ADDRESS,
       maximumXVSCap,
+      xvsVaultAddress,
+      xvsAddress,
+      xVSVaultPoolId[networkName],
       isTimeBased,
       blocksPerYear[networkName],
     ],
@@ -134,9 +136,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         methodName: "initialize",
         args: [
-          xvsVaultAddress,
-          xvsAddress,
-          xVSVaultPoolId[networkName],
           xvsVaultAlphaNumerator,
           xvsVaultAlphaDenominator,
           acmAddress,
@@ -154,6 +153,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   const primeV2 = await ethers.getContract("PrimeV2");
+
+  // ============ Grant ACM permissions for wiring ============
+  if (network.name === "hardhat") {
+    const accessControlManager = await ethers.getContract("AccessControlManager");
+    await accessControlManager.giveCallPermission(primeV2.address, "setPrimeLeaderboard(address)", deployer);
+    await accessControlManager.giveCallPermission(primeLeaderboard.address, "setPrimeV2(address)", deployer);
+  }
 
   // ============ Wire contracts together ============
   console.log("Setting PrimeLeaderboard on PrimeV2...");

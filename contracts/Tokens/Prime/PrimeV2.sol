@@ -1016,5 +1016,4 @@ contract PrimeV2 is
         ++nextScoreUpdateRoundId;
         pendingScoreUpdates = totalTokens;
     }
-
 }
