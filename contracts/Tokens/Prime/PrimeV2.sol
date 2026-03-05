@@ -219,14 +219,31 @@ contract PrimeV2 is
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
 
     /**
-     * @notice Issue Prime tokens (admin function)
+     * @notice Issue a Prime token to a single user (admin function)
+     * @param user User address
+     * @custom:event Emits Mint event on new token issuance
+     * @custom:error Throw InvalidLimit if mint limit would be exceeded
+     * @custom:error Throw UserAlreadyHasPrimeToken if user already has a token
+     * @custom:access Controlled by ACM
+     */
+    function issue(address user) external {
+        _checkAccessAllowed("issue(address)");
+        if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
+        if (tokens[user].exists) revert UserAlreadyHasPrimeToken();
+
+        _mint(user);
+        _initializeMarkets(user);
+    }
+
+    /**
+     * @notice Issue Prime tokens to multiple users (admin function)
      * @param users Array of user addresses
      * @custom:event Emits Mint event on new token issuance
      * @custom:error Throw InvalidLimit if mint limit would be exceeded
      * @custom:access Controlled by ACM
      */
-    function issue(address[] calldata users) external {
-        _checkAccessAllowed("issue(address[])");
+    function issueBatch(address[] calldata users) external {
+        _checkAccessAllowed("issueBatch(address[])");
         if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
 
         uint256 usersLength = users.length;

@@ -16,10 +16,16 @@ interface IPrimeV2 {
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
 
     /**
-     * @notice Issue Prime tokens to users
+     * @notice Issue a Prime token to a single user
+     * @param user Address to issue token to
+     */
+    function issue(address user) external;
+
+    /**
+     * @notice Issue Prime tokens to multiple users
      * @param users List of addresses to issue tokens to
      */
-    function issue(address[] calldata users) external;
+    function issueBatch(address[] calldata users) external;
 
     /**
      * @notice Burn a user's Prime token

@@ -273,33 +273,69 @@ describe("PrimeV2", () => {
   });
 
   describe("Admin Functions", () => {
-    describe("issue", () => {
-      it("should issue Prime token", async () => {
+    describe("issue (single)", () => {
+      it("should issue Prime token to a single user", async () => {
         const user1Address = await user1.getAddress();
 
-        await expect(primeV2.issue([user1Address]))
-          .to.emit(primeV2, "Mint")
-          .withArgs(user1Address);
+        await expect(primeV2["issue(address)"](user1Address)).to.emit(primeV2, "Mint").withArgs(user1Address);
 
         expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
         expect(await primeV2.totalTokens()).to.equal(1);
       });
 
+      it("should revert if user already has Prime", async () => {
+        const user1Address = await user1.getAddress();
+
+        await primeV2["issue(address)"](user1Address);
+
+        await expect(primeV2["issue(address)"](user1Address)).to.be.revertedWithCustomError(
+          primeV2,
+          "UserAlreadyHasPrimeToken",
+        );
+      });
+
+      it("should revert if caller not authorized", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+
+        await expect(primeV2["issue(address)"](await user1.getAddress())).to.be.revertedWithCustomError(
+          primeV2,
+          "Unauthorized",
+        );
+      });
+    });
+
+    describe("issueBatch", () => {
+      it("should issue Prime tokens to multiple users", async () => {
+        const user1Address = await user1.getAddress();
+        const user2Address = await user2.getAddress();
+
+        await expect(primeV2.issueBatch([user1Address, user2Address]))
+          .to.emit(primeV2, "Mint")
+          .withArgs(user1Address);
+
+        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
+        expect(await primeV2.isUserPrimeHolder(user2Address)).to.be.true;
+        expect(await primeV2.totalTokens()).to.equal(2);
+      });
+
       it("should skip issuing to user who already has Prime", async () => {
         const user1Address = await user1.getAddress();
 
-        await primeV2.issue([user1Address]);
+        await primeV2["issue(address)"](user1Address);
         expect(await primeV2.totalTokens()).to.equal(1);
 
-        // Second issue should be a no-op (not revert)
-        await expect(primeV2.issue([user1Address])).not.to.be.reverted;
+        // issueBatch should skip already-issued user (not revert)
+        await expect(primeV2.issueBatch([user1Address])).not.to.be.reverted;
         expect(await primeV2.totalTokens()).to.equal(1);
       });
 
       it("should revert if caller not authorized", async () => {
         accessControlManager.isAllowedToCall.returns(false);
 
-        await expect(primeV2.issue([await user1.getAddress()])).to.be.revertedWithCustomError(primeV2, "Unauthorized");
+        await expect(primeV2.issueBatch([await user1.getAddress()])).to.be.revertedWithCustomError(
+          primeV2,
+          "Unauthorized",
+        );
       });
     });
 
@@ -308,7 +344,7 @@ describe("PrimeV2", () => {
         const user1Address = await user1.getAddress();
 
         // First issue
-        await primeV2.issue([user1Address]);
+        await primeV2.issueBatch([user1Address]);
         expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.true;
 
         // Then burn
@@ -329,7 +365,7 @@ describe("PrimeV2", () => {
         const user1Address = await user1.getAddress();
         const user2Address = await user2.getAddress();
 
-        await primeV2.issue([user1Address, user2Address]);
+        await primeV2.issueBatch([user1Address, user2Address]);
         expect(await primeV2.totalTokens()).to.equal(2);
 
         await expect(primeV2.burnBatch([user1Address, user2Address]))
@@ -345,7 +381,7 @@ describe("PrimeV2", () => {
         const user1Address = await user1.getAddress();
         const user2Address = await user2.getAddress();
 
-        await primeV2.issue([user1Address]);
+        await primeV2.issueBatch([user1Address]);
 
         await expect(primeV2.burnBatch([user1Address, user2Address])).to.be.revertedWithCustomError(
           primeV2,
@@ -372,7 +408,7 @@ describe("PrimeV2", () => {
 
       it("should revert if new limit less than current count", async () => {
         // Issue some tokens first
-        await primeV2.issue([await user1.getAddress()]);
+        await primeV2.issueBatch([await user1.getAddress()]);
 
         // Try to set limit below current count
         await expect(primeV2.setLimit(0)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
@@ -460,10 +496,10 @@ describe("PrimeV2", () => {
       const user3Address = await user3.getAddress();
 
       // Issue 2 tokens (should succeed)
-      await primeV2.issue([user1Address, user2Address]);
+      await primeV2.issueBatch([user1Address, user2Address]);
 
       // Try to issue a 3rd (should fail)
-      await expect(primeV2.issue([user3Address])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
+      await expect(primeV2.issueBatch([user3Address])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
     });
   });
 
@@ -524,7 +560,7 @@ describe("PrimeV2", () => {
       });
 
       it("should queue score updates when market is added", async () => {
-        await primeV2.issue([await user1.getAddress()]);
+        await primeV2.issueBatch([await user1.getAddress()]);
 
         await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
 
@@ -570,7 +606,7 @@ describe("PrimeV2", () => {
       });
 
       it("should queue score updates after multiplier change", async () => {
-        await primeV2.issue([await user1.getAddress()]);
+        await primeV2.issueBatch([await user1.getAddress()]);
 
         // addMarket queued 0 updates (no tokens existed at that time), issue didn't add more
         expect(await primeV2.pendingScoreUpdates()).to.equal(0);
@@ -592,7 +628,7 @@ describe("PrimeV2", () => {
   describe("Score Updates", () => {
     it("should queue score updates when alpha changes", async () => {
       // Issue some tokens first
-      await primeV2.issue([await user1.getAddress()]);
+      await primeV2.issueBatch([await user1.getAddress()]);
 
       const roundBefore = await primeV2.nextScoreUpdateRoundId();
       await primeV2.updateAlpha(2, 3);
@@ -609,24 +645,39 @@ describe("PrimeV2", () => {
       );
     });
 
-    it("should revert issue when pendingScoreUpdates > 0", async () => {
+    it("should revert issue (single) when pendingScoreUpdates > 0", async () => {
       const user1Address = await user1.getAddress();
       const user2Address = await user2.getAddress();
 
-      await primeV2.issue([user1Address]);
+      await primeV2["issue(address)"](user1Address);
 
-      // Add a market to trigger _queueScoreUpdates → pendingScoreUpdates = 1
       comptroller.markets.returns(true);
       await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
       expect(await primeV2.pendingScoreUpdates()).to.equal(1);
 
-      await expect(primeV2.issue([user2Address])).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
+      await expect(primeV2["issue(address)"](user2Address)).to.be.revertedWithCustomError(
+        primeV2,
+        "ScoreUpdateInProgress",
+      );
+    });
+
+    it("should revert issueBatch when pendingScoreUpdates > 0", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      await primeV2.issueBatch([user1Address]);
+
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      await expect(primeV2.issueBatch([user2Address])).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
     });
 
     it("should revert burn when pendingScoreUpdates > 0", async () => {
       const user1Address = await user1.getAddress();
 
-      await primeV2.issue([user1Address]);
+      await primeV2.issueBatch([user1Address]);
 
       comptroller.markets.returns(true);
       await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
@@ -638,7 +689,7 @@ describe("PrimeV2", () => {
     it("should revert burnBatch when pendingScoreUpdates > 0", async () => {
       const user1Address = await user1.getAddress();
 
-      await primeV2.issue([user1Address]);
+      await primeV2.issueBatch([user1Address]);
 
       comptroller.markets.returns(true);
       await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
