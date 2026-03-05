@@ -328,6 +328,8 @@ contract PrimeV2 is
 
     /**
      * @notice Claim accrued interest for a market to a specific address
+     * @dev Permissionless: anyone can trigger a claim on behalf of a user.
+     *      Tokens are always sent to the user address, never to msg.sender.
      * @param vToken Market address
      * @param user Recipient address
      * @return amount Amount claimed
@@ -965,6 +967,8 @@ contract PrimeV2 is
 
     /**
      * @notice Calculate score for a user in a market
+     * @dev Triggers oracle.updateAssetPrice/updatePrice to ensure fresh prices.
+     *      In batch operations these calls are redundant but ensure correctness.
      * @param market Market address
      * @param user User address
      * @return score Calculated score
