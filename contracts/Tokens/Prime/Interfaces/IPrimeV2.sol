@@ -28,6 +28,12 @@ interface IPrimeV2 {
     function burn(address user) external;
 
     /**
+     * @notice Burn Prime tokens for multiple users
+     * @param users Array of user addresses
+     */
+    function burnBatch(address[] calldata users) external;
+
+    /**
      * @notice Check if user has Prime token
      * @param user User address
      * @return isPrimeHolder true if user has Prime token

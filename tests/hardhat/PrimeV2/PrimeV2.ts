@@ -317,6 +317,45 @@ describe("PrimeV2", () => {
       });
     });
 
+    describe("burnBatch", () => {
+      it("should burn multiple Prime tokens", async () => {
+        const user1Address = await user1.getAddress();
+        const user2Address = await user2.getAddress();
+
+        await primeV2.issue([user1Address, user2Address]);
+        expect(await primeV2.totalTokens()).to.equal(2);
+
+        await expect(primeV2.burnBatch([user1Address, user2Address]))
+          .to.emit(primeV2, "Burn")
+          .withArgs(user1Address);
+
+        expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.false;
+        expect(await primeV2.isUserPrimeHolder(user2Address)).to.be.false;
+        expect(await primeV2.totalTokens()).to.equal(0);
+      });
+
+      it("should revert if any user has no Prime token", async () => {
+        const user1Address = await user1.getAddress();
+        const user2Address = await user2.getAddress();
+
+        await primeV2.issue([user1Address]);
+
+        await expect(primeV2.burnBatch([user1Address, user2Address])).to.be.revertedWithCustomError(
+          primeV2,
+          "UserHasNoPrimeToken",
+        );
+      });
+
+      it("should revert if caller not authorized", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+
+        await expect(primeV2.burnBatch([await user1.getAddress()])).to.be.revertedWithCustomError(
+          primeV2,
+          "Unauthorized",
+        );
+      });
+    });
+
     describe("setLimit", () => {
       it("should update limit", async () => {
         await expect(primeV2.setLimit(1000)).to.emit(primeV2, "MintLimitUpdated").withArgs(500, 1000);

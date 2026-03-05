@@ -242,6 +242,28 @@ contract PrimeV2 is
     }
 
     /**
+     * @notice Burn Prime tokens for multiple users (admin function)
+     * @param users Array of user addresses
+     * @custom:event Emits Burn event for each user
+     * @custom:error Throw UserHasNoPrimeToken if any user has no prime token
+     * @custom:access Controlled by ACM
+     */
+    function burnBatch(address[] calldata users) external {
+        _checkAccessAllowed("burnBatch(address[])");
+
+        uint256 usersLength = users.length;
+        _ensureMaxLoops(usersLength);
+
+        for (uint256 i; i < usersLength; ) {
+            _burn(users[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
      * @notice Check if user has Prime token
      * @param user User address
      * @return exists Whether user has Prime token
