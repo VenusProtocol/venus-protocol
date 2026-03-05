@@ -102,7 +102,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OptimizedTransparentUpgradeableProxy",
       execute: {
         methodName: "initialize",
-        args: [acmAddress],
+        args: [acmAddress, 100],
       },
       viaAdminContract: {
         name: "DefaultProxyAdmin",

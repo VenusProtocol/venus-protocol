@@ -60,7 +60,7 @@ describe("PrimeLeaderboard", () => {
 
     // Deploy PrimeLeaderboard using upgrades plugin
     const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
-    primeLeaderboard = (await upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address], {
+    primeLeaderboard = (await upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, 100], {
       unsafeAllow: ["constructor", "state-variable-immutable"],
       constructorArgs: [xvsVault.address, xvsAddress, 0],
     })) as PrimeLeaderboard;
@@ -97,7 +97,7 @@ describe("PrimeLeaderboard", () => {
     });
 
     it("should revert if initialized twice", async () => {
-      await expect(primeLeaderboard.initialize(accessControlManager.address)).to.be.revertedWith(
+      await expect(primeLeaderboard.initialize(accessControlManager.address, 100)).to.be.revertedWith(
         "Initializable: contract is already initialized",
       );
     });
@@ -106,7 +106,7 @@ describe("PrimeLeaderboard", () => {
       const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
 
       await expect(
-        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address], {
+        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, 100], {
           unsafeAllow: ["constructor", "state-variable-immutable"],
           constructorArgs: [ethers.constants.AddressZero, xvsAddress, 0],
         }),
@@ -117,7 +117,7 @@ describe("PrimeLeaderboard", () => {
       const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
 
       await expect(
-        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address], {
+        upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, 100], {
           unsafeAllow: ["constructor", "state-variable-immutable"],
           constructorArgs: [xvsVault.address, ethers.constants.AddressZero, 0],
         }),

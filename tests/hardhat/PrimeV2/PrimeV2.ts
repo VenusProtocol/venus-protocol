@@ -583,9 +583,7 @@ describe("PrimeV2", () => {
       });
 
       it("should remove a market successfully", async () => {
-        await expect(primeV2.removeMarket(vToken.address))
-          .to.emit(primeV2, "MarketRemoved")
-          .withArgs(vToken.address);
+        await expect(primeV2.removeMarket(vToken.address)).to.emit(primeV2, "MarketRemoved").withArgs(vToken.address);
 
         const allMarkets = await primeV2.getAllMarkets();
         expect(allMarkets).to.not.include(vToken.address);

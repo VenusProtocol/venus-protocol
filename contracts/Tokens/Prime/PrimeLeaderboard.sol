@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { SafeCastUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
 
 import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
 import { IPrimeV2 } from "./Interfaces/IPrimeV2.sol";
@@ -23,6 +24,7 @@ contract PrimeLeaderboard is
     IPrimeLeaderboard,
     AccessControlledV8,
     ReentrancyGuardUpgradeable,
+    MaxLoopsLimitHelper,
     PrimeLeaderboardStorageV1
 {
     using SafeCastUpgradeable for uint256;
@@ -58,9 +60,10 @@ contract PrimeLeaderboard is
      * @notice Initialize the PrimeLeaderboard contract
      * @param accessControlManager_ Address of access control manager
      */
-    function initialize(address accessControlManager_) external initializer {
+    function initialize(address accessControlManager_, uint256 loopsLimit_) external initializer {
         __AccessControlled_init(accessControlManager_);
         __ReentrancyGuard_init();
+        _setMaxLoopsLimit(loopsLimit_);
 
         // Initialize default multiplier tiers
         // Tier 1: 30 days -> 1.3x
@@ -104,6 +107,8 @@ contract PrimeLeaderboard is
         if (users.length != amounts.length || users.length != timestamps.length) revert LengthMismatch();
 
         uint256 usersLength = users.length;
+        _ensureMaxLoops(usersLength);
+
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
 
@@ -294,30 +299,18 @@ contract PrimeLeaderboard is
         if (durations.length != multipliers.length) revert LengthMismatch();
         if (durations.length == 0) revert InvalidValue();
 
-        // Validate tiers are in ascending order
-        for (uint256 i = 1; i < durations.length; ) {
-            if (durations[i] <= durations[i - 1]) revert InvalidMultiplierTiers();
-            if (multipliers[i] <= multipliers[i - 1]) revert InvalidMultiplierTiers();
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        // All multipliers must be >= BASE_MULTIPLIER
-        for (uint256 i; i < multipliers.length; ) {
-            if (multipliers[i] < BASE_MULTIPLIER) revert InvalidMultiplierTiers();
-
-            unchecked {
-                ++i;
-            }
-        }
-
         // Clear and set new tiers
         delete _multiplierDurations;
         delete _multiplierValues;
 
+        // Validate and push in a single loop
         for (uint256 i; i < durations.length; ) {
+            if (multipliers[i] < BASE_MULTIPLIER) revert InvalidMultiplierTiers();
+            if (i > 0) {
+                if (durations[i] <= durations[i - 1]) revert InvalidMultiplierTiers();
+                if (multipliers[i] <= multipliers[i - 1]) revert InvalidMultiplierTiers();
+            }
+
             _multiplierDurations.push(durations[i]);
             _multiplierValues.push(multipliers[i]);
 
@@ -344,6 +337,16 @@ contract PrimeLeaderboard is
         primeV2 = primeV2_;
 
         emit PrimeV2Set(oldPrimeV2, primeV2_);
+    }
+
+    /**
+     * @notice Set the limit for the loops can iterate to avoid the DOS
+     * @param loopsLimit Limit for the max loops can execute at a time
+     * @custom:access Controlled by ACM
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external {
+        _checkAccessAllowed("setMaxLoopsLimit(uint256)");
+        _setMaxLoopsLimit(loopsLimit);
     }
 
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════
