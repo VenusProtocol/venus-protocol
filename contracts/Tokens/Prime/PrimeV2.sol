@@ -137,6 +137,9 @@ contract PrimeV2 is
     /// @notice Error thrown when issue/burn is attempted during an active score update round
     error ScoreUpdateInProgress();
 
+    /// @notice Error thrown when trying to remove a market that still has active members with scores
+    error MarketHasActiveMembers();
+
     /**
      * @notice PrimeV2 constructor
      * @param wrappedNativeToken_ Address of wrapped native token
@@ -573,12 +576,14 @@ contract PrimeV2 is
      * @param market Market vToken address to remove
      * @custom:event Emits MarketRemoved event
      * @custom:error Throw MarketNotSupported if market doesn't exist
+     * @custom:error Throw MarketHasActiveMembers if market still has members with scores
      * @custom:access Controlled by ACM
      */
     function removeMarket(address market) external {
         _checkAccessAllowed("removeMarket(address)");
 
         if (!markets[market].exists) revert MarketNotSupported();
+        if (markets[market].sumOfMembersScore > 0) revert MarketHasActiveMembers();
 
         address underlying = _getUnderlying(market);
 

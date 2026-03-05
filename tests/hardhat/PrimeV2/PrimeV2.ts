@@ -630,6 +630,44 @@ describe("PrimeV2", () => {
           .to.emit(primeV2, "MarketAdded")
           .withArgs(vToken.address, convertToUnit(3, 18), convertToUnit(3, 18));
       });
+
+      it("should revert when market has active members with scores", async () => {
+        const user1Address = await user1.getAddress();
+
+        // Setup: user has supply and XVS staked so score > 0
+        vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(1000, 18));
+        xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
+
+        await primeV2["issue(address)"](user1Address);
+
+        // Verify market has active score
+        const market = await primeV2.markets(vToken.address);
+        expect(market.sumOfMembersScore).to.be.gt(0);
+
+        // Market now has sumOfMembersScore > 0
+        await expect(primeV2.removeMarket(vToken.address)).to.be.revertedWithCustomError(
+          primeV2,
+          "MarketHasActiveMembers",
+        );
+      });
+
+      it("should allow removal after all members are burned", async () => {
+        const user1Address = await user1.getAddress();
+
+        // Setup: user has supply and XVS staked so score > 0
+        vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(1000, 18));
+        xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
+
+        await primeV2["issue(address)"](user1Address);
+
+        // Burn the user first (clears their score from sumOfMembersScore)
+        await primeV2.burn(user1Address);
+
+        // Now removal should succeed
+        await expect(primeV2.removeMarket(vToken.address))
+          .to.emit(primeV2, "MarketRemoved")
+          .withArgs(vToken.address);
+      });
     });
 
     describe("updateMultipliers", () => {
