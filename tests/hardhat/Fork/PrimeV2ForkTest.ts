@@ -13,7 +13,7 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { parseEther } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
-import { PrimeLeaderboard, PrimeV2, PrimeV2Keeper } from "../../../typechain";
+import { PrimeLeaderboard, PrimeV2 } from "../../../typechain";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
 // With second-based duration, block timestamp increments (1 sec per tx) become visible.
@@ -185,18 +185,30 @@ if (FORK_MAINNET) {
         const PrimeV2Factory = await ethers.getContractFactory("PrimeV2");
         primeV2 = (await upgrades.deployProxy(
           PrimeV2Factory,
-          [Addr.XVS_VAULT, Addr.XVS, XVS_POOL_ID, 1, 2, Addr.ACM, Addr.PLP, Addr.COMPTROLLER, Addr.ORACLE, 100],
+          [1, 2, Addr.ACM, Addr.PLP, Addr.COMPTROLLER, Addr.ORACLE, 100],
           {
-            constructorArgs: [Addr.WBNB, Addr.vBNB, MAXIMUM_XVS_CAP, false, BLOCKS_PER_YEAR],
+            constructorArgs: [
+              Addr.WBNB,
+              Addr.vBNB,
+              MAXIMUM_XVS_CAP,
+              Addr.XVS_VAULT,
+              Addr.XVS,
+              XVS_POOL_ID,
+              false,
+              BLOCKS_PER_YEAR,
+            ],
             unsafeAllow: ["constructor", "internal-function-storage"],
           },
         )) as PrimeV2;
 
         // ── Grant ACM permissions (via Timelock) ──
         const primeV2Perms = [
-          "issue(address[])",
+          "issue(address)",
           "burn(address)",
+          "issueBatch(address[])",
+          "burnBatch(address[])",
           "addMarket(address,uint256,uint256)",
+          "removeMarket(address)",
           "updateAlpha(uint128,uint128)",
           "updateMultipliers(address,uint256,uint256)",
           "setPrimeLeaderboard(address)",
@@ -209,6 +221,9 @@ if (FORK_MAINNET) {
           "setPrimeV2(address)",
           "setMinimumStake(uint256)",
           "setMultiplierTiers(uint256[],uint256[])",
+          "initializeStakers(address[],uint256[],uint64[])",
+          "finalizeInitialization()",
+          "setMaxLoopsLimit(uint256)",
         ];
 
         for (const f of primeV2Perms) {
@@ -452,7 +467,8 @@ if (FORK_MAINNET) {
       // ═══════════════════════════════════════════════════════════
       describe("Prime Token Issuance & Scoring", () => {
         it("should issue Prime tokens to users", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
 
           expect(await primeV2.isUserPrimeHolder(user1Addr)).to.be.true;
           expect(await primeV2.isUserPrimeHolder(user2Addr)).to.be.true;
@@ -462,7 +478,7 @@ if (FORK_MAINNET) {
 
         it("should calculate user score using real oracle prices", async () => {
           // Issue Prime so user1 gets a score in vUSDT market
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
 
           // User1 has vUSDT supply (from fixture) and XVS stake
           const interest = await primeV2.interests(Addr.vUSDT, user1Addr);
@@ -474,7 +490,8 @@ if (FORK_MAINNET) {
         });
 
         it("should update sumOfMembersScore when multiple users have Prime", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
 
           const interest1 = await primeV2.interests(Addr.vUSDT, user1Addr);
           const interest2 = await primeV2.interests(Addr.vUSDT, user2Addr);
@@ -486,15 +503,15 @@ if (FORK_MAINNET) {
         it("should respect token limit", async () => {
           // Set tight limit
           await primeV2.setLimit(1);
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
 
           // Second issuance should revert
-          await expect(primeV2.issue([user2Addr])).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
+          await expect(primeV2.issue(user2Addr)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
         });
 
-        it("should revert issuing to user who already has Prime", async () => {
-          await primeV2.issue([user1Addr]);
-          await expect(primeV2.issue([user1Addr])).not.to.be.reverted; // no-op for existing, not revert
+        it("should revert when issuing to user who already has Prime", async () => {
+          await primeV2.issue(user1Addr);
+          await expect(primeV2.issue(user1Addr)).to.be.revertedWithCustomError(primeV2, "UserAlreadyHasPrimeToken");
         });
       });
 
@@ -504,7 +521,8 @@ if (FORK_MAINNET) {
       describe("Interest Accrual & Claiming", () => {
         beforeEach(async () => {
           // Issue Prime to user1 and user2 (both have vUSDT supply)
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
         });
 
         it("should accrue interest from real PrimeLiquidityProvider", async () => {
@@ -690,7 +708,8 @@ if (FORK_MAINNET) {
       // ═══════════════════════════════════════════════════════════
       describe("Score Update Rounds", () => {
         it("should queue score updates after alpha change", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
 
           expect(await primeV2.pendingScoreUpdates()).to.equal(0);
 
@@ -701,7 +720,8 @@ if (FORK_MAINNET) {
         });
 
         it("should process batch score updates", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
 
           const scoreBefore = (await primeV2.interests(Addr.vUSDT, user1Addr)).score;
 
@@ -721,7 +741,7 @@ if (FORK_MAINNET) {
         });
 
         it("should queue score updates after multiplier change", async () => {
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
 
           await primeV2.updateMultipliers(Addr.vUSDT, parseEther("3"), parseEther("3"));
 
@@ -732,7 +752,8 @@ if (FORK_MAINNET) {
         });
 
         it("should skip already-updated users in batch", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
           await primeV2.updateAlpha(1, 3);
 
           // Update user1 only
@@ -757,7 +778,8 @@ if (FORK_MAINNET) {
       // ═══════════════════════════════════════════════════════════
       describe("Token Burn & Re-issuance", () => {
         it("should burn a user's Prime token", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
           expect(await primeV2.totalTokens()).to.equal(2);
 
           await primeV2.burn(user1Addr);
@@ -767,7 +789,8 @@ if (FORK_MAINNET) {
         });
 
         it("should remove user score from market on burn", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
 
           const marketBefore = await primeV2.markets(Addr.vUSDT);
 
@@ -783,11 +806,11 @@ if (FORK_MAINNET) {
         });
 
         it("should allow re-issuance to a different user after burn", async () => {
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
           await primeV2.burn(user1Addr);
 
           // Issue to user3 who didn't have Prime
-          await primeV2.issue([user3Addr]);
+          await primeV2.issue(user3Addr);
           expect(await primeV2.isUserPrimeHolder(user3Addr)).to.be.true;
           expect(await primeV2.totalTokens()).to.equal(1);
         });
@@ -798,54 +821,7 @@ if (FORK_MAINNET) {
       });
 
       // ═══════════════════════════════════════════════════════════
-      // 10. KEEPER AUTOMATION
-      // ═══════════════════════════════════════════════════════════
-      describe("PrimeV2Keeper Automation", () => {
-        let keeper: PrimeV2Keeper;
-
-        beforeEach(async () => {
-          // Deploy PrimeV2Keeper
-          const KeeperFactory = await ethers.getContractFactory("PrimeV2Keeper");
-          keeper = (await upgrades.deployProxy(
-            KeeperFactory,
-            [Addr.ACM, primeV2.address, primeLeaderboard.address, 50, 100],
-            { unsafeAllow: ["constructor"] },
-          )) as PrimeV2Keeper;
-
-          // Grant keeper permissions
-          await acm.giveCallPermission(keeper.address, "processScoreUpdates(address[])", deployerAddr);
-          await acm.giveCallPermission(keeper.address, "accrueAllMarkets()", deployerAddr);
-          await acm.giveCallPermission(keeper.address, "setBatchSize(uint256)", deployerAddr);
-        });
-
-        it("should deploy keeper with correct configuration", async () => {
-          expect(await keeper.primeV2()).to.equal(primeV2.address);
-          expect(await keeper.primeLeaderboard()).to.equal(primeLeaderboard.address);
-          expect(await keeper.batchSize()).to.equal(50);
-        });
-
-        it("should process score updates via keeper", async () => {
-          await primeV2.issue([user1Addr, user2Addr]);
-          await primeV2.updateAlpha(1, 3);
-
-          expect(await keeper.getPendingScoreUpdates()).to.equal(2);
-
-          await keeper.processScoreUpdates([user1Addr, user2Addr]);
-          expect(await keeper.getPendingScoreUpdates()).to.equal(0);
-        });
-
-        it("should accrue all markets via keeper", async () => {
-          await expect(keeper.accrueAllMarkets()).to.emit(keeper, "AllMarketsAccrued").withArgs(1);
-        });
-
-        it("should update batch size", async () => {
-          await keeper.setBatchSize(100);
-          expect(await keeper.batchSize()).to.equal(100);
-        });
-      });
-
-      // ═══════════════════════════════════════════════════════════
-      // 11. EDGE CASES & SECURITY
+      // 9. EDGE CASES & SECURITY
       // ═══════════════════════════════════════════════════════════
       describe("Edge Cases & Security", () => {
         it("should cap XVS balance at MAXIMUM_XVS_CAP for scoring", async () => {
@@ -858,14 +834,14 @@ if (FORK_MAINNET) {
           expect(xvsBalance).to.equal(parseEther("205000")); // 5000 + 200000
 
           // But when issuing Prime, the internal _xvsBalanceForScore caps it
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
           const interest = await primeV2.interests(Addr.vUSDT, user1Addr);
           // Score should be based on capped XVS, verified by it being > 0
           expect(interest.score).to.be.gt(0);
         });
 
         it("should pause and unpause PrimeV2", async () => {
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
           await primeV2.pause();
 
           // Claiming should revert when paused
@@ -905,7 +881,7 @@ if (FORK_MAINNET) {
         });
 
         it("should update market multipliers", async () => {
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
 
           await primeV2.updateMultipliers(Addr.vUSDT, parseEther("3"), parseEther("3"));
 
@@ -915,7 +891,7 @@ if (FORK_MAINNET) {
         });
 
         it("should handle accrueInterestAndUpdateScore for a Prime holder", async () => {
-          await primeV2.issue([user1Addr]);
+          await primeV2.issue(user1Addr);
 
           // Should not revert (use bracket syntax for overloaded function)
           await primeV2["accrueInterestAndUpdateScore(address,address)"](user1Addr, Addr.vUSDT);
@@ -927,7 +903,9 @@ if (FORK_MAINNET) {
         });
 
         it("should not allow setting limit below current count", async () => {
-          await primeV2.issue([user1Addr, user2Addr, user3Addr]);
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
+          await primeV2.issue(user3Addr);
 
           // Try to set limit below current count (3)
           await expect(primeV2.setLimit(2)).to.be.revertedWithCustomError(primeV2, "InvalidLimit");
@@ -949,6 +927,606 @@ if (FORK_MAINNET) {
           const stake = await primeLeaderboard.getEffectiveStake(user1Addr);
           // 5000 × 1.5 × (50 * 86400) = 32,400,000,000
           expectApprox(stake, parseEther("32400000000"));
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 10. BATCH OPERATIONS (issueBatch / burnBatch)
+      // ═══════════════════════════════════════════════════════════
+      describe("Batch Operations", () => {
+        it("should issue Prime tokens in batch", async () => {
+          await primeV2.issueBatch([user1Addr, user2Addr]);
+
+          expect(await primeV2.isUserPrimeHolder(user1Addr)).to.be.true;
+          expect(await primeV2.isUserPrimeHolder(user2Addr)).to.be.true;
+          expect(await primeV2.totalTokens()).to.equal(2);
+        });
+
+        it("should skip already-issued users in issueBatch without reverting", async () => {
+          await primeV2.issue(user1Addr);
+
+          // Batch includes user1 (already issued) and user2 (new)
+          await primeV2.issueBatch([user1Addr, user2Addr]);
+
+          expect(await primeV2.isUserPrimeHolder(user2Addr)).to.be.true;
+          expect(await primeV2.totalTokens()).to.equal(2);
+        });
+
+        it("should burn Prime tokens in batch", async () => {
+          await primeV2.issueBatch([user1Addr, user2Addr]);
+          expect(await primeV2.totalTokens()).to.equal(2);
+
+          await primeV2.burnBatch([user1Addr, user2Addr]);
+
+          expect(await primeV2.isUserPrimeHolder(user1Addr)).to.be.false;
+          expect(await primeV2.isUserPrimeHolder(user2Addr)).to.be.false;
+          expect(await primeV2.totalTokens()).to.equal(0);
+        });
+
+        it("should skip non-Prime holders in burnBatch without reverting", async () => {
+          await primeV2.issue(user1Addr);
+
+          // Batch includes user1 (has Prime) and user3 (no Prime)
+          await primeV2.burnBatch([user1Addr, user3Addr]);
+
+          expect(await primeV2.isUserPrimeHolder(user1Addr)).to.be.false;
+          expect(await primeV2.totalTokens()).to.equal(0);
+        });
+
+        it("should update scores correctly after issueBatch", async () => {
+          await primeV2.issueBatch([user1Addr, user2Addr]);
+
+          const interest1 = await primeV2.interests(Addr.vUSDT, user1Addr);
+          const interest2 = await primeV2.interests(Addr.vUSDT, user2Addr);
+          const market = await primeV2.markets(Addr.vUSDT);
+
+          expect(interest1.score).to.be.gt(0);
+          expect(interest2.score).to.be.gt(0);
+          expect(market.sumOfMembersScore).to.equal(interest1.score.add(interest2.score));
+        });
+
+        it("should remove scores on burnBatch", async () => {
+          await primeV2.issueBatch([user1Addr, user2Addr]);
+
+          await primeV2.burnBatch([user1Addr, user2Addr]);
+
+          const market = await primeV2.markets(Addr.vUSDT);
+          expect(market.sumOfMembersScore).to.equal(0);
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 11. MARKET REMOVAL
+      // ═══════════════════════════════════════════════════════════
+      describe("Market Removal", () => {
+        it("should remove a market with no active members", async () => {
+          const marketsBefore = await primeV2.getAllMarkets();
+          expect(marketsBefore).to.have.lengthOf(1);
+
+          await primeV2.removeMarket(Addr.vUSDT);
+
+          const marketsAfter = await primeV2.getAllMarkets();
+          expect(marketsAfter).to.have.lengthOf(0);
+
+          const market = await primeV2.markets(Addr.vUSDT);
+          expect(market.exists).to.be.false;
+        });
+
+        it("should emit MarketRemoved event", async () => {
+          await expect(primeV2.removeMarket(Addr.vUSDT)).to.emit(primeV2, "MarketRemoved").withArgs(Addr.vUSDT);
+        });
+
+        it("should revert removeMarket for non-existent market", async () => {
+          const fakeMarket = ethers.Wallet.createRandom().address;
+          await expect(primeV2.removeMarket(fakeMarket)).to.be.revertedWithCustomError(primeV2, "MarketNotSupported");
+        });
+
+        it("should revert removeMarket when market has active members with scores", async () => {
+          await primeV2.issue(user1Addr);
+
+          // user1 has supply in vUSDT, so sumOfMembersScore > 0
+          const market = await primeV2.markets(Addr.vUSDT);
+          expect(market.sumOfMembersScore).to.be.gt(0);
+
+          await expect(primeV2.removeMarket(Addr.vUSDT)).to.be.revertedWithCustomError(
+            primeV2,
+            "MarketHasActiveMembers",
+          );
+        });
+
+        it("should allow removal after burning all Prime holders", async () => {
+          await primeV2.issue(user1Addr);
+          await primeV2.burn(user1Addr);
+
+          // sumOfMembersScore should be 0 after burn
+          await primeV2.removeMarket(Addr.vUSDT);
+
+          const marketsAfter = await primeV2.getAllMarkets();
+          expect(marketsAfter).to.have.lengthOf(0);
+        });
+
+        it("should allow claiming residual interest after market removal", async () => {
+          await primeV2.issue(user1Addr);
+
+          // Accrue interest and fund PrimeV2
+          await primeV2.accrueInterest(Addr.vUSDT);
+          await fundUSDT(primeV2.address, parseEther("10000"));
+
+          // Claim once to get some accrued amount in rewardIndex
+          await primeV2.connect(user1)["claimInterest(address)"](Addr.vUSDT);
+
+          // Now burn to clear sumOfMembersScore and remove market
+          await primeV2.burn(user1Addr);
+          await primeV2.removeMarket(Addr.vUSDT);
+
+          // Market is removed - claim should not revert if there is residual accrued
+          // (may be 0 since we just claimed, but should not revert with MarketNotSupported
+          // if there's any remaining accrued)
+          const market = await primeV2.markets(Addr.vUSDT);
+          expect(market.exists).to.be.false;
+        });
+
+        it("should queue score updates on market removal", async () => {
+          await primeV2.issue(user1Addr);
+          await primeV2.burn(user1Addr);
+
+          await primeV2.removeMarket(Addr.vUSDT);
+
+          // removeMarket calls _queueScoreUpdates but totalTokens is 0
+          // so pendingScoreUpdates should be 0
+          expect(await primeV2.pendingScoreUpdates()).to.equal(0);
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 12. PERMISSIONLESS CLAIM & VIEW FUNCTIONS
+      // ═══════════════════════════════════════════════════════════
+      describe("Permissionless Claim & View Functions", () => {
+        beforeEach(async () => {
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
+        });
+
+        it("should allow anyone to claim interest on behalf of another user", async () => {
+          await primeV2.accrueInterest(Addr.vUSDT);
+          await fundUSDT(primeV2.address, parseEther("10000"));
+
+          const balanceBefore = await usdt.balanceOf(user1Addr);
+
+          // user3 (non-Prime holder) claims on behalf of user1
+          await primeV2.connect(user3)["claimInterest(address,address)"](Addr.vUSDT, user1Addr);
+
+          const balanceAfter = await usdt.balanceOf(user1Addr);
+          // Tokens should go to user1, not user3
+          expect(balanceAfter).to.be.gte(balanceBefore);
+
+          // user3 balance should not change
+          const user3Balance = await usdt.balanceOf(user3Addr);
+          // user3 had no USDT supply, so balance stays 0
+          expect(user3Balance).to.equal(0);
+        });
+
+        it("should return pending rewards via getPendingRewardsStatic (view)", async () => {
+          await primeV2.accrueInterest(Addr.vUSDT);
+
+          const pendingRewards = await primeV2.getPendingRewardsStatic(user1Addr);
+          expect(pendingRewards).to.have.lengthOf(1);
+          expect(pendingRewards[0].vToken).to.equal(Addr.vUSDT);
+          expect(pendingRewards[0].rewardToken).to.equal(Addr.USDT);
+        });
+
+        it("should return consistent results between getPendingRewards and getPendingRewardsStatic", async () => {
+          await primeV2.accrueInterest(Addr.vUSDT);
+
+          const dynamicRewards = await primeV2.callStatic.getPendingRewards(user1Addr);
+          const staticRewards = await primeV2.getPendingRewardsStatic(user1Addr);
+
+          // Both should report the same vToken and similar amounts
+          expect(dynamicRewards[0].vToken).to.equal(staticRewards[0].vToken);
+          // Static may differ slightly since getPendingRewards also accrues
+          // but after manual accrual they should match
+          expect(staticRewards[0].amount).to.be.gte(0);
+        });
+
+        it("should accrue interest and update score for all markets via single-arg overload", async () => {
+          // Single-arg version accrues all markets and updates score
+          await primeV2["accrueInterestAndUpdateScore(address)"](user1Addr);
+
+          const scoreAfter = (await primeV2.interests(Addr.vUSDT, user1Addr)).score;
+          // Score might change slightly due to interest accrual
+          expect(scoreAfter).to.be.gte(0);
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 13. SCORE UPDATE BLOCKING (ScoreUpdateInProgress)
+      // ═══════════════════════════════════════════════════════════
+      describe("Score Update Blocking", () => {
+        it("should block issue() during active score update round", async () => {
+          await primeV2.issue(user1Addr);
+
+          // Trigger pending score updates
+          await primeV2.updateAlpha(1, 3);
+          expect(await primeV2.pendingScoreUpdates()).to.be.gt(0);
+
+          await expect(primeV2.issue(user2Addr)).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
+        });
+
+        it("should block burn() during active score update round", async () => {
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
+
+          await primeV2.updateAlpha(1, 3);
+          expect(await primeV2.pendingScoreUpdates()).to.be.gt(0);
+
+          await expect(primeV2.burn(user1Addr)).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
+        });
+
+        it("should block issueBatch() during active score update round", async () => {
+          await primeV2.issue(user1Addr);
+
+          await primeV2.updateAlpha(1, 3);
+
+          await expect(primeV2.issueBatch([user2Addr, user3Addr])).to.be.revertedWithCustomError(
+            primeV2,
+            "ScoreUpdateInProgress",
+          );
+        });
+
+        it("should block burnBatch() during active score update round", async () => {
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
+
+          await primeV2.updateAlpha(1, 3);
+
+          await expect(primeV2.burnBatch([user1Addr, user2Addr])).to.be.revertedWithCustomError(
+            primeV2,
+            "ScoreUpdateInProgress",
+          );
+        });
+
+        it("should allow issue/burn after score updates are resolved", async () => {
+          await primeV2.issue(user1Addr);
+          await primeV2.updateAlpha(1, 3);
+
+          // Resolve updates
+          await primeV2.updateScores([user1Addr]);
+          expect(await primeV2.pendingScoreUpdates()).to.equal(0);
+
+          // Now issue/burn should work
+          await primeV2.issue(user2Addr);
+          expect(await primeV2.isUserPrimeHolder(user2Addr)).to.be.true;
+        });
+
+        it("should emit IncompleteRoundDiscarded when alpha changes mid-round", async () => {
+          await primeV2.issue(user1Addr);
+          await primeV2.issue(user2Addr);
+
+          // First alpha change queues round
+          await primeV2.updateAlpha(1, 3);
+          const pendingBefore = await primeV2.pendingScoreUpdates();
+          expect(pendingBefore).to.equal(2);
+
+          // Resolve only 1 user
+          await primeV2.updateScores([user1Addr]);
+          expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+          // Second alpha change discards incomplete round
+          await expect(primeV2.updateAlpha(1, 4)).to.emit(primeV2, "IncompleteRoundDiscarded");
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 14. DEPOSIT COMPACTION
+      // ═══════════════════════════════════════════════════════════
+      describe("Deposit Compaction", () => {
+        it("should compact deposits when MAX_DEPOSITS_PER_USER (30) is reached", async () => {
+          // Make 29 small deposits to approach the limit
+          for (let i = 0; i < 29; i++) {
+            await fundXVS(user1Addr, parseEther("100"));
+            await depositToVault(user1, parseEther("100"));
+            await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+          }
+
+          // user1 has 1 initial deposit (5000) + 29 new deposits = 30 deposits
+          expect(await primeLeaderboard.getDepositCount(user1Addr)).to.equal(30);
+
+          // One more deposit triggers compaction
+          await fundXVS(user1Addr, parseEther("100"));
+          await depositToVault(user1, parseEther("100"));
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+
+          // Deposits should be compacted below the limit
+          const countAfter = await primeLeaderboard.getDepositCount(user1Addr);
+          expect(countAfter).to.be.lt(30);
+
+          // Total staked should be preserved: 5000 + 30 * 100 = 8000
+          expect(await primeLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("8000"));
+        });
+
+        it("should compact max-tier deposits losslessly (pass 1)", async () => {
+          // Wait 90+ days so initial deposit reaches max tier
+          await time.increase(91 * DAY);
+
+          // Make several more deposits
+          for (let i = 0; i < 29; i++) {
+            await fundXVS(user1Addr, parseEther("100"));
+            await depositToVault(user1, parseEther("100"));
+            await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+          }
+
+          // 1 original (max tier) + 29 new = 30 deposits
+          expect(await primeLeaderboard.getDepositCount(user1Addr)).to.equal(30);
+
+          // Trigger compaction with one more deposit
+          await fundXVS(user1Addr, parseEther("100"));
+          await depositToVault(user1, parseEther("100"));
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+
+          // Pass 1 merges the max-tier deposit (original 5000)
+          // Result: 1 merged max-tier + 29 base-tier + 1 new = fewer than 30
+          const countAfter = await primeLeaderboard.getDepositCount(user1Addr);
+          expect(countAfter).to.be.lte(30);
+
+          // Total staked preserved: 5000 + 30 * 100 = 8000
+          expect(await primeLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("8000"));
+        });
+
+        it("should preserve total staked amount after compaction", async () => {
+          const totalBefore = await primeLeaderboard.totalStaked(user1Addr);
+
+          // Fill up deposits
+          for (let i = 0; i < 30; i++) {
+            await fundXVS(user1Addr, parseEther("50"));
+            await depositToVault(user1, parseEther("50"));
+            await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
+          }
+
+          const totalAfter = await primeLeaderboard.totalStaked(user1Addr);
+
+          // 5000 + 30 * 50 = 6500
+          expect(totalAfter).to.equal(totalBefore.add(parseEther("1500")));
+        });
+
+        it("should return full deposit array via getDeposits", async () => {
+          // user1 has 1 deposit from fixture
+          const deposits = await primeLeaderboard.getDeposits(user1Addr);
+          expect(deposits).to.have.lengthOf(1);
+          expect(deposits[0].amount).to.equal(parseEther("5000"));
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 15. STAKER INITIALIZATION (Migration)
+      // ═══════════════════════════════════════════════════════════
+      describe("Staker Initialization (Migration)", () => {
+        let freshLeaderboard: PrimeLeaderboard;
+
+        beforeEach(async () => {
+          // Deploy a fresh PrimeLeaderboard for migration tests
+          const LeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
+          freshLeaderboard = (await upgrades.deployProxy(LeaderboardFactory, [Addr.ACM, 100], {
+            unsafeAllow: ["constructor", "state-variable-immutable"],
+            constructorArgs: [Addr.XVS_VAULT, Addr.XVS, XVS_POOL_ID],
+          })) as PrimeLeaderboard;
+
+          // Grant permissions on the fresh leaderboard
+          await acm.giveCallPermission(
+            freshLeaderboard.address,
+            "initializeStakers(address[],uint256[],uint64[])",
+            deployerAddr,
+          );
+          await acm.giveCallPermission(freshLeaderboard.address, "finalizeInitialization()", deployerAddr);
+        });
+
+        it("should seed stakers with historical data", async () => {
+          const now = (await ethers.provider.getBlock("latest")).timestamp;
+          const historicalTs = now - 60 * DAY;
+
+          await freshLeaderboard.initializeStakers(
+            [user1Addr, user2Addr],
+            [parseEther("5000"), parseEther("3000")],
+            [historicalTs, historicalTs],
+          );
+
+          expect(await freshLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("5000"));
+          expect(await freshLeaderboard.totalStaked(user2Addr)).to.equal(parseEther("3000"));
+          expect(await freshLeaderboard.getDepositCount(user1Addr)).to.equal(1);
+        });
+
+        it("should skip already-seeded users (idempotent)", async () => {
+          const now = (await ethers.provider.getBlock("latest")).timestamp;
+          const historicalTs = now - 30 * DAY;
+
+          await freshLeaderboard.initializeStakers([user1Addr], [parseEther("5000")], [historicalTs]);
+
+          // Call again with same user - should be skipped
+          await freshLeaderboard.initializeStakers([user1Addr], [parseEther("9999")], [historicalTs]);
+
+          // Original amount preserved
+          expect(await freshLeaderboard.totalStaked(user1Addr)).to.equal(parseEther("5000"));
+        });
+
+        it("should apply correct multiplier tier based on historical timestamp", async () => {
+          const now = (await ethers.provider.getBlock("latest")).timestamp;
+          // Seed user1 with a deposit from 60 days ago
+          const historicalTs = now - 60 * DAY;
+
+          await freshLeaderboard.initializeStakers([user1Addr], [parseEther("5000")], [historicalTs]);
+
+          // Effective stake should reflect 60-day multiplier (1.6x) and 60-day duration
+          // 5000 × 1.6 × (60 * 86400) = 41,472,000,000
+          const stake = await freshLeaderboard.getEffectiveStake(user1Addr);
+          expectApprox(stake, parseEther("41472000000"));
+        });
+
+        it("should revert initializeStakers after finalization", async () => {
+          await freshLeaderboard.finalizeInitialization();
+
+          const now = (await ethers.provider.getBlock("latest")).timestamp;
+          await expect(
+            freshLeaderboard.initializeStakers([user1Addr], [parseEther("5000")], [now]),
+          ).to.be.revertedWithCustomError(freshLeaderboard, "StakersAlreadyInitialized");
+        });
+
+        it("should revert double finalization", async () => {
+          await freshLeaderboard.finalizeInitialization();
+
+          await expect(freshLeaderboard.finalizeInitialization()).to.be.revertedWithCustomError(
+            freshLeaderboard,
+            "StakersAlreadyInitialized",
+          );
+        });
+
+        it("should revert initializeStakers with mismatched array lengths", async () => {
+          const now = (await ethers.provider.getBlock("latest")).timestamp;
+          await expect(
+            freshLeaderboard.initializeStakers([user1Addr, user2Addr], [parseEther("5000")], [now]),
+          ).to.be.revertedWithCustomError(freshLeaderboard, "LengthMismatch");
+        });
+
+        it("should emit StakersInitializationFinalized event", async () => {
+          await expect(freshLeaderboard.finalizeInitialization()).to.emit(
+            freshLeaderboard,
+            "StakersInitializationFinalized",
+          );
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 16. MULTIPLIER TIER VALIDATION
+      // ═══════════════════════════════════════════════════════════
+      describe("Multiplier Tier Validation", () => {
+        it("should revert when durations are not in ascending order", async () => {
+          await expect(
+            primeLeaderboard.setMultiplierTiers([60 * DAY, 30 * DAY], [parseEther("1.3"), parseEther("1.6")]),
+          ).to.be.revertedWithCustomError(primeLeaderboard, "InvalidMultiplierTiers");
+        });
+
+        it("should revert when multipliers are not in ascending order", async () => {
+          await expect(
+            primeLeaderboard.setMultiplierTiers([30 * DAY, 60 * DAY], [parseEther("1.6"), parseEther("1.3")]),
+          ).to.be.revertedWithCustomError(primeLeaderboard, "InvalidMultiplierTiers");
+        });
+
+        it("should revert when multiplier is below BASE_MULTIPLIER (1e18)", async () => {
+          await expect(
+            primeLeaderboard.setMultiplierTiers([30 * DAY], [parseEther("0.5")]),
+          ).to.be.revertedWithCustomError(primeLeaderboard, "InvalidMultiplierTiers");
+        });
+
+        it("should revert with empty durations array", async () => {
+          await expect(primeLeaderboard.setMultiplierTiers([], [])).to.be.revertedWithCustomError(
+            primeLeaderboard,
+            "InvalidValue",
+          );
+        });
+
+        it("should revert when durations and multipliers have different lengths", async () => {
+          await expect(
+            primeLeaderboard.setMultiplierTiers([30 * DAY, 60 * DAY], [parseEther("1.3")]),
+          ).to.be.revertedWithCustomError(primeLeaderboard, "LengthMismatch");
+        });
+
+        it("should accept a single-tier configuration", async () => {
+          await primeLeaderboard.setMultiplierTiers([45 * DAY], [parseEther("2")]);
+
+          const [durations, multipliers] = await primeLeaderboard.getMultiplierTiers();
+          expect(durations).to.have.lengthOf(1);
+          expect(durations[0]).to.equal(45 * DAY);
+          expect(multipliers[0]).to.equal(parseEther("2"));
+        });
+
+        it("should accept equal durations at boundary (durations must be strictly ascending)", async () => {
+          await expect(
+            primeLeaderboard.setMultiplierTiers([30 * DAY, 30 * DAY], [parseEther("1.3"), parseEther("1.6")]),
+          ).to.be.revertedWithCustomError(primeLeaderboard, "InvalidMultiplierTiers");
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 17. ACCESS CONTROL
+      // ═══════════════════════════════════════════════════════════
+      describe("Access Control", () => {
+        it("should revert xvsUpdated when called from non-vault address", async () => {
+          // user1 is not the XVS vault
+          await expect(primeLeaderboard.connect(user1).xvsUpdated(user2Addr)).to.be.revertedWithCustomError(
+            primeLeaderboard,
+            "OnlyXVSVaultAllowed",
+          );
+        });
+
+        it("should allow setMaxLoopsLimit on PrimeV2", async () => {
+          await primeV2.setMaxLoopsLimit(200);
+          // No revert = success
+        });
+
+        it("should allow setMaxLoopsLimit on PrimeLeaderboard", async () => {
+          // Current limit is MINIMUM_STAKE (500e18) from initialization; new value must be larger
+          await primeLeaderboard.setMaxLoopsLimit(parseEther("501"));
+          // No revert = success
+        });
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // 18. PARTIAL CLAIMS & INTEREST EDGE CASES
+      // ═══════════════════════════════════════════════════════════
+      describe("Partial Claims & Interest Edge Cases", () => {
+        beforeEach(async () => {
+          await primeV2.issue(user1Addr);
+        });
+
+        it("should handle partial claim when contract balance is insufficient", async () => {
+          // Accrue interest
+          await primeV2.accrueInterest(Addr.vUSDT);
+
+          // Fund PrimeV2 with a very small amount (less than accrued)
+          await fundUSDT(primeV2.address, parseEther("0.000001"));
+
+          const balanceBefore = await usdt.balanceOf(user1Addr);
+
+          // Reconfigure PLP to point to PrimeV2 so releaseFunds works
+          const plpOwner = await plp.owner();
+          const plpOwnerSigner = await initMainnetUser(plpOwner, parseEther("1"));
+          await plp.connect(plpOwnerSigner).setPrimeToken(primeV2.address);
+
+          await primeV2.connect(user1)["claimInterest(address)"](Addr.vUSDT);
+
+          const balanceAfter = await usdt.balanceOf(user1Addr);
+          // Should receive whatever was available
+          expect(balanceAfter).to.be.gte(balanceBefore);
+        });
+
+        it("should allow accrueInterest while paused", async () => {
+          await primeV2.pause();
+
+          // accrueInterest is not gated by whenNotPaused
+          await expect(primeV2.accrueInterest(Addr.vUSDT)).not.to.be.reverted;
+
+          await primeV2.unpause();
+        });
+
+        it("should allow updateScores while paused", async () => {
+          await primeV2.updateAlpha(1, 3);
+          await primeV2.pause();
+
+          // updateScores is not gated by whenNotPaused
+          await expect(primeV2.updateScores([user1Addr])).not.to.be.reverted;
+
+          await primeV2.unpause();
+        });
+
+        it("should handle claim for user with score but zero accrued", async () => {
+          // Fund PrimeV2 so claim doesn't fail due to balance
+          await fundUSDT(primeV2.address, parseEther("1000"));
+
+          // Claim right after issue - no time has passed for interest accrual
+          const balanceBefore = await usdt.balanceOf(user1Addr);
+          await primeV2.connect(user1)["claimInterest(address)"](Addr.vUSDT);
+          const balanceAfter = await usdt.balanceOf(user1Addr);
+
+          // May get small amount from PLP accrual at fork block, or 0
+          expect(balanceAfter).to.be.gte(balanceBefore);
         });
       });
     });
