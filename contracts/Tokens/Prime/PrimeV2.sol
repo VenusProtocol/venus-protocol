@@ -69,6 +69,9 @@ contract PrimeV2 is
     /// @notice Emitted when a market is added to prime program
     event MarketAdded(address indexed market, uint256 supplyMultiplier, uint256 borrowMultiplier);
 
+    /// @notice Emitted when a market is removed from Prime
+    event MarketRemoved(address indexed market);
+
     /// @notice Emitted when mint limit is updated
     event MintLimitUpdated(uint256 oldLimit, uint256 newLimit);
 
@@ -566,6 +569,43 @@ contract PrimeV2 is
     }
 
     /**
+     * @notice Remove a market from the Prime program
+     * @param market Market vToken address to remove
+     * @custom:event Emits MarketRemoved event
+     * @custom:error Throw MarketNotSupported if market doesn't exist
+     * @custom:access Controlled by ACM
+     */
+    function removeMarket(address market) external {
+        _checkAccessAllowed("removeMarket(address)");
+
+        if (!markets[market].exists) revert MarketNotSupported();
+
+        address underlying = _getUnderlying(market);
+
+        // Clear market state
+        delete markets[market];
+        delete vTokenForAsset[underlying];
+
+        // Swap-and-pop from _allMarkets array
+        address[] storage allMarkets = _allMarkets;
+        uint256 marketsLength = allMarkets.length;
+        for (uint256 i; i < marketsLength; ) {
+            if (allMarkets[i] == market) {
+                allMarkets[i] = allMarkets[marketsLength - 1];
+                allMarkets.pop();
+                break;
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
+        _queueScoreUpdates();
+
+        emit MarketRemoved(market);
+    }
+
+    /**
      * @notice Update mint limit
      * @param tokenLimit_ New token limit
      * @custom:event Emits MintLimitUpdated event
@@ -855,6 +895,7 @@ contract PrimeV2 is
     function _accrueAllMarkets() internal {
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
+        _ensureMaxLoops(marketsLength);
 
         for (uint256 i; i < marketsLength; ) {
             accrueInterest(allMarkets[i]);

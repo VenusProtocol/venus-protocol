@@ -86,6 +86,7 @@ contract PrimeLeaderboard is
      *   4. Point XVSVault.primeToken to this contract to begin live tracking
      *
      * Idempotent: skips users with totalStaked[user] != 0 (already seeded).
+     * @dev Caller must batch appropriately to avoid exceeding block gas limits.
      * @param users Array of user addresses to initialize
      * @param amounts Array of staked amounts (in XVS wei)
      * @param timestamps Array of deposit timestamps
@@ -475,9 +476,11 @@ contract PrimeLeaderboard is
             }
         }
 
-        // If we merged any deposits, add a single merged deposit at the beginning
+        // If we merged any deposits, add a single merged deposit at the beginning.
+        // The O(n) shift preserves oldest-first ordering required for LIFO withdrawals:
+        // _recordWithdrawal pops from the end (newest first), so the merged max-tier
+        // deposit must stay at index 0 to be withdrawn last.
         if (mergedAmount > 0) {
-            // Shift all remaining deposits to make room at index 0
             for (uint256 i = writeIndex; i > 0; ) {
                 unchecked {
                     --i;

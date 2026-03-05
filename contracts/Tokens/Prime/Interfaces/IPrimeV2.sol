@@ -142,6 +142,12 @@ interface IPrimeV2 {
     function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external;
 
     /**
+     * @notice Remove a market from the Prime program
+     * @param market Market vToken address to remove
+     */
+    function removeMarket(address market) external;
+
+    /**
      * @notice Set maximum token limit
      * @param tokenLimit Maximum number of Prime tokens
      */

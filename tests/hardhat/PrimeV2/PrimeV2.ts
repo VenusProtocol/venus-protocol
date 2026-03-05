@@ -576,6 +576,64 @@ describe("PrimeV2", () => {
       });
     });
 
+    describe("removeMarket", () => {
+      beforeEach(async () => {
+        comptroller.markets.returns(true);
+        await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      });
+
+      it("should remove a market successfully", async () => {
+        await expect(primeV2.removeMarket(vToken.address))
+          .to.emit(primeV2, "MarketRemoved")
+          .withArgs(vToken.address);
+
+        const allMarkets = await primeV2.getAllMarkets();
+        expect(allMarkets).to.not.include(vToken.address);
+
+        const market = await primeV2.markets(vToken.address);
+        expect(market.exists).to.equal(false);
+      });
+
+      it("should revert when market does not exist", async () => {
+        const nonExistentMarket = await user2.getAddress();
+        await expect(primeV2.removeMarket(nonExistentMarket)).to.be.revertedWithCustomError(
+          primeV2,
+          "MarketNotSupported",
+        );
+      });
+
+      it("should clear vTokenForAsset mapping", async () => {
+        const underlying = await vToken.underlying();
+        expect(await primeV2.vTokenForAsset(underlying)).to.equal(vToken.address);
+
+        await primeV2.removeMarket(vToken.address);
+
+        expect(await primeV2.vTokenForAsset(underlying)).to.equal(ethers.constants.AddressZero);
+      });
+
+      it("should queue score updates when market is removed", async () => {
+        await primeV2.issueBatch([await user1.getAddress()]);
+
+        await primeV2.removeMarket(vToken.address);
+
+        expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+      });
+
+      it("should revert when caller not authorized", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+
+        await expect(primeV2.removeMarket(vToken.address)).to.be.revertedWithCustomError(primeV2, "Unauthorized");
+      });
+
+      it("should allow re-adding a removed market", async () => {
+        await primeV2.removeMarket(vToken.address);
+
+        await expect(primeV2.addMarket(vToken.address, convertToUnit(3, 18), convertToUnit(3, 18)))
+          .to.emit(primeV2, "MarketAdded")
+          .withArgs(vToken.address, convertToUnit(3, 18), convertToUnit(3, 18));
+      });
+    });
+
     describe("updateMultipliers", () => {
       beforeEach(async () => {
         await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
