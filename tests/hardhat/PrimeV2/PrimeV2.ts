@@ -601,5 +601,43 @@ describe("PrimeV2", () => {
         "NoScoreUpdatesRequired",
       );
     });
+
+    it("should revert issue when pendingScoreUpdates > 0", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      await primeV2.issue([user1Address]);
+
+      // Add a market to trigger _queueScoreUpdates → pendingScoreUpdates = 1
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      await expect(primeV2.issue([user2Address])).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
+    });
+
+    it("should revert burn when pendingScoreUpdates > 0", async () => {
+      const user1Address = await user1.getAddress();
+
+      await primeV2.issue([user1Address]);
+
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      await expect(primeV2.burn(user1Address)).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
+    });
+
+    it("should revert burnBatch when pendingScoreUpdates > 0", async () => {
+      const user1Address = await user1.getAddress();
+
+      await primeV2.issue([user1Address]);
+
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      await expect(primeV2.burnBatch([user1Address])).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
+    });
   });
 });

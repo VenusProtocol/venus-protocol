@@ -124,6 +124,9 @@ contract PrimeV2 is
     /// @notice Error thrown when both market multipliers are zero
     error InvalidMultipliers();
 
+    /// @notice Error thrown when issue/burn is attempted during an active score update round
+    error ScoreUpdateInProgress();
+
     /**
      * @notice PrimeV2 constructor
      * @param wrappedNativeToken_ Address of wrapped native token
@@ -211,6 +214,7 @@ contract PrimeV2 is
      */
     function issue(address[] calldata users) external {
         _checkAccessAllowed("issue(address[])");
+        if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
 
         uint256 usersLength = users.length;
         _ensureMaxLoops(usersLength);
@@ -240,6 +244,7 @@ contract PrimeV2 is
      */
     function burn(address user) external {
         _checkAccessAllowed("burn(address)");
+        if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
         _burn(user);
     }
 
@@ -252,6 +257,7 @@ contract PrimeV2 is
      */
     function burnBatch(address[] calldata users) external {
         _checkAccessAllowed("burnBatch(address[])");
+        if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
 
         uint256 usersLength = users.length;
         _ensureMaxLoops(usersLength);
@@ -649,8 +655,6 @@ contract PrimeV2 is
         ++totalTokens;
         if (totalTokens > tokenLimit) revert InvalidLimit();
 
-        _updateRoundAfterTokenChanged(user);
-
         emit Mint(user);
     }
 
@@ -684,8 +688,6 @@ contract PrimeV2 is
         --totalTokens;
 
         delete tokens[user].exists;
-
-        _updateRoundAfterTokenChanged(user);
 
         emit Burn(user);
     }
@@ -1002,14 +1004,4 @@ contract PrimeV2 is
         pendingScoreUpdates = totalTokens;
     }
 
-    /**
-     * @notice Update round after token minted or burned
-     * @param user User address
-     */
-    function _updateRoundAfterTokenChanged(address user) internal {
-        if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
-            isScoreUpdated[nextScoreUpdateRoundId][user] = true;
-            --pendingScoreUpdates;
-        }
-    }
 }
