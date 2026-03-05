@@ -276,6 +276,7 @@ contract PrimeV2 is
     function burn(address user) external {
         _checkAccessAllowed("burn(address)");
         if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
+        if (!isPrimeHolder[user]) revert UserHasNoPrimeToken();
         _burn(user);
     }
 
@@ -283,7 +284,6 @@ contract PrimeV2 is
      * @notice Burn Prime tokens for multiple users (admin function)
      * @param users Array of user addresses
      * @custom:event Emits Burn event for each user
-     * @custom:error Throw UserHasNoPrimeToken if any user has no prime token
      * @custom:access Controlled by ACM
      */
     function burnBatch(address[] calldata users) external {
@@ -296,7 +296,9 @@ contract PrimeV2 is
         _accrueAllMarkets();
 
         for (uint256 i; i < usersLength; ) {
-            _burnWithoutAccrual(users[i]);
+            if (isPrimeHolder[users[i]]) {
+                _burnWithoutAccrual(users[i]);
+            }
 
             unchecked {
                 ++i;
@@ -747,8 +749,6 @@ contract PrimeV2 is
      * @param user User address
      */
     function _burnWithoutAccrual(address user) internal {
-        if (!isPrimeHolder[user]) revert UserHasNoPrimeToken();
-
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
         _ensureMaxLoops(marketsLength);

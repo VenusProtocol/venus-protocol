@@ -43,7 +43,7 @@ describe("PrimeLeaderboard - Deposit Recording via xvsUpdated", () => {
     ).to.be.revertedWithCustomError(f.primeLeaderboard, "ZeroAddress");
   });
 
-  it("should be no-op when vault balance unchanged", async () => {
+  it("should be a no-op when vault balance is unchanged", async () => {
     const user1Address = await f.user1.getAddress();
 
     await simulateDeposit(f.primeLeaderboard, f.xvsVault, f.xvsAddress, user1Address, convertToUnit(1000, 18));

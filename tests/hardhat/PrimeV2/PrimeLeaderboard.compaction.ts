@@ -41,7 +41,7 @@ describe("PrimeLeaderboard - Deposit Compaction", () => {
     expect(await f.primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(310, 18));
   });
 
-  it("should emit DepositsCompacted event on compaction", async () => {
+  it("should reduce deposit count after compaction", async () => {
     const user1Address = await f.user1.getAddress();
 
     for (let i = 1; i <= 30; i++) {
@@ -78,7 +78,7 @@ describe("PrimeLeaderboard - Deposit Compaction", () => {
     expect(stakeAfter.gte(stakeBefore)).to.be.true;
   });
 
-  it("should fallback to tier-based compaction when all deposits are under max tier", async () => {
+  it("should fall back to tier-based compaction when all deposits are under max tier", async () => {
     const user1Address = await f.user1.getAddress();
 
     for (let i = 1; i <= 30; i++) {
@@ -151,7 +151,7 @@ describe("PrimeLeaderboard - Weighted Average Timestamp Compaction", () => {
     f.accessControlManager.isAllowedToCall.returns(true);
   });
 
-  it("should use weighted average timestamp not earliest when compacting by tier", async () => {
+  it("should use weighted average timestamp, not earliest, when compacting by tier", async () => {
     const user1Address = await f.user1.getAddress();
     const { ethers: ethersLib } = await import("hardhat");
 

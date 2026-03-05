@@ -63,7 +63,7 @@ describe("PrimeV2 - Admin Functions", () => {
       );
     });
 
-    it("should revert if caller not authorized", async () => {
+    it("should revert if caller is not authorized", async () => {
       f.accessControlManager.isAllowedToCall.returns(false);
 
       await expect(f.primeV2["issue(address)"](await f.user1.getAddress())).to.be.revertedWithCustomError(
@@ -97,7 +97,7 @@ describe("PrimeV2 - Admin Functions", () => {
       expect(await f.primeV2.totalTokens()).to.equal(1);
     });
 
-    it("should revert if caller not authorized", async () => {
+    it("should revert if caller is not authorized", async () => {
       f.accessControlManager.isAllowedToCall.returns(false);
 
       await expect(f.primeV2.issueBatch([await f.user1.getAddress()])).to.be.revertedWithCustomError(
@@ -143,19 +143,19 @@ describe("PrimeV2 - Admin Functions", () => {
       expect(await f.primeV2.totalTokens()).to.equal(0);
     });
 
-    it("should revert if any user has no Prime token", async () => {
+    it("should skip user who has no Prime token", async () => {
       const user1Address = await f.user1.getAddress();
       const user2Address = await f.user2.getAddress();
 
       await f.primeV2.issueBatch([user1Address]);
+      expect(await f.primeV2.totalTokens()).to.equal(1);
 
-      await expect(f.primeV2.burnBatch([user1Address, user2Address])).to.be.revertedWithCustomError(
-        f.primeV2,
-        "UserHasNoPrimeToken",
-      );
+      await expect(f.primeV2.burnBatch([user1Address, user2Address])).not.to.be.reverted;
+      expect(await f.primeV2.isUserPrimeHolder(user1Address)).to.be.false;
+      expect(await f.primeV2.totalTokens()).to.equal(0);
     });
 
-    it("should revert if caller not authorized", async () => {
+    it("should revert if caller is not authorized", async () => {
       f.accessControlManager.isAllowedToCall.returns(false);
 
       await expect(f.primeV2.burnBatch([await f.user1.getAddress()])).to.be.revertedWithCustomError(
@@ -172,7 +172,7 @@ describe("PrimeV2 - Admin Functions", () => {
       expect(await f.primeV2.tokenLimit()).to.equal(1000);
     });
 
-    it("should revert if new limit less than current count", async () => {
+    it("should revert if new limit is less than current count", async () => {
       await f.primeV2.issueBatch([await f.user1.getAddress()]);
 
       await expect(f.primeV2.setLimit(0)).to.be.revertedWithCustomError(f.primeV2, "InvalidLimit");

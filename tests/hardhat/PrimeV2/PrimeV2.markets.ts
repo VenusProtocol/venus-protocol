@@ -79,7 +79,7 @@ describe("PrimeV2 - Market Management", () => {
       expect(await f.primeV2.pendingScoreUpdates()).to.equal(1);
     });
 
-    it("should revert when caller not authorized", async () => {
+    it("should revert when caller is not authorized", async () => {
       f.accessControlManager.isAllowedToCall.returns(false);
 
       await expect(
@@ -136,7 +136,7 @@ describe("PrimeV2 - Market Management", () => {
       expect(await f.primeV2.pendingScoreUpdates()).to.equal(1);
     });
 
-    it("should revert when caller not authorized", async () => {
+    it("should revert when caller is not authorized", async () => {
       f.accessControlManager.isAllowedToCall.returns(false);
 
       await expect(f.primeV2.removeMarket(f.vToken.address)).to.be.revertedWithCustomError(f.primeV2, "Unauthorized");
@@ -221,7 +221,7 @@ describe("PrimeV2 - Market Management", () => {
       expect(await f.primeV2.pendingScoreUpdates()).to.equal(1);
     });
 
-    it("should revert when caller not authorized", async () => {
+    it("should revert when caller is not authorized", async () => {
       f.accessControlManager.isAllowedToCall.returns(false);
 
       await expect(

@@ -45,7 +45,7 @@ describe("PrimeLeaderboard - Scenario: Large deposit-then-immediate-withdrawal",
     expectApprox(await f.primeLeaderboard.getEffectiveStake(user2Address), convertToUnit(43_200_000_000, 18));
   });
 
-  it("should show getEffectiveStakeBatch() returns zero for withdrawn user (no phantom eligibility)", async () => {
+  it("should show that getEffectiveStakeBatch() returns zero for withdrawn user (no phantom eligibility)", async () => {
     const user1Address = await f.user1.getAddress();
     const user2Address = await f.user2.getAddress();
     const user3Address = await f.user3.getAddress();
@@ -75,7 +75,7 @@ describe("PrimeLeaderboard - Scenario: Large deposit-then-immediate-withdrawal",
     expectApprox(scores[1], convertToUnit(967_680_000_000, 18));
     expectApprox(scores[2], convertToUnit(725_760_000_000, 18));
 
-    // Day 30
+    // Day 31
     await time.increase(16 * DAY);
     scores = await f.primeLeaderboard.getEffectiveStakeBatch(allUsers);
 
