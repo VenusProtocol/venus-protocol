@@ -85,7 +85,6 @@ export async function deployIntegrationFixture(): Promise<IntegrationFixture> {
 
   primeLiquidityProvider.tokenAmountAccrued.returns(0);
 
-  // Deploy real PrimeV2 proxy
   const PrimeV2Factory = await ethers.getContractFactory("PrimeV2");
   const primeV2 = (await upgrades.deployProxy(
     PrimeV2Factory,
@@ -105,14 +104,12 @@ export async function deployIntegrationFixture(): Promise<IntegrationFixture> {
     },
   )) as PrimeV2;
 
-  // Deploy real PrimeLeaderboard proxy
   const PrimeLeaderboardFactory = await ethers.getContractFactory("PrimeLeaderboard");
   const primeLeaderboard = (await upgrades.deployProxy(PrimeLeaderboardFactory, [accessControlManager.address, 100], {
     unsafeAllow: ["constructor", "state-variable-immutable"],
     constructorArgs: [xvsVault.address, xvsAddress, 0],
   })) as PrimeLeaderboard;
 
-  // Wire contracts bidirectionally
   await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
   await primeLeaderboard.setPrimeV2(primeV2.address);
 
