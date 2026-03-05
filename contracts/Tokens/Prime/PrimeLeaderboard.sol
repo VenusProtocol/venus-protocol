@@ -75,6 +75,68 @@ contract PrimeLeaderboard is
         _multiplierValues.push(2.0e18);
     }
 
+    // ═══════════════════ STAKER INITIALIZATION ═══════════════════
+
+    /**
+     * @notice Batch-seed existing stakers' deposit data during migration
+     * @dev Deployment process:
+     *   1. Deploy PrimeLeaderboard (paused or before vault integration)
+     *   2. Call initializeStakers() in batches to seed existing staker data
+     *   3. Call finalizeInitialization() to lock seeding permanently
+     *   4. Point XVSVault.primeToken to this contract to begin live tracking
+     *
+     * Idempotent: skips users with totalStaked[user] != 0 (already seeded).
+     * @param users Array of user addresses to initialize
+     * @param amounts Array of staked amounts (in XVS wei)
+     * @param timestamps Array of deposit timestamps
+     * @custom:error Throw StakersAlreadyInitialized if finalizeInitialization was already called
+     * @custom:error Throw LengthMismatch if array lengths don't match
+     * @custom:access Controlled by ACM
+     */
+    function initializeStakers(
+        address[] calldata users,
+        uint256[] calldata amounts,
+        uint64[] calldata timestamps
+    ) external {
+        _checkAccessAllowed("initializeStakers(address[],uint256[],uint64[])");
+        if (stakersInitialized) revert StakersAlreadyInitialized();
+        if (users.length != amounts.length || users.length != timestamps.length) revert LengthMismatch();
+
+        uint256 usersLength = users.length;
+        for (uint256 i; i < usersLength; ) {
+            address user = users[i];
+
+            // Idempotent: skip users already seeded
+            if (totalStaked[user] == 0 && amounts[i] > 0) {
+                _depositStacks[user].push(
+                    Deposit({
+                        amount: SafeCastUpgradeable.toUint128(amounts[i]),
+                        timestamp: timestamps[i],
+                        _reserved: 0
+                    })
+                );
+                totalStaked[user] = amounts[i];
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
+     * @notice Finalize staker initialization, preventing further seeding
+     * @dev Must be called after all initializeStakers batches are complete
+     * @custom:error Throw StakersAlreadyInitialized if already finalized
+     * @custom:access Controlled by ACM
+     */
+    function finalizeInitialization() external {
+        _checkAccessAllowed("finalizeInitialization()");
+        if (stakersInitialized) revert StakersAlreadyInitialized();
+
+        stakersInitialized = true;
+    }
+
     // ═══════════════════ XVS VAULT CALLBACK ═══════════════════
 
     /**

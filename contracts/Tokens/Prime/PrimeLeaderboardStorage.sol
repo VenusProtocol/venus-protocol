@@ -48,6 +48,9 @@ contract PrimeLeaderboardStorageV1 {
     /// @notice Address of PrimeV2 contract
     address public primeV2;
 
+    /// @notice Whether staker initialization is complete (prevents further initialization calls)
+    bool public stakersInitialized;
+
     /// @notice Storage gap for future upgrades
-    uint256[48] private __gap;
+    uint256[47] private __gap;
 }

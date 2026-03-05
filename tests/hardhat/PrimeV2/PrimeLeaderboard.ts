@@ -491,6 +491,86 @@ describe("PrimeLeaderboard", () => {
     });
   });
 
+  describe("Staker Initialization", () => {
+    it("should seed staker data in batches", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      const amounts = [convertToUnit(1000, 18), convertToUnit(2000, 18)];
+      const timestamps = [1700000000, 1700100000];
+
+      await primeLeaderboard.initializeStakers([user1Address, user2Address], amounts, timestamps);
+
+      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(amounts[0]);
+      expect(await primeLeaderboard.totalStaked(user2Address)).to.equal(amounts[1]);
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
+      expect(await primeLeaderboard.getDepositCount(user2Address)).to.equal(1);
+    });
+
+    it("should be idempotent (skip already seeded users)", async () => {
+      const user1Address = await user1.getAddress();
+
+      await primeLeaderboard.initializeStakers(
+        [user1Address],
+        [convertToUnit(1000, 18)],
+        [1700000000],
+      );
+
+      // Call again with different amount - should be skipped
+      await primeLeaderboard.initializeStakers(
+        [user1Address],
+        [convertToUnit(5000, 18)],
+        [1700200000],
+      );
+
+      expect(await primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1000, 18));
+      expect(await primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
+    });
+
+    it("should revert after finalization", async () => {
+      await primeLeaderboard.finalizeInitialization();
+
+      await expect(
+        primeLeaderboard.initializeStakers(
+          [await user1.getAddress()],
+          [convertToUnit(1000, 18)],
+          [1700000000],
+        ),
+      ).to.be.revertedWithCustomError(primeLeaderboard, "StakersAlreadyInitialized");
+    });
+
+    it("should revert finalizeInitialization if already finalized", async () => {
+      await primeLeaderboard.finalizeInitialization();
+
+      await expect(primeLeaderboard.finalizeInitialization()).to.be.revertedWithCustomError(
+        primeLeaderboard,
+        "StakersAlreadyInitialized",
+      );
+    });
+
+    it("should revert with mismatched array lengths", async () => {
+      await expect(
+        primeLeaderboard.initializeStakers(
+          [await user1.getAddress()],
+          [convertToUnit(1000, 18), convertToUnit(2000, 18)],
+          [1700000000],
+        ),
+      ).to.be.revertedWithCustomError(primeLeaderboard, "LengthMismatch");
+    });
+
+    it("should revert when caller not authorized", async () => {
+      accessControlManager.isAllowedToCall.returns(false);
+
+      await expect(
+        primeLeaderboard.initializeStakers(
+          [await user1.getAddress()],
+          [convertToUnit(1000, 18)],
+          [1700000000],
+        ),
+      ).to.be.reverted;
+    });
+  });
+
   describe("Deposit Compaction", () => {
     it("should compact deposits when reaching MAX_DEPOSITS_PER_USER (30)", async () => {
       const user1Address = await user1.getAddress();

@@ -59,6 +59,9 @@ interface IPrimeLeaderboard {
     /// @notice Thrown when multiplier tiers are invalid
     error InvalidMultiplierTiers();
 
+    /// @notice Thrown when staker initialization has already been finalized
+    error StakersAlreadyInitialized();
+
     // ═══════════════════ XVS VAULT CALLBACK ═══════════════════
 
     /// @notice Called by XVSVault on deposit/withdrawal to update deposit tracking
