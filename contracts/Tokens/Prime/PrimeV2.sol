@@ -737,10 +737,10 @@ contract PrimeV2 is
         if (tokens[user].exists) {
             accrueInterest(vToken);
             amount = _interestAccrued(vToken, user);
+            interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
         }
         amount += interests[vToken][user].accrued;
 
-        interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
         delete interests[vToken][user].accrued;
 
         if (amount == 0) return 0;
