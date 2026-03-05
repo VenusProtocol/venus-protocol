@@ -506,26 +506,19 @@ contract PrimeLeaderboard is
     /**
      * @notice Fallback compaction: merge deposits within the same multiplier tier
      * @dev Groups deposits by their current multiplier tier and merges each group
-     *      into a single deposit using the earliest timestamp. With N configured tiers,
-     *      this guarantees at most N+1 deposits (one per tier bucket including base).
-     *      Tradeoff: younger deposits within a tier inherit the oldest timestamp in
-     *      their group, causing a slight score overestimate. Acceptable since scores
-     *      are only used for off-chain ranking.
+     *      into a single deposit using amount-weighted average timestamp. With N
+     *      configured tiers, this guarantees at most N+1 deposits (one per tier
+     *      bucket including base). The weighted average gives proportional time
+     *      credit rather than overestimating with the earliest timestamp.
+     *      Overflow safe: max_amount * max_timestamp ≈ 2^128 * 2^64 = 2^192 < 2^256.
      * @param deposits Storage reference to the user's deposit array
      */
     function _compactByTier(Deposit[] storage deposits) internal {
         uint256 tiersCount = _multiplierDurations.length + 1; // base tier + configured tiers
         uint256[] memory tierAmounts = new uint256[](tiersCount);
-        uint64[] memory tierTimestamps = new uint64[](tiersCount);
+        uint256[] memory tierWeightedTimestamps = new uint256[](tiersCount);
 
-        for (uint256 i; i < tiersCount; ) {
-            tierTimestamps[i] = type(uint64).max;
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Group deposits by tier
+        // Group deposits by tier using weighted timestamp sum
         uint256 depositsLength = deposits.length;
         for (uint256 i; i < depositsLength; ) {
             Deposit storage d = deposits[i];
@@ -533,9 +526,7 @@ contract PrimeLeaderboard is
             uint256 tierIndex = _getTierIndex(holdingDuration);
 
             tierAmounts[tierIndex] += uint256(d.amount);
-            if (d.timestamp < tierTimestamps[tierIndex]) {
-                tierTimestamps[tierIndex] = d.timestamp;
-            }
+            tierWeightedTimestamps[tierIndex] += uint256(d.amount) * uint256(d.timestamp);
 
             unchecked {
                 ++i;
@@ -549,9 +540,10 @@ contract PrimeLeaderboard is
                 --i;
             }
             if (tierAmounts[i] > 0) {
+                uint64 avgTimestamp = uint64(tierWeightedTimestamps[i] / tierAmounts[i]);
                 deposits[newCount] = Deposit({
                     amount: tierAmounts[i].toUint128(),
-                    timestamp: tierTimestamps[i],
+                    timestamp: avgTimestamp,
                     _reserved: 0
                 });
                 unchecked {

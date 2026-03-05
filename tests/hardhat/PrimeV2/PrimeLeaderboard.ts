@@ -735,6 +735,46 @@ describe("PrimeLeaderboard", () => {
     });
   });
 
+  describe("Weighted Average Timestamp Compaction", () => {
+    it("should use weighted average timestamp not earliest when compacting by tier", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Deposit 1 XVS on Day 1 (tiny amount)
+      await simulateDeposit(user1Address, convertToUnit(1, 18));
+
+      // Wait 29 days (still in base tier)
+      await time.increase(29 * DAY);
+
+      // Deposit 29 more deposits of varying small amounts to fill up to 30
+      for (let i = 2; i <= 30; i++) {
+        await simulateDeposit(user1Address, convertToUnit(i, 18));
+      }
+
+      // All deposits are in base tier (< 30 days)
+      // 31st deposit: add a huge amount (10B XVS equivalent)
+      // Total is sum(1..30) + 10000 = 465 + 10000 = 10465
+      await simulateDeposit(user1Address, convertToUnit(10465, 18));
+
+      // Compaction happened - all base tier deposits merged with weighted avg timestamp
+      const deposits = await primeLeaderboard.getDeposits(user1Address);
+      // Should have 2 deposits: 1 merged base tier + 1 new
+      expect(deposits.length).to.equal(2);
+
+      // The merged deposit's timestamp should be close to now (weighted by the large
+      // recent deposits), NOT day 1. The 1 XVS from day 1 barely influences the average.
+      const mergedTimestamp = deposits[0].timestamp;
+      const currentBlock = await ethers.provider.getBlock("latest");
+      const currentTime = currentBlock.timestamp;
+
+      // The weighted average should be within the last ~29 days (not 29 days ago)
+      // Most weight is from recent deposits, so avg should be much closer to now
+      const timeDiff = currentTime - mergedTimestamp.toNumber();
+      // With 1 XVS at day 1 and ~464 XVS in last few seconds,
+      // weighted avg should be very close to now (within ~1 day tolerance)
+      expect(timeDiff).to.be.lt(2 * DAY);
+    });
+  });
+
   describe("Scenario: Large deposit-then-immediate-withdrawal (backend-driven)", () => {
     // Scenario:
     //   - Day 1: User deposits 1M XVS, backend calculates leaderboard and issues Prime
