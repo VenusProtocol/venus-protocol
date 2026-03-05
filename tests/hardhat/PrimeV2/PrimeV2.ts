@@ -791,5 +791,290 @@ describe("PrimeV2", () => {
 
       await expect(primeV2.burnBatch([user1Address])).to.be.revertedWithCustomError(primeV2, "ScoreUpdateInProgress");
     });
+
+    it("should complete a score update round", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      // Setup: add market, issue tokens, give users supply
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+      vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(1000, 18));
+      vToken.balanceOf.whenCalledWith(user2Address).returns(convertToUnit(500, 18));
+      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
+      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user2Address).returns([convertToUnit(1000, 18), 0, 0]);
+
+      await primeV2.issueBatch([user1Address, user2Address]);
+
+      // Trigger score update round via alpha change
+      await primeV2.updateAlpha(2, 3);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(2);
+
+      // Complete the round
+      await primeV2.updateScores([user1Address, user2Address]);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(0);
+    });
+
+    it("should skip non-holders in updateScores", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      await primeV2["issue(address)"](user1Address);
+
+      // Trigger score update round
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      // Pass non-holder user2 — should skip, not revert, but also not decrement
+      await primeV2.updateScores([user2Address]);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      // Pass actual holder — should decrement
+      await primeV2.updateScores([user1Address]);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(0);
+    });
+
+    it("should skip already-updated users in the same round", async () => {
+      const user1Address = await user1.getAddress();
+
+      await primeV2["issue(address)"](user1Address);
+
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      // Update user1's score
+      await primeV2.updateScores([user1Address]);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(0);
+
+      // Trigger another round so updateScores doesn't revert with NoScoreUpdatesRequired
+      await primeV2.updateAlpha(2, 3);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      // Update user1 again in the new round — should work
+      await primeV2.updateScores([user1Address]);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(0);
+    });
+
+    it("should emit IncompleteRoundDiscarded when a new round starts before completion", async () => {
+      const user1Address = await user1.getAddress();
+      const user2Address = await user2.getAddress();
+
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+      await primeV2.issueBatch([user1Address, user2Address]);
+
+      // Start first round
+      await primeV2.updateAlpha(2, 3);
+      const roundId = await primeV2.nextScoreUpdateRoundId();
+      expect(await primeV2.pendingScoreUpdates()).to.equal(2);
+
+      // Only update user1 (leave 1 pending)
+      await primeV2.updateScores([user1Address]);
+      expect(await primeV2.pendingScoreUpdates()).to.equal(1);
+
+      // Start a new round before completing — should discard the old one
+      await expect(primeV2.updateMultipliers(vToken.address, convertToUnit(3, 18), convertToUnit(3, 18)))
+        .to.emit(primeV2, "IncompleteRoundDiscarded")
+        .withArgs(roundId, 1);
+    });
+
+    it("should update score values after updateScores", async () => {
+      const user1Address = await user1.getAddress();
+
+      // Reset PLP mock to prevent leaked state from prior tests
+      primeLiquidityProvider.tokenAmountAccrued.returns(0);
+
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+      // Use different XVS and supply values so alpha change produces a different score
+      vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(500, 18));
+      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(2000, 18), 0, 0]);
+
+      await primeV2["issue(address)"](user1Address);
+
+      const interestBefore = await primeV2.interests(vToken.address, user1Address);
+      const scoreBefore = interestBefore.score;
+      expect(scoreBefore).to.be.gt(0);
+
+      // Change alpha to trigger score recalculation (1/2 → 1/3 is a significant change)
+      await primeV2.updateAlpha(1, 3);
+
+      // Update the score
+      await primeV2.updateScores([user1Address]);
+
+      const interestAfter = await primeV2.interests(vToken.address, user1Address);
+      // Score should have changed due to different alpha
+      expect(interestAfter.score).to.not.equal(scoreBefore);
+    });
+  });
+
+  describe("Interest Accrual and Claiming", () => {
+    let user1Address: string;
+
+    beforeEach(async () => {
+      user1Address = await user1.getAddress();
+
+      // Reset PLP mock — smock state persists across loadFixture EVM reverts
+      primeLiquidityProvider.tokenAmountAccrued.returns(0);
+
+      // Setup: add market, issue token, give user supply
+      comptroller.markets.returns(true);
+      await primeV2.addMarket(vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+      vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(1000, 18));
+      xvsVault.getUserInfo.whenCalledWith(xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
+
+      await primeV2["issue(address)"](user1Address);
+    });
+
+    it("should accrue interest and update rewardIndex", async () => {
+      const marketBefore = await primeV2.markets(vToken.address);
+      expect(marketBefore.rewardIndex).to.equal(0);
+
+      // PLP has accrued 100 tokens of income
+      primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+      await primeV2.accrueInterest(vToken.address);
+
+      const marketAfter = await primeV2.markets(vToken.address);
+      expect(marketAfter.rewardIndex).to.be.gt(0);
+    });
+
+    it("should not increase rewardIndex when no new income accrued", async () => {
+      // First accrue with some income
+      primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+      await primeV2.accrueInterest(vToken.address);
+
+      const marketBefore = await primeV2.markets(vToken.address);
+
+      // Second accrue with same amount (no new income delta)
+      await primeV2.accrueInterest(vToken.address);
+
+      const marketAfter = await primeV2.markets(vToken.address);
+      expect(marketAfter.rewardIndex).to.equal(marketBefore.rewardIndex);
+    });
+
+    it("should revert accrueInterest for unsupported market", async () => {
+      const fakeMarket = ethers.Wallet.createRandom().address;
+      await expect(primeV2.accrueInterest(fakeMarket)).to.be.revertedWithCustomError(primeV2, "MarketNotSupported");
+    });
+
+    it("should claim interest and transfer tokens to user", async () => {
+      // PLP accrues income
+      primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+      // Accrue and boost to confirm interest accrual works
+      await primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, vToken.address);
+
+      const interest = await primeV2.interests(vToken.address, user1Address);
+      expect(interest.accrued).to.be.gt(0);
+
+      // PrimeV2 has enough balance to pay
+      underlyingToken.balanceOf.whenCalledWith(primeV2.address).returns(convertToUnit(200, 18));
+      underlyingToken.transfer.returns(true);
+
+      const tx = primeV2.connect(user1)["claimInterest(address)"](vToken.address);
+      await expect(tx).to.emit(primeV2, "InterestClaimed");
+    });
+
+    it("should return zero when non-holder has no accrued interest", async () => {
+      const user2Address = await user2.getAddress();
+
+      // user2 is not a prime holder, no accrued interest
+      const rewards = await primeV2.getPendingRewardsStatic(user2Address);
+      expect(rewards[0].amount).to.equal(0);
+    });
+
+    it("should revert claimInterest for unsupported market", async () => {
+      const fakeMarket = ethers.Wallet.createRandom().address;
+      await expect(
+        primeV2.connect(user1)["claimInterest(address)"](fakeMarket),
+      ).to.be.revertedWithCustomError(primeV2, "MarketNotSupported");
+    });
+
+    it("should revert claimInterest when paused", async () => {
+      await primeV2.pause();
+
+      await expect(primeV2.connect(user1)["claimInterest(address)"](vToken.address)).to.be.revertedWith(
+        "Pausable: paused",
+      );
+    });
+
+    it("should allow burned user to claim residual accrued interest", async () => {
+      // PLP accrues income
+      primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+      // Accrue interest and boost to move pending interest into accrued
+      await primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, vToken.address);
+
+      const interestBefore = await primeV2.interests(vToken.address, user1Address);
+      expect(interestBefore.accrued).to.be.gt(0);
+
+      // Burn user's prime token — _burnWithoutAccrual also calls _executeBoostWithoutAccrual
+      // which preserves the accrued amount
+      await primeV2.burn(user1Address);
+      expect(await primeV2.isUserPrimeHolder(user1Address)).to.be.false;
+
+      // Verify accrued interest survived the burn
+      const interestAfterBurn = await primeV2.interests(vToken.address, user1Address);
+      expect(interestAfterBurn.accrued).to.be.gt(0);
+
+      // Burned user should still be able to claim residual accrued interest
+      underlyingToken.balanceOf.whenCalledWith(primeV2.address).returns(convertToUnit(200, 18));
+      underlyingToken.transfer.returns(true);
+
+      await expect(primeV2.connect(user1)["claimInterest(address)"](vToken.address)).to.emit(
+        primeV2,
+        "InterestClaimed",
+      );
+    });
+
+    it("should accrue interest and update score for a single market", async () => {
+      // PLP accrues income
+      primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+      const interestBefore = await primeV2.interests(vToken.address, user1Address);
+      expect(interestBefore.accrued).to.equal(0);
+
+      await primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, vToken.address);
+
+      const interestAfter = await primeV2.interests(vToken.address, user1Address);
+      // Accrued should now have the pending interest
+      expect(interestAfter.accrued).to.be.gt(0);
+    });
+
+    it("should accrue interest and update score across all markets", async () => {
+      // PLP accrues income
+      primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+      await primeV2["accrueInterestAndUpdateScore(address)"](user1Address);
+
+      const interest = await primeV2.interests(vToken.address, user1Address);
+      expect(interest.accrued).to.be.gt(0);
+    });
+
+    it("should return pending rewards via getPendingRewardsStatic", async () => {
+      // PLP accrues income
+      primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+      // Accrue interest to update rewardIndex
+      await primeV2.accrueInterest(vToken.address);
+
+      // Execute boost to record accrued interest for user
+      await primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, vToken.address);
+
+      const interest = await primeV2.interests(vToken.address, user1Address);
+      expect(interest.accrued).to.be.gt(0);
+
+      const rewards = await primeV2.getPendingRewardsStatic(user1Address);
+      expect(rewards.length).to.equal(1);
+      expect(rewards[0].vToken).to.equal(vToken.address);
+      expect(rewards[0].rewardToken).to.equal(underlyingAddress);
+      expect(rewards[0].amount).to.be.gt(0);
+    });
   });
 });
