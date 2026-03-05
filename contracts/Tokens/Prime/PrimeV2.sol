@@ -215,12 +215,14 @@ contract PrimeV2 is
         uint256 usersLength = users.length;
         _ensureMaxLoops(usersLength);
 
+        _accrueAllMarkets();
+
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
 
             if (!tokens[user].exists) {
                 _mint(user);
-                _initializeMarkets(user);
+                _initializeMarketsWithoutAccrual(user);
             }
 
             unchecked {
@@ -664,9 +666,11 @@ contract PrimeV2 is
         uint256 marketsLength = allMarkets.length;
         _ensureMaxLoops(marketsLength);
 
+        _accrueAllMarkets();
+
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
-            _executeBoost(user, market);
+            _executeBoostWithoutAccrual(user, market);
             markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
             delete interests[market][user].score;
@@ -687,17 +691,26 @@ contract PrimeV2 is
     }
 
     /**
-     * @notice Initialize markets for a new Prime holder
+     * @notice Initialize markets for a new Prime holder (with accrual)
      * @param account User address
      */
     function _initializeMarkets(address account) internal {
+        _accrueAllMarkets();
+        _initializeMarketsWithoutAccrual(account);
+    }
+
+    /**
+     * @notice Initialize markets for a new Prime holder (without accrual)
+     * @dev Caller must ensure _accrueAllMarkets() was called beforehand
+     * @param account User address
+     */
+    function _initializeMarketsWithoutAccrual(address account) internal {
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
         _ensureMaxLoops(marketsLength);
 
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
-            accrueInterest(market);
 
             interests[market][account].rewardIndex = markets[market].rewardIndex;
 
@@ -778,10 +791,29 @@ contract PrimeV2 is
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
 
+        _accrueAllMarkets();
+
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
-            _executeBoost(user, market);
+            _executeBoostWithoutAccrual(user, market);
             _updateScore(user, market);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
+     * @notice Accrue interest on all Prime markets
+     * @dev Called once before per-user loops to avoid redundant accrual
+     */
+    function _accrueAllMarkets() internal {
+        address[] storage allMarkets = _allMarkets;
+        uint256 marketsLength = allMarkets.length;
+
+        for (uint256 i; i < marketsLength; ) {
+            accrueInterest(allMarkets[i]);
 
             unchecked {
                 ++i;
@@ -800,6 +832,21 @@ contract PrimeV2 is
         }
 
         accrueInterest(vToken);
+        interests[vToken][user].accrued += _interestAccrued(vToken, user);
+        interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
+    }
+
+    /**
+     * @notice Accrue rewards for a user in a market (without calling accrueInterest)
+     * @dev Caller must ensure accrueInterest was called beforehand (e.g. via _accrueAllMarkets)
+     * @param user User address
+     * @param vToken Market address
+     */
+    function _executeBoostWithoutAccrual(address user, address vToken) internal {
+        if (!markets[vToken].exists || !tokens[user].exists) {
+            return;
+        }
+
         interests[vToken][user].accrued += _interestAccrued(vToken, user);
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
     }
