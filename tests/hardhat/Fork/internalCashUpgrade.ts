@@ -60,6 +60,7 @@ const MARKET_PROXIES: { name: string; proxy: string }[] = [
   { name: "vUSD1", proxy: "0x0C1DA220D301155b87318B90692Da8dc43B67340" },
   { name: "vWBETH", proxy: "0x6CFdEc747f37DAf3b87a35a1D9c8AD3063A1A8A0" },
   { name: "vWBNB", proxy: "0x6bCa74586218dB34cdB402295796b79663d816e9" },
+  { name: "vXAUM", proxy: "0x92e6Ea74a1A3047DabF4186405a21c7D63a0612A" },
   { name: "vXRP", proxy: "0xB248a295732e0225acd3337607cc01068e3b9c10" },
   { name: "vXSolvBTC", proxy: "0xd804dE60aFD05EE6B89aab5D152258fD461B07D5" },
   { name: "vXVS", proxy: "0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D" },
