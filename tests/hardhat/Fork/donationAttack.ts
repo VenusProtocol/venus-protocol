@@ -11,13 +11,14 @@ import { forking, initMainnetUser, FORK_MAINNET } from "./utils";
 // BSC Mainnet addresses
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 
-// All VBep20Delegator proxy addresses on BSC mainnet (excluding vBNB which is native)
+// All VBep20Delegator core pool markets on BSC mainnet (excluding vBNB which is native)
 const MARKET_PROXIES: { name: string; proxy: string }[] = [
   { name: "vAAVE", proxy: "0x26DA28954763B92139ED49283625ceCAf52C6f94" },
   { name: "vADA", proxy: "0x9A0AF7FDb2065Ce470D72664DE73cAE409dA28Ec" },
+  { name: "vAsBNB", proxy: "0xCC1dB43a06d97f736C7B045AedD03C6707c09BDF" },
   { name: "vBCH", proxy: "0x5F0388EBc2B94FA8E123F404b79cCF5f40b29176" },
   { name: "vBETH", proxy: "0x972207A639CC1B374B893cc33Fa251b55CEB7c07" },
-  { name: "vBTC", proxy: "0x882C173bC7Ff3b7786CA16dfeD3DFFfb9Ee7847B" },
+  { name: "vBTCB", proxy: "0x882C173bC7Ff3b7786CA16dfeD3DFFfb9Ee7847B" },
   { name: "vBUSD", proxy: "0x95c78222B3D6e262426483D42CfA53685A67Ab9D" },
   { name: "vCAKE", proxy: "0x86aC3974e2BD0d60825230fa6F355fF11409df5c" },
   { name: "vDAI", proxy: "0x334b3eCB4DCa3593BCCC3c7EBD1A1C1d1780FBF1" },
@@ -27,12 +28,17 @@ const MARKET_PROXIES: { name: string; proxy: string }[] = [
   { name: "vFDUSD", proxy: "0xC4eF4229FEc74Ccfe17B2bdeF7715fAC740BA0ba" },
   { name: "vFIL", proxy: "0xf91d58b5aE142DAcC749f58A49FCBac340Cb0343" },
   { name: "vLINK", proxy: "0x650b940a1033B8A1b1873f78730FcFC73ec11f1f" },
+  { name: "vLisUSD", proxy: "0x689E0daB47Ab16bcae87Ec18491692BF621Dc6Ab" },
   { name: "vLTC", proxy: "0x57A5297F2cB2c0AaC9D554660acd6D385Ab50c6B" },
-  { name: "vLUNA", proxy: "0xb91A659E88B51474767CD97EF3196A3e7cEDD2c8" },
   { name: "vMATIC", proxy: "0x5c9476FcD6a4F9a3654139721c949c2233bBbBc8" },
+  { name: "vPT-sUSDE-26JUN2025", proxy: "0x9e4E5fed5Ac5B9F732d0D850A615206330Bf1866" },
+  { name: "vPT-USDe-30OCT2025", proxy: "0x6D0cDb3355c93A0cD20071aBbb3622731a95c73E" },
+  { name: "vPT-clisBNB-25JUN2026", proxy: "0x6d3BD68E90B42615cb5abF4B8DE92b154ADc435e" },
+  { name: "vSlisBNB", proxy: "0x89c910Eb8c90df818b4649b508Ba22130Dc73Adc" },
   { name: "vSOL", proxy: "0xBf515bA4D1b52FFdCeaBF20d31D705Ce789F2cEC" },
-  { name: "vSXP", proxy: "0x2fF3d0F6990a40261c66E1ff2017aCBc282EB6d0" },
   { name: "vSolvBTC", proxy: "0xf841cb62c19fCd4fF5CD0AaB5939f3140BaaC3Ea" },
+  { name: "vSUSDe", proxy: "0x699658323d58eE25c69F1a29d476946ab011bD18" },
+  { name: "vSXP", proxy: "0x2fF3d0F6990a40261c66E1ff2017aCBc282EB6d0" },
   { name: "vTHE", proxy: "0x86e06EAfa6A1eA631Eab51DE500E3D474933739f" },
   { name: "vTRX", proxy: "0xC5D3466aA484B040eE977073fcF337f2c00071c1" },
   { name: "vTRXOLD", proxy: "0x61eDcFe8Dd6bA3c891CB9bEc2dc7657B3B422E93" },
@@ -41,28 +47,21 @@ const MARKET_PROXIES: { name: string; proxy: string }[] = [
   { name: "vTWT", proxy: "0x4d41a36D04D97785bcEA57b057C412b278e6Edcc" },
   { name: "vU", proxy: "0x3d5E269787d562b74aCC55F18Bd26C5D09Fa245E" },
   { name: "vUNI", proxy: "0x27FF564707786720C71A2e5c1490A63266683612" },
-  { name: "vUSD1", proxy: "0x0C1DA220D301155b87318B90692Da8dc43B67340" },
   { name: "vUSDC", proxy: "0xecA88125a5ADbe82614ffC12D0DB554E2e2867C8" },
-  { name: "vUSDT", proxy: "0xfD5840Cd36d94D7229439859C0112a4185BC0255" },
   { name: "vUSDe", proxy: "0x74ca6930108F775CC667894EEa33843e691680d7" },
-  { name: "vUST", proxy: "0x78366446547D062f45b4C0f320cDaa6d710D87bb" },
+  { name: "vUSDT", proxy: "0xfD5840Cd36d94D7229439859C0112a4185BC0255" },
+  { name: "vUSD1", proxy: "0x0C1DA220D301155b87318B90692Da8dc43B67340" },
   { name: "vWBETH", proxy: "0x6CFdEc747f37DAf3b87a35a1D9c8AD3063A1A8A0" },
   { name: "vWBNB", proxy: "0x6bCa74586218dB34cdB402295796b79663d816e9" },
-  { name: "vXAUM", proxy: "0x92e6Ea74a1A3047DabF4186405a21c7D63a0612A" },
   { name: "vXRP", proxy: "0xB248a295732e0225acd3337607cc01068e3b9c10" },
+  { name: "vXSolvBTC", proxy: "0xd804dE60aFD05EE6B89aab5D152258fD461B07D5" },
   { name: "vXVS", proxy: "0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D" },
-  { name: "vasBNB", proxy: "0xCC1dB43a06d97f736C7B045AedD03C6707c09BDF" },
-  { name: "vlisUSD", proxy: "0x689E0daB47Ab16bcae87Ec18491692BF621Dc6Ab" },
-  { name: "vsUSDe", proxy: "0x699658323d58eE25c69F1a29d476946ab011bD18" },
-  { name: "vslisBNB", proxy: "0x89c910Eb8c90df818b4649b508Ba22130Dc73Adc" },
-  { name: "vxSolvBTC", proxy: "0xd804dE60aFD05EE6B89aab5D152258fD461B07D5" },
-  { name: "vPT-USDe-30OCT2025", proxy: "0x6D0cDb3355c93A0cD20071aBbb3622731a95c73E" },
-  { name: "vPT-clisBNB-25JUN2026", proxy: "0x6d3BD68E90B42615cb5abF4B8DE92b154ADc435e" },
-  { name: "vPT-sUSDE-26JUN2025", proxy: "0x9e4E5fed5Ac5B9F732d0D850A615206330Bf1866" },
 ];
 
-// Fork at a recent block where all markets exist
-const FORK_BLOCK = 48750000;
+// Fork at the attacker's block to reproduce the attack, and current block for post-fix verification
+const ATTACKER_BLOCK = 86731941;
+const CURRENT_BLOCK = 86881255;
+const FORK_BLOCK = ATTACKER_BLOCK;
 
 // Amount to donate (in underlying token units) — we dynamically scale per market
 const DONATION_PERCENTAGE = 10; // donate 10% of existing cash
@@ -223,7 +222,7 @@ if (FORK_MAINNET) {
     // AFTER FIX: Deploy new impl, upgrade all markets, verify protection
     // =========================================================================
     describe("After Fix - All markets are protected from donation attack", () => {
-      forking(FORK_BLOCK, () => {
+      forking(CURRENT_BLOCK, () => {
         let timelock: SignerWithAddress;
         let newImplAddress: string;
         let upgradedMarkets: { name: string; proxy: string; underlying: string; vToken: Contract }[];
@@ -295,79 +294,6 @@ if (FORK_MAINNET) {
           }
         });
 
-        it("donation does NOT inflate exchange rate on ANY market (attack blocked)", async () => {
-          const protected_: string[] = [];
-          const skipped: string[] = [];
-
-          for (const market of upgradedMarkets) {
-            try {
-              const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
-              const vToken = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
-
-              const totalSupply = await vToken.totalSupply();
-              const currentCash = await market.vToken.internalCash();
-              if (currentCash.isZero() || totalSupply.isZero()) {
-                skipped.push(`${market.name} (no liquidity)`);
-                continue;
-              }
-
-              // Find balance storage slot
-              const balanceSlot = await findBalanceSlot(market.underlying);
-              if (balanceSlot === null) {
-                skipped.push(`${market.name} (unknown storage layout)`);
-                continue;
-              }
-
-              // Record exchange rate before donation
-              const exchangeRateBefore = await vToken.callStatic.exchangeRateCurrent();
-
-              // Fund attacker and donate
-              const [attacker] = await ethers.getSigners();
-              const donationAmount = currentCash.mul(DONATION_PERCENTAGE).div(100);
-              if (donationAmount.isZero()) {
-                skipped.push(`${market.name} (dust cash)`);
-                continue;
-              }
-
-              await setTokenBalance(market.underlying, attacker.address, donationAmount, balanceSlot);
-              await underlying.connect(attacker).transfer(market.proxy, donationAmount);
-
-              // Exchange rate MUST NOT change (fix working!)
-              const exchangeRateAfter = await vToken.callStatic.exchangeRateCurrent();
-              expect(exchangeRateAfter).to.equal(
-                exchangeRateBefore,
-                `${market.name}: exchange rate must NOT change after donation`,
-              );
-
-              // getCash should still return internalCash (not inflated balanceOf)
-              const getCash = await vToken.getCash();
-              const internalCash = await market.vToken.internalCash();
-              expect(getCash).to.equal(
-                internalCash,
-                `${market.name}: getCash must equal internalCash, not balanceOf`,
-              );
-
-              // Actual balance should be higher than internalCash (excess from donation)
-              const actualBalance = await underlying.balanceOf(market.proxy);
-              expect(actualBalance).to.be.gt(
-                internalCash,
-                `${market.name}: actual balance should exceed internalCash after donation`,
-              );
-
-              protected_.push(market.name);
-            } catch (e: any) {
-              skipped.push(`${market.name} (${e.message?.slice(0, 50)})`);
-            }
-          }
-
-          console.log(`        Protected markets: ${protected_.length}`);
-          console.log(`        Protected: ${protected_.join(", ")}`);
-          if (skipped.length > 0) {
-            console.log(`        Skipped: ${skipped.join(", ")}`);
-          }
-          expect(protected_.length).to.be.gt(0, "Should have verified at least some markets");
-        });
-
         it("syncCash can be called again by admin (re-syncs safely)", async () => {
           // syncCash is admin-only and idempotent — calling again just re-syncs
           const market = upgradedMarkets[0];
@@ -395,6 +321,16 @@ if (FORK_MAINNET) {
         // Normal operations still work after fix
         // =====================================================================
         describe("Normal operations work correctly after fix", () => {
+          let snapshotId: string;
+
+          beforeEach(async () => {
+            snapshotId = await ethers.provider.send("evm_snapshot", []);
+          });
+
+          afterEach(async () => {
+            await ethers.provider.send("evm_revert", [snapshotId]);
+          });
+
           it("mint increases internalCash correctly", async () => {
             // Use a market with liquidity — find one where we can mint
             for (const market of upgradedMarkets) {
@@ -500,13 +436,21 @@ if (FORK_MAINNET) {
         // Detailed per-market attack simulation (THE + high-value markets)
         // =====================================================================
         describe("Per-market donation attack simulation", () => {
-          const HIGH_VALUE_MARKETS = ["vTHE", "vUSDT", "vBTC", "vETH", "vUSDC", "vXVS", "vWBNB"];
+          let snapshotId: string;
 
-          for (const marketName of HIGH_VALUE_MARKETS) {
-            it(`${marketName}: donation attack is completely blocked`, async () => {
-              const market = upgradedMarkets.find(m => m.name === marketName);
+          beforeEach(async () => {
+            snapshotId = await ethers.provider.send("evm_snapshot", []);
+          });
+
+          afterEach(async () => {
+            await ethers.provider.send("evm_revert", [snapshotId]);
+          });
+
+          for (const marketInfo of MARKET_PROXIES) {
+            it(`${marketInfo.name}: donation attack is completely blocked`, async () => {
+              const market = upgradedMarkets.find(m => m.name === marketInfo.name);
               if (!market) {
-                console.log(`        ${marketName} not in upgraded list, skipping`);
+                console.log(`        ${marketInfo.name} not in upgraded list, skipping`);
                 return;
               }
 
@@ -516,13 +460,13 @@ if (FORK_MAINNET) {
               const totalSupply = await vToken.totalSupply();
               const internalCash = await market.vToken.internalCash();
               if (totalSupply.isZero() || internalCash.isZero()) {
-                console.log(`        ${marketName}: no liquidity, skipping`);
+                console.log(`        ${market.name}: no liquidity, skipping`);
                 return;
               }
 
               const balanceSlot = await findBalanceSlot(market.underlying);
               if (balanceSlot === null) {
-                console.log(`        ${marketName}: unknown storage layout, skipping`);
+                console.log(`        ${market.name}: unknown storage layout, skipping`);
                 return;
               }
 
@@ -542,31 +486,31 @@ if (FORK_MAINNET) {
               const exchangeRateAfter = await vToken.callStatic.exchangeRateCurrent();
               expect(exchangeRateAfter).to.equal(
                 exchangeRateBefore,
-                `${marketName}: exchange rate must be immune to donation`,
+                `${market.name}: exchange rate must be immune to donation`,
               );
 
               // Verify: getCash unchanged (returns internalCash, not balanceOf)
               const cashAfter = await vToken.getCash();
-              expect(cashAfter).to.equal(cashBefore, `${marketName}: getCash must not change`);
+              expect(cashAfter).to.equal(cashBefore, `${market.name}: getCash must not change`);
 
               // Verify: internalCash unchanged
               const internalCashAfter = await market.vToken.internalCash();
               expect(internalCashAfter).to.equal(
                 internalCashBefore,
-                `${marketName}: internalCash must not change`,
+                `${market.name}: internalCash must not change`,
               );
 
               // Verify: actual token balance DID increase (tokens are there but ignored)
               const balanceAfter = await underlying.balanceOf(market.proxy);
               expect(balanceAfter).to.equal(
                 balanceBefore.add(donationAmount),
-                `${marketName}: actual balance should reflect donation`,
+                `${market.name}: actual balance should reflect donation`,
               );
 
               // Verify: excess exists (balanceOf > internalCash)
               expect(balanceAfter).to.be.gt(
                 internalCashAfter,
-                `${marketName}: balance should exceed internalCash (excess exists)`,
+                `${market.name}: balance should exceed internalCash (excess exists)`,
               );
             });
           }
