@@ -270,7 +270,7 @@ contract VBep20 is VToken, VBep20Interface {
         assembly {
             // ACM check: accessControlManager.isAllowedToCall(msg.sender, "sweepToken()")
             let ptr := mload(0x40)
-            mstore(ptr, 0x7e13143600000000000000000000000000000000000000000000000000000000)
+            mstore(ptr, 0x18c5e8ab00000000000000000000000000000000000000000000000000000000)
             mstore(add(ptr, 0x04), caller())
             mstore(add(ptr, 0x24), 0x40)
             mstore(add(ptr, 0x44), 12)
