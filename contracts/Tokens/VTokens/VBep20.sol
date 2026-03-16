@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
 
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
@@ -223,8 +224,10 @@ contract VBep20 is VToken, VBep20Interface {
         uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransferFrom(from, address(this), amount);
         uint256 balanceAfter = token.balanceOf(address(this));
+        uint256 actualAmount = balanceAfter - balanceBefore;
+        internalCash += actualAmount;
         // Return the amount that was *actually* transferred
-        return balanceAfter - balanceBefore;
+        return actualAmount;
     }
 
     /**
@@ -233,6 +236,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @param amount Amount of underlying to transfer
      */
     function doTransferOut(address payable to, uint256 amount) internal virtual override {
+        internalCash -= amount;
         IERC20 token = IERC20(underlying);
         token.safeTransfer(to, amount);
     }
@@ -243,6 +247,38 @@ contract VBep20 is VToken, VBep20Interface {
      * @return The quantity of underlying tokens owned by this contract
      */
     function getCashPrior() internal view override returns (uint) {
-        return IERC20(underlying).balanceOf(address(this));
+        return internalCash;
+    }
+
+    /**
+     * @notice Admin function to sync internalCash with actual token balance
+     * @dev Used for one-time migration after upgrading existing deployed markets
+     */
+    function syncCash() external {
+        require(msg.sender == admin, "only admin");
+        uint256 oldInternalCash = internalCash;
+        internalCash = IERC20(underlying).balanceOf(address(this));
+        emit CashSynced(oldInternalCash, internalCash);
+    }
+
+    /**
+     * @notice Recover excess underlying tokens sent directly to the contract (e.g. donation attack)
+     * @dev Only recovers the difference between actual balance and internalCash
+     * @param token The address of the token to sweep (must be the underlying)
+     */
+    function sweepToken(address token) external nonReentrant {
+        require(
+            IAccessControlManagerV8(accessControlManager).isAllowedToCall(msg.sender, "sweepToken(address)"),
+            "access denied"
+        );
+        require(token != address(0), "zero address");
+        require(token == underlying, "can only sweep underlying");
+
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        uint256 excess = balance - internalCash;
+        require(excess > 0, "no excess tokens");
+
+        IERC20(token).safeTransfer(msg.sender, excess);
+        emit TokenSwept(token, msg.sender, excess);
     }
 }
