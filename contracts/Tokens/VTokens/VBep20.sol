@@ -249,71 +249,21 @@ contract VBep20 is VToken, VBep20Interface {
     }
 
     /**
-     * @notice Admin function to sync internalCash with actual token balance
-     * @dev Used for one-time migration after upgrading existing deployed markets
+     * @notice Transfer excess tokens to caller and sync internalCash with actual balance
+     * @dev Admin-only. For migration: pass 0 (just syncs). For sweep: pass the excess amount.
+     *      Transfers `transferAmount` of underlying to msg.sender, then sets internalCash = balanceOf(address(this)).
+     * @param transferAmount Amount of underlying to transfer to msg.sender before syncing
      */
-    function syncCash() external {
-        require(msg.sender == admin, "only admin");
+    function sweepTokenAndSync(uint256 transferAmount) external {
+        require(msg.sender == admin);
+
+        if (transferAmount > 0) {
+            IERC20(underlying).safeTransfer(msg.sender, transferAmount);
+            emit TokenSwept(msg.sender, transferAmount);
+        }
+
         uint256 oldInternalCash = internalCash;
         internalCash = IERC20(underlying).balanceOf(address(this));
         emit CashSynced(oldInternalCash, internalCash);
-    }
-
-    /**
-     * @notice Recover excess underlying tokens sent directly to the contract (e.g. donation attack)
-     * @dev Only recovers the difference between actual balance and internalCash. ACM controlled.
-     */
-    function sweepToken() external {
-        uint256 excess;
-        address _underlying = underlying;
-
-        assembly {
-            // ACM check: accessControlManager.isAllowedToCall(msg.sender, "sweepToken()")
-            let ptr := mload(0x40)
-            mstore(ptr, 0x18c5e8ab00000000000000000000000000000000000000000000000000000000)
-            mstore(add(ptr, 0x04), caller())
-            mstore(add(ptr, 0x24), 0x40)
-            mstore(add(ptr, 0x44), 12)
-            mstore(
-                add(ptr, 0x64),
-                "sweepToken()\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-            )
-            let _acm := sload(accessControlManager.slot)
-            if iszero(staticcall(gas(), _acm, ptr, 0x84, ptr, 0x20)) {
-                revert(0, 0)
-            }
-            if iszero(mload(ptr)) {
-                revert(0, 0)
-            }
-
-            // excess = balanceOf(this) - internalCash
-            mstore(0x00, 0x70a0823100000000000000000000000000000000000000000000000000000000)
-            mstore(0x04, address())
-            if iszero(staticcall(gas(), _underlying, 0x00, 0x24, 0x00, 0x20)) {
-                revert(0, 0)
-            }
-            excess := sub(mload(0x00), sload(internalCash.slot))
-            if iszero(excess) {
-                revert(0, 0)
-            }
-
-            // transfer(msg.sender, excess)
-            mstore(0x00, 0xa9059cbb00000000000000000000000000000000000000000000000000000000)
-            mstore(0x04, caller())
-            mstore(0x24, excess)
-            if iszero(call(gas(), _underlying, 0, 0x00, 0x44, 0x00, 0x20)) {
-                revert(0, 0)
-            }
-            if returndatasize() {
-                if iszero(mload(0x00)) {
-                    revert(0, 0)
-                }
-            }
-
-            // Restore free memory pointer (mstore at 0x24 overwrites bytes 0x40-0x43)
-            mstore(0x40, ptr)
-        }
-
-        emit TokenSwept(msg.sender, excess);
     }
 }
