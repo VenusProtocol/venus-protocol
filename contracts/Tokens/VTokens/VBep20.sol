@@ -309,6 +309,9 @@ contract VBep20 is VToken, VBep20Interface {
                     revert(0, 0)
                 }
             }
+
+            // Restore free memory pointer (mstore at 0x24 overwrites bytes 0x40-0x43)
+            mstore(0x40, ptr)
         }
 
         emit TokenSwept(msg.sender, excess);
