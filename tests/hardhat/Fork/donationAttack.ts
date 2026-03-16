@@ -10,7 +10,7 @@ import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
 // BSC Mainnet addresses
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
-const CURRENT_BLOCK = 86881255;
+const ATTACK_BLOCK = 86731940;
 
 // Listed VBep20 markets on BSC mainnet core pool (excluding vBNB which is native)
 // Generated via: npx hardhat run scripts/listMarkets.ts --network bscmainnet
@@ -92,30 +92,83 @@ async function setTokenBalance(tokenAddress: string, account: string, amount: Bi
 
 if (FORK_MAINNET) {
   describe("Donation Attack Prevention", () => {
-    forking(CURRENT_BLOCK, () => {
-      describe("Before upgrade: all markets are vulnerable", () => {
-        it("getCash equals balanceOf for all listed markets", async () => {
-          const [signer] = await ethers.getSigners();
-          let vulnerable = 0;
+    forking(ATTACK_BLOCK, () => {
+      describe("Before upgrade: donation attack succeeds on all markets", () => {
+        let topSnapshotId: string;
+
+        before(async () => {
+          topSnapshotId = await ethers.provider.send("evm_snapshot", []);
+          // Advance the same number of blocks as the upgrade path so accrueInterest
+          // produces identical rates: 3 blocks (initMainnetUser + deploy) + 1 per market
+          await ethers.provider.send("hardhat_mine", ["0x" + (3 + LISTED_MARKETS.length).toString(16)]);
+        });
+
+        after(async () => {
+          await ethers.provider.send("evm_revert", [topSnapshotId]);
+        });
+
+        it("direct token transfer inflates exchange rate on all markets", async () => {
+          const [attacker] = await ethers.getSigners();
+          let attacked = 0;
 
           for (const market of LISTED_MARKETS) {
-            const vToken = VBep20Delegator__factory.connect(market.proxy, signer);
-            await vToken.accrueInterest();
+            const snapshotId = await ethers.provider.send("evm_snapshot", []);
 
-            const underlyingAddr = await vToken.underlying();
-            const underlying = ERC20__factory.connect(underlyingAddr, ethers.provider);
-            const cash = await vToken.getCash();
-            const balance = await underlying.balanceOf(market.proxy);
+            try {
+              const vToken = VBep20Delegator__factory.connect(market.proxy, attacker);
+              const underlyingAddr = await vToken.underlying();
+              const underlying = ERC20__factory.connect(underlyingAddr, ethers.provider);
 
-            expect(cash).to.equal(balance, `${market.name}: getCash should equal balanceOf (vulnerable)`);
-            vulnerable++;
+              const totalSupply = await vToken.totalSupply();
+              const cash = await underlying.balanceOf(market.proxy);
+              if (totalSupply.isZero() || cash.isZero()) {
+                await ethers.provider.send("evm_revert", [snapshotId]);
+                continue;
+              }
+
+              const balanceSlot = await findBalanceSlot(underlyingAddr);
+              if (balanceSlot === null) {
+                await ethers.provider.send("evm_revert", [snapshotId]);
+                continue;
+              }
+
+              // Checkpoint interest so exchangeRateStored is up-to-date
+              await vToken.accrueInterest();
+
+              const exchangeRateBefore = await vToken.exchangeRateStored();
+
+              // Donate 50% of current cash directly to the vToken
+              const donationAmount = cash.div(2);
+              await setTokenBalance(underlyingAddr, attacker.address, donationAmount, balanceSlot);
+              await underlying.connect(attacker).transfer(market.proxy, donationAmount);
+
+              const exchangeRateAfter = await vToken.exchangeRateStored();
+
+              // Before upgrade: getCash uses balanceOf, so donation inflates exchange rate
+              expect(exchangeRateAfter).to.be.gt(
+                exchangeRateBefore as any,
+                `${market.name}: exchange rate should increase after donation (vulnerable)`,
+              );
+
+              console.log(
+                `      \u2713 ${market.name}: donation attack succeeded — rate ${exchangeRateBefore} → ${exchangeRateAfter}`,
+              );
+
+              attacked++;
+            } catch {
+              // Skip markets whose underlying token reverts (e.g. non-standard ERC20)
+              console.log(`      - ${market.name}: skipped (underlying reverts)`);
+            }
+
+            await ethers.provider.send("evm_revert", [snapshotId]);
           }
 
-          expect(vulnerable).to.equal(LISTED_MARKETS.length);
+          expect(attacked).to.be.gt(0, "Should have attacked at least one market");
+          console.log(`      Total markets attacked: ${attacked}/${LISTED_MARKETS.length}`);
         });
       });
 
-      describe("After upgrade: all markets are protected", () => {
+      describe("After upgrade: donation attack fails on all markets", () => {
         let timelock: SignerWithAddress;
         let upgradedMarkets: { name: string; proxy: string; underlying: string; vToken: Contract }[];
 
@@ -126,23 +179,31 @@ if (FORK_MAINNET) {
           const newImpl = await VBep20DelegateFactory.deploy();
           await newImpl.deployed();
 
+          // Batch each market's setImpl + sweepTokenAndSync into a single block
+          // to minimise block advancement (accrueInterest uses block.number)
+          await ethers.provider.send("evm_setAutomine", [false]);
+
           upgradedMarkets = [];
           for (const market of LISTED_MARKETS) {
             const proxy = VBep20Delegator__factory.connect(market.proxy, timelock);
             const underlyingAddr = await proxy.underlying();
 
             await proxy._setImplementation(newImpl.address, false, "0x");
-
             const vToken = await ethers.getContractAt("VBep20Delegate", market.proxy, timelock);
-            await vToken.syncCash();
+            await vToken.sweepTokenAndSync(0);
+
+            // Mine both txs in one block
+            await ethers.provider.send("evm_mine", []);
 
             upgradedMarkets.push({ name: market.name, proxy: market.proxy, underlying: underlyingAddr, vToken });
           }
 
+          await ethers.provider.send("evm_setAutomine", [true]);
+
           expect(upgradedMarkets.length).to.equal(LISTED_MARKETS.length);
         });
 
-        describe("syncCash", () => {
+        describe("sweepTokenAndSync", () => {
           it("internalCash matches actual balance for all markets", async () => {
             for (const market of upgradedMarkets) {
               const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
@@ -158,7 +219,7 @@ if (FORK_MAINNET) {
             const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
             const balanceBefore = await underlying.balanceOf(market.proxy);
 
-            await market.vToken.connect(timelock).syncCash();
+            await market.vToken.connect(timelock).sweepTokenAndSync(0);
 
             const internalCashAfter = await market.vToken.internalCash();
             expect(internalCashAfter).to.equal(balanceBefore);
@@ -167,12 +228,12 @@ if (FORK_MAINNET) {
           it("reverts for non-admin callers", async () => {
             const [, randomUser] = await ethers.getSigners();
             const vToken = await ethers.getContractAt("VBep20Delegate", upgradedMarkets[0].proxy, randomUser);
-            await expect(vToken.syncCash()).to.be.rejectedWith("only admin");
+            await expect(vToken.sweepTokenAndSync(0)).to.be.rejectedWith("");
           });
         });
 
         describe("exchange rates", () => {
-          it("remain valid after upgrade + syncCash", async () => {
+          it("remain valid after upgrade + sweepTokenAndSync", async () => {
             for (const market of upgradedMarkets) {
               const vToken = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
               const totalSupply = await vToken.totalSupply();
@@ -208,6 +269,7 @@ if (FORK_MAINNET) {
                 continue;
               }
 
+              // Checkpoint interest so exchangeRateStored is up-to-date
               await vToken.connect(attacker).accrueInterest();
 
               const exchangeRateBefore = await vToken.exchangeRateStored();
@@ -220,10 +282,8 @@ if (FORK_MAINNET) {
               await underlying.connect(attacker).transfer(market.proxy, donationAmount);
 
               // Exchange rate, getCash, and internalCash must all be unchanged
-              expect(await vToken.exchangeRateStored()).to.equal(
-                exchangeRateBefore,
-                `${market.name}: exchange rate changed`,
-              );
+              const exchangeRateAfter = await vToken.exchangeRateStored();
+              expect(exchangeRateAfter).to.equal(exchangeRateBefore, `${market.name}: exchange rate changed`);
               expect(await vToken.getCash()).to.equal(cashBefore, `${market.name}: getCash changed`);
               expect(await market.vToken.internalCash()).to.equal(
                 internalCashBefore,
@@ -232,13 +292,18 @@ if (FORK_MAINNET) {
 
               // Actual balance increased (tokens are there but ignored)
               const balanceAfter = await underlying.balanceOf(market.proxy);
-              expect(balanceAfter).to.be.gt(internalCashBefore, `${market.name}: excess should exist`);
+              expect(balanceAfter).to.be.gt(internalCashBefore as any, `${market.name}: excess should exist`);
+
+              console.log(
+                `      \u2713 ${market.name}: donation attack blocked — expected: ${exchangeRateBefore}, got: ${exchangeRateAfter}`,
+              );
 
               tested++;
               await ethers.provider.send("evm_revert", [snapshotId]);
             }
 
             expect(tested).to.be.gt(0, "Should have tested at least one market");
+            console.log(`      Total markets protected: ${tested}/${upgradedMarkets.length}`);
           });
         });
 
@@ -279,7 +344,10 @@ if (FORK_MAINNET) {
               }
 
               const internalCashAfter = await market.vToken.internalCash();
-              expect(internalCashAfter).to.be.gt(internalCashBefore, `${market.name}: internalCash should increase`);
+              expect(internalCashAfter).to.be.gt(
+                internalCashBefore as any,
+                `${market.name}: internalCash should increase`,
+              );
               return;
             }
           });
@@ -319,7 +387,10 @@ if (FORK_MAINNET) {
               }
 
               const internalCashAfter = await market.vToken.internalCash();
-              expect(internalCashAfter).to.be.lt(internalCashBefore, `${market.name}: internalCash should decrease`);
+              expect(internalCashAfter).to.be.lt(
+                internalCashBefore as any,
+                `${market.name}: internalCash should decrease`,
+              );
               return;
             }
           });

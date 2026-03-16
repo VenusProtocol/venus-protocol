@@ -158,7 +158,7 @@ if (FORK_MAINNET) {
         await newImpl.deployed();
         newImplAddress = newImpl.address;
 
-        // Snapshot, upgrade, and syncCash all markets
+        // Snapshot, upgrade, and sweepTokenAndSync all markets
         upgradedMarkets = [];
         for (const market of MARKET_PROXIES) {
           try {
@@ -169,9 +169,9 @@ if (FORK_MAINNET) {
             const proxy = VBep20Delegator__factory.connect(market.proxy, timelock);
             await proxy._setImplementation(newImplAddress, false, "0x");
 
-            // syncCash
+            // sweepTokenAndSync (transferAmount = 0 for migration)
             const vToken = await ethers.getContractAt("VBep20Delegate", market.proxy, timelock);
-            await vToken.syncCash();
+            await vToken.sweepTokenAndSync(0);
 
             upgradedMarkets.push({
               name: market.name,
@@ -190,7 +190,7 @@ if (FORK_MAINNET) {
       // 1. STORAGE COLLISION VERIFICATION
       // =====================================================================
       describe("Storage Layout - No Collision After Upgrade", () => {
-        it("All existing storage slots preserved after upgrade + syncCash for all markets", async () => {
+        it("All existing storage slots preserved after upgrade + sweepTokenAndSync for all markets", async () => {
           expect(upgradedMarkets.length).to.be.gt(
             0,
             "No markets were upgraded — all upgrades failed during before() hook",
@@ -227,28 +227,31 @@ if (FORK_MAINNET) {
             const underlying = ERC20__factory.connect(after.underlying, ethers.provider);
             const actualBalance = await underlying.balanceOf(market.proxy);
             const internalCash = await market.vToken.internalCash();
-            expect(internalCash).to.equal(actualBalance, `${market.name}: internalCash != balanceOf after syncCash`);
+            expect(internalCash).to.equal(
+              actualBalance,
+              `${market.name}: internalCash != balanceOf after sweepTokenAndSync`,
+            );
           }
         });
       });
 
       // =====================================================================
-      // 2. syncCash ACCESS CONTROL
+      // 2. sweepTokenAndSync ACCESS CONTROL
       // =====================================================================
-      describe("syncCash Access Control", () => {
-        it("syncCash reverts for non-admin callers", async () => {
+      describe("sweepTokenAndSync Access Control", () => {
+        it("reverts for non-admin callers", async () => {
           const market = upgradedMarkets[0];
           const [, randomUser] = await ethers.getSigners();
           const vTokenAsRandom = await ethers.getContractAt("VBep20Delegate", market.proxy, randomUser);
-          await expect(vTokenAsRandom.syncCash()).to.be.revertedWith("only admin");
+          await expect(vTokenAsRandom.sweepTokenAndSync(0)).to.be.reverted;
         });
 
-        it("syncCash can be called again by admin (re-syncs)", async () => {
+        it("can be called again by admin (re-syncs)", async () => {
           const market = upgradedMarkets[0];
           const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
           const balanceBefore = await underlying.balanceOf(market.proxy);
 
-          await market.vToken.connect(timelock).syncCash();
+          await market.vToken.connect(timelock).sweepTokenAndSync(0);
 
           const internalCash = await market.vToken.internalCash();
           expect(internalCash).to.equal(

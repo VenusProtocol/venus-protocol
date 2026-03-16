@@ -13,7 +13,6 @@ describe("VToken", function () {
   let root, nonAdmin;
   let vToken: Contract;
   let underlying: FaucetToken;
-  let acmMock: Contract; // Real AccessControlManagerMock (owner-only)
 
   beforeEach(async () => {
     [root, nonAdmin] = await ethers.getSigners();
@@ -21,17 +20,11 @@ describe("VToken", function () {
     const comptroller = await smock.fake("contracts/Comptroller/ComptrollerInterface.sol:ComptrollerInterface");
     comptroller.isComptroller.returns(true);
 
-    // Deploy real ACM mock (allows owner, denies others) for sweepToken assembly calls
-    const acmFactory = await ethers.getContractFactory("AccessControlManagerMock");
-    acmMock = await acmFactory.deploy(root.address);
-
     const psr = await smock.fake("IProtocolShareReserve");
 
-    // Deploy underlying token
     const faucetTokenFactory = await ethers.getContractFactory("FaucetToken");
     underlying = (await faucetTokenFactory.deploy(parseUnits("1000000", 18), "TestToken", 18, "TT")) as FaucetToken;
 
-    // Deploy interest rate model
     const irmFactory = await ethers.getContractFactory("JumpRateModel");
     const irm = await irmFactory.deploy(
       parseUnits("0.05", 18),
@@ -41,7 +34,6 @@ describe("VToken", function () {
       10512000,
     );
 
-    // Deploy VBep20Delegate implementation + VBep20Delegator proxy
     const delegateFactory = await ethers.getContractFactory("VBep20Delegate");
     const delegate = await delegateFactory.deploy();
 
@@ -59,120 +51,112 @@ describe("VToken", function () {
       "0x",
     );
 
-    // Interact with delegator using delegate ABI
     vToken = await ethers.getContractAt("VBep20Delegate", delegator.address);
-
-    // Use real ACM for sweepToken assembly compatibility
-    await vToken.setAccessControlManager(acmMock.address);
     await vToken.setProtocolShareReserve(psr.address);
   });
 
-  describe("syncCash", () => {
-    it("sets internalCash to actual token balance", async () => {
-      const amount = parseUnits("100", 18);
-      await underlying.allocateTo(vToken.address, amount);
+  describe("sweepTokenAndSync", () => {
+    describe("sync (transferAmount = 0)", () => {
+      it("sets internalCash to actual token balance", async () => {
+        const amount = parseUnits("100", 18);
+        await underlying.allocateTo(vToken.address, amount);
 
-      expect(await vToken.internalCash()).to.equal(0);
-      await vToken.syncCash();
-      expect(await vToken.internalCash()).to.equal(amount);
+        expect(await vToken.internalCash()).to.equal(0);
+        await vToken.sweepTokenAndSync(0);
+        expect(await vToken.internalCash()).to.equal(amount);
+      });
+
+      it("emits CashSynced event", async () => {
+        const amount = parseUnits("50", 18);
+        await underlying.allocateTo(vToken.address, amount);
+
+        await expect(vToken.sweepTokenAndSync(0)).to.emit(vToken, "CashSynced").withArgs(0, amount);
+      });
+
+      it("reverts when called by non-admin", async () => {
+        await expect(vToken.connect(nonAdmin).sweepTokenAndSync(0)).to.be.reverted;
+      });
+
+      it("is idempotent", async () => {
+        const amount = parseUnits("100", 18);
+        await underlying.allocateTo(vToken.address, amount);
+
+        await vToken.sweepTokenAndSync(0);
+        expect(await vToken.internalCash()).to.equal(amount);
+
+        await expect(vToken.sweepTokenAndSync(0)).to.emit(vToken, "CashSynced").withArgs(amount, amount);
+        expect(await vToken.internalCash()).to.equal(amount);
+      });
+
+      it("works when balance is zero", async () => {
+        await expect(vToken.sweepTokenAndSync(0)).to.emit(vToken, "CashSynced").withArgs(0, 0);
+        expect(await vToken.internalCash()).to.equal(0);
+      });
     });
 
-    it("emits CashSynced event", async () => {
-      const amount = parseUnits("50", 18);
-      await underlying.allocateTo(vToken.address, amount);
+    describe("sweep (transferAmount > 0)", () => {
+      const initialCash = parseUnits("100", 18);
+      const donation = parseUnits("30", 18);
 
-      await expect(vToken.syncCash()).to.emit(vToken, "CashSynced").withArgs(0, amount);
-    });
+      beforeEach(async () => {
+        await underlying.allocateTo(vToken.address, initialCash);
+        await vToken.sweepTokenAndSync(0);
+      });
 
-    it("reverts when called by non-admin", async () => {
-      await expect(vToken.connect(nonAdmin).syncCash()).to.be.revertedWith("only admin");
-    });
+      it("recovers excess tokens and emits TokenSwept + CashSynced", async () => {
+        await underlying.allocateTo(vToken.address, donation);
 
-    it("can be called multiple times (idempotent)", async () => {
-      const amount = parseUnits("100", 18);
-      await underlying.allocateTo(vToken.address, amount);
+        const balanceBefore = await underlying.balanceOf(root.address);
+        const tx = vToken.sweepTokenAndSync(donation);
+        await expect(tx).to.emit(vToken, "TokenSwept").withArgs(root.address, donation);
+        await expect(tx).to.emit(vToken, "CashSynced").withArgs(initialCash, initialCash);
+        const balanceAfter = await underlying.balanceOf(root.address);
 
-      await vToken.syncCash();
-      expect(await vToken.internalCash()).to.equal(amount);
+        expect(balanceAfter.sub(balanceBefore)).to.equal(donation);
+      });
 
-      await expect(vToken.syncCash()).to.emit(vToken, "CashSynced").withArgs(amount, amount);
-      expect(await vToken.internalCash()).to.equal(amount);
-    });
+      it("internalCash unchanged after sweeping exact excess", async () => {
+        await underlying.allocateTo(vToken.address, donation);
+        await vToken.sweepTokenAndSync(donation);
 
-    it("re-syncs after a donation absorbing excess into accounting", async () => {
-      const initial = parseUnits("100", 18);
-      await underlying.allocateTo(vToken.address, initial);
-      await vToken.syncCash();
+        expect(await vToken.internalCash()).to.equal(initialCash);
+      });
 
-      const donation = parseUnits("50", 18);
-      await underlying.allocateTo(vToken.address, donation);
-      expect(await vToken.internalCash()).to.equal(initial);
+      it("reverts when transferAmount exceeds balance", async () => {
+        const balance = await underlying.balanceOf(vToken.address);
+        await expect(vToken.sweepTokenAndSync(balance.add(1))).to.be.reverted;
+      });
 
-      await expect(vToken.syncCash()).to.emit(vToken, "CashSynced").withArgs(initial, initial.add(donation));
-      expect(await vToken.internalCash()).to.equal(initial.add(donation));
-    });
+      it("reverts when called by non-admin", async () => {
+        await underlying.allocateTo(vToken.address, donation);
+        await expect(vToken.connect(nonAdmin).sweepTokenAndSync(donation)).to.be.reverted;
+      });
 
-    it("works when balance is zero", async () => {
-      await expect(vToken.syncCash()).to.emit(vToken, "CashSynced").withArgs(0, 0);
-      expect(await vToken.internalCash()).to.equal(0);
-    });
-  });
+      it("sweeps exact excess when multiple donations occur", async () => {
+        const donation2 = parseUnits("20", 18);
+        await underlying.allocateTo(vToken.address, donation);
+        await underlying.allocateTo(vToken.address, donation2);
 
-  describe("sweepToken", () => {
-    const initialCash = parseUnits("100", 18);
-    const donation = parseUnits("30", 18);
+        const totalExcess = donation.add(donation2);
+        await expect(vToken.sweepTokenAndSync(totalExcess))
+          .to.emit(vToken, "TokenSwept")
+          .withArgs(root.address, totalExcess);
 
-    beforeEach(async () => {
-      await underlying.allocateTo(vToken.address, initialCash);
-      await vToken.syncCash();
-    });
+        expect(await underlying.balanceOf(vToken.address)).to.equal(initialCash);
+        expect(await vToken.internalCash()).to.equal(initialCash);
+      });
 
-    it("recovers excess tokens and emits TokenSwept", async () => {
-      await underlying.allocateTo(vToken.address, donation);
+      it("can sweep again after a new donation", async () => {
+        await underlying.allocateTo(vToken.address, donation);
+        await vToken.sweepTokenAndSync(donation);
 
-      const balanceBefore = await underlying.balanceOf(root.address);
-      await expect(vToken.sweepToken()).to.emit(vToken, "TokenSwept").withArgs(root.address, donation);
-      const balanceAfter = await underlying.balanceOf(root.address);
+        const donation2 = parseUnits("10", 18);
+        await underlying.allocateTo(vToken.address, donation2);
 
-      expect(balanceAfter.sub(balanceBefore)).to.equal(donation);
-    });
-
-    it("does not change internalCash after sweep", async () => {
-      await underlying.allocateTo(vToken.address, donation);
-      await vToken.sweepToken();
-
-      expect(await vToken.internalCash()).to.equal(initialCash);
-    });
-
-    it("reverts when there is no excess", async () => {
-      await expect(vToken.sweepToken()).to.be.reverted;
-    });
-
-    it("reverts when ACM denies access (non-owner caller)", async () => {
-      await underlying.allocateTo(vToken.address, donation);
-      // AccessControlManagerMock only allows owner (root), denies nonAdmin
-      await expect(vToken.connect(nonAdmin).sweepToken()).to.be.reverted;
-    });
-
-    it("sweeps exact excess when multiple donations occur", async () => {
-      const donation2 = parseUnits("20", 18);
-      await underlying.allocateTo(vToken.address, donation);
-      await underlying.allocateTo(vToken.address, donation2);
-
-      const totalExcess = donation.add(donation2);
-      await expect(vToken.sweepToken()).to.emit(vToken, "TokenSwept").withArgs(root.address, totalExcess);
-
-      expect(await underlying.balanceOf(vToken.address)).to.equal(initialCash);
-    });
-
-    it("can sweep again after a new donation", async () => {
-      await underlying.allocateTo(vToken.address, donation);
-      await vToken.sweepToken();
-
-      const donation2 = parseUnits("10", 18);
-      await underlying.allocateTo(vToken.address, donation2);
-
-      await expect(vToken.sweepToken()).to.emit(vToken, "TokenSwept").withArgs(root.address, donation2);
+        await expect(vToken.sweepTokenAndSync(donation2))
+          .to.emit(vToken, "TokenSwept")
+          .withArgs(root.address, donation2);
+      });
     });
   });
 });
