@@ -334,7 +334,7 @@ abstract contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when excess tokens are swept by admin
      */
-    event TokenSwept(address indexed token, address indexed recipient, uint256 amount);
+    event TokenSwept(address indexed recipient, uint256 amount);
 
     /**
      * @notice Event emitted when flashLoan fee mantissa is updated

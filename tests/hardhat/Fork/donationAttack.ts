@@ -1,12 +1,12 @@
+import { setStorageAt } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { setStorageAt } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import { ERC20__factory, VBep20Delegator__factory } from "../../../typechain";
-import { forking, initMainnetUser, FORK_MAINNET } from "./utils";
+import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
 // BSC Mainnet addresses
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
@@ -299,7 +299,6 @@ if (FORK_MAINNET) {
           const market = upgradedMarkets[0];
           const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
 
-          const internalCashBefore = await market.vToken.internalCash();
           const actualBalance = await underlying.balanceOf(market.proxy);
 
           // Admin can call syncCash again — it re-syncs internalCash to current balanceOf
@@ -495,10 +494,7 @@ if (FORK_MAINNET) {
 
               // Verify: internalCash unchanged
               const internalCashAfter = await market.vToken.internalCash();
-              expect(internalCashAfter).to.equal(
-                internalCashBefore,
-                `${market.name}: internalCash must not change`,
-              );
+              expect(internalCashAfter).to.equal(internalCashBefore, `${market.name}: internalCash must not change`);
 
               // Verify: actual token balance DID increase (tokens are there but ignored)
               const balanceAfter = await underlying.balanceOf(market.proxy);

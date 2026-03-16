@@ -1,24 +1,22 @@
-import { FakeContract, smock } from "@defi-wonderland/smock";
+import { smock } from "@defi-wonderland/smock";
+import { setStorageAt } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { BigNumber, Contract, Signer } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { setStorageAt } from "@nomicfoundation/hardhat-network-helpers";
 
 import {
   ERC20__factory,
   IAccessControlManagerV5__factory,
-  IProtocolShareReserve,
   VBep20Delegate__factory,
   VBep20Delegator__factory,
 } from "../../../typechain";
-import { forking, initMainnetUser, FORK_MAINNET } from "./utils";
+import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
-const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
 
 // All VBep20Delegator core pool markets on BSC mainnet (excluding vBNB which is native)
 const MARKET_PROXIES: { name: string; proxy: string }[] = [
@@ -104,456 +102,455 @@ const FORK_BLOCK = 86892606;
 if (FORK_MAINNET) {
   describe("InternalCash Upgrade - Storage & Operations", () => {
     forking(FORK_BLOCK, () => {
-    let timelock: Signer;
-    let newImplAddress: string;
-    let upgradedMarkets: { name: string; proxy: string; underlying: string; vToken: Contract }[];
-    let protocolShareReserve: FakeContract<IProtocolShareReserve>;
+      let timelock: Signer;
+      let newImplAddress: string;
+      let upgradedMarkets: { name: string; proxy: string; underlying: string; vToken: Contract }[];
 
-    // Snapshot storage from the delegator proxy BEFORE upgrade
-    type StorageSnapshot = {
-      name: string;
-      symbol: string;
-      decimals: number;
-      admin: string;
-      pendingAdmin: string;
-      comptroller: string;
-      interestRateModel: string;
-      reserveFactorMantissa: BigNumber;
-      borrowIndex: BigNumber;
-      totalBorrows: BigNumber;
-      totalReserves: BigNumber;
-      totalSupply: BigNumber;
-      underlying: string;
-      exchangeRate: BigNumber;
-    };
-
-    async function snapshotViaProxy(proxyAddr: string): Promise<StorageSnapshot> {
-      const proxy = VBep20Delegator__factory.connect(proxyAddr, ethers.provider);
-      const totalSupply = await proxy.totalSupply();
-      return {
-        name: await proxy.name(),
-        symbol: await proxy.symbol(),
-        decimals: await proxy.decimals(),
-        admin: await proxy.admin(),
-        pendingAdmin: await proxy.pendingAdmin(),
-        comptroller: await proxy.comptroller(),
-        interestRateModel: await proxy.interestRateModel(),
-        reserveFactorMantissa: await proxy.reserveFactorMantissa(),
-        borrowIndex: await proxy.borrowIndex(),
-        totalBorrows: await proxy.totalBorrows(),
-        totalReserves: await proxy.totalReserves(),
-        totalSupply,
-        underlying: await proxy.underlying(),
-        exchangeRate: totalSupply.isZero()
-          ? BigNumber.from(0)
-          : await proxy.callStatic.exchangeRateCurrent(),
+      // Snapshot storage from the delegator proxy BEFORE upgrade
+      type StorageSnapshot = {
+        name: string;
+        symbol: string;
+        decimals: number;
+        admin: string;
+        pendingAdmin: string;
+        comptroller: string;
+        interestRateModel: string;
+        reserveFactorMantissa: BigNumber;
+        borrowIndex: BigNumber;
+        totalBorrows: BigNumber;
+        totalReserves: BigNumber;
+        totalSupply: BigNumber;
+        underlying: string;
+        exchangeRate: BigNumber;
       };
-    }
 
-    // Store pre-upgrade snapshots for comparison
-    const preUpgradeSnapshots: Record<string, StorageSnapshot> = {};
-
-    before(async () => {
-      timelock = await initMainnetUser(NORMAL_TIMELOCK, parseUnits("10"));
-
-      // Deploy new VBep20Delegate implementation
-      const VBep20DelegateFactory = await ethers.getContractFactory("VBep20Delegate");
-      const newImpl = await VBep20DelegateFactory.deploy();
-      await newImpl.deployed();
-      newImplAddress = newImpl.address;
-
-      // Snapshot, upgrade, and syncCash all markets
-      upgradedMarkets = [];
-      for (const market of MARKET_PROXIES) {
-        try {
-          // Snapshot BEFORE upgrade
-          preUpgradeSnapshots[market.name] = await snapshotViaProxy(market.proxy);
-
-          // Upgrade implementation
-          const proxy = VBep20Delegator__factory.connect(market.proxy, timelock);
-          await proxy._setImplementation(newImplAddress, false, "0x");
-
-          // syncCash
-          const vToken = await ethers.getContractAt("VBep20Delegate", market.proxy, timelock);
-          await vToken.syncCash();
-
-          upgradedMarkets.push({
-            name: market.name,
-            proxy: market.proxy,
-            underlying: preUpgradeSnapshots[market.name].underlying,
-            vToken,
-          });
-        } catch (e: any) {
-          console.log(`        Failed to upgrade ${market.name}: ${e.message?.slice(0, 80)}`);
-        }
+      async function snapshotViaProxy(proxyAddr: string): Promise<StorageSnapshot> {
+        const proxy = VBep20Delegator__factory.connect(proxyAddr, ethers.provider);
+        const totalSupply = await proxy.totalSupply();
+        return {
+          name: await proxy.name(),
+          symbol: await proxy.symbol(),
+          decimals: await proxy.decimals(),
+          admin: await proxy.admin(),
+          pendingAdmin: await proxy.pendingAdmin(),
+          comptroller: await proxy.comptroller(),
+          interestRateModel: await proxy.interestRateModel(),
+          reserveFactorMantissa: await proxy.reserveFactorMantissa(),
+          borrowIndex: await proxy.borrowIndex(),
+          totalBorrows: await proxy.totalBorrows(),
+          totalReserves: await proxy.totalReserves(),
+          totalSupply,
+          underlying: await proxy.underlying(),
+          exchangeRate: totalSupply.isZero() ? BigNumber.from(0) : await proxy.callStatic.exchangeRateCurrent(),
+        };
       }
-      console.log(`        Upgraded ${upgradedMarkets.length}/${MARKET_PROXIES.length} markets`);
-    });
 
-    // =====================================================================
-    // 1. STORAGE COLLISION VERIFICATION
-    // =====================================================================
-    describe("Storage Layout - No Collision After Upgrade", () => {
-      it("All existing storage slots preserved after upgrade + syncCash for all markets", async () => {
-        expect(upgradedMarkets.length).to.be.gt(
-          0,
-          "No markets were upgraded — all upgrades failed during before() hook",
-        );
+      // Store pre-upgrade snapshots for comparison
+      const preUpgradeSnapshots: Record<string, StorageSnapshot> = {};
 
-        for (const market of upgradedMarkets) {
-          const before = preUpgradeSnapshots[market.name];
-          const after = await snapshotViaProxy(market.proxy);
+      before(async () => {
+        timelock = await initMainnetUser(NORMAL_TIMELOCK, parseUnits("10"));
 
-          expect(after.name).to.equal(before.name, `${market.name}: name`);
-          expect(after.symbol).to.equal(before.symbol, `${market.name}: symbol`);
-          expect(after.decimals).to.equal(before.decimals, `${market.name}: decimals`);
-          expect(after.admin).to.equal(before.admin, `${market.name}: admin`);
-          expect(after.pendingAdmin).to.equal(before.pendingAdmin, `${market.name}: pendingAdmin`);
-          expect(after.comptroller).to.equal(before.comptroller, `${market.name}: comptroller`);
-          expect(after.reserveFactorMantissa).to.equal(
-            before.reserveFactorMantissa,
-            `${market.name}: reserveFactorMantissa`,
-          );
-          expect(after.totalBorrows).to.equal(before.totalBorrows, `${market.name}: totalBorrows`);
-          expect(after.totalSupply).to.equal(before.totalSupply, `${market.name}: totalSupply`);
-          expect(after.underlying).to.equal(before.underlying, `${market.name}: underlying`);
+        // Deploy new VBep20Delegate implementation
+        const VBep20DelegateFactory = await ethers.getContractFactory("VBep20Delegate");
+        const newImpl = await VBep20DelegateFactory.deploy();
+        await newImpl.deployed();
+        newImplAddress = newImpl.address;
 
-          // Exchange rate must be stable (allow tiny tolerance for accrual)
-          if (!before.exchangeRate.isZero()) {
-            const tolerance = before.exchangeRate.div(10000); // 0.01%
-            expect(after.exchangeRate.sub(before.exchangeRate).abs()).to.be.lte(
-              tolerance,
-              `${market.name}: exchange rate diverged`,
-            );
+        // Snapshot, upgrade, and syncCash all markets
+        upgradedMarkets = [];
+        for (const market of MARKET_PROXIES) {
+          try {
+            // Snapshot BEFORE upgrade
+            preUpgradeSnapshots[market.name] = await snapshotViaProxy(market.proxy);
+
+            // Upgrade implementation
+            const proxy = VBep20Delegator__factory.connect(market.proxy, timelock);
+            await proxy._setImplementation(newImplAddress, false, "0x");
+
+            // syncCash
+            const vToken = await ethers.getContractAt("VBep20Delegate", market.proxy, timelock);
+            await vToken.syncCash();
+
+            upgradedMarkets.push({
+              name: market.name,
+              proxy: market.proxy,
+              underlying: preUpgradeSnapshots[market.name].underlying,
+              vToken,
+            });
+          } catch (e: any) {
+            console.log(`        Failed to upgrade ${market.name}: ${e.message?.slice(0, 80)}`);
           }
+        }
+        console.log(`        Upgraded ${upgradedMarkets.length}/${MARKET_PROXIES.length} markets`);
+      });
 
-          // internalCash must match actual balance
-          const underlying = ERC20__factory.connect(after.underlying, ethers.provider);
-          const actualBalance = await underlying.balanceOf(market.proxy);
+      // =====================================================================
+      // 1. STORAGE COLLISION VERIFICATION
+      // =====================================================================
+      describe("Storage Layout - No Collision After Upgrade", () => {
+        it("All existing storage slots preserved after upgrade + syncCash for all markets", async () => {
+          expect(upgradedMarkets.length).to.be.gt(
+            0,
+            "No markets were upgraded — all upgrades failed during before() hook",
+          );
+
+          for (const market of upgradedMarkets) {
+            const before = preUpgradeSnapshots[market.name];
+            const after = await snapshotViaProxy(market.proxy);
+
+            expect(after.name).to.equal(before.name, `${market.name}: name`);
+            expect(after.symbol).to.equal(before.symbol, `${market.name}: symbol`);
+            expect(after.decimals).to.equal(before.decimals, `${market.name}: decimals`);
+            expect(after.admin).to.equal(before.admin, `${market.name}: admin`);
+            expect(after.pendingAdmin).to.equal(before.pendingAdmin, `${market.name}: pendingAdmin`);
+            expect(after.comptroller).to.equal(before.comptroller, `${market.name}: comptroller`);
+            expect(after.reserveFactorMantissa).to.equal(
+              before.reserveFactorMantissa,
+              `${market.name}: reserveFactorMantissa`,
+            );
+            expect(after.totalBorrows).to.equal(before.totalBorrows, `${market.name}: totalBorrows`);
+            expect(after.totalSupply).to.equal(before.totalSupply, `${market.name}: totalSupply`);
+            expect(after.underlying).to.equal(before.underlying, `${market.name}: underlying`);
+
+            // Exchange rate must be stable (allow tiny tolerance for accrual)
+            if (!before.exchangeRate.isZero()) {
+              const tolerance = before.exchangeRate.div(10000); // 0.01%
+              expect(after.exchangeRate.sub(before.exchangeRate).abs()).to.be.lte(
+                tolerance,
+                `${market.name}: exchange rate diverged`,
+              );
+            }
+
+            // internalCash must match actual balance
+            const underlying = ERC20__factory.connect(after.underlying, ethers.provider);
+            const actualBalance = await underlying.balanceOf(market.proxy);
+            const internalCash = await market.vToken.internalCash();
+            expect(internalCash).to.equal(actualBalance, `${market.name}: internalCash != balanceOf after syncCash`);
+          }
+        });
+      });
+
+      // =====================================================================
+      // 2. syncCash ACCESS CONTROL
+      // =====================================================================
+      describe("syncCash Access Control", () => {
+        it("syncCash reverts for non-admin callers", async () => {
+          const market = upgradedMarkets[0];
+          const [, randomUser] = await ethers.getSigners();
+          const vTokenAsRandom = await ethers.getContractAt("VBep20Delegate", market.proxy, randomUser);
+          await expect(vTokenAsRandom.syncCash()).to.be.revertedWith("only admin");
+        });
+
+        it("syncCash can be called again by admin (re-syncs)", async () => {
+          const market = upgradedMarkets[0];
+          const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
+          const balanceBefore = await underlying.balanceOf(market.proxy);
+
+          await market.vToken.connect(timelock).syncCash();
+
           const internalCash = await market.vToken.internalCash();
           expect(internalCash).to.equal(
-            actualBalance,
-            `${market.name}: internalCash != balanceOf after syncCash`,
+            balanceBefore,
+            `${market.name}: internalCash should match underlying balance after re-sync`,
           );
-        }
-      });
-    });
-
-    // =====================================================================
-    // 2. syncCash ACCESS CONTROL
-    // =====================================================================
-    describe("syncCash Access Control", () => {
-      it("syncCash reverts for non-admin callers", async () => {
-        const market = upgradedMarkets[0];
-        const [, randomUser] = await ethers.getSigners();
-        const vTokenAsRandom = await ethers.getContractAt("VBep20Delegate", market.proxy, randomUser);
-        await expect(vTokenAsRandom.syncCash()).to.be.revertedWith("only admin");
+        });
       });
 
-      it("syncCash can be called again by admin (re-syncs)", async () => {
-        const market = upgradedMarkets[0];
-        const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
-        const balanceBefore = await underlying.balanceOf(market.proxy);
+      // =====================================================================
+      // 3. MINT — internalCash increases, exchange rate stable
+      // =====================================================================
+      describe("Mint after upgrade", () => {
+        it("mint increases internalCash correctly on all upgraded markets", async () => {
+          let verified = 0;
+          for (const market of upgradedMarkets) {
+            const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
+            const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
 
-        await market.vToken.connect(timelock).syncCash();
+            const totalSupply = await proxy.totalSupply();
+            if (totalSupply.isZero()) continue;
 
-        const internalCash = await market.vToken.internalCash();
-        expect(internalCash).to.equal(
-          balanceBefore,
-          `${market.name}: internalCash should match underlying balance after re-sync`,
-        );
-      });
-    });
+            const balanceSlot = await findBalanceSlot(market.underlying);
+            if (balanceSlot === null) continue;
 
-    // =====================================================================
-    // 3. MINT — internalCash increases, exchange rate stable
-    // =====================================================================
-    describe("Mint after upgrade", () => {
-      it("mint increases internalCash correctly on all upgraded markets", async () => {
-        let verified = 0;
-        for (const market of upgradedMarkets) {
-          const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
-          const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
+            const decimals = await underlying.decimals();
+            const mintAmount = parseUnits("1", decimals);
 
-          const totalSupply = await proxy.totalSupply();
-          if (totalSupply.isZero()) continue;
+            const [minter] = await ethers.getSigners();
+            await setTokenBalance(market.underlying, minter.address, mintAmount, balanceSlot);
+            await underlying.connect(minter).approve(market.proxy, mintAmount);
 
-          const balanceSlot = await findBalanceSlot(market.underlying);
-          if (balanceSlot === null) continue;
+            const exchangeRateBefore = await proxy.callStatic.exchangeRateCurrent();
 
-          const decimals = await underlying.decimals();
-          const mintAmount = parseUnits("1", decimals);
+            try {
+              await proxy.connect(minter).mint(mintAmount);
+            } catch {
+              continue; // supply cap or paused
+            }
 
-          const [minter] = await ethers.getSigners();
-          await setTokenBalance(market.underlying, minter.address, mintAmount, balanceSlot);
-          await underlying.connect(minter).approve(market.proxy, mintAmount);
+            // The critical invariant: internalCash == actual balanceOf after every operation
+            const internalCashAfter = await market.vToken.internalCash();
+            const actualBalance = await underlying.balanceOf(market.proxy);
+            expect(internalCashAfter).to.equal(actualBalance, `${market.name}: internalCash != balanceOf after mint`);
 
-          const internalCashBefore = await market.vToken.internalCash();
-          const exchangeRateBefore = await proxy.callStatic.exchangeRateCurrent();
+            // Exchange rate stable (within 0.01%)
+            const exchangeRateAfter = await proxy.callStatic.exchangeRateCurrent();
+            const tolerance = exchangeRateBefore.div(10000);
+            expect(exchangeRateAfter.sub(exchangeRateBefore).abs()).to.be.lte(
+              tolerance,
+              `${market.name}: exchange rate diverged after mint`,
+            );
 
-          try {
-            await proxy.connect(minter).mint(mintAmount);
-          } catch {
-            continue; // supply cap or paused
+            verified++;
           }
-
-          // The critical invariant: internalCash == actual balanceOf after every operation
-          const internalCashAfter = await market.vToken.internalCash();
-          const actualBalance = await underlying.balanceOf(market.proxy);
-          expect(internalCashAfter).to.equal(actualBalance, `${market.name}: internalCash != balanceOf after mint`);
-
-          // Exchange rate stable (within 0.01%)
-          const exchangeRateAfter = await proxy.callStatic.exchangeRateCurrent();
-          const tolerance = exchangeRateBefore.div(10000);
-          expect(exchangeRateAfter.sub(exchangeRateBefore).abs()).to.be.lte(
-            tolerance,
-            `${market.name}: exchange rate diverged after mint`,
+          console.log(`        Mint verified on ${verified} markets`);
+          expect(verified).to.be.gt(
+            0,
+            "Mint could not be verified on any market — all skipped due to supply caps, pauses, or missing balance slots",
           );
-
-          verified++;
-        }
-        console.log(`        Mint verified on ${verified} markets`);
-        expect(verified).to.be.gt(0, "Mint could not be verified on any market — all skipped due to supply caps, pauses, or missing balance slots");
+        });
       });
-    });
 
-    // =====================================================================
-    // 4. REDEEM — internalCash decreases
-    // =====================================================================
-    describe("Redeem after upgrade", () => {
-      it("redeem decreases internalCash correctly", async () => {
-        let verified = 0;
-        for (const market of upgradedMarkets) {
-          const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
-          const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
+      // =====================================================================
+      // 4. REDEEM — internalCash decreases
+      // =====================================================================
+      describe("Redeem after upgrade", () => {
+        it("redeem decreases internalCash correctly", async () => {
+          let verified = 0;
+          for (const market of upgradedMarkets) {
+            const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
+            const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
 
-          const totalSupply = await proxy.totalSupply();
-          if (totalSupply.isZero()) continue;
+            const totalSupply = await proxy.totalSupply();
+            if (totalSupply.isZero()) continue;
 
-          const balanceSlot = await findBalanceSlot(market.underlying);
-          if (balanceSlot === null) continue;
+            const balanceSlot = await findBalanceSlot(market.underlying);
+            if (balanceSlot === null) continue;
 
-          const decimals = await underlying.decimals();
-          const mintAmount = parseUnits("1", decimals);
+            const decimals = await underlying.decimals();
+            const mintAmount = parseUnits("1", decimals);
 
-          // Mint first to get vTokens
-          const [minter] = await ethers.getSigners();
-          await setTokenBalance(market.underlying, minter.address, mintAmount, balanceSlot);
-          await underlying.connect(minter).approve(market.proxy, mintAmount);
+            // Mint first to get vTokens
+            const [minter] = await ethers.getSigners();
+            await setTokenBalance(market.underlying, minter.address, mintAmount, balanceSlot);
+            await underlying.connect(minter).approve(market.proxy, mintAmount);
 
-          try {
-            await proxy.connect(minter).mint(mintAmount);
-          } catch {
-            continue;
+            try {
+              await proxy.connect(minter).mint(mintAmount);
+            } catch {
+              continue;
+            }
+
+            const vTokenBalance = await proxy.balanceOf(minter.address);
+            if (vTokenBalance.isZero()) continue;
+
+            const internalCashBefore = await market.vToken.internalCash();
+
+            try {
+              await proxy.connect(minter).redeem(vTokenBalance);
+            } catch {
+              continue;
+            }
+
+            const internalCashAfter = await market.vToken.internalCash();
+            expect(internalCashAfter).to.be.lt(internalCashBefore, `${market.name}: internalCash should decrease`);
+
+            const actualBalance = await underlying.balanceOf(market.proxy);
+            expect(internalCashAfter).to.equal(actualBalance, `${market.name}: internalCash != balanceOf after redeem`);
+
+            verified++;
           }
-
-          const vTokenBalance = await proxy.balanceOf(minter.address);
-          if (vTokenBalance.isZero()) continue;
-
-          const internalCashBefore = await market.vToken.internalCash();
-
-          try {
-            await proxy.connect(minter).redeem(vTokenBalance);
-          } catch {
-            continue;
-          }
-
-          const internalCashAfter = await market.vToken.internalCash();
-          expect(internalCashAfter).to.be.lt(internalCashBefore, `${market.name}: internalCash should decrease`);
-
-          const actualBalance = await underlying.balanceOf(market.proxy);
-          expect(internalCashAfter).to.equal(
-            actualBalance,
-            `${market.name}: internalCash != balanceOf after redeem`,
+          console.log(`        Redeem verified on ${verified} markets`);
+          expect(verified).to.be.gt(
+            0,
+            "Redeem could not be verified on any market — all skipped due to caps, pauses, or missing balance slots",
           );
-
-          verified++;
-        }
-        console.log(`        Redeem verified on ${verified} markets`);
-        expect(verified).to.be.gt(0, "Redeem could not be verified on any market — all skipped due to caps, pauses, or missing balance slots");
+        });
       });
-    });
 
-    // =====================================================================
-    // 5. BORROW — internalCash decreases
-    // =====================================================================
-    describe("Borrow after upgrade", () => {
-      it("borrow decreases internalCash correctly", async () => {
-        // Use a market where we can find a user with collateral to borrow
-        // We'll verify internalCash tracking after configureNew already set up the market
-        let verified = 0;
-        for (const market of upgradedMarkets) {
-          if (market.name === "vXVS") continue; // restricted
+      // =====================================================================
+      // 5. BORROW — internalCash decreases
+      // =====================================================================
+      describe("Borrow after upgrade", () => {
+        it("borrow decreases internalCash correctly", async () => {
+          // Use a market where we can find a user with collateral to borrow
+          // We'll verify internalCash tracking after configureNew already set up the market
+          let verified = 0;
+          for (const market of upgradedMarkets) {
+            if (market.name === "vXVS") continue; // restricted
 
-          const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
-          const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
+            const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
+            const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
 
-          const cash = await market.vToken.internalCash();
-          if (cash.isZero()) continue;
+            const cash = await market.vToken.internalCash();
+            if (cash.isZero()) continue;
 
-          const balanceSlot = await findBalanceSlot(market.underlying);
-          if (balanceSlot === null) continue;
+            const balanceSlot = await findBalanceSlot(market.underlying);
+            if (balanceSlot === null) continue;
 
-          // Find a borrower — use the largest depositor approach: mint first then borrow
-          const decimals = await underlying.decimals();
-          const mintAmount = parseUnits("10", decimals);
-          const borrowAmount = parseUnits("1", decimals);
+            // Find a borrower — use the largest depositor approach: mint first then borrow
+            const decimals = await underlying.decimals();
+            const mintAmount = parseUnits("10", decimals);
+            const borrowAmount = parseUnits("1", decimals);
 
-          const [user] = await ethers.getSigners();
-          await setTokenBalance(market.underlying, user.address, mintAmount, balanceSlot);
-          await underlying.connect(user).approve(market.proxy, mintAmount);
+            const [user] = await ethers.getSigners();
+            await setTokenBalance(market.underlying, user.address, mintAmount, balanceSlot);
+            await underlying.connect(user).approve(market.proxy, mintAmount);
 
-          try {
-            await proxy.connect(user).mint(mintAmount);
-          } catch {
-            continue;
+            try {
+              await proxy.connect(user).mint(mintAmount);
+            } catch {
+              continue;
+            }
+
+            const internalCashBefore = await market.vToken.internalCash();
+
+            try {
+              await proxy.connect(user).borrow(borrowAmount);
+            } catch {
+              continue; // borrow paused or shortfall
+            }
+
+            const internalCashAfter = await market.vToken.internalCash();
+            expect(internalCashAfter).to.be.lt(internalCashBefore, `${market.name}: internalCash should decrease`);
+
+            const actualBalance = await underlying.balanceOf(market.proxy);
+            expect(internalCashAfter).to.equal(actualBalance, `${market.name}: internalCash != balanceOf after borrow`);
+
+            verified++;
+            if (verified >= 3) break; // borrow tests are slow, 3 markets is enough
           }
-
-          const internalCashBefore = await market.vToken.internalCash();
-
-          try {
-            await proxy.connect(user).borrow(borrowAmount);
-          } catch {
-            continue; // borrow paused or shortfall
-          }
-
-          const internalCashAfter = await market.vToken.internalCash();
-          expect(internalCashAfter).to.be.lt(internalCashBefore, `${market.name}: internalCash should decrease`);
-
-          const actualBalance = await underlying.balanceOf(market.proxy);
-          expect(internalCashAfter).to.equal(
-            actualBalance,
-            `${market.name}: internalCash != balanceOf after borrow`,
+          console.log(`        Borrow verified on ${verified} markets`);
+          expect(verified).to.be.gt(
+            0,
+            "Borrow could not be verified on any market — all skipped due to borrow pauses, shortfall, or missing balance slots",
           );
-
-          verified++;
-          if (verified >= 3) break; // borrow tests are slow, 3 markets is enough
-        }
-        console.log(`        Borrow verified on ${verified} markets`);
-        expect(verified).to.be.gt(0, "Borrow could not be verified on any market — all skipped due to borrow pauses, shortfall, or missing balance slots");
+        });
       });
-    });
 
-    // =====================================================================
-    // 6. REPAY — internalCash increases
-    // =====================================================================
-    describe("Repay after upgrade", () => {
-      it("repay increases internalCash correctly", async () => {
-        let verified = 0;
-        for (const market of upgradedMarkets) {
-          if (market.name === "vXVS") continue;
+      // =====================================================================
+      // 6. REPAY — internalCash increases
+      // =====================================================================
+      describe("Repay after upgrade", () => {
+        it("repay increases internalCash correctly", async () => {
+          let verified = 0;
+          for (const market of upgradedMarkets) {
+            if (market.name === "vXVS") continue;
 
-          const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
-          const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
+            const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
+            const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
 
-          const cash = await market.vToken.internalCash();
-          if (cash.isZero()) continue;
+            const cash = await market.vToken.internalCash();
+            if (cash.isZero()) continue;
 
-          const balanceSlot = await findBalanceSlot(market.underlying);
-          if (balanceSlot === null) continue;
+            const balanceSlot = await findBalanceSlot(market.underlying);
+            if (balanceSlot === null) continue;
 
-          const decimals = await underlying.decimals();
-          const mintAmount = parseUnits("10", decimals);
-          const borrowAmount = parseUnits("1", decimals);
+            const decimals = await underlying.decimals();
+            const mintAmount = parseUnits("10", decimals);
+            const borrowAmount = parseUnits("1", decimals);
 
-          const [user] = await ethers.getSigners();
-          await setTokenBalance(market.underlying, user.address, mintAmount, balanceSlot);
-          await underlying.connect(user).approve(market.proxy, mintAmount);
+            const [user] = await ethers.getSigners();
+            await setTokenBalance(market.underlying, user.address, mintAmount, balanceSlot);
+            await underlying.connect(user).approve(market.proxy, mintAmount);
 
-          try {
-            await proxy.connect(user).mint(mintAmount);
-            await proxy.connect(user).borrow(borrowAmount);
-          } catch {
-            continue;
+            try {
+              await proxy.connect(user).mint(mintAmount);
+              await proxy.connect(user).borrow(borrowAmount);
+            } catch {
+              continue;
+            }
+
+            // Now repay
+            await setTokenBalance(market.underlying, user.address, borrowAmount.mul(2), balanceSlot);
+            await underlying.connect(user).approve(market.proxy, borrowAmount.mul(2));
+
+            const internalCashBefore = await market.vToken.internalCash();
+
+            try {
+              await proxy.connect(user).repayBorrow(borrowAmount);
+            } catch {
+              continue;
+            }
+
+            const internalCashAfter = await market.vToken.internalCash();
+            expect(internalCashAfter).to.be.gt(internalCashBefore, `${market.name}: internalCash should increase`);
+
+            const actualBalance = await underlying.balanceOf(market.proxy);
+            expect(internalCashAfter).to.equal(actualBalance, `${market.name}: internalCash != balanceOf after repay`);
+
+            verified++;
+            if (verified >= 3) break;
           }
-
-          // Now repay
-          await setTokenBalance(market.underlying, user.address, borrowAmount.mul(2), balanceSlot);
-          await underlying.connect(user).approve(market.proxy, borrowAmount.mul(2));
-
-          const internalCashBefore = await market.vToken.internalCash();
-
-          try {
-            await proxy.connect(user).repayBorrow(borrowAmount);
-          } catch {
-            continue;
-          }
-
-          const internalCashAfter = await market.vToken.internalCash();
-          expect(internalCashAfter).to.be.gt(internalCashBefore, `${market.name}: internalCash should increase`);
-
-          const actualBalance = await underlying.balanceOf(market.proxy);
-          expect(internalCashAfter).to.equal(
-            actualBalance,
-            `${market.name}: internalCash != balanceOf after repay`,
+          console.log(`        Repay verified on ${verified} markets`);
+          expect(verified).to.be.gt(
+            0,
+            "Repay could not be verified on any market — all skipped due to borrow/repay failures or missing balance slots",
           );
-
-          verified++;
-          if (verified >= 3) break;
-        }
-        console.log(`        Repay verified on ${verified} markets`);
-        expect(verified).to.be.gt(0, "Repay could not be verified on any market — all skipped due to borrow/repay failures or missing balance slots");
+        });
       });
-    });
 
-    // =====================================================================
-    // 7. DONATION ATTACK BLOCKED — exchange rate immune
-    // =====================================================================
-    describe("Donation attack blocked after upgrade", () => {
-      it("direct token transfer does NOT change exchange rate or getCash", async () => {
-        let verified = 0;
-        for (const market of upgradedMarkets) {
-          const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
-          const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
+      // =====================================================================
+      // 7. DONATION ATTACK BLOCKED — exchange rate immune
+      // =====================================================================
+      describe("Donation attack blocked after upgrade", () => {
+        it("direct token transfer does NOT change exchange rate or getCash", async () => {
+          let verified = 0;
+          for (const market of upgradedMarkets) {
+            const underlying = ERC20__factory.connect(market.underlying, ethers.provider);
+            const proxy = VBep20Delegator__factory.connect(market.proxy, ethers.provider);
 
-          const totalSupply = await proxy.totalSupply();
-          const internalCash = await market.vToken.internalCash();
-          if (totalSupply.isZero() || internalCash.isZero()) continue;
+            const totalSupply = await proxy.totalSupply();
+            const internalCash = await market.vToken.internalCash();
+            if (totalSupply.isZero() || internalCash.isZero()) continue;
 
-          const balanceSlot = await findBalanceSlot(market.underlying);
-          if (balanceSlot === null) continue;
+            const balanceSlot = await findBalanceSlot(market.underlying);
+            if (balanceSlot === null) continue;
 
-          const donationAmount = internalCash.div(10); // 10% of cash
-          if (donationAmount.isZero()) continue;
+            const donationAmount = internalCash.div(10); // 10% of cash
+            if (donationAmount.isZero()) continue;
 
-          const internalCashPre = await market.vToken.internalCash();
-          const getCashBefore = await proxy.getCash();
+            const internalCashPre = await market.vToken.internalCash();
+            const getCashBefore = await proxy.getCash();
 
-          // Attacker donates tokens directly (bypassing mint)
-          const [attacker] = await ethers.getSigners();
-          await setTokenBalance(market.underlying, attacker.address, donationAmount, balanceSlot);
-          await underlying.connect(attacker).transfer(market.proxy, donationAmount);
+            // Attacker donates tokens directly (bypassing mint)
+            const [attacker] = await ethers.getSigners();
+            await setTokenBalance(market.underlying, attacker.address, donationAmount, balanceSlot);
+            await underlying.connect(attacker).transfer(market.proxy, donationAmount);
 
-          // getCash must NOT change — this is the core proof donation is blocked
-          const getCashAfter = await proxy.getCash();
-          expect(getCashAfter).to.equal(getCashBefore, `${market.name}: getCash changed after donation!`);
+            // getCash must NOT change — this is the core proof donation is blocked
+            const getCashAfter = await proxy.getCash();
+            expect(getCashAfter).to.equal(getCashBefore, `${market.name}: getCash changed after donation!`);
 
-          // internalCash must NOT change
-          const internalCashAfter = await market.vToken.internalCash();
-          expect(internalCashAfter).to.equal(internalCashPre, `${market.name}: internalCash changed!`);
+            // internalCash must NOT change
+            const internalCashAfter = await market.vToken.internalCash();
+            expect(internalCashAfter).to.equal(internalCashPre, `${market.name}: internalCash changed!`);
 
-          // But actual balance did increase
-          const actualBalance = await underlying.balanceOf(market.proxy);
-          expect(actualBalance).to.be.gt(internalCashAfter, `${market.name}: no excess after donation`);
+            // But actual balance did increase
+            const actualBalance = await underlying.balanceOf(market.proxy);
+            expect(actualBalance).to.be.gt(internalCashAfter, `${market.name}: no excess after donation`);
 
-          verified++;
-        }
-        console.log(`        Donation blocked on ${verified} markets`);
-        expect(verified).to.be.gt(0, "Donation attack could not be verified on any market — all skipped due to zero supply/cash or missing balance slots");
+            verified++;
+          }
+          console.log(`        Donation blocked on ${verified} markets`);
+          expect(verified).to.be.gt(
+            0,
+            "Donation attack could not be verified on any market — all skipped due to zero supply/cash or missing balance slots",
+          );
+        });
       });
-    });
 
-    // =====================================================================
-    // 8. ACCRUE INTEREST WORKS
-    // =====================================================================
-    describe("Accrue Interest after upgrade", () => {
-      it("accrueInterest succeeds on all upgraded markets", async () => {
-        for (const market of upgradedMarkets) {
-          const proxy = VBep20Delegator__factory.connect(market.proxy, timelock);
-          await expect(proxy.accrueInterest()).to.not.be.reverted;
-        }
+      // =====================================================================
+      // 8. ACCRUE INTEREST WORKS
+      // =====================================================================
+      describe("Accrue Interest after upgrade", () => {
+        it("accrueInterest succeeds on all upgraded markets", async () => {
+          for (const market of upgradedMarkets) {
+            const proxy = VBep20Delegator__factory.connect(market.proxy, timelock);
+            await expect(proxy.accrueInterest()).to.not.be.reverted;
+          }
+        });
       });
-    });
     });
   });
 }

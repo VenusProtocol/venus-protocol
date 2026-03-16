@@ -262,44 +262,55 @@ contract VBep20 is VToken, VBep20Interface {
     /**
      * @notice Recover excess underlying tokens sent directly to the contract (e.g. donation attack)
      * @dev Only recovers the difference between actual balance and internalCash. ACM controlled.
-     * @param token The address of the token to sweep (must be the underlying)
      */
-    function sweepToken(address token) external {
+    function sweepToken() external {
         uint256 excess;
+        address _underlying = underlying;
 
         assembly {
-            // ACM check: accessControlManager.isAllowedToCall(msg.sender, "sweepToken(address)")
+            // ACM check: accessControlManager.isAllowedToCall(msg.sender, "sweepToken()")
             let ptr := mload(0x40)
             mstore(ptr, 0x7e13143600000000000000000000000000000000000000000000000000000000)
             mstore(add(ptr, 0x04), caller())
             mstore(add(ptr, 0x24), 0x40)
-            mstore(add(ptr, 0x44), 21)
-            mstore(add(ptr, 0x64), "sweepToken(address)\x00\x00")
+            mstore(add(ptr, 0x44), 12)
+            mstore(
+                add(ptr, 0x64),
+                "sweepToken()\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+            )
             let _acm := sload(accessControlManager.slot)
-            if iszero(staticcall(gas(), _acm, ptr, 0x84, ptr, 0x20)) { revert(0, 0) }
-            if iszero(mload(ptr)) { revert(0, 0) }
-
-            // require(token == underlying)
-            if iszero(eq(token, sload(underlying.slot))) { revert(0, 0) }
+            if iszero(staticcall(gas(), _acm, ptr, 0x84, ptr, 0x20)) {
+                revert(0, 0)
+            }
+            if iszero(mload(ptr)) {
+                revert(0, 0)
+            }
 
             // excess = balanceOf(this) - internalCash
             mstore(0x00, 0x70a0823100000000000000000000000000000000000000000000000000000000)
             mstore(0x04, address())
-            if iszero(staticcall(gas(), token, 0x00, 0x24, 0x00, 0x20)) { revert(0, 0) }
+            if iszero(staticcall(gas(), _underlying, 0x00, 0x24, 0x00, 0x20)) {
+                revert(0, 0)
+            }
             excess := sub(mload(0x00), sload(internalCash.slot))
-            if iszero(excess) { revert(0, 0) }
+            if iszero(excess) {
+                revert(0, 0)
+            }
 
             // transfer(msg.sender, excess)
             mstore(0x00, 0xa9059cbb00000000000000000000000000000000000000000000000000000000)
             mstore(0x04, caller())
             mstore(0x24, excess)
-            if iszero(call(gas(), token, 0, 0x00, 0x44, 0x00, 0x20)) { revert(0, 0) }
+            if iszero(call(gas(), _underlying, 0, 0x00, 0x44, 0x00, 0x20)) {
+                revert(0, 0)
+            }
             if returndatasize() {
-                if iszero(mload(0x00)) { revert(0, 0) }
+                if iszero(mload(0x00)) {
+                    revert(0, 0)
+                }
             }
         }
 
-        emit TokenSwept(token, msg.sender, excess);
+        emit TokenSwept(msg.sender, excess);
     }
-
 }
