@@ -149,10 +149,7 @@ if (FORK_MAINNET) {
               const internalCash = await market.vToken.internalCash();
               const actualBalance = await underlying.balanceOf(market.proxy);
 
-              expect(internalCash).to.equal(
-                actualBalance,
-                `${market.name}: internalCash should equal actual balance`,
-              );
+              expect(internalCash).to.equal(actualBalance, `${market.name}: internalCash should equal actual balance`);
             }
           });
 

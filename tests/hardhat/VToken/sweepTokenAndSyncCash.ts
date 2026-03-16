@@ -1,10 +1,10 @@
-import { FakeContract, smock } from "@defi-wonderland/smock";
+import { smock } from "@defi-wonderland/smock";
 import chai from "chai";
 import { Contract } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import { FaucetToken, IAccessControlManagerV5 } from "../../../typechain";
+import { FaucetToken } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -14,7 +14,6 @@ describe("VToken", function () {
   let vToken: Contract;
   let underlying: FaucetToken;
   let acmMock: Contract; // Real AccessControlManagerMock (owner-only)
-  let acmFake: FakeContract<IAccessControlManagerV5>; // Smock fake for non-assembly paths
 
   beforeEach(async () => {
     [root, nonAdmin] = await ethers.getSigners();
@@ -109,9 +108,7 @@ describe("VToken", function () {
       await underlying.allocateTo(vToken.address, donation);
       expect(await vToken.internalCash()).to.equal(initial);
 
-      await expect(vToken.syncCash())
-        .to.emit(vToken, "CashSynced")
-        .withArgs(initial, initial.add(donation));
+      await expect(vToken.syncCash()).to.emit(vToken, "CashSynced").withArgs(initial, initial.add(donation));
       expect(await vToken.internalCash()).to.equal(initial.add(donation));
     });
 
