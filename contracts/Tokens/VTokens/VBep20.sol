@@ -4,8 +4,6 @@ pragma solidity 0.8.25;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
-
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VBep20Interface, VTokenInterface } from "./VTokenInterfaces.sol";
@@ -263,22 +261,45 @@ contract VBep20 is VToken, VBep20Interface {
 
     /**
      * @notice Recover excess underlying tokens sent directly to the contract (e.g. donation attack)
-     * @dev Only recovers the difference between actual balance and internalCash
+     * @dev Only recovers the difference between actual balance and internalCash. ACM controlled.
      * @param token The address of the token to sweep (must be the underlying)
      */
-    function sweepToken(address token) external nonReentrant {
-        require(
-            IAccessControlManagerV8(accessControlManager).isAllowedToCall(msg.sender, "sweepToken(address)"),
-            "access denied"
-        );
-        require(token != address(0), "zero address");
-        require(token == underlying, "can only sweep underlying");
+    function sweepToken(address token) external {
+        uint256 excess;
 
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        uint256 excess = balance - internalCash;
-        require(excess > 0, "no excess tokens");
+        assembly {
+            // ACM check: accessControlManager.isAllowedToCall(msg.sender, "sweepToken(address)")
+            let ptr := mload(0x40)
+            mstore(ptr, 0x7e13143600000000000000000000000000000000000000000000000000000000)
+            mstore(add(ptr, 0x04), caller())
+            mstore(add(ptr, 0x24), 0x40)
+            mstore(add(ptr, 0x44), 21)
+            mstore(add(ptr, 0x64), "sweepToken(address)\x00\x00")
+            let _acm := sload(accessControlManager.slot)
+            if iszero(staticcall(gas(), _acm, ptr, 0x84, ptr, 0x20)) { revert(0, 0) }
+            if iszero(mload(ptr)) { revert(0, 0) }
 
-        IERC20(token).safeTransfer(msg.sender, excess);
+            // require(token == underlying)
+            if iszero(eq(token, sload(underlying.slot))) { revert(0, 0) }
+
+            // excess = balanceOf(this) - internalCash
+            mstore(0x00, 0x70a0823100000000000000000000000000000000000000000000000000000000)
+            mstore(0x04, address())
+            if iszero(staticcall(gas(), token, 0x00, 0x24, 0x00, 0x20)) { revert(0, 0) }
+            excess := sub(mload(0x00), sload(internalCash.slot))
+            if iszero(excess) { revert(0, 0) }
+
+            // transfer(msg.sender, excess)
+            mstore(0x00, 0xa9059cbb00000000000000000000000000000000000000000000000000000000)
+            mstore(0x04, caller())
+            mstore(0x24, excess)
+            if iszero(call(gas(), token, 0, 0x00, 0x44, 0x00, 0x20)) { revert(0, 0) }
+            if returndatasize() {
+                if iszero(mload(0x00)) { revert(0, 0) }
+            }
+        }
+
         emit TokenSwept(token, msg.sender, excess);
     }
+
 }
