@@ -191,6 +191,7 @@ describe("Evil Token test", async () => {
     await vToken1.setReduceReservesBlockDelta(10000);
     await vToken1.connect(user).mint(convertToUnit(1, 4));
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
+    await vToken3.harnessSetInternalCash(convertToUnit(1, 8));
 
     const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
     protocolShareReserve.updateAssetsState.returns(true);

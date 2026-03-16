@@ -187,8 +187,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return The quantity of underlying tokens owned by this contract
      */
     function getCashPrior() internal view override returns (uint) {
-        IERC20 token = IERC20(underlying);
-        return token.balanceOf(address(this));
+        return internalCash;
     }
 
     /**
@@ -206,7 +205,9 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
         token.safeTransferFrom(from, address(this), amount);
         // Calculate the amount that was *actually* transferred
         uint balanceAfter = IERC20(underlying).balanceOf(address(this));
-        return balanceAfter - balanceBefore;
+        uint actualAmount = balanceAfter - balanceBefore;
+        internalCash += actualAmount;
+        return actualAmount;
     }
 
     /**
@@ -219,7 +220,12 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
     function doTransferOut(address payable to, uint amount) internal override {
+        internalCash -= amount;
         IERC20 token = IERC20(underlying);
         token.safeTransfer(to, amount);
+    }
+
+    function harnessSetInternalCash(uint256 _internalCash) public {
+        internalCash = _internalCash;
     }
 }

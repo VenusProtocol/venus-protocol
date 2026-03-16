@@ -161,6 +161,7 @@ describe("VToken", function () {
 
       await vToken.harnessSetTotalReserves(reserves);
       await underlying.allocateTo(vToken.address, cash);
+      await vToken.harnessSetInternalCash(cash);
     });
 
     afterEach(async () => {
@@ -210,6 +211,7 @@ describe("VToken", function () {
 
     it("if there isn't enough cash, reduces with available cash", async () => {
       const underlyingBalance = await underlying.balanceOf(vToken.address);
+      await vToken.harnessSetInternalCash(underlyingBalance);
       const largeReserves = underlyingBalance.mul(2);
       await vToken.harnessSetTotalReserves(largeReserves);
 
@@ -223,6 +225,8 @@ describe("VToken", function () {
     it("increases admin balance and reduces reserves on success", async () => {
       // setup
       await underlying.allocateTo(vToken.address, reserves.mul(2));
+      const currentBalance = await underlying.balanceOf(vToken.address);
+      await vToken.harnessSetInternalCash(currentBalance);
       await vToken.harnessSetTotalReserves(reserves);
       const balance = await underlying.balanceOf(psr.address);
 
@@ -249,6 +253,7 @@ describe("VToken", function () {
       await interestRateModel.setFailBorrowRate(false);
       await vToken.harnessSetTotalReserves(reserves);
       await underlying.allocateTo(vToken.address, cash);
+      await vToken.harnessSetInternalCash(cash);
     });
 
     afterEach(async () => {
@@ -264,6 +269,8 @@ describe("VToken", function () {
 
     it("returns error from _reduceReservesFresh without emitting any extra logs", async () => {
       await underlying.allocateTo(vToken.address, reserves);
+      const updatedBalance = await underlying.balanceOf(vToken.address);
+      await vToken.harnessSetInternalCash(updatedBalance);
       await ethers.provider.send("evm_setAutomine", [false]);
       await vToken.accrueInterest();
       const result = await vToken.harnessReduceReservesFresh(reserves.add(1));
