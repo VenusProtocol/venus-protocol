@@ -213,6 +213,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @dev Similar to ERC-20 transfer, but handles tokens that have transfer fees.
      *      This function returns the actual amount received,
      *      which may be less than `amount` if there is a fee attached to the transfer.
+     *      Increments `internalCash` by the actual amount received.
      * @param from Sender of the underlying tokens
      * @param amount Amount of underlying to transfer
      * @return Actual amount received
@@ -229,7 +230,8 @@ contract VBep20 is VToken, VBep20Interface {
     }
 
     /**
-     * @dev Just a regular ERC-20 transfer, reverts on failure
+     * @dev Just a regular ERC-20 transfer, reverts on failure.
+     *      Decrements `internalCash` by `amount` before transferring.
      * @param to Receiver of the underlying tokens
      * @param amount Amount of underlying to transfer
      */
@@ -240,9 +242,9 @@ contract VBep20 is VToken, VBep20Interface {
     }
 
     /**
-     * @notice Gets balance of this contract in terms of the underlying
-     * @dev This excludes the value of the current message, if any
-     * @return The quantity of underlying tokens owned by this contract
+     * @notice Gets the tracked internal cash balance of this contract
+     * @dev Returns `internalCash` rather than the actual token balance, making it immune to donation attacks.
+     * @return The internally tracked cash balance of underlying tokens
      */
     function getCashPrior() internal view override returns (uint) {
         return internalCash;

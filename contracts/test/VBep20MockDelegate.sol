@@ -182,9 +182,9 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
     /*** Safe Token ***/
 
     /**
-     * @notice Gets balance of this contract in terms of the underlying
-     * @dev This excludes the value of the current message, if any
-     * @return The quantity of underlying tokens owned by this contract
+     * @notice Gets the tracked internal cash balance of this contract
+     * @dev Returns `internalCash` rather than the actual token balance, making it immune to donation attacks.
+     * @return The internally tracked cash balance of underlying tokens
      */
     function getCashPrior() internal view override returns (uint) {
         return internalCash;
@@ -195,6 +195,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      *      This will revert due to insufficient balance or insufficient allowance.
      *      This function returns the actual amount received,
      *      which may be less than `amount` if there is a fee attached to the transfer.
+     *      Increments `internalCash` by the actual amount received.
      *
      *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
@@ -215,6 +216,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      *      error code rather than reverting. If caller has not called checked protocol's balance, this may revert due to
      *      insufficient cash held in this contract. If caller has checked protocol's balance prior to this call, and verified
      *      it is >= amount, this should not revert in normal conditions.
+     *      Decrements `internalCash` by `amount` before transferring.
      *
      *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
