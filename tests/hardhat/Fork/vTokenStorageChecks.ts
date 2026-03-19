@@ -5,12 +5,7 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import {
-  ERC20__factory,
-  IAccessControlManagerV5__factory,
-  VBep20Delegate__factory,
-  VBep20Delegator__factory,
-} from "../../../typechain";
+import { ERC20__factory, VBep20Delegator__factory } from "../../../typechain";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
 const { expect } = chai;
