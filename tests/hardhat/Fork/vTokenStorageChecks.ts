@@ -179,6 +179,10 @@ if (FORK_MAINNET) {
           }
         }
         console.log(`        Upgraded ${upgradedMarkets.length}/${MARKET_PROXIES.length} markets`);
+
+        if (upgradedMarkets.length === 0) {
+          throw new Error("No markets were upgraded — all upgrades failed during before() hook");
+        }
       });
 
       // =====================================================================
@@ -186,11 +190,6 @@ if (FORK_MAINNET) {
       // =====================================================================
       describe("Storage Layout - No Collision After Upgrade", () => {
         it("All existing storage slots preserved after upgrade + sweepTokenAndSync for all markets", async () => {
-          expect(upgradedMarkets.length).to.be.gt(
-            0,
-            "No markets were upgraded — all upgrades failed during before() hook",
-          );
-
           for (const market of upgradedMarkets) {
             const before = preUpgradeSnapshots[market.name];
             const after = await snapshotViaProxy(market.proxy);
@@ -201,10 +200,12 @@ if (FORK_MAINNET) {
             expect(after.admin).to.equal(before.admin, `${market.name}: admin`);
             expect(after.pendingAdmin).to.equal(before.pendingAdmin, `${market.name}: pendingAdmin`);
             expect(after.comptroller).to.equal(before.comptroller, `${market.name}: comptroller`);
+            expect(after.interestRateModel).to.equal(before.interestRateModel, `${market.name}: interestRateModel`);
             expect(after.reserveFactorMantissa).to.equal(
               before.reserveFactorMantissa,
               `${market.name}: reserveFactorMantissa`,
             );
+            expect(after.borrowIndex).to.equal(before.borrowIndex, `${market.name}: borrowIndex`);
             expect(after.totalBorrows).to.equal(before.totalBorrows, `${market.name}: totalBorrows`);
             expect(after.totalSupply).to.equal(before.totalSupply, `${market.name}: totalSupply`);
             expect(after.underlying).to.equal(before.underlying, `${market.name}: underlying`);
