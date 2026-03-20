@@ -70440,7 +70440,7 @@
       ]
     },
     "VBep20Delegate": {
-      "address": "0x1be1CE8352328278Ac4e0488436c0f1607282550",
+      "address": "0xb25b57599BA969c4829699F7E4Fc4076D14745E1",
       "abi": [
         {
           "inputs": [],
@@ -70595,6 +70595,25 @@
             }
           ],
           "name": "Borrow",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "oldInternalCash",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "newInternalCash",
+              "type": "uint256"
+            }
+          ],
+          "name": "CashSynced",
           "type": "event"
         },
         {
@@ -71070,6 +71089,25 @@
             }
           ],
           "name": "ReservesReduced",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "TokenSwept",
           "type": "event"
         },
         {
@@ -71846,6 +71884,19 @@
         },
         {
           "inputs": [],
+          "name": "internalCash",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "isFlashLoanEnabled",
           "outputs": [
             {
@@ -72277,6 +72328,19 @@
             }
           ],
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "transferAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "sweepTokenAndSync",
+          "outputs": [],
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
