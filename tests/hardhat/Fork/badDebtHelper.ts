@@ -3,7 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { parseEther } from "ethers/lib/utils";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 
 import { ERC20__factory, VBep20Delegator__factory } from "../../../typechain";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
@@ -263,15 +263,14 @@ if (FORK_MAINNET) {
         const vTHEDelegate = await ethers.getContractAt("VBep20Delegate", V_THE, timelock);
         await vTHEDelegate.sweepTokenAndSync(0);
 
-        // ─── 3. Deploy BadDebtHelper as upgradeable proxy ───
+        // ─── 3. Deploy BadDebtHelper ───
         const BadDebtHelperFactory = await ethers.getContractFactory("BadDebtHelper");
-        helper = await upgrades.deployProxy(BadDebtHelperFactory, []);
+        helper = await BadDebtHelperFactory.deploy();
         await helper.deployed();
 
         // ─── 4. Record pre-execution state ───
         const theToken = ERC20__factory.connect(THE, ethers.provider);
         preTHEReceiverBalance = await theToken.balanceOf(THE_TARGET_RECEIVER);
-        preTHEVTokenBalance = await theToken.balanceOf(V_THE);
 
         // Record THE borrower debts
         preDebts[V_THE] = {};
