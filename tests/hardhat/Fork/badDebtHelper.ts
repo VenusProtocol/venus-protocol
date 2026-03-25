@@ -186,16 +186,8 @@ const BEP20_MARKETS: MarketData[] = [
   },
 ];
 
-// BNB repayment data (fixed amounts from contract)
-const BNB_REPAYMENTS = [
-  { borrower: ACCOUNT_1, amount: parseEther("0.00926") },
-  { borrower: ACCOUNT_4, amount: parseEther("15.1157") },
-  { borrower: ACCOUNT_14, amount: parseEther("0.01397") },
-  { borrower: ACCOUNT_20, amount: parseEther("0.00672") },
-  { borrower: ACCOUNT_23, amount: parseEther("0.00558") },
-];
-
-const TOTAL_BNB = BNB_REPAYMENTS.reduce((sum, r) => sum.add(r.amount), BigNumber.from(0));
+// BNB borrowers (contract uses borrowBalanceCurrent to fetch amounts dynamically)
+const BNB_BORROWERS = [ACCOUNT_1, ACCOUNT_4, ACCOUNT_14, ACCOUNT_20, ACCOUNT_23];
 
 // ──────────────────────────────────────────────────────────
 // Helpers
@@ -290,10 +282,13 @@ if (FORK_MAINNET) {
         // Record BNB borrower debts
         const vBNB = new ethers.Contract(
           V_BNB,
-          ["function borrowBalanceStored(address) view returns (uint256)"],
+          [
+            "function borrowBalanceStored(address) view returns (uint256)",
+            "function borrowBalanceCurrent(address) returns (uint256)",
+          ],
           ethers.provider,
         );
-        for (const { borrower } of BNB_REPAYMENTS) {
+        for (const borrower of BNB_BORROWERS) {
           preBNBDebts[borrower] = await vBNB.borrowBalanceStored(borrower);
         }
 
@@ -338,10 +333,18 @@ if (FORK_MAINNET) {
         // ─── 6. Set vTHE pending admin to helper ───
         await vTHEProxy._setPendingAdmin(helper.address);
 
-        // ─── 7. Execute BadDebtHelper ───
-        await helper.connect(timelock).execute({ value: TOTAL_BNB });
+        // ─── 7. Compute BNB needed (2x stored debt to cover interest accrual) ───
+        let totalBNB = BigNumber.from(0);
+        for (const borrower of BNB_BORROWERS) {
+          const debt = await vBNB.borrowBalanceStored(borrower);
+          totalBNB = totalBNB.add(debt);
+        }
+        totalBNB = totalBNB.mul(2);
 
-        // ─── 8. Timelock reclaims vTHE admin ───
+        // ─── 8. Execute BadDebtHelper ───
+        await helper.connect(timelock).execute({ value: totalBNB });
+
+        // ─── 9. Timelock reclaims vTHE admin ───
         // After execute(), helper set pendingAdmin back to NORMAL_TIMELOCK
         await vTHEProxy._acceptAdmin();
       });
@@ -445,7 +448,7 @@ if (FORK_MAINNET) {
             ["function borrowBalanceStored(address) view returns (uint256)"],
             ethers.provider,
           );
-          for (const { borrower } of BNB_REPAYMENTS) {
+          for (const borrower of BNB_BORROWERS) {
             const preDebt = preBNBDebts[borrower];
             const postDebt = await vBNB.borrowBalanceStored(borrower);
 
