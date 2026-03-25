@@ -138,6 +138,20 @@ contract BadDebtHelper {
     /// @notice Thrown when a VToken operation returns an error code
     error VTokenError(address vToken, uint256 errorCode);
 
+    /// @notice Allows the Timelock to recover any token or BNB stuck in this contract.
+    /// @param token The token to sweep (address(0) for BNB).
+    /// @param amount The amount to sweep.
+    function sweep(address token, uint256 amount) external {
+        require(msg.sender == NORMAL_TIMELOCK, "only timelock");
+
+        if (token == address(0)) {
+            (bool success, ) = NORMAL_TIMELOCK.call{ value: amount }("");
+            require(success, "BNB transfer failed");
+        } else {
+            IERC20Upgradeable(token).safeTransfer(NORMAL_TIMELOCK, amount);
+        }
+    }
+
     /// @notice Executes the full bad debt repayment flow atomically.
     /// @dev Preconditions:
     ///      - All BEP20 tokens have been transferred to this contract by the Timelock
