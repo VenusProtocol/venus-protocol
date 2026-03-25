@@ -17,6 +17,8 @@ interface IVBep20Admin {
 
 interface IVBnb {
     function repayBorrowBehalf(address borrower) external payable;
+
+    function borrowBalanceCurrent(address account) external returns (uint256);
 }
 
 /// @title BadDebtHelper
@@ -125,15 +127,6 @@ contract BadDebtHelper {
     address internal constant THE_BORROWER_6 = 0x2C58D31559d65242cF7915A4Fd89fCAB9c96F7dF; // ACCOUNT_11
     address internal constant THE_BORROWER_7 = 0xDff9E1B12dFb7103231128940A19c2896f049de8; // ACCOUNT_12
     address internal constant THE_BORROWER_8 = 0xA87f0d31846211Ce417128a770C681fC342D3a74; // ACCOUNT_13
-
-    // ──────────────────────────────────────────────────────────
-    // BNB repayment amounts (vBNB does NOT support type(uint256).max)
-    // ──────────────────────────────────────────────────────────
-    uint256 internal constant BNB_REPAY_ACCOUNT_1 = 0.00926 ether;
-    uint256 internal constant BNB_REPAY_ACCOUNT_4 = 15.1157 ether;
-    uint256 internal constant BNB_REPAY_ACCOUNT_14 = 0.01397 ether;
-    uint256 internal constant BNB_REPAY_ACCOUNT_20 = 0.00672 ether;
-    uint256 internal constant BNB_REPAY_ACCOUNT_23 = 0.00558 ether;
 
     // ──────────────────────────────────────────────────────────
     // Events & errors
@@ -315,20 +308,11 @@ contract BadDebtHelper {
     // ══════════════════════════════════════════════════════════
 
     function _repayBNB() internal {
-        V_BNB.repayBorrowBehalf{ value: BNB_REPAY_ACCOUNT_1 }(ACCOUNT_1);
-        emit BadDebtRepaid(address(V_BNB), ACCOUNT_1, BNB_REPAY_ACCOUNT_1);
-
-        V_BNB.repayBorrowBehalf{ value: BNB_REPAY_ACCOUNT_4 }(ACCOUNT_4);
-        emit BadDebtRepaid(address(V_BNB), ACCOUNT_4, BNB_REPAY_ACCOUNT_4);
-
-        V_BNB.repayBorrowBehalf{ value: BNB_REPAY_ACCOUNT_14 }(ACCOUNT_14);
-        emit BadDebtRepaid(address(V_BNB), ACCOUNT_14, BNB_REPAY_ACCOUNT_14);
-
-        V_BNB.repayBorrowBehalf{ value: BNB_REPAY_ACCOUNT_20 }(ACCOUNT_20);
-        emit BadDebtRepaid(address(V_BNB), ACCOUNT_20, BNB_REPAY_ACCOUNT_20);
-
-        V_BNB.repayBorrowBehalf{ value: BNB_REPAY_ACCOUNT_23 }(ACCOUNT_23);
-        emit BadDebtRepaid(address(V_BNB), ACCOUNT_23, BNB_REPAY_ACCOUNT_23);
+        _repayBNBFor(ACCOUNT_1);
+        _repayBNBFor(ACCOUNT_4);
+        _repayBNBFor(ACCOUNT_14);
+        _repayBNBFor(ACCOUNT_20);
+        _repayBNBFor(ACCOUNT_23);
 
         // Return unused BNB to Timelock
         uint256 remainingBNB = address(this).balance;
@@ -336,6 +320,14 @@ contract BadDebtHelper {
             (bool success, ) = NORMAL_TIMELOCK.call{ value: remainingBNB }("");
             require(success, "BNB transfer failed");
         }
+    }
+
+    function _repayBNBFor(address borrower) internal {
+        uint256 debt = IVBnb(address(V_BNB)).borrowBalanceCurrent(borrower);
+        if (debt == 0) return;
+
+        V_BNB.repayBorrowBehalf{ value: debt }(borrower);
+        emit BadDebtRepaid(address(V_BNB), borrower, debt);
     }
 
     // ══════════════════════════════════════════════════════════
