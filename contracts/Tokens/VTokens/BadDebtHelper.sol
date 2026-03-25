@@ -163,6 +163,7 @@ contract BadDebtHelper {
         _repayTHE();
         _repayBEP20();
         _repayBNB();
+        _returnAllRemaining();
     }
 
     // ══════════════════════════════════════════════════════════
@@ -380,6 +381,43 @@ contract BadDebtHelper {
         if (remaining > 0) {
             underlying.safeTransfer(NORMAL_TIMELOCK, remaining);
             emit TokensReturnedToTimelock(address(underlying), remaining);
+        }
+    }
+
+    /// @dev Transfers all remaining BEP20 balances (excluding THE) and BNB to the Timelock.
+    ///      THE is excluded because it is sent to THE_TARGET_RECEIVER in _repayTHE().
+    function _returnAllRemaining() internal {
+        _returnIfBalance(ETH_TOKEN);
+        _returnIfBalance(USDT);
+        _returnIfBalance(WBNB);
+        _returnIfBalance(BTCB);
+        _returnIfBalance(CAKE);
+        _returnIfBalance(DAI);
+        _returnIfBalance(XRP);
+        _returnIfBalance(BCH);
+        _returnIfBalance(LTC);
+        _returnIfBalance(LINK);
+        _returnIfBalance(ADA);
+        _returnIfBalance(USDC);
+        _returnIfBalance(AAVE);
+        _returnIfBalance(DOGE);
+        _returnIfBalance(SXP);
+        _returnIfBalance(FIL);
+        _returnIfBalance(TUSD);
+
+        uint256 remainingBNB = address(this).balance;
+        if (remainingBNB > 0) {
+            (bool success, ) = NORMAL_TIMELOCK.call{ value: remainingBNB }("");
+            require(success, "BNB transfer failed");
+            emit TokensReturnedToTimelock(address(0), remainingBNB);
+        }
+    }
+
+    function _returnIfBalance(IERC20Upgradeable token) internal {
+        uint256 balance = token.balanceOf(address(this));
+        if (balance > 0) {
+            token.safeTransfer(NORMAL_TIMELOCK, balance);
+            emit TokensReturnedToTimelock(address(token), balance);
         }
     }
 
