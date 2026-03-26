@@ -14,6 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [],
     log: true,
     autoMine: true,
+    skipIfAlreadyDeployed: false,
   });
 
   return hre.network.live;

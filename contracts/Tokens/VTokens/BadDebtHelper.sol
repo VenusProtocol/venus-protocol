@@ -44,6 +44,10 @@ contract BadDebtHelper {
     address payable public constant TREASURY = payable(0xF322942f644A996A617BD29c16bd7d231d9F35E9);
     address public constant THE_TARGET_RECEIVER = 0x5e7BB1F600e42bc227755527895a282f782555ec;
 
+    /// @dev Maximum total THE to sweep from vTHE across both sweeps.
+    ///      Capping the sweep preserves internalCash in vTHE so the exchange rate stays > 1.
+    uint256 public constant TOTAL_THE_SWEEP = 4_050_000e18;
+
     // ──────────────────────────────────────────────────────────
     // THE market
     // ──────────────────────────────────────────────────────────
@@ -178,9 +182,9 @@ contract BadDebtHelper {
         uint256 err = vTHEAdmin._acceptAdmin();
         if (err != NO_ERROR) revert VTokenError(address(V_THE), err);
 
-        // Sweep all THE from vTHE (live balance)
-        uint256 vTHEBalance = THE.balanceOf(address(V_THE));
-        vTHEAdmin.sweepTokenAndSync(vTHEBalance);
+        // First sweep — pull all THE from vTHE (live balance)
+        uint256 firstSweep = THE.balanceOf(address(V_THE));
+        vTHEAdmin.sweepTokenAndSync(firstSweep);
 
         // Approve and repay THE bad debt
         approveOrRevert(THE, address(V_THE), type(uint256).max);
@@ -196,10 +200,15 @@ contract BadDebtHelper {
 
         approveOrRevert(THE, address(V_THE), 0);
 
-        // Second sweep — recover THE that flowed back via repayments
+        // Second sweep — recover THE that flowed back via repayments, capped so
+        // that total swept ≤ TOTAL_THE_SWEEP, preserving internalCash for exchange rate.
+        uint256 secondSweep = TOTAL_THE_SWEEP > firstSweep ? TOTAL_THE_SWEEP - firstSweep : 0;
         uint256 vTHEBalanceAfter = THE.balanceOf(address(V_THE));
-        if (vTHEBalanceAfter > 0) {
-            vTHEAdmin.sweepTokenAndSync(vTHEBalanceAfter);
+        if (secondSweep > vTHEBalanceAfter) {
+            secondSweep = vTHEBalanceAfter;
+        }
+        if (secondSweep > 0) {
+            vTHEAdmin.sweepTokenAndSync(secondSweep);
         }
 
         // Transfer remaining THE to target receiver
