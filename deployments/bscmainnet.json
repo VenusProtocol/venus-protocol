@@ -3049,7 +3049,7 @@
       ]
     },
     "BadDebtHelper": {
-      "address": "0x94D914515a303A9CD8Fa7e23e578b8d653630A12",
+      "address": "0x570eD1bD5d38D4Fe90c3560D01F361fd0f26ECAa",
       "abi": [
         {
           "inputs": [],
@@ -3162,6 +3162,19 @@
               "internalType": "address",
               "name": "",
               "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "TOTAL_THE_SWEEP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "stateMutability": "view",
