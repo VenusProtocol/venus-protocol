@@ -134,7 +134,7 @@ contract BadDebtHelper {
     // ──────────────────────────────────────────────────────────
     event BadDebtRepaid(address indexed vToken, address indexed borrower, uint256 repayAmount);
     event RemainingTHETransferred(address indexed receiver, uint256 amount);
-    event TokensReturnedToTimelock(address indexed token, uint256 amount);
+    event TokensReturned(address indexed token, address indexed recipient, uint256 amount);
 
     /// @notice Thrown when a VToken operation returns an error code
     error VTokenError(address vToken, uint256 errorCode);
@@ -381,7 +381,7 @@ contract BadDebtHelper {
         uint256 remaining = underlying.balanceOf(address(this));
         if (remaining > 0) {
             underlying.safeTransfer(NORMAL_TIMELOCK, remaining);
-            emit TokensReturnedToTimelock(address(underlying), remaining);
+            emit TokensReturned(address(underlying), NORMAL_TIMELOCK, remaining);
         }
     }
 
@@ -410,7 +410,7 @@ contract BadDebtHelper {
         if (remainingBNB > 0) {
             (bool success, ) = TREASURY.call{ value: remainingBNB }("");
             require(success, "BNB transfer failed");
-            emit TokensReturnedToTimelock(address(0), remainingBNB);
+            emit TokensReturned(address(0), TREASURY, remainingBNB);
         }
     }
 
@@ -418,7 +418,7 @@ contract BadDebtHelper {
         uint256 balance = token.balanceOf(address(this));
         if (balance > 0) {
             token.safeTransfer(TREASURY, balance);
-            emit TokensReturnedToTimelock(address(token), balance);
+            emit TokensReturned(address(token), TREASURY, balance);
         }
     }
 
