@@ -12,6 +12,7 @@ import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 // Constants (must match BadDebtHelper.sol)
 // ──────────────────────────────────────────────────────────
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
+const TREASURY = "0xF322942f644A996A617BD29c16bd7d231d9F35E9";
 const THE_TARGET_RECEIVER = "0x5e7BB1F600e42bc227755527895a282f782555ec";
 const FORK_BLOCK = 88643545; // Update to a recent BSC mainnet block
 
@@ -236,7 +237,10 @@ if (FORK_MAINNET) {
       // Pre-execution state
       const preDebts: Record<string, Record<string, BigNumber>> = {};
       let preTHEReceiverBalance: BigNumber;
+      const preTreasuryBalances: Record<string, BigNumber> = {};
       const preTimelockBalances: Record<string, BigNumber> = {};
+      let preTimelockBNB: BigNumber;
+      let preTreasuryBNB: BigNumber;
       const preBNBDebts: Record<string, BigNumber> = {};
 
       before(async () => {
@@ -292,11 +296,14 @@ if (FORK_MAINNET) {
           preBNBDebts[borrower] = await vBNB.borrowBalanceStored(borrower);
         }
 
-        // Record timelock balances
+        // Record treasury and timelock balances
         for (const market of BEP20_MARKETS) {
           const token = ERC20__factory.connect(market.underlying, ethers.provider);
+          preTreasuryBalances[market.underlying] = await token.balanceOf(TREASURY);
           preTimelockBalances[market.underlying] = await token.balanceOf(NORMAL_TIMELOCK);
         }
+        preTreasuryBNB = await ethers.provider.getBalance(TREASURY);
+        preTimelockBNB = await ethers.provider.getBalance(NORMAL_TIMELOCK);
 
         // ─── 5. Fund helper with BEP20 tokens ───
         for (const market of BEP20_MARKETS) {
@@ -421,17 +428,28 @@ if (FORK_MAINNET) {
           }
         });
 
-        it("should return unused BEP20 tokens to timelock", async () => {
-          // For each token, timelock should have gotten back any excess
+        it("should return unused BEP20 tokens to treasury", async () => {
+          for (const market of BEP20_MARKETS) {
+            const token = ERC20__factory.connect(market.underlying, ethers.provider);
+            const postTreasuryBalance = await token.balanceOf(TREASURY);
+            const preTreasuryBalance = preTreasuryBalances[market.underlying];
+
+            expect(postTreasuryBalance).to.be.gte(
+              preTreasuryBalance,
+              `Treasury ${market.name} balance should not decrease`,
+            );
+          }
+        });
+
+        it("should not send any excess BEP20 tokens to timelock", async () => {
           for (const market of BEP20_MARKETS) {
             const token = ERC20__factory.connect(market.underlying, ethers.provider);
             const postTimelockBalance = await token.balanceOf(NORMAL_TIMELOCK);
             const preTimelockBalance = preTimelockBalances[market.underlying];
 
-            // Timelock balance should be >= pre-balance (got back unused tokens)
-            expect(postTimelockBalance).to.be.gte(
+            expect(postTimelockBalance).to.be.lte(
               preTimelockBalance,
-              `Timelock ${market.name} balance should not decrease`,
+              `Timelock should not receive excess ${market.name} tokens`,
             );
           }
         });
@@ -467,6 +485,16 @@ if (FORK_MAINNET) {
         it("should leave no BNB in the helper", async () => {
           const helperBNB = await ethers.provider.getBalance(helper.address);
           expect(helperBNB).to.equal(0, "Helper should have 0 BNB balance");
+        });
+
+        it("should return unused BNB to treasury", async () => {
+          const postTreasuryBNB = await ethers.provider.getBalance(TREASURY);
+          expect(postTreasuryBNB).to.be.gte(preTreasuryBNB, "Treasury BNB balance should not decrease");
+        });
+
+        it("should not send excess BNB to timelock", async () => {
+          const postTimelockBNB = await ethers.provider.getBalance(NORMAL_TIMELOCK);
+          expect(postTimelockBNB).to.be.lte(preTimelockBNB, "Timelock should not receive excess BNB");
         });
       });
 

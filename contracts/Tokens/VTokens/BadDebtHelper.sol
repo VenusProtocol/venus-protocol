@@ -342,7 +342,7 @@ contract BadDebtHelper {
         // Return unused BNB to Timelock
         uint256 remainingBNB = address(this).balance;
         if (remainingBNB > 0) {
-            (bool success, ) = NORMAL_TIMELOCK.call{ value: remainingBNB }("");
+            (bool success, ) = TREASURY.call{ value: remainingBNB }("");
             require(success, "BNB transfer failed");
         }
     }
@@ -389,8 +389,8 @@ contract BadDebtHelper {
         // Return unused tokens to Timelock
         uint256 remaining = underlying.balanceOf(address(this));
         if (remaining > 0) {
-            underlying.safeTransfer(NORMAL_TIMELOCK, remaining);
-            emit TokensReturned(address(underlying), NORMAL_TIMELOCK, remaining);
+            underlying.safeTransfer(TREASURY, remaining);
+            emit TokensReturned(address(underlying), TREASURY, remaining);
         }
     }
 
