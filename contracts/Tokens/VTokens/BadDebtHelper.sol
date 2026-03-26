@@ -41,6 +41,7 @@ contract BadDebtHelper {
     // Core addresses
     // ──────────────────────────────────────────────────────────
     address payable public constant NORMAL_TIMELOCK = payable(0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396);
+    address payable public constant TREASURY = payable(0xF322942f644A996A617BD29c16bd7d231d9F35E9);
     address public constant THE_TARGET_RECEIVER = 0x5e7BB1F600e42bc227755527895a282f782555ec;
 
     // ──────────────────────────────────────────────────────────
@@ -384,7 +385,7 @@ contract BadDebtHelper {
         }
     }
 
-    /// @dev Transfers all remaining BEP20 balances (excluding THE) and BNB to the Timelock.
+    /// @dev Transfers all remaining BEP20 balances (excluding THE) and BNB to the Treasury.
     ///      THE is excluded because it is sent to THE_TARGET_RECEIVER in _repayTHE().
     function _returnAllRemaining() internal {
         _returnIfBalance(ETH_TOKEN);
@@ -407,7 +408,7 @@ contract BadDebtHelper {
 
         uint256 remainingBNB = address(this).balance;
         if (remainingBNB > 0) {
-            (bool success, ) = NORMAL_TIMELOCK.call{ value: remainingBNB }("");
+            (bool success, ) = TREASURY.call{ value: remainingBNB }("");
             require(success, "BNB transfer failed");
             emit TokensReturnedToTimelock(address(0), remainingBNB);
         }
@@ -416,7 +417,7 @@ contract BadDebtHelper {
     function _returnIfBalance(IERC20Upgradeable token) internal {
         uint256 balance = token.balanceOf(address(this));
         if (balance > 0) {
-            token.safeTransfer(NORMAL_TIMELOCK, balance);
+            token.safeTransfer(TREASURY, balance);
             emit TokensReturnedToTimelock(address(token), balance);
         }
     }

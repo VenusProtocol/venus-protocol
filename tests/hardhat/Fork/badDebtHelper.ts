@@ -12,6 +12,7 @@ import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 // Constants (must match BadDebtHelper.sol)
 // ──────────────────────────────────────────────────────────
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
+const TREASURY = "0xF322942f644A996A617BD29c16bd7d231d9F35E9";
 const THE_TARGET_RECEIVER = "0x5e7BB1F600e42bc227755527895a282f782555ec";
 const FORK_BLOCK = 88643545; // Update to a recent BSC mainnet block
 
