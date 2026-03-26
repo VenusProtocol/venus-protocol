@@ -3049,7 +3049,7 @@
       ]
     },
     "BadDebtHelper": {
-      "address": "0xb1f27c2abe2AaeB7E02f0f1d55fD23c4F5A07a67",
+      "address": "0x94D914515a303A9CD8Fa7e23e578b8d653630A12",
       "abi": [
         {
           "inputs": [],
@@ -3126,13 +3126,19 @@
               "type": "address"
             },
             {
+              "indexed": true,
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
               "indexed": false,
               "internalType": "uint256",
               "name": "amount",
               "type": "uint256"
             }
           ],
-          "name": "TokensReturnedToTimelock",
+          "name": "TokensReturned",
           "type": "event"
         },
         {
@@ -3163,9 +3169,40 @@
         },
         {
           "inputs": [],
+          "name": "TREASURY",
+          "outputs": [
+            {
+              "internalType": "address payable",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "execute",
           "outputs": [],
           "stateMutability": "payable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "sweep",
+          "outputs": [],
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
