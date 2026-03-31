@@ -8,6 +8,7 @@ import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 /**
@@ -33,6 +34,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp exchangeRate;
         Exp oraclePrice;
         Exp tokensToDenom;
+        uint collateralPriceMantissa;
+        uint debtPriceMantissa;
     }
 
     /**
@@ -246,40 +249,54 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             });
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-            // Get the normalized price of the asset
+            // Get the normalized price of the asset (spot)
             vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(address(asset));
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), vars);
             }
-            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
+
+            // Determine bounded prices for CF path
+            if (weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR) {
+                IDeviationBoundedOracle dbo = ComptrollerInterface(comptroller).deviationBoundedOracle();
+                vars.collateralPriceMantissa = dbo.getBoundedCollateralPriceView(address(asset));
+                vars.debtPriceMantissa = dbo.getBoundedDebtPriceView(address(asset));
+                if (vars.collateralPriceMantissa == 0 || vars.debtPriceMantissa == 0) {
+                    return (uint(Error.PRICE_ERROR), vars);
+                }
+            } else {
+                // LT path — always spot
+                vars.collateralPriceMantissa = vars.oraclePriceMantissa;
+                vars.debtPriceMantissa = vars.oraclePriceMantissa;
+            }
+
+            Exp memory collateralPrice = Exp({ mantissa: vars.collateralPriceMantissa });
+            Exp memory debtPrice = Exp({ mantissa: vars.debtPriceMantissa });
 
             // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
-            vars.tokensToDenom = mul_(mul_(vars.weightedFactor, vars.exchangeRate), vars.oraclePrice);
+            vars.tokensToDenom = mul_(mul_(vars.weightedFactor, vars.exchangeRate), collateralPrice);
 
             // sumCollateral += tokensToDenom * vTokenBalance
             vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
 
-            // sumBorrowPlusEffects += oraclePrice * borrowBalance
+            // sumBorrowPlusEffects += debtPrice * borrowBalance
             vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                vars.oraclePrice,
+                debtPrice,
                 vars.borrowBalance,
                 vars.sumBorrowPlusEffects
             );
 
             // Calculate effects of interacting with vTokenModify
             if (asset == vTokenModify) {
-                // redeem effect
-                // sumBorrowPlusEffects += tokensToDenom * redeemTokens
+                // redeem effect — uses collateral-bounded tokensToDenom
                 vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
                     vars.tokensToDenom,
                     redeemTokens,
                     vars.sumBorrowPlusEffects
                 );
 
-                // borrow effect
-                // sumBorrowPlusEffects += oraclePrice * borrowAmount
+                // borrow effect — uses debt-bounded price
                 vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    vars.oraclePrice,
+                    debtPrice,
                     borrowAmount,
                     vars.sumBorrowPlusEffects
                 );
