@@ -5,6 +5,7 @@ pragma solidity 0.8.25;
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerErrorReporter } from "../Utils/ErrorReporter.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
@@ -34,8 +35,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp exchangeRate;
         Exp oraclePrice;
         Exp tokensToDenom;
-        uint collateralPriceMantissa;
-        uint debtPriceMantissa;
+        Exp collateralPrice;
+        Exp debtPrice;
+        IDeviationBoundedOracle boundedOracle;
+        ResilientOracleInterface spotOracle;
     }
 
     /**
@@ -210,8 +213,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      *         optionally applying hypothetical redeem/borrow effects on a single market.
      * @dev Pricing differs by weighting strategy:
      *      - USE_COLLATERAL_FACTOR: collateral is valued at `DeviationBoundedOracle.getBoundedCollateralPriceView`,
-     *        borrows at `getBoundedDebtPriceView`. The caller must have already invoked `_updateProtectionStates`
-     *        (or equivalent) to populate the DBO transient cache before calling this function.
+     *        borrows at `getBoundedDebtPriceView`.
      *      - USE_LIQUIDATION_THRESHOLD: both collateral and borrows use the spot oracle price.
      *      VAI borrows (from `vaiController.getVAIRepayAmount`) are added to `sumBorrowPlusEffects` after
      *      the per-asset loop, regardless of weighting strategy.
@@ -235,9 +237,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         // For each asset the account is in
         VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         uint assetsCount = assets.length;
-        IDeviationBoundedOracle dbo = weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR
-            ? ComptrollerInterface(comptroller).deviationBoundedOracle()
-            : IDeviationBoundedOracle(address(0));
+        if (weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR) {
+            vars.boundedOracle = ComptrollerInterface(comptroller).deviationBoundedOracle();
+        } else {
+            vars.spotOracle = ComptrollerInterface(comptroller).oracle();
+        }
         for (uint i = 0; i < assetsCount; ++i) {
             VToken asset = assets[i];
 
@@ -260,35 +264,30 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
             // Determine bounded prices for CF path
             if (weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR) {
-                vars.collateralPriceMantissa = dbo.getBoundedCollateralPriceView(address(asset));
-                vars.debtPriceMantissa = dbo.getBoundedDebtPriceView(address(asset));
-                if (vars.collateralPriceMantissa == 0 || vars.debtPriceMantissa == 0) {
+                vars.collateralPrice = Exp({ mantissa: vars.boundedOracle.getBoundedCollateralPriceView(address(asset)) });
+                vars.debtPrice = Exp({ mantissa: vars.boundedOracle.getBoundedDebtPriceView(address(asset)) });
+                if (vars.collateralPrice.mantissa == 0 || vars.debtPrice.mantissa == 0) {
                     return (uint(Error.PRICE_ERROR), vars);
                 }
             } else {
                 // LT path — always spot
-                vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-                    address(asset)
-                );
+                vars.oraclePriceMantissa = vars.spotOracle.getUnderlyingPrice(address(asset));
                 if (vars.oraclePriceMantissa == 0) {
                     return (uint(Error.PRICE_ERROR), vars);
                 }
-                vars.collateralPriceMantissa = vars.oraclePriceMantissa;
-                vars.debtPriceMantissa = vars.oraclePriceMantissa;
+                vars.collateralPrice = Exp({ mantissa: vars.oraclePriceMantissa });
+                vars.debtPrice = Exp({ mantissa: vars.oraclePriceMantissa });
             }
 
-            Exp memory collateralPrice = Exp({ mantissa: vars.collateralPriceMantissa });
-            Exp memory debtPrice = Exp({ mantissa: vars.debtPriceMantissa });
-
             // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
-            vars.tokensToDenom = mul_(mul_(vars.weightedFactor, vars.exchangeRate), collateralPrice);
+            vars.tokensToDenom = mul_(mul_(vars.weightedFactor, vars.exchangeRate), vars.collateralPrice);
 
             // sumCollateral += tokensToDenom * vTokenBalance
             vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
 
             // sumBorrowPlusEffects += debtPrice * borrowBalance
             vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                debtPrice,
+                vars.debtPrice,
                 vars.borrowBalance,
                 vars.sumBorrowPlusEffects
             );
@@ -304,7 +303,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
                 // borrow effect — uses debt-bounded price
                 vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    debtPrice,
+                    vars.debtPrice,
                     borrowAmount,
                     vars.sumBorrowPlusEffects
                 );

@@ -359,7 +359,14 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         userPoolId[msg.sender] = poolId;
 
-        (uint256 error, , uint256 shortfall) = _getAccountLiquidity(msg.sender, WeightFunction.USE_COLLATERAL_FACTOR);
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            msg.sender,
+            VToken(address(0)),
+            0,
+            0,
+            WeightFunction.USE_COLLATERAL_FACTOR
+        );
+        uint256 error = uint256(err);
 
         if (error != 0 || shortfall > 0) {
             revert LiquidityCheckFailed(error, shortfall);

@@ -11,6 +11,7 @@ import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV19Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { IDeviationBoundedOracle } from "../../../Oracle/interfaces/IDeviationBoundedOracle.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
 
@@ -136,11 +137,9 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     /**
      * @notice Computes hypothetical account liquidity after applying the given redeem/borrow amounts.
      *         Use this in state-changing contexts (hooks, claim flows, pool selection).
-     * @dev When `weightingStrategy` is USE_COLLATERAL_FACTOR, calls `_updateProtectionStates` to refresh
-     *      the DeviationBoundedOracle transient price cache for all of the account's assets before
-     *      delegating to the lens. This replaces the previous pattern of calling `_updateProtectionStates`
-     *      manually at each call site.
-     *      Exchange rates are stored (not accrued) — accumulated interest is not included.
+     *         When `weightingStrategy` is USE_COLLATERAL_FACTOR, calls `_updateProtectionStates` before
+     *         delegating to the lens, which updates the bounded price and enables protection if the deviation
+     *         exceeds the threshold.
      * @param account The account to determine liquidity for
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of vTokens to hypothetically redeem
@@ -173,16 +172,18 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     }
 
     /**
-     * @notice View-only variant: reads cached oracle state without updating it.
-     *         Use this only for external view functions where state mutation is not permitted.
-     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @notice View-only variant: reads bounded prices from the DeviationBoundedOracle without updating
+     *         the transient cache. Use this only in external view functions where state mutation is not
+     *         permitted. On write paths, use `getHypotheticalAccountLiquidityInternal` instead so the
+     *         transient cache is populated before the lens reads bounded prices.
      * @param account The account to determine liquidity for
-     * @param redeemTokens The number of tokens to hypothetically redeem
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param redeemTokens The number of vTokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @param weightingStrategy The weighting strategy to use
-     * @return (possible error code,
-                hypothetical account liquidity in excess of collateral requirements,
-     *          hypothetical account shortfall below collateral requirements)
+     * @param weightingStrategy USE_COLLATERAL_FACTOR for borrow/entry checks; USE_LIQUIDATION_THRESHOLD for liquidation checks
+     * @return err    Possible error code
+     * @return liquidity  Hypothetical excess liquidity above collateral requirements (0 if in shortfall)
+     * @return shortfall  Hypothetical shortfall below collateral requirements (0 if solvent)
      */
     function getHypotheticalAccountLiquidityInternalView(
         address account,
@@ -291,30 +292,6 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
         return _poolMarkets[getPoolMarketIndex(corePoolId, address(vToken))];
     }
 
-    /**
-     * @notice Determine the current account liquidity wrt collateral requirements
-     * @param account The account to get liquidity for
-     * @param weightingStrategy The weighting strategy to use:
-     *                          - `WeightFunction.USE_COLLATERAL_FACTOR` to use collateral factor
-     *                          - `WeightFunction.USE_LIQUIDATION_THRESHOLD` to use liquidation threshold
-     * @return (possible error code (semi-opaque),
-     * account liquidity in excess of collateral requirements,
-     * account shortfall below collateral requirements)
-     */
-    function _getAccountLiquidity(
-        address account,
-        WeightFunction weightingStrategy
-    ) internal returns (uint256, uint256, uint256) {
-        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            account,
-            VToken(address(0)),
-            0,
-            0,
-            weightingStrategy
-        );
-
-        return (uint256(err), liquidity, shortfall);
-    }
 
     /**
      * @notice Updates the DeviationBoundedOracle protection state for all assets the account has entered
@@ -323,13 +300,11 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
      * @param account The account whose collateral assets need protection state updates
      */
     function _updateProtectionStates(address account) internal {
-        IDeviationBoundedOracle dbo = deviationBoundedOracle;
-        if (address(dbo) == address(0)) return;
-
+        IDeviationBoundedOracle boundedOracle = deviationBoundedOracle;
         VToken[] memory assets = accountAssets[account];
         uint256 len = assets.length;
         for (uint256 i; i < len; ++i) {
-            dbo.updateProtectionState(address(assets[i]));
+            boundedOracle.updateProtectionState(address(assets[i]));
         }
     }
 }
