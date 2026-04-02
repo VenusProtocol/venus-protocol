@@ -3,8 +3,7 @@
 pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { Action, ComptrollerInterface } from "../../ComptrollerInterface.sol";
-import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
@@ -77,7 +76,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REDEEM);
 
-        _updateProtectionStates(redeemer);
         uint256 allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
         if (allowed != uint256(Error.NO_ERROR)) {
             return allowed;
@@ -138,9 +136,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
-
-        // Update DBO protection states (populates transient price cache)
-        _updateProtectionStates(borrower);
 
         (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,
@@ -263,7 +258,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
             borrower,
             VToken(address(0)),
             0,
@@ -431,7 +426,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, WeightFunction.USE_COLLATERAL_FACTOR);
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
+            account,
+            VToken(address(0)),
+            0,
+            0,
+            WeightFunction.USE_COLLATERAL_FACTOR
+        );
+        return (uint256(err), liquidity, shortfall);
     }
 
     /**
@@ -442,7 +444,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below liquidation threshold requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, WeightFunction.USE_LIQUIDATION_THRESHOLD);
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
+            account,
+            VToken(address(0)),
+            0,
+            0,
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
+        );
+        return (uint256(err), liquidity, shortfall);
     }
 
     /**
@@ -461,7 +470,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 redeemTokens,
         uint256 borrowAmount
     ) external view returns (uint256, uint256, uint256) {
-        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
             account,
             VToken(vTokenModify),
             redeemTokens,
@@ -546,23 +555,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
         if (userPool != corePoolId && !pools[userPool].isActive) {
             revert InactivePool(userPool);
-        }
-    }
-
-    /**
-     * @notice Updates the DeviationBoundedOracle protection state for all assets the account has entered
-     * @dev This populates the transient price cache so subsequent view calls in the same transaction
-     *      are gas-efficient. Should be called before any liquidity calculation in the CF path.
-     * @param account The account whose collateral assets need protection state updates
-     */
-    function _updateProtectionStates(address account) internal {
-        IDeviationBoundedOracle dbo = deviationBoundedOracle;
-        if (address(dbo) == address(0)) return;
-
-        VToken[] memory assets = ComptrollerInterface(address(this)).getAssetsIn(account);
-        uint256 len = assets.length;
-        for (uint256 i; i < len; ++i) {
-            dbo.updateProtectionState(address(assets[i]));
         }
     }
 }

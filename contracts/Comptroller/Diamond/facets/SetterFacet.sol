@@ -3,7 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
+import { IDeviationBoundedOracle } from "../../../Oracle/interfaces/IDeviationBoundedOracle.sol";
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
@@ -773,12 +773,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the DeviationBoundedOracle for conservative CF-path pricing
-     * @dev Admin function. address(0) is allowed to disable the feature.
      * @param newDeviationBoundedOracle The new DeviationBoundedOracle contract
      * @return uint256 0=success, otherwise a failure
      */
     function setDeviationBoundedOracle(IDeviationBoundedOracle newDeviationBoundedOracle) external returns (uint256) {
-        ensureAdmin();
+        ensureAllowed("setDeviationBoundedOracle(address)");
+
         ensureNonzeroAddress(address(newDeviationBoundedOracle));
 
         IDeviationBoundedOracle oldDeviationBoundedOracle = deviationBoundedOracle;
