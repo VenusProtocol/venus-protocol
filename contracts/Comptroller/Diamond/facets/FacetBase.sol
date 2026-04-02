@@ -156,7 +156,12 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
         uint256 borrowAmount,
         WeightFunction weightingStrategy
     ) internal returns (Error, uint256, uint256) {
-        // Populate the DBO transient price cache before the lens reads bounded prices
+        // Populate the DBO transient price cache for every asset the account has entered.
+        // This is required for correctness on the CF path: the DBO computes and stores bounded
+        // prices in transient storage, enabling protection if the deviation exceeds the threshold.
+        // Because the cache lives in transient storage (EIP-1153), any subsequent call within the
+        // same transaction — including view functions such as getBoundedCollateralPriceView /
+        // getBoundedDebtPriceView — will read directly from the cache without recomputing prices.
         if (weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR) {
             _updateProtectionStates(account);
         }
@@ -174,8 +179,12 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     /**
      * @notice View-only variant: reads bounded prices from the DeviationBoundedOracle without updating
      *         the transient cache. Use this only in external view functions where state mutation is not
-     *         permitted. On write paths, use `getHypotheticalAccountLiquidityInternal` instead so the
-     *         transient cache is populated before the lens reads bounded prices.
+     *         permitted. On write paths use `getHypotheticalAccountLiquidityInternal` instead.
+     * @dev If `getHypotheticalAccountLiquidityInternal` (or any code that calls `_updateProtectionStates`)
+     *      was already executed earlier in the same transaction, the DBO transient cache will already be
+     *      populated and this function will read from it gas-efficiently — no recomputation occurs.
+     *      If called in a standalone view context (cold cache), the DBO must compute bounded prices from
+     *      scratch on each call; results are still correct but cost more gas.
      * @param account The account to determine liquidity for
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens The number of vTokens to hypothetically redeem
@@ -291,7 +300,6 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
     function getCorePoolMarket(address vToken) internal view returns (Market storage) {
         return _poolMarkets[getPoolMarketIndex(corePoolId, address(vToken))];
     }
-
 
     /**
      * @notice Updates the DeviationBoundedOracle protection state for all assets the account has entered

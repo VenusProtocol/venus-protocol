@@ -776,7 +776,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newDeviationBoundedOracle The new DeviationBoundedOracle contract
      * @return uint256 0=success, otherwise a failure
      */
-    function setDeviationBoundedOracle(IDeviationBoundedOracle newDeviationBoundedOracle) external returns (uint256) {
+    function setDeviationBoundedOracle(
+        IDeviationBoundedOracle newDeviationBoundedOracle
+    ) external compareAddress(address(deviationBoundedOracle), address(newDeviationBoundedOracle)) returns (uint256) {
         ensureAllowed("setDeviationBoundedOracle(address)");
 
         ensureNonzeroAddress(address(newDeviationBoundedOracle));

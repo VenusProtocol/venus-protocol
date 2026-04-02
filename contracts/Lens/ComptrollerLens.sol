@@ -264,11 +264,14 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
             // Determine bounded prices for CF path
             if (weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR) {
-                vars.collateralPrice = Exp({ mantissa: vars.boundedOracle.getBoundedCollateralPriceView(address(asset)) });
-                vars.debtPrice = Exp({ mantissa: vars.boundedOracle.getBoundedDebtPriceView(address(asset)) });
-                if (vars.collateralPrice.mantissa == 0 || vars.debtPrice.mantissa == 0) {
+                (uint256 collateralPriceMantissa, uint256 debtPriceMantissa) = vars.boundedOracle.getBoundedPricesView(
+                    address(asset)
+                );
+                if (collateralPriceMantissa == 0 || debtPriceMantissa == 0) {
                     return (uint(Error.PRICE_ERROR), vars);
                 }
+                vars.collateralPrice = Exp({ mantissa: collateralPriceMantissa });
+                vars.debtPrice = Exp({ mantissa: debtPriceMantissa });
             } else {
                 // LT path — always spot
                 vars.oraclePriceMantissa = vars.spotOracle.getUnderlyingPrice(address(asset));
