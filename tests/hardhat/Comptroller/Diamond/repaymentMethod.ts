@@ -11,6 +11,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   IAccessControlManagerV5,
+  IDeviationBoundedOracle,
   IProtocolShareReserve,
   InterestRateModel,
   PriceOracle,
@@ -67,6 +68,10 @@ describe("RepayBorrow Capping Logic Tests", async () => {
     await comptroller._setAccessControl(accessControlManager.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
+
+    const dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+    dbo.getBoundedPricesView.returns([convertToUnit(1, 18), convertToUnit(1, 18)]);
+    await comptroller.setDeviationBoundedOracle(dbo.address);
 
     // Create underlying token
     const underlyingFactory = await smock.mock<BEP20Harness__factory>("BEP20Harness");

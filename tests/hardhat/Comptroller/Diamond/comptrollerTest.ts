@@ -13,6 +13,7 @@ import {
   ComptrollerMock,
   EIP20Interface,
   IAccessControlManagerV5,
+  IDeviationBoundedOracle,
   PriceOracle,
   Unitroller,
   VAIController,
@@ -47,6 +48,10 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
+
+  const dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  await comptroller.setDeviationBoundedOracle(dbo.address);
+
   const vToken = await smock.fake<VToken>("VToken");
 
   return { oracle, comptroller, unitroller, comptrollerLens, accessControl, vToken };
@@ -347,6 +352,58 @@ describe("Comptroller", () => {
         "old address is same as new address",
       );
       testZeroAddress("_setComptrollerLens", [constants.AddressZero]);
+    });
+  });
+
+  describe("setDeviationBoundedOracle", () => {
+    let comptroller: ComptrollerMock;
+    let accessControl: FakeContract<IAccessControlManagerV5>;
+    let dbo: FakeContract<IDeviationBoundedOracle>;
+
+    beforeEach(async () => {
+      ({ comptroller, accessControl } = await loadFixture(deploySimpleComptroller));
+      dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+    });
+
+    it("fails if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(comptroller.setDeviationBoundedOracle(dbo.address)).to.be.revertedWith("access denied");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("fails if zero address is passed", async () => {
+      // First set a valid DBO so compareAddress doesn't fire on address(0) → address(0)
+      await comptroller.setDeviationBoundedOracle(dbo.address);
+      await expect(comptroller.setDeviationBoundedOracle(constants.AddressZero)).to.be.revertedWith(
+        "can't be zero address",
+      );
+    });
+
+    it("should revert on same value", async () => {
+      const currentDbo = await comptroller.deviationBoundedOracle();
+      await expect(comptroller.setDeviationBoundedOracle(currentDbo)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+    });
+
+    it("sets DBO and emits NewDeviationBoundedOracle event", async () => {
+      const oldDbo = await comptroller.deviationBoundedOracle();
+      expect(await comptroller.callStatic.setDeviationBoundedOracle(dbo.address)).to.equal(
+        ComptrollerErrorReporter.Error.NO_ERROR,
+      );
+      await expect(comptroller.setDeviationBoundedOracle(dbo.address))
+        .to.emit(comptroller, "NewDeviationBoundedOracle")
+        .withArgs(oldDbo, dbo.address);
+      expect(await comptroller.deviationBoundedOracle()).to.equal(dbo.address);
+    });
+
+    it("allows updating to a new DBO address", async () => {
+      await comptroller.setDeviationBoundedOracle(dbo.address);
+      const newDbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+      await expect(comptroller.setDeviationBoundedOracle(newDbo.address))
+        .to.emit(comptroller, "NewDeviationBoundedOracle")
+        .withArgs(dbo.address, newDbo.address);
+      expect(await comptroller.deviationBoundedOracle()).to.equal(newDbo.address);
     });
   });
 

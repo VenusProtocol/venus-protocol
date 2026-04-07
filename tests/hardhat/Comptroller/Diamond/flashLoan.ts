@@ -17,6 +17,7 @@ import {
   InterestRateModel,
   MockFlashLoanReceiver,
   MockFlashLoanReceiver__factory,
+  IDeviationBoundedOracle,
   PriceOracle,
   Unitroller,
   VBep20Harness,
@@ -67,6 +68,10 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   await comptroller._setAccessControl(accessControlManager.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
+
+  const dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  dbo.getBoundedPricesView.returns([convertToUnit(1, 18), convertToUnit(1, 18)]);
+  await comptroller.setDeviationBoundedOracle(dbo.address);
 
   return {
     admin,
