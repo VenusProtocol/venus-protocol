@@ -366,10 +366,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
             0,
             WeightFunction.USE_COLLATERAL_FACTOR
         );
-        uint256 error = uint256(err);
-
-        if (error != 0 || shortfall > 0) {
-            revert LiquidityCheckFailed(error, shortfall);
+        if (err != Error.NO_ERROR || shortfall > 0) {
+            revert LiquidityCheckFailed(uint256(err), shortfall);
         }
     }
 

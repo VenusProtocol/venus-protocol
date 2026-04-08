@@ -547,9 +547,7 @@ describe("Oracle Pump/Crash — vToken Integration Tests", () => {
       f.oracle.getUnderlyingPrice.whenCalledWith(f.vTokenA.address).returns(NORMAL_PRICE);
       f.oracle.getUnderlyingPrice.whenCalledWith(f.vTokenB.address).returns(CRASHED_BORROW_SPOT);
       f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenA.address).returns([NORMAL_PRICE, NORMAL_PRICE]);
-      f.dbo.getBoundedPricesView
-        .whenCalledWith(f.vTokenB.address)
-        .returns([CRASHED_BORROW_SPOT, BOUNDED_DEBT_AT_MAX]);
+      f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenB.address).returns([CRASHED_BORROW_SPOT, BOUNDED_DEBT_AT_MAX]);
     }
 
     beforeEach(async () => {
@@ -643,9 +641,7 @@ describe("Oracle Pump/Crash — vToken Integration Tests", () => {
       f.dbo.getBoundedPricesView
         .whenCalledWith(f.vTokenA.address)
         .returns([CONSERVATIVE_COLLATERAL, CONSERVATIVE_DEBT]);
-      f.dbo.getBoundedPricesView
-        .whenCalledWith(f.vTokenB.address)
-        .returns([NORMAL_PRICE, CONSERVATIVE_DEBT]);
+      f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenB.address).returns([NORMAL_PRICE, CONSERVATIVE_DEBT]);
 
       // sumCollateral = 0.8 × 80 × 1000 = 64000e18
       // sumBorrow = 120 × 790 = 94800e18 → shortfall = 30800e18
@@ -708,9 +704,7 @@ describe("Oracle Pump/Crash — vToken Integration Tests", () => {
       f.dbo.getBoundedPricesView
         .whenCalledWith(f.vTokenA.address)
         .returns([parseUnits("50", 18), parseUnits("150", 18)]);
-      f.dbo.getBoundedPricesView
-        .whenCalledWith(f.vTokenB.address)
-        .returns([NORMAL_PRICE, parseUnits("150", 18)]);
+      f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenB.address).returns([NORMAL_PRICE, parseUnits("150", 18)]);
 
       // Spot prices normal → LT: 0.9 × 100 × 1000 = 90000 > 100 × 500 = 50000 → solvent
       const repayAmount = parseUnits("250", 18);
@@ -761,9 +755,7 @@ describe("Oracle Pump/Crash — vToken Integration Tests", () => {
       f.dbo.getBoundedPricesView
         .whenCalledWith(f.vTokenA.address)
         .returns([parseUnits("80", 18), parseUnits("120", 18)]);
-      f.dbo.getBoundedPricesView
-        .whenCalledWith(f.vTokenB.address)
-        .returns([NORMAL_PRICE, parseUnits("120", 18)]);
+      f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenB.address).returns([NORMAL_PRICE, parseUnits("120", 18)]);
 
       // Exiting vTokenA → all collateral removed → sumCollateral = 0
       // sumBorrow = 120 × 750 = 90000e18 → massive shortfall → REJECTION
@@ -779,9 +771,7 @@ describe("Oracle Pump/Crash — vToken Integration Tests", () => {
       f.dbo.getBoundedPricesView
         .whenCalledWith(f.vTokenA.address)
         .returns([parseUnits("80", 18), parseUnits("120", 18)]);
-      f.dbo.getBoundedPricesView
-        .whenCalledWith(f.vTokenB.address)
-        .returns([NORMAL_PRICE, parseUnits("120", 18)]);
+      f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenB.address).returns([NORMAL_PRICE, parseUnits("120", 18)]);
 
       // Exit uses CF path (redeemAllowedInternal) → bounded prices → shortfall
       const exitErrCode = await f.comptroller.connect(f.user).callStatic.exitMarket(f.vTokenA.address);
@@ -812,9 +802,7 @@ describe("Oracle Pump/Crash — vToken Integration Tests", () => {
       f.dbo.getBoundedPricesView
         .whenCalledWith(f.vTokenA.address)
         .returns([parseUnits("80", 18), parseUnits("120", 18)]);
-      f.dbo.getBoundedPricesView
-        .whenCalledWith(f.vTokenB.address)
-        .returns([NORMAL_PRICE, parseUnits("120", 18)]);
+      f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenB.address).returns([NORMAL_PRICE, parseUnits("120", 18)]);
     });
 
     it("getBorrowingPower uses bounded prices (CF) → shortfall", async () => {
@@ -874,9 +862,7 @@ describe("Oracle Pump/Crash — vToken Integration Tests", () => {
       f.dbo.getBoundedPricesView
         .whenCalledWith(f.vTokenA.address)
         .returns([parseUnits("70", 18), parseUnits("130", 18)]);
-      f.dbo.getBoundedPricesView
-        .whenCalledWith(f.vTokenB.address)
-        .returns([NORMAL_PRICE, parseUnits("130", 18)]);
+      f.dbo.getBoundedPricesView.whenCalledWith(f.vTokenB.address).returns([NORMAL_PRICE, parseUnits("130", 18)]);
 
       // CF: sumCollateral = 0.8 × 70 × 1000 = 56000e18
       // sumBorrow = 130 × 600 = 78000e18 → shortfall → cannot borrow more

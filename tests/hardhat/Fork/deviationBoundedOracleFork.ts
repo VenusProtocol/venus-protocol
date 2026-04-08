@@ -547,7 +547,6 @@ if (FORK_MAINNET) {
           pumpUSDTPrice();
         });
 
-
         it("borrow blocked (CF bounded) but liquidation rejected (LT spot solvent)", async () => {
           // CF bounded: capacity = 10000 * $1 * 0.8 = $8000. 0.15 BTC * $60k = $9000 > $8000
           await expect(vBTC.connect(borrower3).borrow(parseUnits("0.15", 18))).to.be.revertedWith("math error");
@@ -680,7 +679,6 @@ if (FORK_MAINNET) {
         });
 
         it("keeper narrows window + disables protection after cooldown", async () => {
-
           // Advance time past cooldown
           await time.increase(COOLDOWN_PERIOD + 1);
 
@@ -999,7 +997,7 @@ if (FORK_MAINNET) {
             // Try to borrow a meaningful amount relative to remaining capacity
             const [, remaining] = await comptroller.getBorrowingPower(await borrower6.getAddress());
             // Borrow 2x remaining capacity (if any) to ensure it exceeds bounded limit after trigger
-            const attemptBtc = remaining.mul(2).mul(parseUnits("1", 18)).div(BTCB_PRICE)
+            const attemptBtc = remaining.mul(2).mul(parseUnits("1", 18)).div(BTCB_PRICE);
             await expect(vBTC.connect(borrower6).borrow(attemptBtc)).to.be.revertedWith("math error");
           });
 
@@ -1025,7 +1023,6 @@ if (FORK_MAINNET) {
                 .liquidateBorrow(await borrower6.getAddress(), parseUnits("0.05", 18), vUSDT.address),
             ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL
           });
-
         });
 
         describe("14b. Raising trigger threshold — does NOT retroactively disable protection", () => {
@@ -1084,7 +1081,6 @@ if (FORK_MAINNET) {
             // User can now borrow at spot capacity
             await expect(vBTC.connect(borrower7).borrow(parseUnits("0.05", 18))).to.not.be.reverted;
           });
-
         });
 
         describe("14c. setCooldownPeriod affects when protection can be disabled", () => {
@@ -1256,7 +1252,6 @@ if (FORK_MAINNET) {
           await expect(comptroller.connect(user15)["claimVenus(address,address[])"](user15Addr, [vUSDT_ADDRESS])).to.not
             .be.reverted;
         });
-
       });
 
       // =====================================================================

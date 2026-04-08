@@ -33,7 +33,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint oraclePriceMantissa;
         Exp weightedFactor;
         Exp exchangeRate;
-        Exp oraclePrice;
         Exp tokensToDenom;
         Exp collateralPrice;
         Exp debtPrice;

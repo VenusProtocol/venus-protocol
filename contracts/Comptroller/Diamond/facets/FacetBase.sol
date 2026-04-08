@@ -156,12 +156,10 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
         uint256 borrowAmount,
         WeightFunction weightingStrategy
     ) internal returns (Error, uint256, uint256) {
-        // Populate the DBO transient price cache for every asset the account has entered.
-        // This is required for correctness on the CF path: the DBO computes and stores bounded
-        // prices in transient storage, enabling protection if the deviation exceeds the threshold.
-        // Because the cache lives in transient storage (EIP-1153), any subsequent call within the
-        // same transaction — including view functions such as getBoundedCollateralPriceView /
-        // getBoundedDebtPriceView — will read directly from the cache without recomputing prices.
+        // Populate the DBO transient price cache (EIP-1153) for all entered assets.
+        // Required on the CF path so bounded prices are computed once and reused
+        // by view functions (e.g. getBoundedCollateralPriceView / getBoundedDebtPriceView)
+        // within the same transaction.
         if (weightingStrategy == WeightFunction.USE_COLLATERAL_FACTOR) {
             _updateProtectionStates(account);
         }
