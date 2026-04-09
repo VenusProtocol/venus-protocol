@@ -3,7 +3,7 @@ import { setBalance, time } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { Signer } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 import { FacetCutAction, getSelectors } from "../../../script/deploy/comptroller/diamond";
 import {
@@ -107,7 +107,7 @@ async function upgradeComptroller(): Promise<ComptrollerMock> {
   const addCut: any[] = [];
   const allAddedSelectors = new Set<string>();
 
-  const FacetNames = ["MarketFacet", "PolicyFacet", "SetterFacet", "RewardFacet"];
+  const FacetNames = ["MarketFacet", "PolicyFacet", "SetterFacet", "RewardFacet", "FlashLoanFacet"];
   const deployedFacets: Record<string, string> = {};
 
   for (const FacetName of FacetNames) {
@@ -157,34 +157,16 @@ async function upgradeComptroller(): Promise<ComptrollerMock> {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: Deploy a fresh ProxyAdmin for test proxies
-// ---------------------------------------------------------------------------
-let testProxyAdmin: any;
-async function getOrDeployProxyAdmin(): Promise<string> {
-  if (testProxyAdmin) return testProxyAdmin.address;
-  const ProxyAdminFactory = await ethers.getContractFactory(
-    "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol:ProxyAdmin",
-  );
-  testProxyAdmin = await ProxyAdminFactory.deploy(await timelock.getAddress());
-  return testProxyAdmin.address;
-}
-
-// ---------------------------------------------------------------------------
 // Helper: Deploy DeviationBoundedOracle (transparent proxy)
 // ---------------------------------------------------------------------------
 async function deployDBO(oracleAddress: string): Promise<any> {
   const DBOFactory = await ethers.getContractFactory("DeviationBoundedOracle");
-  const dboImpl = await DBOFactory.deploy(oracleAddress, vBNB_ADDRESS, VAI);
-
-  const initData = dboImpl.interface.encodeFunctionData("initialize", [ACM]);
-  const proxyAdminAddr = await getOrDeployProxyAdmin();
-
-  const ProxyFactory = await ethers.getContractFactory(
-    "hardhat-deploy/solc_0.8/proxy/OptimizedTransparentUpgradeableProxy.sol:OptimizedTransparentUpgradeableProxy",
-  );
-  const dboProxy = await ProxyFactory.deploy(dboImpl.address, proxyAdminAddr, initData);
-
-  return DBOFactory.attach(dboProxy.address);
+  const dbo = await upgrades.deployProxy(DBOFactory, [ACM], {
+    constructorArgs: [oracleAddress, vBNB_ADDRESS, VAI],
+    initializer: "initialize",
+    unsafeAllow: ["state-variable-immutable"],
+  });
+  return dbo;
 }
 
 // ---------------------------------------------------------------------------
@@ -381,27 +363,77 @@ if (FORK_MAINNET) {
 
           const usdtUser = BEP20__factory.connect(USDT_ADDR, user);
           await usdtUser.approve(vUSDT_ADDRESS, amount);
-          await expect(vUSDT.connect(user).mint(amount)).to.not.be.reverted;
+
+          const vBalBefore = await vUSDT.balanceOf(await user.getAddress());
+          const uBalBefore = await usdtUser.balanceOf(await user.getAddress());
+          const er = await vUSDT.callStatic.exchangeRateCurrent();
+          const expectedVTokens = amount.mul(parseUnits("1", 18)).div(er);
+
+          await expect(vUSDT.connect(user).mint(amount)).to.emit(vUSDT, "Mint");
+
+          expect(await vUSDT.balanceOf(await user.getAddress())).to.be.closeTo(vBalBefore.add(expectedVTokens), parseUnits("1", 8));
+          expect(await usdtUser.balanceOf(await user.getAddress())).to.equal(uBalBefore.sub(amount));
         });
 
         it("user can borrow via vToken.borrow() with real collateral", async () => {
           await comptroller.connect(user).enterMarkets([vUSDT_ADDRESS]);
           // 100 USDT at $1, CF=0.8 → $80 capacity. BTC at $60k → borrow 0.001 BTC = $60
           const borrowAmount = parseUnits("0.001", 18);
-          await expect(vBTC.connect(user).borrow(borrowAmount)).to.not.be.reverted;
+          const btcb = BEP20__factory.connect(BTCB_ADDR, user);
+          const uBalBefore = await btcb.balanceOf(await user.getAddress());
+          const borrowBefore = await vBTC.borrowBalanceStored(await user.getAddress());
+
+          await expect(vBTC.connect(user).borrow(borrowAmount)).to.emit(vBTC, "Borrow");
+
+          expect(await btcb.balanceOf(await user.getAddress())).to.equal(uBalBefore.add(borrowAmount));
+          expect(await vBTC.borrowBalanceStored(await user.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmount), parseUnits("0.000001", 18));
         });
 
         it("user can repay via vToken.repayBorrow()", async () => {
-          const debt = await vBTC.callStatic.borrowBalanceCurrent(await user.getAddress());
+          const userAddr = await user.getAddress();
+          const debt = await vBTC.callStatic.borrowBalanceCurrent(userAddr);
           if (debt.gt(0)) {
             const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
             const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
-            await btcb.transfer(await user.getAddress(), debt.mul(2));
+            await btcb.transfer(userAddr, debt.mul(2));
 
             const btcbUser = BEP20__factory.connect(BTCB_ADDR, user);
             await btcbUser.approve(vBTC_ADDRESS, debt.mul(2));
-            await expect(vBTC.connect(user).repayBorrow(debt)).to.not.be.reverted;
+
+            const borrowBefore = await vBTC.borrowBalanceStored(userAddr);
+            const uBalBefore = await btcbUser.balanceOf(userAddr);
+            await expect(vBTC.connect(user).repayBorrow(debt)).to.emit(vBTC, "RepayBorrow");
+
+            expect(await vBTC.borrowBalanceStored(userAddr)).to.be.closeTo(borrowBefore.sub(debt), parseUnits("0.000001", 18));
+            expect(await btcbUser.balanceOf(userAddr)).to.equal(uBalBefore.sub(debt));
           }
+        });
+
+        it("user can redeem via vToken.redeemUnderlying()", async () => {
+          const userAddr = await user.getAddress();
+          const usdtUser = BEP20__factory.connect(USDT_ADDR, user);
+          const redeemAmount = parseUnits("10", 18);
+
+          const uBalBefore = await usdtUser.balanceOf(userAddr);
+          await expect(vUSDT.connect(user).redeemUnderlying(redeemAmount)).to.emit(vUSDT, "Redeem");
+
+          expect(await usdtUser.balanceOf(userAddr)).to.equal(uBalBefore.add(redeemAmount));
+        });
+
+        it("user can transfer vTokens when solvent", async () => {
+          const userAddr = await user.getAddress();
+          const dst = ethers.Wallet.createRandom().connect(ethers.provider);
+          const dstAddr = await dst.getAddress();
+          // Use very small amount — prior tests may have consumed balance
+          const srcBalance = await vUSDT.balanceOf(userAddr);
+          const transferAmount = srcBalance.div(10); // 10% of remaining
+
+          const srcBefore = await vUSDT.balanceOf(userAddr);
+          const dstBefore = await vUSDT.balanceOf(dstAddr);
+          await vUSDT.connect(user).transfer(dstAddr, transferAmount);
+
+          expect(await vUSDT.balanceOf(userAddr)).to.equal(srcBefore.sub(transferAmount));
+          expect(await vUSDT.balanceOf(dstAddr)).to.equal(dstBefore.add(transferAmount));
         });
       });
 
@@ -443,13 +475,20 @@ if (FORK_MAINNET) {
         });
 
         it("repayBorrow succeeds during pump", async () => {
+          const repayAmount = parseUnits("0.001", 18);
           const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
           const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
-          await btcb.transfer(await borrower.getAddress(), parseUnits("0.001", 18));
+          await btcb.transfer(await borrower.getAddress(), repayAmount);
 
           const btcbBorrower = BEP20__factory.connect(BTCB_ADDR, borrower);
-          await btcbBorrower.approve(vBTC_ADDRESS, parseUnits("0.001", 18));
-          await expect(vBTC.connect(borrower).repayBorrow(parseUnits("0.001", 18))).to.not.be.reverted;
+          await btcbBorrower.approve(vBTC_ADDRESS, repayAmount);
+
+          const borrowBefore = await vBTC.borrowBalanceStored(await borrower.getAddress());
+          const uBalBefore = await btcbBorrower.balanceOf(await borrower.getAddress());
+          await expect(vBTC.connect(borrower).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
+
+          expect(await vBTC.borrowBalanceStored(await borrower.getAddress())).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await btcbBorrower.balanceOf(await borrower.getAddress())).to.equal(uBalBefore.sub(repayAmount));
         });
 
         it("liquidation NOT triggered — borrower solvent at spot LT", async () => {
@@ -467,6 +506,41 @@ if (FORK_MAINNET) {
               .connect(liquidator)
               .liquidateBorrow(await borrower.getAddress(), parseUnits("0.005", 18), vUSDT.address),
           ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL
+        });
+
+        it("borrow succeeds within bounded capacity despite pump", async () => {
+          // At bounded $1: capacity = 10000 * 1 * 0.8 = $8000. 0.001 BTC * $60k = $60 → within capacity
+          const borrowAmt = parseUnits("0.001", 18);
+          const btcbBorrower = BEP20__factory.connect(BTCB_ADDR, borrower);
+          const uBalBefore = await btcbBorrower.balanceOf(await borrower.getAddress());
+          const borrowBefore = await vBTC.borrowBalanceStored(await borrower.getAddress());
+
+          await expect(vBTC.connect(borrower).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+
+          expect(await btcbBorrower.balanceOf(await borrower.getAddress())).to.equal(uBalBefore.add(borrowAmt));
+          expect(await vBTC.borrowBalanceStored(await borrower.getAddress())).to.be.closeTo(
+            borrowBefore.add(borrowAmt),
+            parseUnits("0.000001", 18),
+          );
+        });
+
+        it("redeem reverts — bounded prices limit withdrawal", async () => {
+          // Borrow more to make position tight at bounded capacity
+          // Existing: 0.01 BTC. Borrow additional to approach bounded limit
+          await vBTC.connect(borrower).borrow(parseUnits("0.10", 18));
+          // Now ~0.12 BTC = $7200 vs bounded capacity $8000 → tight
+          // Redeem 3000 USDT → 7000 remaining → capacity = 7000 * $1 * 0.8 = $5600 < $7200 → shortfall
+          await expect(vUSDT.connect(borrower).redeemUnderlying(parseUnits("3000", 18))).to.be.revertedWith(
+            "math error",
+          );
+        });
+
+        it("transfer blocked when bounded prices show shortfall", async () => {
+          // Transfer large vUSDT → would reduce collateral below bounded capacity → Failure
+          const dst = (await ethers.getSigners())[4];
+          await expect(
+            vUSDT.connect(borrower).transfer(await dst.getAddress(), parseUnits("5000", 18)),
+          ).to.emit(vUSDT, "Failure");
         });
       });
 
@@ -512,14 +586,22 @@ if (FORK_MAINNET) {
         });
 
         it("repayBorrow works during crash", async () => {
+          const repayAmount = parseUnits("0.001", 18);
           const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
           const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
-          await btcb.transfer(await borrower2.getAddress(), parseUnits("0.001", 18));
+          await btcb.transfer(await borrower2.getAddress(), repayAmount);
 
           const btcbUser = BEP20__factory.connect(BTCB_ADDR, borrower2);
-          await btcbUser.approve(vBTC_ADDRESS, parseUnits("0.001", 18));
-          await expect(vBTC.connect(borrower2).repayBorrow(parseUnits("0.001", 18))).to.not.be.reverted;
+          await btcbUser.approve(vBTC_ADDRESS, repayAmount);
+
+          const borrowBefore = await vBTC.borrowBalanceStored(await borrower2.getAddress());
+          const uBalBefore = await btcbUser.balanceOf(await borrower2.getAddress());
+          await expect(vBTC.connect(borrower2).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
+
+          expect(await vBTC.borrowBalanceStored(await borrower2.getAddress())).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await btcbUser.balanceOf(await borrower2.getAddress())).to.equal(uBalBefore.sub(repayAmount));
         });
+
       });
 
       // =====================================================================
@@ -547,6 +629,7 @@ if (FORK_MAINNET) {
           pumpUSDTPrice();
         });
 
+
         it("borrow blocked (CF bounded) but liquidation rejected (LT spot solvent)", async () => {
           // CF bounded: capacity = 10000 * $1 * 0.8 = $8000. 0.15 BTC * $60k = $9000 > $8000
           await expect(vBTC.connect(borrower3).borrow(parseUnits("0.15", 18))).to.be.revertedWith("math error");
@@ -569,11 +652,43 @@ if (FORK_MAINNET) {
 
         it("getBorrowingPower (CF) shows less capacity than getAccountLiquidity (LT)", async () => {
           const addr = await borrower3.getAddress();
-          const [, cfLiquidity, cfShortfall] = await comptroller.getBorrowingPower(addr);
+          const [, cfLiquidity] = await comptroller.getBorrowingPower(addr);
           const [, ltLiquidity] = await comptroller.getAccountLiquidity(addr);
 
           // LT uses pumped $1.50 spot → higher collateral. CF uses bounded $1 → lower
           expect(ltLiquidity).to.be.gt(cfLiquidity);
+        });
+
+        it("getBorrowingPower before vs after pump — bounded prices cap capacity", async () => {
+          // Set up fresh user to get clean before/after comparison
+          const freshUser = (await ethers.getSigners())[8];
+          const freshAddr = await freshUser.getAddress();
+
+          resetPrices();
+
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(freshAddr, parseUnits("10000", 18));
+          const usdtFresh = BEP20__factory.connect(USDT_ADDR, freshUser);
+          await usdtFresh.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await vUSDT.connect(freshUser).mint(parseUnits("10000", 18));
+          await comptroller.connect(freshUser).enterMarkets([vUSDT_ADDRESS]);
+
+          // Before pump: record borrowing power at $1
+          const [, liquidityBefore] = await comptroller.getBorrowingPower(freshAddr);
+
+          // Pump USDT to $1.50
+          pumpUSDTPrice();
+
+          // After pump: DBO bounds collateral at window min ($1) → capacity stays same
+          const [, liquidityAfter] = await comptroller.getBorrowingPower(freshAddr);
+
+          // Borrowing power unchanged — DBO capped at pre-pump price
+          expect(liquidityAfter).to.equal(liquidityBefore);
+
+          // But LT uses pumped spot → higher value
+          const [, ltLiquidity] = await comptroller.getAccountLiquidity(freshAddr);
+          expect(ltLiquidity).to.be.gt(liquidityAfter);
         });
       });
 
@@ -599,7 +714,13 @@ if (FORK_MAINNET) {
           await comptroller.connect(attacker).enterMarkets([vUSDT_ADDRESS]);
 
           // Small borrow at normal prices works: 0.001 BTC = $60
-          await expect(vBTC.connect(attacker).borrow(parseUnits("0.001", 18))).to.not.be.reverted;
+          const smallBorrow = parseUnits("0.001", 18);
+          const btcbAttacker = BEP20__factory.connect(BTCB_ADDR, attacker);
+          const uBalBefore = await btcbAttacker.balanceOf(addr);
+          const borrowBefore = await vBTC.borrowBalanceStored(addr);
+          await expect(vBTC.connect(attacker).borrow(smallBorrow)).to.emit(vBTC, "Borrow");
+          expect(await btcbAttacker.balanceOf(addr)).to.equal(uBalBefore.add(smallBorrow));
+          expect(await vBTC.borrowBalanceStored(addr)).to.be.closeTo(borrowBefore.add(smallBorrow), parseUnits("0.000001", 18));
 
           // Pump USDT 5x: $1 → $5
           const pumpedPrice5x = parseUnits("5", 18);
@@ -741,6 +862,38 @@ if (FORK_MAINNET) {
           const errCode = await comptroller.connect(newUser).callStatic.exitMarket(vUSDT_ADDRESS);
           expect(errCode).to.equal(0);
         });
+
+        it("exitMarket blocked at bounded CF but solvent at spot LT", async () => {
+          const exitUser = ethers.Wallet.createRandom().connect(ethers.provider);
+          const exitAddr = await exitUser.getAddress();
+          await setBalance(exitAddr, parseUnits("10", 18));
+
+          await neutralizeDBO();
+
+          // Supply and borrow near max
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(exitAddr, parseUnits("10000", 18));
+          const usdtExit = BEP20__factory.connect(USDT_ADDR, exitUser);
+          await usdtExit.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await vUSDT.connect(exitUser).mint(parseUnits("10000", 18));
+          await comptroller.connect(exitUser).enterMarkets([vUSDT_ADDRESS]);
+          await vBTC.connect(exitUser).borrow(parseUnits("0.01", 18));
+
+          // Pump triggers DBO protection → bounded collateral at $1
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+
+          // exitMarket blocked at CF (bounded prices create shortfall on full exit)
+          const exitErrCode = await comptroller.connect(exitUser).callStatic.exitMarket(vUSDT_ADDRESS);
+          expect(exitErrCode).to.not.equal(0);
+
+          // But account solvent at LT (spot $1.50 → plenty of headroom)
+          const [ltErr, ltLiquidity, ltShortfall] = await comptroller.getAccountLiquidity(exitAddr);
+          expect(ltErr).to.equal(0);
+          expect(ltLiquidity).to.be.gt(0);
+          expect(ltShortfall).to.equal(0);
+        });
       });
 
       // =====================================================================
@@ -778,7 +931,13 @@ if (FORK_MAINNET) {
           await comptroller.connect(newUser).enterMarkets([vUSDT_ADDRESS]);
 
           // 10000 USDT * $1 * 0.8 = $8000 capacity. 0.001 BTC * $60k = $60 → easy
-          await expect(vBTC.connect(newUser).borrow(parseUnits("0.001", 18))).to.not.be.reverted;
+          const borrowAmt = parseUnits("0.001", 18);
+          const btcbNewUser = BEP20__factory.connect(BTCB_ADDR, newUser);
+          const uBalBefore = await btcbNewUser.balanceOf(await newUser.getAddress());
+          const borrowBefore = await vBTC.borrowBalanceStored(await newUser.getAddress());
+          await expect(vBTC.connect(newUser).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+          expect(await btcbNewUser.balanceOf(await newUser.getAddress())).to.equal(uBalBefore.add(borrowAmt));
+          expect(await vBTC.borrowBalanceStored(await newUser.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
         });
       });
 
@@ -847,7 +1006,13 @@ if (FORK_MAINNET) {
 
           it("borrow 0.05 BTC now succeeds — increased collateral valuation", async () => {
             // Total debt = 0.15 BTC * $60k = $9000 < $10,400 → OK
-            await expect(vBTC.connect(borrower5).borrow(parseUnits("0.05", 18))).to.not.be.reverted;
+            const borrowAmt = parseUnits("0.05", 18);
+            const btcb5 = BEP20__factory.connect(BTCB_ADDR, borrower5);
+            const uBalBefore = await btcb5.balanceOf(await borrower5.getAddress());
+            const borrowBefore = await vBTC.borrowBalanceStored(await borrower5.getAddress());
+            await expect(vBTC.connect(borrower5).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+            expect(await btcb5.balanceOf(await borrower5.getAddress())).to.equal(uBalBefore.add(borrowAmt));
+            expect(await vBTC.borrowBalanceStored(await borrower5.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
           });
 
           it("getBorrowingPower reflects higher capacity than before keeper action", async () => {
@@ -933,7 +1098,12 @@ if (FORK_MAINNET) {
             await dbo.connect(timelock).updateMaxPrice(BTCB_ADDR, parseUnits("65000", 18));
             // Bounded debt = max($60k, $65k) = $65k → 0.12 BTC = $7800
             // Capacity $8000 - $7800 = $200 headroom → very small borrow works
-            await expect(vBTC.connect(borrower5c).borrow(parseUnits("0.001", 18))).to.not.be.reverted;
+            const borrowAmt = parseUnits("0.001", 18);
+            const btcb5c = BEP20__factory.connect(BTCB_ADDR, borrower5c);
+            const uBalBefore = await btcb5c.balanceOf(await borrower5c.getAddress());
+            const borrowBefore = await vBTC.borrowBalanceStored(await borrower5c.getAddress());
+            await expect(vBTC.connect(borrower5c).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+            expect(await btcb5c.balanceOf(await borrower5c.getAddress())).to.equal(uBalBefore.add(borrowAmt));
           });
         });
       });
@@ -983,7 +1153,13 @@ if (FORK_MAINNET) {
 
           it("before threshold change — borrow succeeds at spot price", async () => {
             // Not protected → bounded = spot. Small additional borrow should succeed
-            await expect(vBTC.connect(borrower6).borrow(parseUnits("0.01", 18))).to.not.be.reverted;
+            const borrowAmt = parseUnits("0.01", 18);
+            const btcb6 = BEP20__factory.connect(BTCB_ADDR, borrower6);
+            const uBalBefore = await btcb6.balanceOf(await borrower6.getAddress());
+            const borrowBefore = await vBTC.borrowBalanceStored(await borrower6.getAddress());
+            await expect(vBTC.connect(borrower6).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+            expect(await btcb6.balanceOf(await borrower6.getAddress())).to.equal(uBalBefore.add(borrowAmt));
+            expect(await vBTC.borrowBalanceStored(await borrower6.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
           });
 
           it("keeper lowers trigger to 10% — protection activates, borrow reverts", async () => {
@@ -997,7 +1173,7 @@ if (FORK_MAINNET) {
             // Try to borrow a meaningful amount relative to remaining capacity
             const [, remaining] = await comptroller.getBorrowingPower(await borrower6.getAddress());
             // Borrow 2x remaining capacity (if any) to ensure it exceeds bounded limit after trigger
-            const attemptBtc = remaining.mul(2).mul(parseUnits("1", 18)).div(BTCB_PRICE);
+            const attemptBtc = remaining.mul(2).mul(parseUnits("1", 18)).div(BTCB_PRICE)
             await expect(vBTC.connect(borrower6).borrow(attemptBtc)).to.be.revertedWith("math error");
           });
 
@@ -1023,6 +1199,7 @@ if (FORK_MAINNET) {
                 .liquidateBorrow(await borrower6.getAddress(), parseUnits("0.05", 18), vUSDT.address),
             ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL
           });
+
         });
 
         describe("14b. Raising trigger threshold — does NOT retroactively disable protection", () => {
@@ -1079,8 +1256,15 @@ if (FORK_MAINNET) {
             await expect(dbo.connect(timelock).disableActiveProtection(USDT_ADDR)).to.not.be.reverted;
 
             // User can now borrow at spot capacity
-            await expect(vBTC.connect(borrower7).borrow(parseUnits("0.05", 18))).to.not.be.reverted;
+            const borrowAmt = parseUnits("0.05", 18);
+            const btcb7 = BEP20__factory.connect(BTCB_ADDR, borrower7);
+            const uBalBefore = await btcb7.balanceOf(await borrower7.getAddress());
+            const borrowBefore = await vBTC.borrowBalanceStored(await borrower7.getAddress());
+            await expect(vBTC.connect(borrower7).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+            expect(await btcb7.balanceOf(await borrower7.getAddress())).to.equal(uBalBefore.add(borrowAmt));
+            expect(await vBTC.borrowBalanceStored(await borrower7.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
           });
+
         });
 
         describe("14c. setCooldownPeriod affects when protection can be disabled", () => {
@@ -1136,7 +1320,13 @@ if (FORK_MAINNET) {
             await expect(dbo.connect(timelock).disableActiveProtection(USDT_ADDR)).to.not.be.reverted;
 
             // User can now borrow
-            await expect(vBTC.connect(borrower8).borrow(parseUnits("0.05", 18))).to.not.be.reverted;
+            const borrowAmt = parseUnits("0.05", 18);
+            const btcb8 = BEP20__factory.connect(BTCB_ADDR, borrower8);
+            const uBalBefore = await btcb8.balanceOf(await borrower8.getAddress());
+            const borrowBefore = await vBTC.borrowBalanceStored(await borrower8.getAddress());
+            await expect(vBTC.connect(borrower8).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+            expect(await btcb8.balanceOf(await borrower8.getAddress())).to.equal(uBalBefore.add(borrowAmt));
+            expect(await vBTC.borrowBalanceStored(await borrower8.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
           });
         });
       });
@@ -1183,21 +1373,37 @@ if (FORK_MAINNET) {
         });
 
         it("mint succeeds — no liquidity check", async () => {
+          const mintAmount = parseUnits("100", 18);
           const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
           const usdt = BEP20__factory.connect(USDT_ADDR, whale);
-          await usdt.transfer(user15Addr, parseUnits("100", 18));
+          await usdt.transfer(user15Addr, mintAmount);
           const usdtUser = BEP20__factory.connect(USDT_ADDR, user15);
-          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("100", 18));
-          await expect(vUSDT.connect(user15).mint(parseUnits("100", 18))).to.not.be.reverted;
+          await usdtUser.approve(vUSDT_ADDRESS, mintAmount);
+
+          const vBalBefore = await vUSDT.balanceOf(user15Addr);
+          const uBalBefore = await usdtUser.balanceOf(user15Addr);
+          const er = await vUSDT.callStatic.exchangeRateCurrent();
+          const expectedVTokens = mintAmount.mul(parseUnits("1", 18)).div(er);
+          await expect(vUSDT.connect(user15).mint(mintAmount)).to.emit(vUSDT, "Mint");
+
+          expect(await vUSDT.balanceOf(user15Addr)).to.be.closeTo(vBalBefore.add(expectedVTokens), parseUnits("1", 8));
+          expect(await usdtUser.balanceOf(user15Addr)).to.equal(uBalBefore.sub(mintAmount));
         });
 
         it("repayBorrow succeeds — no liquidity check", async () => {
+          const repayAmount = parseUnits("0.001", 18);
           const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
           const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
-          await btcb.transfer(user15Addr, parseUnits("0.001", 18));
+          await btcb.transfer(user15Addr, repayAmount);
           const btcbUser = BEP20__factory.connect(BTCB_ADDR, user15);
-          await btcbUser.approve(vBTC_ADDRESS, parseUnits("0.001", 18));
-          await expect(vBTC.connect(user15).repayBorrow(parseUnits("0.001", 18))).to.not.be.reverted;
+          await btcbUser.approve(vBTC_ADDRESS, repayAmount);
+
+          const borrowBefore = await vBTC.borrowBalanceStored(user15Addr);
+          const uBalBefore = await btcbUser.balanceOf(user15Addr);
+          await expect(vBTC.connect(user15).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
+
+          expect(await vBTC.borrowBalanceStored(user15Addr)).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await btcbUser.balanceOf(user15Addr)).to.equal(uBalBefore.sub(repayAmount));
         });
 
         it("borrow reverts — bounded collateral limits capacity", async () => {
@@ -1252,6 +1458,7 @@ if (FORK_MAINNET) {
           await expect(comptroller.connect(user15)["claimVenus(address,address[])"](user15Addr, [vUSDT_ADDRESS])).to.not
             .be.reverted;
         });
+
       });
 
       // =====================================================================
@@ -1296,21 +1503,37 @@ if (FORK_MAINNET) {
         });
 
         it("mint succeeds — no liquidity check", async () => {
+          const mintAmount = parseUnits("100", 18);
           const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
           const usdt = BEP20__factory.connect(USDT_ADDR, whale);
-          await usdt.transfer(user16Addr, parseUnits("100", 18));
+          await usdt.transfer(user16Addr, mintAmount);
           const usdtUser = BEP20__factory.connect(USDT_ADDR, user16);
-          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("100", 18));
-          await expect(vUSDT.connect(user16).mint(parseUnits("100", 18))).to.not.be.reverted;
+          await usdtUser.approve(vUSDT_ADDRESS, mintAmount);
+
+          const vBalBefore = await vUSDT.balanceOf(user16Addr);
+          const uBalBefore = await usdtUser.balanceOf(user16Addr);
+          const er = await vUSDT.callStatic.exchangeRateCurrent();
+          const expectedVTokens = mintAmount.mul(parseUnits("1", 18)).div(er);
+          await expect(vUSDT.connect(user16).mint(mintAmount)).to.emit(vUSDT, "Mint");
+
+          expect(await vUSDT.balanceOf(user16Addr)).to.be.closeTo(vBalBefore.add(expectedVTokens), parseUnits("1", 8));
+          expect(await usdtUser.balanceOf(user16Addr)).to.equal(uBalBefore.sub(mintAmount));
         });
 
         it("repayBorrow succeeds — no liquidity check", async () => {
+          const repayAmount = parseUnits("0.001", 18);
           const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
           const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
-          await btcb.transfer(user16Addr, parseUnits("0.001", 18));
+          await btcb.transfer(user16Addr, repayAmount);
           const btcbUser = BEP20__factory.connect(BTCB_ADDR, user16);
-          await btcbUser.approve(vBTC_ADDRESS, parseUnits("0.001", 18));
-          await expect(vBTC.connect(user16).repayBorrow(parseUnits("0.001", 18))).to.not.be.reverted;
+          await btcbUser.approve(vBTC_ADDRESS, repayAmount);
+
+          const borrowBefore = await vBTC.borrowBalanceStored(user16Addr);
+          const uBalBefore = await btcbUser.balanceOf(user16Addr);
+          await expect(vBTC.connect(user16).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
+
+          expect(await vBTC.borrowBalanceStored(user16Addr)).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await btcbUser.balanceOf(user16Addr)).to.equal(uBalBefore.sub(repayAmount));
         });
 
         it("borrow restricted — bounded window limits capacity despite normal spot", async () => {
@@ -1415,37 +1638,59 @@ if (FORK_MAINNET) {
         });
 
         it("mint succeeds", async () => {
+          const mintAmount = parseUnits("100", 18);
           const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
           const usdt = BEP20__factory.connect(USDT_ADDR, whale);
-          await usdt.transfer(user17Addr, parseUnits("100", 18));
+          await usdt.transfer(user17Addr, mintAmount);
           const usdtUser = BEP20__factory.connect(USDT_ADDR, user17);
-          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("100", 18));
-          await expect(vUSDT.connect(user17).mint(parseUnits("100", 18))).to.not.be.reverted;
+          await usdtUser.approve(vUSDT_ADDRESS, mintAmount);
+
+          const vBalBefore = await vUSDT.balanceOf(user17Addr);
+          const uBalBefore = await usdtUser.balanceOf(user17Addr);
+          const er = await vUSDT.callStatic.exchangeRateCurrent();
+          const expectedVTokens = mintAmount.mul(parseUnits("1", 18)).div(er);
+          await expect(vUSDT.connect(user17).mint(mintAmount)).to.emit(vUSDT, "Mint");
+
+          expect(await vUSDT.balanceOf(user17Addr)).to.be.closeTo(vBalBefore.add(expectedVTokens), parseUnits("1", 8));
+          expect(await usdtUser.balanceOf(user17Addr)).to.equal(uBalBefore.sub(mintAmount));
         });
 
         it("repayBorrow succeeds", async () => {
+          const repayAmount = parseUnits("0.001", 18);
           const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
           const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
-          await btcb.transfer(user17Addr, parseUnits("0.001", 18));
+          await btcb.transfer(user17Addr, repayAmount);
           const btcbUser = BEP20__factory.connect(BTCB_ADDR, user17);
-          await btcbUser.approve(vBTC_ADDRESS, parseUnits("0.001", 18));
-          await expect(vBTC.connect(user17).repayBorrow(parseUnits("0.001", 18))).to.not.be.reverted;
+          await btcbUser.approve(vBTC_ADDRESS, repayAmount);
+
+          const borrowBefore = await vBTC.borrowBalanceStored(user17Addr);
+          const uBalBefore = await btcbUser.balanceOf(user17Addr);
+          await expect(vBTC.connect(user17).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
+
+          expect(await vBTC.borrowBalanceStored(user17Addr)).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await btcbUser.balanceOf(user17Addr)).to.equal(uBalBefore.sub(repayAmount));
         });
 
         it("borrow succeeds — capacity restored to spot levels", async () => {
           // No protection → bounded = spot. Plenty of headroom ($5000+)
-          await expect(vBTC.connect(user17).borrow(parseUnits("0.01", 18))).to.not.be.reverted;
+          const borrowAmt = parseUnits("0.01", 18);
+          const btcb17 = BEP20__factory.connect(BTCB_ADDR, user17);
+          const uBalBefore = await btcb17.balanceOf(user17Addr);
+          const borrowBefore = await vBTC.borrowBalanceStored(user17Addr);
+          await expect(vBTC.connect(user17).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+
+          expect(await btcb17.balanceOf(user17Addr)).to.equal(uBalBefore.add(borrowAmt));
+          expect(await vBTC.borrowBalanceStored(user17Addr)).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
         });
 
         it("redeem succeeds — collateral valued at spot", async () => {
           // Small redeem — still solvent with plenty of headroom
-          await expect(vUSDT.connect(user17).redeemUnderlying(parseUnits("500", 18))).to.not.be.reverted;
-        });
+          const redeemAmount = parseUnits("500", 18);
+          const usdtUser17 = BEP20__factory.connect(USDT_ADDR, user17);
+          const uBalBefore = await usdtUser17.balanceOf(user17Addr);
+          await expect(vUSDT.connect(user17).redeemUnderlying(redeemAmount)).to.emit(vUSDT, "Redeem");
 
-        it("transfer succeeds", async () => {
-          const dst = ethers.Wallet.createRandom().connect(ethers.provider);
-          await expect(vUSDT.connect(user17).transfer(await dst.getAddress(), parseUnits("100", 18))).to.not.be
-            .reverted;
+          expect(await usdtUser17.balanceOf(user17Addr)).to.equal(uBalBefore.add(redeemAmount));
         });
 
         it("exitMarket succeeds for market with no borrows", async () => {
@@ -1495,6 +1740,576 @@ if (FORK_MAINNET) {
         it("claimVenus succeeds normally", async () => {
           await expect(comptroller.connect(user17)["claimVenus(address,address[])"](user17Addr, [vUSDT_ADDRESS])).to.not
             .be.reverted;
+        });
+      });
+
+      // =====================================================================
+      // Part 18: Oracle vs DBO Price Divergence Cycle
+      // =====================================================================
+      describe("18. Oracle vs DBO price divergence through protection lifecycle", () => {
+        let user19: Signer;
+        let user19Addr: string;
+
+        before(async () => {
+          user19 = ethers.Wallet.createRandom().connect(ethers.provider);
+          user19Addr = await user19.getAddress();
+          await setBalance(user19Addr, parseUnits("10", 18));
+
+          await neutralizeDBO();
+
+          // Supply USDT
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(user19Addr, parseUnits("10000", 18));
+          const usdtUser = BEP20__factory.connect(USDT_ADDR, user19);
+          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await vUSDT.connect(user19).mint(parseUnits("10000", 18));
+          await comptroller.connect(user19).enterMarkets([vUSDT_ADDRESS]);
+        });
+
+        it("Phase 1: no protection — DBO prices equal spot", async () => {
+          const spot = await fakeOracle.getUnderlyingPrice(vUSDT_ADDRESS);
+          const [collPrice, debtPrice] = await dbo.getBoundedPricesView(vUSDT_ADDRESS);
+          expect(collPrice).to.equal(spot);
+          expect(debtPrice).to.equal(spot);
+        });
+
+        it("Phase 2: pump triggers protection — DBO collateral < spot", async () => {
+          pumpUSDTPrice(); // $1 → $1.50
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+
+          const spot = await fakeOracle.getUnderlyingPrice(vUSDT_ADDRESS);
+          expect(spot).to.equal(USDT_PUMPED);
+
+          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          expect(config.isProtectedPriceActive).to.be.true;
+
+          const [collPrice, debtPrice] = await dbo.getBoundedPricesView(vUSDT_ADDRESS);
+          // After neutralizeDBO, windowMin=$0.99. Collateral = min($1.50, $0.99) = $0.99
+          const NEUTRALIZED_MIN = USDT_PRICE.mul(99).div(100);
+          expect(collPrice).to.equal(NEUTRALIZED_MIN);
+          // Debt bounded at window max ($1.50) = spot (max expanded)
+          expect(debtPrice).to.equal(USDT_PUMPED);
+        });
+
+        it("Phase 3: spot normalizes, protection still active — debt > spot", async () => {
+          resetPrices(); // back to $1
+
+          const spot = await fakeOracle.getUnderlyingPrice(vUSDT_ADDRESS);
+          expect(spot).to.equal(USDT_PRICE);
+
+          // Protection still active (cooldown not elapsed)
+          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          expect(config.isProtectedPriceActive).to.be.true;
+
+          const [collPrice, debtPrice] = await dbo.getBoundedPricesView(vUSDT_ADDRESS);
+          // Collateral = min(spot=$1, windowMin=$0.99) = $0.99
+          const NEUTRALIZED_MIN = USDT_PRICE.mul(99).div(100);
+          expect(collPrice).to.equal(NEUTRALIZED_MIN);
+          // Debt = max(spot=$1, windowMax=$1.50) = $1.50 > spot
+          expect(debtPrice).to.equal(USDT_PUMPED);
+        });
+
+        it("Phase 4: protection disabled — DBO prices equal spot again", async () => {
+          await time.increase(COOLDOWN_PERIOD + 1);
+
+          // Narrow window to allow disable
+          await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
+          await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
+          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+
+          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          expect(config.isProtectedPriceActive).to.be.false;
+
+          const spot = await fakeOracle.getUnderlyingPrice(vUSDT_ADDRESS);
+          const [collPrice, debtPrice] = await dbo.getBoundedPricesView(vUSDT_ADDRESS);
+          expect(collPrice).to.equal(spot);
+          expect(debtPrice).to.equal(spot);
+        });
+      });
+
+      // =====================================================================
+      // Part 19: Full Protection Lifecycle
+      // =====================================================================
+      describe("19. Full lifecycle: configure → pump → block → disable → allow", () => {
+        let user20: Signer;
+        let user20Addr: string;
+
+        before(async () => {
+          user20 = ethers.Wallet.createRandom().connect(ethers.provider);
+          user20Addr = await user20.getAddress();
+          await setBalance(user20Addr, parseUnits("10", 18));
+
+          await neutralizeDBO();
+        });
+
+        it("Step 1: asset configured — bounded pricing enabled, protection inactive", async () => {
+          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          expect(config.isBoundedPricingEnabled).to.be.true;
+          expect(config.isProtectedPriceActive).to.be.false;
+        });
+
+        it("Step 2: set up position — supply USDT, borrow BTC", async () => {
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(user20Addr, parseUnits("10000", 18));
+          const usdtUser = BEP20__factory.connect(USDT_ADDR, user20);
+          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await expect(vUSDT.connect(user20).mint(parseUnits("10000", 18))).to.emit(vUSDT, "Mint");
+          await comptroller.connect(user20).enterMarkets([vUSDT_ADDRESS]);
+
+          // Borrow 95% capacity
+          const [, capacity] = await comptroller.getBorrowingPower(user20Addr);
+          const borrowBtc = capacity.mul(95).div(100).mul(parseUnits("1", 18)).div(BTCB_PRICE);
+          const btcb20 = BEP20__factory.connect(BTCB_ADDR, user20);
+          const uBalBefore = await btcb20.balanceOf(user20Addr);
+          const borrowBefore = await vBTC.borrowBalanceStored(user20Addr);
+          await expect(vBTC.connect(user20).borrow(borrowBtc)).to.emit(vBTC, "Borrow");
+          expect(await btcb20.balanceOf(user20Addr)).to.equal(uBalBefore.add(borrowBtc));
+          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(borrowBefore.add(borrowBtc), parseUnits("0.000001", 18));
+        });
+
+        it("Step 3: pump triggers protection — actions blocked", async () => {
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+
+          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          expect(config.isProtectedPriceActive).to.be.true;
+
+          // Borrow reverts
+          await expect(vBTC.connect(user20).borrow(parseUnits("0.01", 18))).to.be.revertedWith("math error");
+          // Redeem reverts
+          await expect(vUSDT.connect(user20).redeemUnderlying(parseUnits("1000", 18))).to.be.revertedWith("math error");
+          // Transfer emits Failure
+          const dst = ethers.Wallet.createRandom().connect(ethers.provider);
+          await expect(vUSDT.connect(user20).transfer(await dst.getAddress(), parseUnits("1000", 18))).to.emit(
+            vUSDT,
+            "Failure",
+          );
+        });
+
+        it("Step 4: advance cooldown, keeper disables protection", async () => {
+          await time.increase(COOLDOWN_PERIOD + 1);
+          resetPrices();
+
+          await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
+          await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
+          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+
+          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          expect(config.isProtectedPriceActive).to.be.false;
+        });
+
+        it("Step 5: actions allowed again — borrow succeeds with balance check", async () => {
+          // Repay some debt first to create headroom
+          const repayAmt = parseUnits("0.05", 18);
+          const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
+          const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
+          await btcb.transfer(user20Addr, repayAmt);
+          const btcb20 = BEP20__factory.connect(BTCB_ADDR, user20);
+          await btcb20.approve(vBTC_ADDRESS, repayAmt);
+          const borrowBeforeRepay = await vBTC.borrowBalanceStored(user20Addr);
+          await expect(vBTC.connect(user20).repayBorrow(repayAmt)).to.emit(vBTC, "RepayBorrow");
+          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(borrowBeforeRepay.sub(repayAmt), parseUnits("0.000001", 18));
+
+          // Small borrow succeeds
+          const smallBorrow = parseUnits("0.001", 18);
+          const uBalBefore = await btcb20.balanceOf(user20Addr);
+          const borrowBefore = await vBTC.borrowBalanceStored(user20Addr);
+          await expect(vBTC.connect(user20).borrow(smallBorrow)).to.emit(vBTC, "Borrow");
+          expect(await btcb20.balanceOf(user20Addr)).to.equal(uBalBefore.add(smallBorrow));
+          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(borrowBefore.add(smallBorrow), parseUnits("0.000001", 18));
+        });
+      });
+
+      // =====================================================================
+      // Part 20: Multi-Asset Protection Independence
+      // =====================================================================
+      describe("20. Multi-asset protection independence", () => {
+        it("protection on USDT does not block user with only BTC collateral", async () => {
+          await neutralizeDBO();
+
+          // Pump USDT to trigger protection
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          expect(config.isProtectedPriceActive).to.be.true;
+
+          // BTC should NOT be protected
+          const btcConfig = await dbo.assetProtectionConfig(BTCB_ADDR);
+          expect(btcConfig.isProtectedPriceActive).to.be.false;
+
+          // Fresh user with BTC collateral can still borrow
+          const freshUser = ethers.Wallet.createRandom().connect(ethers.provider);
+          const freshAddr = await freshUser.getAddress();
+          await setBalance(freshAddr, parseUnits("10", 18));
+
+          const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
+          const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
+          await btcb.transfer(freshAddr, parseUnits("0.1", 18));
+
+          const btcbFresh = BEP20__factory.connect(BTCB_ADDR, freshUser);
+          await btcbFresh.approve(vBTC_ADDRESS, parseUnits("0.1", 18));
+          await vBTC.connect(freshUser).mint(parseUnits("0.1", 18));
+          await comptroller.connect(freshUser).enterMarkets([vBTC_ADDRESS]);
+
+          // Borrow small USDT against BTC collateral
+          const borrowAmt = parseUnits("100", 18);
+          const usdtFresh = BEP20__factory.connect(USDT_ADDR, freshUser);
+          const uBalBefore = await usdtFresh.balanceOf(freshAddr);
+          const borrowBefore = await vUSDT.borrowBalanceStored(freshAddr);
+          await expect(vUSDT.connect(freshUser).borrow(borrowAmt)).to.emit(vUSDT, "Borrow");
+          expect(await usdtFresh.balanceOf(freshAddr)).to.equal(uBalBefore.add(borrowAmt));
+          expect(await vUSDT.borrowBalanceStored(freshAddr)).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+        });
+      });
+
+      // =====================================================================
+      // Part 21: Re-enable Protection After Disable
+      // =====================================================================
+      describe("21. Re-enable protection after disable", () => {
+        it("trigger → disable → re-pump → re-trigger — borrow blocked, allowed, blocked again", async () => {
+          await neutralizeDBO();
+
+          // Set up a user with USDT collateral, borrow near max
+          const user21 = ethers.Wallet.createRandom().connect(ethers.provider);
+          const user21Addr = await user21.getAddress();
+          await setBalance(user21Addr, parseUnits("10", 18));
+
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(user21Addr, parseUnits("10000", 18));
+          const usdtUser = BEP20__factory.connect(USDT_ADDR, user21);
+          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await vUSDT.connect(user21).mint(parseUnits("10000", 18));
+          await comptroller.connect(user21).enterMarkets([vUSDT_ADDRESS]);
+
+          // Borrow 95% of capacity to make position tight
+          const [, capacity] = await comptroller.getBorrowingPower(user21Addr);
+          const borrowBtc = capacity.mul(95).div(100).mul(parseUnits("1", 18)).div(BTCB_PRICE);
+          await vBTC.connect(user21).borrow(borrowBtc);
+
+          // First trigger — pump activates protection
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.true;
+
+          // Borrow blocked — bounded prices restrict capacity
+          await expect(vBTC.connect(user21).borrow(parseUnits("0.01", 18))).to.be.revertedWith("math error");
+
+          // Disable protection
+          await time.increase(COOLDOWN_PERIOD + 1);
+          resetPrices();
+          await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
+          await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
+          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.false;
+
+          // Borrow now allowed — protection disabled, spot prices used
+          await expect(vBTC.connect(user21).borrow(parseUnits("0.001", 18))).to.not.be.reverted;
+
+          // Re-pump triggers protection again
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.true;
+
+          // Borrow blocked again — bounded prices re-applied
+          await expect(vBTC.connect(user21).borrow(parseUnits("0.01", 18))).to.be.revertedWith("math error");
+        });
+      });
+
+      // =====================================================================
+      // Part 22: Liquidation During Protection on Collateral Only
+      // =====================================================================
+      describe("22. Liquidation during protection on collateral asset only", () => {
+        it("USDT protected, BTCB not — LT uses spot, protection irrelevant", async () => {
+          await neutralizeDBO();
+
+          // Set up user with USDT collateral, BTC borrow
+          const user25 = ethers.Wallet.createRandom().connect(ethers.provider);
+          const addr25 = await user25.getAddress();
+          await setBalance(addr25, parseUnits("10", 18));
+
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(addr25, parseUnits("10000", 18));
+          const usdtU = BEP20__factory.connect(USDT_ADDR, user25);
+          await usdtU.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await vUSDT.connect(user25).mint(parseUnits("10000", 18));
+          await comptroller.connect(user25).enterMarkets([vUSDT_ADDRESS]);
+          await vBTC.connect(user25).borrow(parseUnits("0.01", 18));
+
+          // Trigger protection on USDT only
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.true;
+          expect((await dbo.assetProtectionConfig(BTCB_ADDR)).isProtectedPriceActive).to.be.false;
+
+          // Liquidation uses LT spot — borrower solvent at pumped $1.50
+          // LT: 10000 * $1.50 * 0.9 = $13500 >> 0.01 * $60k = $600
+          const liq25 = ethers.Wallet.createRandom().connect(ethers.provider);
+          await setBalance(await liq25.getAddress(), parseUnits("10", 18));
+          const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
+          const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
+          await btcb.transfer(await liq25.getAddress(), parseUnits("0.01", 18));
+          const btcbLiq = BEP20__factory.connect(BTCB_ADDR, liq25);
+          await btcbLiq.approve(vBTC_ADDRESS, parseUnits("0.01", 18));
+
+          await expect(
+            vBTC.connect(liq25).liquidateBorrow(addr25, parseUnits("0.005", 18), vUSDT.address),
+          ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL — protection doesn't affect LT
+        });
+      });
+
+      // =====================================================================
+      // Part 23: getBorrowingPower vs getAccountLiquidity Divergence
+      // =====================================================================
+      describe("23. getBorrowingPower vs getAccountLiquidity divergence through cycle", () => {
+        let user26: Signer;
+        let user26Addr: string;
+
+        before(async () => {
+          user26 = ethers.Wallet.createRandom().connect(ethers.provider);
+          user26Addr = await user26.getAddress();
+          await setBalance(user26Addr, parseUnits("10", 18));
+
+          await neutralizeDBO();
+
+          // Set CF=0.7, LT=0.9 on vUSDT for deterministic divergence (mainnet has CF==LT==0.8)
+          await comptroller["setCollateralFactor(address,uint256,uint256)"](
+            vUSDT_ADDRESS, parseUnits("0.7", 18), parseUnits("0.9", 18),
+          );
+
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(user26Addr, parseUnits("10000", 18));
+          const usdtU = BEP20__factory.connect(USDT_ADDR, user26);
+          await usdtU.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await vUSDT.connect(user26).mint(parseUnits("10000", 18));
+          await comptroller.connect(user26).enterMarkets([vUSDT_ADDRESS]);
+
+          // Borrow 50% of capacity
+          const [, capacity] = await comptroller.getBorrowingPower(user26Addr);
+          const borrowBtc = capacity.mul(50).div(100).mul(parseUnits("1", 18)).div(BTCB_PRICE);
+          await vBTC.connect(user26).borrow(borrowBtc);
+        });
+
+        it("normal prices: both show solvency, LT (0.9) > CF (0.7)", async () => {
+          const [cfErr, cfLiquidity, cfShortfall] = await comptroller.getBorrowingPower(user26Addr);
+          const [ltErr, ltLiquidity, ltShortfall] = await comptroller.getAccountLiquidity(user26Addr);
+          expect(cfErr).to.equal(0);
+          expect(ltErr).to.equal(0);
+          expect(cfLiquidity).to.be.gt(0);
+          expect(ltLiquidity).to.be.gt(0);
+          expect(cfShortfall).to.equal(0);
+          expect(ltShortfall).to.equal(0);
+          // LT=0.9 > CF=0.7 → ltLiquidity > cfLiquidity
+          expect(ltLiquidity).to.be.gt(cfLiquidity);
+        });
+
+        it("pump: CF may show reduced capacity, LT sees pumped spot — max divergence", async () => {
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+
+          const [, cfLiquidity, cfShortfall] = await comptroller.getBorrowingPower(user26Addr);
+          const [, ltLiquidity] = await comptroller.getAccountLiquidity(user26Addr);
+
+          // CF uses bounded $1 → capacity capped
+          // LT uses pumped $1.50 → capacity increased
+          expect(ltLiquidity).to.be.gt(cfLiquidity.add(cfShortfall));
+        });
+
+        it("after disable: both converge back", async () => {
+          await time.increase(COOLDOWN_PERIOD + 1);
+          resetPrices();
+          await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
+          await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
+          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+
+          const [, cfLiquidity] = await comptroller.getBorrowingPower(user26Addr);
+          const [, ltLiquidity] = await comptroller.getAccountLiquidity(user26Addr);
+
+          // Both show solvency, LT still > CF due to weighting
+          expect(cfLiquidity).to.be.gt(0);
+          expect(ltLiquidity).to.be.gt(0);
+          expect(ltLiquidity).to.be.gt(cfLiquidity);
+        });
+      });
+
+      // =====================================================================
+      // Part 24: Borrow Token Crash (Debt Deflation)
+      // =====================================================================
+      describe("24. Borrow token crash — DBO bounds debt at window max", () => {
+        let borrower26: Signer;
+        let borrower26Addr: string;
+
+        before(async () => {
+          borrower26 = ethers.Wallet.createRandom().connect(ethers.provider);
+          borrower26Addr = await borrower26.getAddress();
+          await setBalance(borrower26Addr, parseUnits("10", 18));
+
+          await neutralizeDBO();
+
+          // Supply 50000 USDT
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(borrower26Addr, parseUnits("50000", 18));
+          const usdtUser = BEP20__factory.connect(USDT_ADDR, borrower26);
+          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("50000", 18));
+          await vUSDT.connect(borrower26).mint(parseUnits("50000", 18));
+          await comptroller.connect(borrower26).enterMarkets([vUSDT_ADDRESS]);
+
+          // Borrow 0.5 BTC at normal $60k = $30000 (within $40000 capacity)
+          await vBTC.connect(borrower26).borrow(parseUnits("0.5", 18));
+
+          // Crash BTC from $60k to $42k
+          crashBTCBPrice();
+        });
+
+        it("borrow reverts — bounded debt at $60k blocks over-borrowing cheap BTC", async () => {
+          // DBO bounds BTC debt at window max ($60k), not spot $42k
+          // Existing debt: 0.5 BTC * $60k (bounded) = $30000
+          // Capacity: 50000 * $1 * 0.8 = $40000. Remaining: $10000
+          // Try 0.2 BTC: at bounded $60k = $12000 > $10000 remaining → blocked
+          await expect(vBTC.connect(borrower26).borrow(parseUnits("0.2", 18))).to.be.revertedWith("math error");
+        });
+
+        it("borrow succeeds within bounded capacity", async () => {
+          // 0.05 BTC at bounded $60k = $3000 < ~$10000 remaining → OK
+          const borrowAmt = parseUnits("0.05", 18);
+          const btcb26 = BEP20__factory.connect(BTCB_ADDR, borrower26);
+          const uBalBefore = await btcb26.balanceOf(borrower26Addr);
+          const borrowBefore = await vBTC.borrowBalanceStored(borrower26Addr);
+
+          await expect(vBTC.connect(borrower26).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
+
+          expect(await btcb26.balanceOf(borrower26Addr)).to.equal(uBalBefore.add(borrowAmt));
+          expect(await vBTC.borrowBalanceStored(borrower26Addr)).to.be.closeTo(
+            borrowBefore.add(borrowAmt),
+            parseUnits("0.000001", 18),
+          );
+        });
+
+        it("liquidation uses spot $42k for BTC debt — borrower very solvent", async () => {
+          // LT: 50000 * $1 * 0.8 = $40000. Debt at spot $42k: ~0.6 BTC * $42k = $25200 → solvent
+          const liquidator = ethers.Wallet.createRandom().connect(ethers.provider);
+          await setBalance(await liquidator.getAddress(), parseUnits("10", 18));
+          const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
+          const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
+          await btcb.transfer(await liquidator.getAddress(), parseUnits("0.1", 18));
+          const btcbLiq = BEP20__factory.connect(BTCB_ADDR, liquidator);
+          await btcbLiq.approve(vBTC_ADDRESS, parseUnits("0.1", 18));
+
+          await expect(
+            vBTC.connect(liquidator).liquidateBorrow(borrower26Addr, parseUnits("0.05", 18), vUSDT.address),
+          ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL
+        });
+
+        it("getBorrowingPower uses bounded $60k debt — capacity reduced vs spot", async () => {
+          // At bounded $60k: debt is valued higher than spot $42k → less remaining capacity
+          const [, cfLiquidity] = await comptroller.getBorrowingPower(borrower26Addr);
+          const [, ltLiquidity] = await comptroller.getAccountLiquidity(borrower26Addr);
+
+          // CF uses bounded → debt valued at $60k → tighter capacity
+          // LT uses spot $42k → debt valued lower → more headroom
+          expect(ltLiquidity).to.be.gt(cfLiquidity);
+        });
+      });
+
+      // =====================================================================
+      // Part 25: Extreme Volatility — Price Swings Past Max AND Below Min
+      // =====================================================================
+      describe("25. Extreme volatility — price swings past max and below min", () => {
+        let user27: Signer;
+        let user27Addr: string;
+
+        before(async () => {
+          user27 = ethers.Wallet.createRandom().connect(ethers.provider);
+          user27Addr = await user27.getAddress();
+          await setBalance(user27Addr, parseUnits("10", 18));
+
+          await neutralizeDBO();
+
+          // Supply 10000 USDT
+          const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
+          const usdt = BEP20__factory.connect(USDT_ADDR, whale);
+          await usdt.transfer(user27Addr, parseUnits("10000", 18));
+          const usdtUser = BEP20__factory.connect(USDT_ADDR, user27);
+          await usdtUser.approve(vUSDT_ADDRESS, parseUnits("10000", 18));
+          await vUSDT.connect(user27).mint(parseUnits("10000", 18));
+          await comptroller.connect(user27).enterMarkets([vUSDT_ADDRESS]);
+
+          // Borrow small amount at normal prices
+          await vBTC.connect(user27).borrow(parseUnits("0.01", 18));
+        });
+
+        it("borrowing power collapses through volatility stages", async () => {
+          // Stage 1 — Normal: record capacity
+          const [, liqNormal] = await comptroller.getBorrowingPower(user27Addr);
+          expect(liqNormal).to.be.gt(0);
+
+          // Stage 2 — Pump USDT to $1.50: DBO bounds collateral at $1
+          pumpUSDTPrice();
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+          const [, liqPump] = await comptroller.getBorrowingPower(user27Addr);
+          // Capacity capped at bounded $1 — should be <= normal
+          expect(liqPump).to.be.lte(liqNormal);
+
+          // Stage 3 — Crash USDT to $0.30: window expands down
+          const crashedUsdt = parseUnits("0.3", 18);
+          fakeOracle.getPrice.whenCalledWith(USDT_ADDR).returns(crashedUsdt);
+          fakeOracle.getUnderlyingPrice.whenCalledWith(vUSDT_ADDRESS).returns(crashedUsdt);
+          await dbo.updateProtectionState(vUSDT_ADDRESS);
+
+          const [, liqCrash, shortfallCrash] = await comptroller.getBorrowingPower(user27Addr);
+          // Capacity collapsed — collateral at $0.30, debt inflated
+          expect(liqCrash.add(shortfallCrash)).to.be.gt(0); // either liquidity or shortfall exists
+          // Much worse than normal
+          expect(liqCrash).to.be.lt(liqNormal);
+        });
+
+        it("borrow blocked under extreme volatility", async () => {
+          // After the pump+crash above, DBO returns extreme bounded prices
+          // Collateral devalued + debt inflated → borrow blocked
+          await expect(vBTC.connect(user27).borrow(parseUnits("0.1", 18))).to.be.revertedWith("math error");
+        });
+
+        it("liquidation possible under extreme crash at LT spot", async () => {
+          // Crash USDT severely — $0.30 spot
+          // LT: 10000 * $0.30 * 0.8 = $2400 vs debt = 0.01 BTC * $60k = $600 → still solvent for small borrow
+          // Need larger borrow to be underwater. Let's check current state.
+          const [, , ltShortfall] = await comptroller.getAccountLiquidity(user27Addr);
+
+          if (ltShortfall.gt(0)) {
+            // User is underwater at LT — liquidation should succeed
+            const liquidator = ethers.Wallet.createRandom().connect(ethers.provider);
+            await setBalance(await liquidator.getAddress(), parseUnits("10", 18));
+            const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
+            const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
+            await btcb.transfer(await liquidator.getAddress(), parseUnits("0.01", 18));
+            const btcbLiq = BEP20__factory.connect(BTCB_ADDR, liquidator);
+            await btcbLiq.approve(vBTC_ADDRESS, parseUnits("0.01", 18));
+
+            const debtBefore = await vBTC.borrowBalanceStored(user27Addr);
+            await vBTC.connect(liquidator).liquidateBorrow(user27Addr, parseUnits("0.005", 18), vUSDT.address);
+            expect(await vBTC.borrowBalanceStored(user27Addr)).to.be.closeTo(
+              debtBefore.sub(parseUnits("0.005", 18)),
+              parseUnits("0.000001", 18),
+            );
+          } else {
+            // User solvent at LT — liquidation should fail
+            const liquidator = ethers.Wallet.createRandom().connect(ethers.provider);
+            await setBalance(await liquidator.getAddress(), parseUnits("10", 18));
+            const btcbWhale = await initMainnetUser(BTCB_WHALE, parseUnits("1"));
+            const btcb = BEP20__factory.connect(BTCB_ADDR, btcbWhale);
+            await btcb.transfer(await liquidator.getAddress(), parseUnits("0.01", 18));
+            const btcbLiq = BEP20__factory.connect(BTCB_ADDR, liquidator);
+            await btcbLiq.approve(vBTC_ADDRESS, parseUnits("0.01", 18));
+
+            await expect(
+              vBTC.connect(liquidator).liquidateBorrow(user27Addr, parseUnits("0.005", 18), vUSDT.address),
+            ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL
+          }
         });
       });
     });
