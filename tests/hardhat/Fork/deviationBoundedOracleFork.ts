@@ -227,8 +227,8 @@ async function grantPermissions(): Promise<void> {
 async function grantDBOPermissions(dboAddress: string): Promise<void> {
   const timelockAddr = await timelock.getAddress();
   const dboPerms = [
-    "setTokenConfig(address,uint64,uint256,uint256)",
-    "disableActiveProtection(address)",
+    "setTokenConfig(address,uint64,uint256,uint256,bool)",
+    "disableActiveProtectedPrice(address)",
     "updateMinPrice(address,uint128)",
     "updateMaxPrice(address,uint128)",
     "setThresholds(address,uint256,uint256)",
@@ -263,8 +263,8 @@ async function neutralizeDBO(): Promise<void> {
 
     // Disable protection if active (range = 2% < 5% reset threshold, cooldown elapsed)
     const cfg = await dbo.assetProtectionConfig(asset);
-    if (cfg.isProtectedPriceActive) {
-      await dbo.connect(timelock).disableActiveProtection(asset);
+    if (cfg.currentlyUsingProtectedPrice) {
+      await dbo.connect(timelock).disableActiveProtectedPrice(asset);
     }
   }
 
@@ -314,9 +314,15 @@ if (FORK_MAINNET) {
         await comptroller.setIsBorrowAllowed(0, vBTC_ADDRESS, true);
 
         // 6. Configure DBO tokens (setTokenConfig calls getPrice internally)
-        await dbo.connect(timelock).setTokenConfig(USDT_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD);
-        await dbo.connect(timelock).setTokenConfig(BTCB_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD);
-        await dbo.connect(timelock).setTokenConfig(WBNB_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD);
+        await dbo
+          .connect(timelock)
+          .setTokenConfig(USDT_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD, true);
+        await dbo
+          .connect(timelock)
+          .setTokenConfig(BTCB_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD, true);
+        await dbo
+          .connect(timelock)
+          .setTokenConfig(WBNB_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD, true);
 
         // 7. Wire DBO into comptroller
         await comptroller.setDeviationBoundedOracle(dbo.address);
@@ -334,7 +340,7 @@ if (FORK_MAINNET) {
           const usdtConfig = await dbo.assetProtectionConfig(USDT_ADDR);
           expect(usdtConfig.asset).to.equal(USDT_ADDR);
           expect(usdtConfig.isBoundedPricingEnabled).to.be.true;
-          expect(usdtConfig.isProtectedPriceActive).to.be.false;
+          expect(usdtConfig.currentlyUsingProtectedPrice).to.be.false;
           // minPrice and maxPrice should be USDT_PRICE (deterministic $1)
           expect(usdtConfig.minPrice).to.equal(USDT_PRICE);
           expect(usdtConfig.maxPrice).to.equal(USDT_PRICE);
@@ -371,7 +377,10 @@ if (FORK_MAINNET) {
 
           await expect(vUSDT.connect(user).mint(amount)).to.emit(vUSDT, "Mint");
 
-          expect(await vUSDT.balanceOf(await user.getAddress())).to.be.closeTo(vBalBefore.add(expectedVTokens), parseUnits("1", 8));
+          expect(await vUSDT.balanceOf(await user.getAddress())).to.be.closeTo(
+            vBalBefore.add(expectedVTokens),
+            parseUnits("1", 8),
+          );
           expect(await usdtUser.balanceOf(await user.getAddress())).to.equal(uBalBefore.sub(amount));
         });
 
@@ -386,7 +395,10 @@ if (FORK_MAINNET) {
           await expect(vBTC.connect(user).borrow(borrowAmount)).to.emit(vBTC, "Borrow");
 
           expect(await btcb.balanceOf(await user.getAddress())).to.equal(uBalBefore.add(borrowAmount));
-          expect(await vBTC.borrowBalanceStored(await user.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmount), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(await user.getAddress())).to.be.closeTo(
+            borrowBefore.add(borrowAmount),
+            parseUnits("0.000001", 18),
+          );
         });
 
         it("user can repay via vToken.repayBorrow()", async () => {
@@ -404,7 +416,10 @@ if (FORK_MAINNET) {
             const uBalBefore = await btcbUser.balanceOf(userAddr);
             await expect(vBTC.connect(user).repayBorrow(debt)).to.emit(vBTC, "RepayBorrow");
 
-            expect(await vBTC.borrowBalanceStored(userAddr)).to.be.closeTo(borrowBefore.sub(debt), parseUnits("0.000001", 18));
+            expect(await vBTC.borrowBalanceStored(userAddr)).to.be.closeTo(
+              borrowBefore.sub(debt),
+              parseUnits("0.000001", 18),
+            );
             expect(await btcbUser.balanceOf(userAddr)).to.equal(uBalBefore.sub(debt));
           }
         });
@@ -487,7 +502,10 @@ if (FORK_MAINNET) {
           const uBalBefore = await btcbBorrower.balanceOf(await borrower.getAddress());
           await expect(vBTC.connect(borrower).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
 
-          expect(await vBTC.borrowBalanceStored(await borrower.getAddress())).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(await borrower.getAddress())).to.be.closeTo(
+            borrowBefore.sub(repayAmount),
+            parseUnits("0.000001", 18),
+          );
           expect(await btcbBorrower.balanceOf(await borrower.getAddress())).to.equal(uBalBefore.sub(repayAmount));
         });
 
@@ -538,9 +556,10 @@ if (FORK_MAINNET) {
         it("transfer blocked when bounded prices show shortfall", async () => {
           // Transfer large vUSDT → would reduce collateral below bounded capacity → Failure
           const dst = (await ethers.getSigners())[4];
-          await expect(
-            vUSDT.connect(borrower).transfer(await dst.getAddress(), parseUnits("5000", 18)),
-          ).to.emit(vUSDT, "Failure");
+          await expect(vUSDT.connect(borrower).transfer(await dst.getAddress(), parseUnits("5000", 18))).to.emit(
+            vUSDT,
+            "Failure",
+          );
         });
       });
 
@@ -598,10 +617,12 @@ if (FORK_MAINNET) {
           const uBalBefore = await btcbUser.balanceOf(await borrower2.getAddress());
           await expect(vBTC.connect(borrower2).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
 
-          expect(await vBTC.borrowBalanceStored(await borrower2.getAddress())).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(await borrower2.getAddress())).to.be.closeTo(
+            borrowBefore.sub(repayAmount),
+            parseUnits("0.000001", 18),
+          );
           expect(await btcbUser.balanceOf(await borrower2.getAddress())).to.equal(uBalBefore.sub(repayAmount));
         });
-
       });
 
       // =====================================================================
@@ -628,7 +649,6 @@ if (FORK_MAINNET) {
 
           pumpUSDTPrice();
         });
-
 
         it("borrow blocked (CF bounded) but liquidation rejected (LT spot solvent)", async () => {
           // CF bounded: capacity = 10000 * $1 * 0.8 = $8000. 0.15 BTC * $60k = $9000 > $8000
@@ -720,7 +740,10 @@ if (FORK_MAINNET) {
           const borrowBefore = await vBTC.borrowBalanceStored(addr);
           await expect(vBTC.connect(attacker).borrow(smallBorrow)).to.emit(vBTC, "Borrow");
           expect(await btcbAttacker.balanceOf(addr)).to.equal(uBalBefore.add(smallBorrow));
-          expect(await vBTC.borrowBalanceStored(addr)).to.be.closeTo(borrowBefore.add(smallBorrow), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(addr)).to.be.closeTo(
+            borrowBefore.add(smallBorrow),
+            parseUnits("0.000001", 18),
+          );
 
           // Pump USDT 5x: $1 → $5
           const pumpedPrice5x = parseUnits("5", 18);
@@ -769,7 +792,7 @@ if (FORK_MAINNET) {
 
         it("protection still active despite normal prices — bounded collateral restricts borrow", async () => {
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
         });
 
         it("liquidation uses spot (normal) prices — borrower solvent", async () => {
@@ -794,9 +817,9 @@ if (FORK_MAINNET) {
       // Part 8: Keeper Disables Protection
       // =====================================================================
       describe("8. Keeper disables protection — normal operation resumes", () => {
-        it("disableActiveProtection reverts before cooldown elapses", async () => {
+        it("disableActiveProtectedPrice reverts before cooldown elapses", async () => {
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          await expect(dbo.connect(timelock).disableActiveProtection(USDT_ADDR)).to.be.reverted;
+          await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.be.reverted;
         });
 
         it("keeper narrows window + disables protection after cooldown", async () => {
@@ -812,10 +835,10 @@ if (FORK_MAINNET) {
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, newMin);
 
           // Disable protection
-          await expect(dbo.connect(timelock).disableActiveProtection(USDT_ADDR)).to.not.be.reverted;
+          await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.not.be.reverted;
 
           const updatedConfig = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(updatedConfig.isProtectedPriceActive).to.be.false;
+          expect(updatedConfig.currentlyUsingProtectedPrice).to.be.false;
         });
       });
 
@@ -937,7 +960,10 @@ if (FORK_MAINNET) {
           const borrowBefore = await vBTC.borrowBalanceStored(await newUser.getAddress());
           await expect(vBTC.connect(newUser).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
           expect(await btcbNewUser.balanceOf(await newUser.getAddress())).to.equal(uBalBefore.add(borrowAmt));
-          expect(await vBTC.borrowBalanceStored(await newUser.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(await newUser.getAddress())).to.be.closeTo(
+            borrowBefore.add(borrowAmt),
+            parseUnits("0.000001", 18),
+          );
         });
       });
 
@@ -971,7 +997,7 @@ if (FORK_MAINNET) {
 
           // Verify protection is active
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
         });
 
         describe("13a. Before keeper action — user restricted at bounded prices", () => {
@@ -1012,7 +1038,10 @@ if (FORK_MAINNET) {
             const borrowBefore = await vBTC.borrowBalanceStored(await borrower5.getAddress());
             await expect(vBTC.connect(borrower5).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
             expect(await btcb5.balanceOf(await borrower5.getAddress())).to.equal(uBalBefore.add(borrowAmt));
-            expect(await vBTC.borrowBalanceStored(await borrower5.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+            expect(await vBTC.borrowBalanceStored(await borrower5.getAddress())).to.be.closeTo(
+              borrowBefore.add(borrowAmt),
+              parseUnits("0.000001", 18),
+            );
           });
 
           it("getBorrowingPower reflects higher capacity than before keeper action", async () => {
@@ -1072,7 +1101,7 @@ if (FORK_MAINNET) {
 
             // Verify BTC protection activated
             const btcConfig = await dbo.assetProtectionConfig(BTCB_ADDR);
-            expect(btcConfig.isProtectedPriceActive).to.be.true;
+            expect(btcConfig.currentlyUsingProtectedPrice).to.be.true;
 
             // Return BTC spot to $60k — window: min=$60k, max=$90k
             fakeOracle.getPrice.whenCalledWith(BTCB_ADDR).returns(BTCB_PRICE);
@@ -1083,7 +1112,7 @@ if (FORK_MAINNET) {
           it("borrow blocked — BTC debt inflated at bounded max", async () => {
             // Verify BTC protection is active and window expanded
             const btcCfg = await dbo.assetProtectionConfig(BTCB_ADDR);
-            expect(btcCfg.isProtectedPriceActive).to.be.true;
+            expect(btcCfg.currentlyUsingProtectedPrice).to.be.true;
             expect(btcCfg.maxPrice.gte(BTCB_PUMPED)).to.be.true;
 
             // With protection: debt = max(spot=$60k, max=$90k) = $90k
@@ -1148,7 +1177,7 @@ if (FORK_MAINNET) {
           it("before threshold change — protection is NOT active", async () => {
             const config = await dbo.assetProtectionConfig(USDT_ADDR);
             // 12% deviation < 16.67% trigger → protection should not be active
-            expect(config.isProtectedPriceActive).to.be.false;
+            expect(config.currentlyUsingProtectedPrice).to.be.false;
           });
 
           it("before threshold change — borrow succeeds at spot price", async () => {
@@ -1159,7 +1188,10 @@ if (FORK_MAINNET) {
             const borrowBefore = await vBTC.borrowBalanceStored(await borrower6.getAddress());
             await expect(vBTC.connect(borrower6).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
             expect(await btcb6.balanceOf(await borrower6.getAddress())).to.equal(uBalBefore.add(borrowAmt));
-            expect(await vBTC.borrowBalanceStored(await borrower6.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+            expect(await vBTC.borrowBalanceStored(await borrower6.getAddress())).to.be.closeTo(
+              borrowBefore.add(borrowAmt),
+              parseUnits("0.000001", 18),
+            );
           });
 
           it("keeper lowers trigger to 10% — protection activates, borrow reverts", async () => {
@@ -1173,7 +1205,7 @@ if (FORK_MAINNET) {
             // Try to borrow a meaningful amount relative to remaining capacity
             const [, remaining] = await comptroller.getBorrowingPower(await borrower6.getAddress());
             // Borrow 2x remaining capacity (if any) to ensure it exceeds bounded limit after trigger
-            const attemptBtc = remaining.mul(2).mul(parseUnits("1", 18)).div(BTCB_PRICE)
+            const attemptBtc = remaining.mul(2).mul(parseUnits("1", 18)).div(BTCB_PRICE);
             await expect(vBTC.connect(borrower6).borrow(attemptBtc)).to.be.revertedWith("math error");
           });
 
@@ -1199,7 +1231,6 @@ if (FORK_MAINNET) {
                 .liquidateBorrow(await borrower6.getAddress(), parseUnits("0.05", 18), vUSDT.address),
             ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL
           });
-
         });
 
         describe("14b. Raising trigger threshold — does NOT retroactively disable protection", () => {
@@ -1230,7 +1261,7 @@ if (FORK_MAINNET) {
 
           it("protection is active", async () => {
             const config = await dbo.assetProtectionConfig(USDT_ADDR);
-            expect(config.isProtectedPriceActive).to.be.true;
+            expect(config.currentlyUsingProtectedPrice).to.be.true;
           });
 
           it("keeper raises trigger to 25% — protection stays active (not retroactive)", async () => {
@@ -1238,13 +1269,13 @@ if (FORK_MAINNET) {
 
             // Protection already triggered → changing threshold doesn't auto-disable
             const config = await dbo.assetProtectionConfig(USDT_ADDR);
-            expect(config.isProtectedPriceActive).to.be.true;
+            expect(config.currentlyUsingProtectedPrice).to.be.true;
 
             // User still restricted at bounded prices
             await expect(vBTC.connect(borrower7).borrow(parseUnits("0.05", 18))).to.be.revertedWith("math error");
           });
 
-          it("but wider reset threshold makes disableActiveProtection easier", async () => {
+          it("but wider reset threshold makes disableActiveProtectedPrice easier", async () => {
             // Advance past cooldown
             await time.increase(COOLDOWN_PERIOD + 1);
 
@@ -1252,8 +1283,8 @@ if (FORK_MAINNET) {
             await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PUMPED.mul(101).div(100));
             await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PUMPED.mul(95).div(100));
             // Range = ($1.515 - $1.425) / $1.425 ≈ 6.3%
-            // With reset=8%, 6.3% < 8% → disableActiveProtection should succeed
-            await expect(dbo.connect(timelock).disableActiveProtection(USDT_ADDR)).to.not.be.reverted;
+            // With reset=8%, 6.3% < 8% → disableActiveProtectedPrice should succeed
+            await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.not.be.reverted;
 
             // User can now borrow at spot capacity
             const borrowAmt = parseUnits("0.05", 18);
@@ -1262,9 +1293,11 @@ if (FORK_MAINNET) {
             const borrowBefore = await vBTC.borrowBalanceStored(await borrower7.getAddress());
             await expect(vBTC.connect(borrower7).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
             expect(await btcb7.balanceOf(await borrower7.getAddress())).to.equal(uBalBefore.add(borrowAmt));
-            expect(await vBTC.borrowBalanceStored(await borrower7.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+            expect(await vBTC.borrowBalanceStored(await borrower7.getAddress())).to.be.closeTo(
+              borrowBefore.add(borrowAmt),
+              parseUnits("0.000001", 18),
+            );
           });
-
         });
 
         describe("14c. setCooldownPeriod affects when protection can be disabled", () => {
@@ -1293,10 +1326,10 @@ if (FORK_MAINNET) {
 
             // Verify protection is active
             const config = await dbo.assetProtectionConfig(USDT_ADDR);
-            expect(config.isProtectedPriceActive).to.be.true;
+            expect(config.currentlyUsingProtectedPrice).to.be.true;
           });
 
-          it("keeper extends cooldown — disableActiveProtection reverts after original cooldown", async () => {
+          it("keeper extends cooldown — disableActiveProtectedPrice reverts after original cooldown", async () => {
             // Extend cooldown from 1 hour to 2 hours
             await dbo.connect(timelock).setCooldownPeriod(USDT_ADDR, COOLDOWN_PERIOD * 2);
 
@@ -1310,14 +1343,14 @@ if (FORK_MAINNET) {
             await dbo.connect(timelock).updateMinPrice(USDT_ADDR, newMin);
 
             // Still within new 2-hour cooldown → revert
-            await expect(dbo.connect(timelock).disableActiveProtection(USDT_ADDR)).to.be.reverted;
+            await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.be.reverted;
           });
 
-          it("after extended cooldown elapses — disableActiveProtection succeeds", async () => {
+          it("after extended cooldown elapses — disableActiveProtectedPrice succeeds", async () => {
             // Advance past remaining cooldown
             await time.increase(COOLDOWN_PERIOD + 1);
 
-            await expect(dbo.connect(timelock).disableActiveProtection(USDT_ADDR)).to.not.be.reverted;
+            await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.not.be.reverted;
 
             // User can now borrow
             const borrowAmt = parseUnits("0.05", 18);
@@ -1326,7 +1359,10 @@ if (FORK_MAINNET) {
             const borrowBefore = await vBTC.borrowBalanceStored(await borrower8.getAddress());
             await expect(vBTC.connect(borrower8).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
             expect(await btcb8.balanceOf(await borrower8.getAddress())).to.equal(uBalBefore.add(borrowAmt));
-            expect(await vBTC.borrowBalanceStored(await borrower8.getAddress())).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+            expect(await vBTC.borrowBalanceStored(await borrower8.getAddress())).to.be.closeTo(
+              borrowBefore.add(borrowAmt),
+              parseUnits("0.000001", 18),
+            );
           });
         });
       });
@@ -1369,7 +1405,7 @@ if (FORK_MAINNET) {
 
           // Verify protection is active
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
         });
 
         it("mint succeeds — no liquidity check", async () => {
@@ -1402,7 +1438,10 @@ if (FORK_MAINNET) {
           const uBalBefore = await btcbUser.balanceOf(user15Addr);
           await expect(vBTC.connect(user15).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
 
-          expect(await vBTC.borrowBalanceStored(user15Addr)).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(user15Addr)).to.be.closeTo(
+            borrowBefore.sub(repayAmount),
+            parseUnits("0.000001", 18),
+          );
           expect(await btcbUser.balanceOf(user15Addr)).to.equal(uBalBefore.sub(repayAmount));
         });
 
@@ -1458,7 +1497,6 @@ if (FORK_MAINNET) {
           await expect(comptroller.connect(user15)["claimVenus(address,address[])"](user15Addr, [vUSDT_ADDRESS])).to.not
             .be.reverted;
         });
-
       });
 
       // =====================================================================
@@ -1499,7 +1537,7 @@ if (FORK_MAINNET) {
 
           // Verify protection still active
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
         });
 
         it("mint succeeds — no liquidity check", async () => {
@@ -1532,7 +1570,10 @@ if (FORK_MAINNET) {
           const uBalBefore = await btcbUser.balanceOf(user16Addr);
           await expect(vBTC.connect(user16).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
 
-          expect(await vBTC.borrowBalanceStored(user16Addr)).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(user16Addr)).to.be.closeTo(
+            borrowBefore.sub(repayAmount),
+            parseUnits("0.000001", 18),
+          );
           expect(await btcbUser.balanceOf(user16Addr)).to.equal(uBalBefore.sub(repayAmount));
         });
 
@@ -1630,11 +1671,11 @@ if (FORK_MAINNET) {
           await time.increase(COOLDOWN_PERIOD + 1);
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100)); // $1.01
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100)); // $0.99
-          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
 
           // Verify protection is disabled
           const cfgAfter = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(cfgAfter.isProtectedPriceActive).to.be.false;
+          expect(cfgAfter.currentlyUsingProtectedPrice).to.be.false;
         });
 
         it("mint succeeds", async () => {
@@ -1667,7 +1708,10 @@ if (FORK_MAINNET) {
           const uBalBefore = await btcbUser.balanceOf(user17Addr);
           await expect(vBTC.connect(user17).repayBorrow(repayAmount)).to.emit(vBTC, "RepayBorrow");
 
-          expect(await vBTC.borrowBalanceStored(user17Addr)).to.be.closeTo(borrowBefore.sub(repayAmount), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(user17Addr)).to.be.closeTo(
+            borrowBefore.sub(repayAmount),
+            parseUnits("0.000001", 18),
+          );
           expect(await btcbUser.balanceOf(user17Addr)).to.equal(uBalBefore.sub(repayAmount));
         });
 
@@ -1680,7 +1724,10 @@ if (FORK_MAINNET) {
           await expect(vBTC.connect(user17).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
 
           expect(await btcb17.balanceOf(user17Addr)).to.equal(uBalBefore.add(borrowAmt));
-          expect(await vBTC.borrowBalanceStored(user17Addr)).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(user17Addr)).to.be.closeTo(
+            borrowBefore.add(borrowAmt),
+            parseUnits("0.000001", 18),
+          );
         });
 
         it("redeem succeeds — collateral valued at spot", async () => {
@@ -1782,7 +1829,7 @@ if (FORK_MAINNET) {
           expect(spot).to.equal(USDT_PUMPED);
 
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
 
           const [collPrice, debtPrice] = await dbo.getBoundedPricesView(vUSDT_ADDRESS);
           // After neutralizeDBO, windowMin=$0.99. Collateral = min($1.50, $0.99) = $0.99
@@ -1800,7 +1847,7 @@ if (FORK_MAINNET) {
 
           // Protection still active (cooldown not elapsed)
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
 
           const [collPrice, debtPrice] = await dbo.getBoundedPricesView(vUSDT_ADDRESS);
           // Collateral = min(spot=$1, windowMin=$0.99) = $0.99
@@ -1816,10 +1863,10 @@ if (FORK_MAINNET) {
           // Narrow window to allow disable
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
 
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.false;
+          expect(config.currentlyUsingProtectedPrice).to.be.false;
 
           const spot = await fakeOracle.getUnderlyingPrice(vUSDT_ADDRESS);
           const [collPrice, debtPrice] = await dbo.getBoundedPricesView(vUSDT_ADDRESS);
@@ -1846,7 +1893,7 @@ if (FORK_MAINNET) {
         it("Step 1: asset configured — bounded pricing enabled, protection inactive", async () => {
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
           expect(config.isBoundedPricingEnabled).to.be.true;
-          expect(config.isProtectedPriceActive).to.be.false;
+          expect(config.currentlyUsingProtectedPrice).to.be.false;
         });
 
         it("Step 2: set up position — supply USDT, borrow BTC", async () => {
@@ -1866,7 +1913,10 @@ if (FORK_MAINNET) {
           const borrowBefore = await vBTC.borrowBalanceStored(user20Addr);
           await expect(vBTC.connect(user20).borrow(borrowBtc)).to.emit(vBTC, "Borrow");
           expect(await btcb20.balanceOf(user20Addr)).to.equal(uBalBefore.add(borrowBtc));
-          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(borrowBefore.add(borrowBtc), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(
+            borrowBefore.add(borrowBtc),
+            parseUnits("0.000001", 18),
+          );
         });
 
         it("Step 3: pump triggers protection — actions blocked", async () => {
@@ -1874,7 +1924,7 @@ if (FORK_MAINNET) {
           await dbo.updateProtectionState(vUSDT_ADDRESS);
 
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
 
           // Borrow reverts
           await expect(vBTC.connect(user20).borrow(parseUnits("0.01", 18))).to.be.revertedWith("math error");
@@ -1894,10 +1944,10 @@ if (FORK_MAINNET) {
 
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
 
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.false;
+          expect(config.currentlyUsingProtectedPrice).to.be.false;
         });
 
         it("Step 5: actions allowed again — borrow succeeds with balance check", async () => {
@@ -1910,7 +1960,10 @@ if (FORK_MAINNET) {
           await btcb20.approve(vBTC_ADDRESS, repayAmt);
           const borrowBeforeRepay = await vBTC.borrowBalanceStored(user20Addr);
           await expect(vBTC.connect(user20).repayBorrow(repayAmt)).to.emit(vBTC, "RepayBorrow");
-          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(borrowBeforeRepay.sub(repayAmt), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(
+            borrowBeforeRepay.sub(repayAmt),
+            parseUnits("0.000001", 18),
+          );
 
           // Small borrow succeeds
           const smallBorrow = parseUnits("0.001", 18);
@@ -1918,7 +1971,10 @@ if (FORK_MAINNET) {
           const borrowBefore = await vBTC.borrowBalanceStored(user20Addr);
           await expect(vBTC.connect(user20).borrow(smallBorrow)).to.emit(vBTC, "Borrow");
           expect(await btcb20.balanceOf(user20Addr)).to.equal(uBalBefore.add(smallBorrow));
-          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(borrowBefore.add(smallBorrow), parseUnits("0.000001", 18));
+          expect(await vBTC.borrowBalanceStored(user20Addr)).to.be.closeTo(
+            borrowBefore.add(smallBorrow),
+            parseUnits("0.000001", 18),
+          );
         });
       });
 
@@ -1933,11 +1989,11 @@ if (FORK_MAINNET) {
           pumpUSDTPrice();
           await dbo.updateProtectionState(vUSDT_ADDRESS);
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
-          expect(config.isProtectedPriceActive).to.be.true;
+          expect(config.currentlyUsingProtectedPrice).to.be.true;
 
           // BTC should NOT be protected
           const btcConfig = await dbo.assetProtectionConfig(BTCB_ADDR);
-          expect(btcConfig.isProtectedPriceActive).to.be.false;
+          expect(btcConfig.currentlyUsingProtectedPrice).to.be.false;
 
           // Fresh user with BTC collateral can still borrow
           const freshUser = ethers.Wallet.createRandom().connect(ethers.provider);
@@ -1960,7 +2016,10 @@ if (FORK_MAINNET) {
           const borrowBefore = await vUSDT.borrowBalanceStored(freshAddr);
           await expect(vUSDT.connect(freshUser).borrow(borrowAmt)).to.emit(vUSDT, "Borrow");
           expect(await usdtFresh.balanceOf(freshAddr)).to.equal(uBalBefore.add(borrowAmt));
-          expect(await vUSDT.borrowBalanceStored(freshAddr)).to.be.closeTo(borrowBefore.add(borrowAmt), parseUnits("0.000001", 18));
+          expect(await vUSDT.borrowBalanceStored(freshAddr)).to.be.closeTo(
+            borrowBefore.add(borrowAmt),
+            parseUnits("0.000001", 18),
+          );
         });
       });
 
@@ -1992,7 +2051,7 @@ if (FORK_MAINNET) {
           // First trigger — pump activates protection
           pumpUSDTPrice();
           await dbo.updateProtectionState(vUSDT_ADDRESS);
-          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.true;
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).currentlyUsingProtectedPrice).to.be.true;
 
           // Borrow blocked — bounded prices restrict capacity
           await expect(vBTC.connect(user21).borrow(parseUnits("0.01", 18))).to.be.revertedWith("math error");
@@ -2002,8 +2061,8 @@ if (FORK_MAINNET) {
           resetPrices();
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
-          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.false;
+          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).currentlyUsingProtectedPrice).to.be.false;
 
           // Borrow now allowed — protection disabled, spot prices used
           await expect(vBTC.connect(user21).borrow(parseUnits("0.001", 18))).to.not.be.reverted;
@@ -2011,7 +2070,7 @@ if (FORK_MAINNET) {
           // Re-pump triggers protection again
           pumpUSDTPrice();
           await dbo.updateProtectionState(vUSDT_ADDRESS);
-          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.true;
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).currentlyUsingProtectedPrice).to.be.true;
 
           // Borrow blocked again — bounded prices re-applied
           await expect(vBTC.connect(user21).borrow(parseUnits("0.01", 18))).to.be.revertedWith("math error");
@@ -2042,8 +2101,8 @@ if (FORK_MAINNET) {
           // Trigger protection on USDT only
           pumpUSDTPrice();
           await dbo.updateProtectionState(vUSDT_ADDRESS);
-          expect((await dbo.assetProtectionConfig(USDT_ADDR)).isProtectedPriceActive).to.be.true;
-          expect((await dbo.assetProtectionConfig(BTCB_ADDR)).isProtectedPriceActive).to.be.false;
+          expect((await dbo.assetProtectionConfig(USDT_ADDR)).currentlyUsingProtectedPrice).to.be.true;
+          expect((await dbo.assetProtectionConfig(BTCB_ADDR)).currentlyUsingProtectedPrice).to.be.false;
 
           // Liquidation uses LT spot — borrower solvent at pumped $1.50
           // LT: 10000 * $1.50 * 0.9 = $13500 >> 0.01 * $60k = $600
@@ -2055,9 +2114,10 @@ if (FORK_MAINNET) {
           const btcbLiq = BEP20__factory.connect(BTCB_ADDR, liq25);
           await btcbLiq.approve(vBTC_ADDRESS, parseUnits("0.01", 18));
 
-          await expect(
-            vBTC.connect(liq25).liquidateBorrow(addr25, parseUnits("0.005", 18), vUSDT.address),
-          ).to.emit(vBTC, "Failure"); // INSUFFICIENT_SHORTFALL — protection doesn't affect LT
+          await expect(vBTC.connect(liq25).liquidateBorrow(addr25, parseUnits("0.005", 18), vUSDT.address)).to.emit(
+            vBTC,
+            "Failure",
+          ); // INSUFFICIENT_SHORTFALL — protection doesn't affect LT
         });
       });
 
@@ -2077,7 +2137,9 @@ if (FORK_MAINNET) {
 
           // Set CF=0.7, LT=0.9 on vUSDT for deterministic divergence (mainnet has CF==LT==0.8)
           await comptroller["setCollateralFactor(address,uint256,uint256)"](
-            vUSDT_ADDRESS, parseUnits("0.7", 18), parseUnits("0.9", 18),
+            vUSDT_ADDRESS,
+            parseUnits("0.7", 18),
+            parseUnits("0.9", 18),
           );
 
           const whale = await initMainnetUser(USDT_WHALE, parseUnits("1"));
@@ -2124,7 +2186,7 @@ if (FORK_MAINNET) {
           resetPrices();
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtection(USDT_ADDR);
+          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
 
           const [, cfLiquidity] = await comptroller.getBorrowingPower(user26Addr);
           const [, ltLiquidity] = await comptroller.getAccountLiquidity(user26Addr);

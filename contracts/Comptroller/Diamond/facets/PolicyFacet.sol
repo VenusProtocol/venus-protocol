@@ -130,7 +130,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             }
         }
 
-        if (oracle.getUnderlyingPrice(vToken) == 0) {
+        (uint256 collateralPrice, uint256 debtPrice) = deviationBoundedOracle.getBoundedPricesView(vToken);
+        if (collateralPrice == 0 || debtPrice == 0) {
             return uint256(Error.PRICE_ERROR);
         }
 
