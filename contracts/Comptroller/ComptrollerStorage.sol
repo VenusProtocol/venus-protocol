@@ -3,7 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-import { IDeviationBoundedOracle } from "../Oracle/interfaces/IDeviationBoundedOracle.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 import { PoolMarketId } from "./Types/PoolMarketId.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";

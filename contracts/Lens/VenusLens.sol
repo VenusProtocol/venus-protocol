@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-import { IDeviationBoundedOracle } from "../Oracle/interfaces/IDeviationBoundedOracle.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { VBep20 } from "../Tokens/VTokens/VBep20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";

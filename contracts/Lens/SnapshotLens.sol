@@ -9,7 +9,7 @@ import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { VBep20 } from "../Tokens/VTokens/VBep20.sol";
 import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
-import { IDeviationBoundedOracle } from "../Oracle/interfaces/IDeviationBoundedOracle.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 
 contract SnapshotLens is ExponentialNoError {
     struct AccountSnapshot {

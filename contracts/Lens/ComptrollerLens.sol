@@ -9,7 +9,7 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerLensInterface } from "../Comptroller/ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
-import { IDeviationBoundedOracle } from "../Oracle/interfaces/IDeviationBoundedOracle.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
 
 /**

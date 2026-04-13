@@ -11,7 +11,7 @@ import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
 import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
 import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV19Storage } from "../../../Comptroller/ComptrollerStorage.sol";
-import { IDeviationBoundedOracle } from "../../../Oracle/interfaces/IDeviationBoundedOracle.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 import { PoolMarketId } from "../../../Comptroller/Types/PoolMarketId.sol";
 import { IFacetBase, WeightFunction } from "../interfaces/IFacetBase.sol";
 

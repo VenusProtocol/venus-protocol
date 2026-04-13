@@ -391,10 +391,11 @@ describe("DeviationBoundedOracle Integration", () => {
     });
 
     it("B.7 - reverts if oracle price is 0 (PRICE_ERROR)", async () => {
-      const { comptroller, vTokenA, vTokenB, user, oracle } = fixture;
+      const { comptroller, vTokenA, vTokenB, user, oracle, dbo } = fixture;
       await enterCollateralMarket(comptroller, vTokenA, user);
 
       oracle.getUnderlyingPrice.whenCalledWith(vTokenB.address).returns(0);
+      dbo.getBoundedPricesView.whenCalledWith(vTokenB.address).returns([0, 0]);
       vTokenB.totalBorrows.returns(0);
 
       const errCode = await comptroller
@@ -1570,10 +1571,11 @@ describe("DeviationBoundedOracle Integration", () => {
     });
 
     it("N.6 - oracle returning 0 for spot price causes PRICE_ERROR on borrow", async () => {
-      const { comptroller, vTokenA, vTokenB, user, oracle } = fixture;
+      const { comptroller, vTokenA, vTokenB, user, oracle, dbo } = fixture;
       await enterCollateralMarket(comptroller, vTokenA, user);
 
-      oracle.getUnderlyingPrice.returns(0);
+      oracle.getUnderlyingPrice.whenCalledWith(vTokenB.address).returns(0);
+      dbo.getBoundedPricesView.whenCalledWith(vTokenB.address).returns([0, 0]);
       vTokenB.totalBorrows.returns(0);
 
       const errCode = await comptroller
