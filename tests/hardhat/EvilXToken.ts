@@ -3,7 +3,12 @@ import chai from "chai";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../helpers/utils";
-import { ComptrollerHarness__factory, IAccessControlManagerV8, IProtocolShareReserve } from "../../typechain";
+import {
+  ComptrollerHarness__factory,
+  IAccessControlManagerV8,
+  IDeviationBoundedOracle,
+  IProtocolShareReserve,
+} from "../../typechain";
 
 const { expect } = chai;
 
@@ -39,6 +44,8 @@ describe("Evil Token test", async () => {
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
     const priceOracle = await priceOracleFactory.deploy();
     await priceOracle.deployed();
+    const deviationBoundedOracle = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+    deviationBoundedOracle.getBoundedPricesView.returns([convertToUnit(1, 18), convertToUnit(1, 18)]);
 
     const xvsFactory = await ethers.getContractFactory("XVS");
     const xvs = await xvsFactory.deploy(root.address);
@@ -54,6 +61,7 @@ describe("Evil Token test", async () => {
     await unitroller._setAccessControl(accessControlMock.address);
     await unitroller._setCloseFactor(convertToUnit(0.8, 18));
     await unitroller._setPriceOracle(priceOracle.address);
+    await unitroller.setDeviationBoundedOracle(deviationBoundedOracle.address);
     await unitroller._setComptrollerLens(comptrollerLens.address);
     await unitroller.setXVSAddress(xvs.address); // harness only
     await unitroller.harnessSetVenusRate(venusRate);

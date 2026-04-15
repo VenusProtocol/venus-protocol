@@ -13,6 +13,7 @@ import {
   ComptrollerMock,
   ComptrollerMock__factory,
   IAccessControlManager,
+  IDeviationBoundedOracle,
   InterestRateModelHarness,
   PrimeLiquidityProvider,
   PrimeScenario,
@@ -51,6 +52,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const [wallet, user1, user2, user3] = await ethers.getSigners();
 
   const oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
+  const deviationBoundedOracle = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  deviationBoundedOracle.getBoundedPricesView.returns([convertToUnit(1, 18), convertToUnit(1, 18)]);
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -60,6 +63,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
+  await comptroller.setDeviationBoundedOracle(deviationBoundedOracle.address);
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(

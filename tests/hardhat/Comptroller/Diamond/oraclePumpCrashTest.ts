@@ -95,9 +95,7 @@ async function deployRealVTokenFixture(): Promise<RealVTokenFixture> {
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
   oracle.getUnderlyingPrice.returns(NORMAL_PRICE);
 
-  const dbo = await smock.fake<IDeviationBoundedOracle>(
-    "contracts/Oracle/interfaces/IDeviationBoundedOracle.sol:IDeviationBoundedOracle",
-  );
+  const dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
   dbo.getBoundedPricesView.returns([NORMAL_PRICE, NORMAL_PRICE]);
 
   const interestRateModel = await smock.fake<InterestRateModel>("InterestRateModel");

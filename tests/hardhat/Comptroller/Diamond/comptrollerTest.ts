@@ -27,6 +27,7 @@ chai.use(smock.matchers);
 
 type SimpleComptrollerFixture = {
   oracle: FakeContract<PriceOracle>;
+  dbo: FakeContract<IDeviationBoundedOracle>;
   accessControl: FakeContract<IAccessControlManagerV5>;
   comptrollerLens: MockContract<ComptrollerLens>;
   unitroller: Unitroller;
@@ -54,11 +55,15 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
 
   const vToken = await smock.fake<VToken>("VToken");
 
-  return { oracle, comptroller, unitroller, comptrollerLens, accessControl, vToken };
+  return { oracle, dbo, comptroller, unitroller, comptrollerLens, accessControl, vToken };
 }
 
 function configureOracle(oracle: FakeContract<PriceOracle>) {
   oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
+}
+
+function configureDeviationBoundedOracle(dbo: FakeContract<IDeviationBoundedOracle>) {
+  dbo.getBoundedPricesView.returns([convertToUnit(1, 18), convertToUnit(1, 18)]);
 }
 
 async function configureVToken(vToken: FakeContract<VToken>, unitroller?: ComptrollerMock) {
@@ -1012,13 +1017,16 @@ describe("Comptroller", () => {
 
     describe("borrow", () => {
       let comptrollerLens: FakeContract<ComptrollerLens>;
+      let dbo: FakeContract<IDeviationBoundedOracle>;
 
       beforeEach(async () => {
         const contracts = await loadFixture(deploy);
+        dbo = contracts.dbo;
         comptrollerLens = contracts.comptrollerLens;
         // ({ comptroller, oracle, vToken } = await loadFixture(deploy));
         configureVToken(contracts.vToken, contracts.unitroller);
         configureOracle(contracts.oracle);
+        configureDeviationBoundedOracle(dbo);
       });
 
       it("allows borrowing if cap is not reached", async () => {

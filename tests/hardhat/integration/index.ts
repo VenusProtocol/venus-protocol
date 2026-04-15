@@ -2,6 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { BigNumber, Signer } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -12,6 +13,7 @@ import {
   ComptrollerMock,
   ComptrollerMock__factory,
   IAccessControlManager,
+  IDeviationBoundedOracle,
   InterestRateModelHarness,
   Prime,
   PrimeLiquidityProvider,
@@ -32,6 +34,7 @@ export const bigNumber16 = BigNumber.from("10000000000000000"); // 1e16
 type SetupProtocolFixture = {
   oracle: FakeContract<ResilientOracleInterface>;
   accessControl: FakeContract<IAccessControlManager>;
+  deviationBoundedOracle: FakeContract<IDeviationBoundedOracle>;
   comptrollerLens: MockContract<ComptrollerLens>;
   comptroller: MockContract<ComptrollerMock>;
   usdt: BEP20Harness;
@@ -45,6 +48,12 @@ type SetupProtocolFixture = {
   primeLiquidityProvider: PrimeLiquidityProvider;
 };
 
+export const deployFakeDeviationBoundedOracle = async (): Promise<FakeContract<IDeviationBoundedOracle>> => {
+  const deviationBoundedOracle = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  deviationBoundedOracle.getBoundedPricesView.returns([parseUnits("1", 18), parseUnits("1", 18)]);
+  return deviationBoundedOracle;
+};
+
 async function deployProtocol(): Promise<SetupProtocolFixture> {
   const [wallet, user1, user2, user3] = await ethers.getSigners();
 
@@ -55,9 +64,12 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
   const comptroller = await ComptrollerFactory.deploy();
   const comptrollerLens = await ComptrollerLensFactory.deploy();
+  const deviationBoundedOracle = await deployFakeDeviationBoundedOracle();
+
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
+  await comptroller.setDeviationBoundedOracle(deviationBoundedOracle.address);
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(

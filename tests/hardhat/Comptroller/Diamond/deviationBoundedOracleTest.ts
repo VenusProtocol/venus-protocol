@@ -1021,7 +1021,7 @@ describe("DeviationBoundedOracle Integration", () => {
       // sumCollateral = 640e8, sumBorrow = 0 (no token borrows) + 100e18 (VAI)
       // But 640e8 vs 100e18: VAI is in 18 decimals = 100e18 which is huge compared to 640e8
       // so there will be shortfall
-      const [err, liquidity, shortfall] = await comptroller.getBorrowingPower(userAddr);
+      const [err, , shortfall] = await comptroller.getBorrowingPower(userAddr);
       expect(err).to.equal(0);
       expect(shortfall).to.be.gt(0);
     });
@@ -1159,7 +1159,7 @@ describe("DeviationBoundedOracle Integration", () => {
     });
 
     it("I.2 - hypothetical redeem uses bounded prices", async () => {
-      const { comptroller, vTokenA, vTokenB, user } = fixture;
+      const { comptroller, vTokenA, user } = fixture;
       await enterCollateralMarket(comptroller, vTokenA, user);
       const userAddr = await user.getAddress();
 
@@ -1385,7 +1385,7 @@ describe("DeviationBoundedOracle Integration", () => {
       vTokenB.getAccountSnapshot.whenCalledWith(userAddr).returns([0, 0, parseUnits("500", 8), EXCHANGE_RATE]);
       await comptroller.connect(user).enterMarkets([vTokenB.address]);
 
-      const [err, liquidity, shortfall] = await comptroller.getBorrowingPower(userAddr);
+      const [err, , shortfall] = await comptroller.getBorrowingPower(userAddr);
       expect(err).to.equal(0);
       expect(shortfall).to.equal(parseUnits("200", 8)); // 1000e8 - 800e8
     });
@@ -1411,7 +1411,7 @@ describe("DeviationBoundedOracle Integration", () => {
       dbo.getBoundedDebtPriceView.returns(BOUNDED_DEBT_PRICE); // higher
       dbo.getBoundedPricesView.returns([BOUNDED_COLLATERAL_PRICE, BOUNDED_DEBT_PRICE]);
 
-      const [, liquidityBounded, shortfallBounded] = await comptroller.getBorrowingPower(userAddr);
+      const [, liquidityBounded] = await comptroller.getBorrowingPower(userAddr);
 
       expect(liquidityBounded).to.be.lt(liquiditySpot);
     });
@@ -1630,7 +1630,7 @@ describe("DeviationBoundedOracle Integration", () => {
       // VAI debt = 700e8 => shortfall = 60e8
       vaiController.getVAIRepayAmount.whenCalledWith(userAddr).returns(parseUnits("700", 8));
 
-      const [err, liquidity, shortfall] = await comptroller.getBorrowingPower(userAddr);
+      const [err, , shortfall] = await comptroller.getBorrowingPower(userAddr);
       expect(err).to.equal(0);
       expect(shortfall).to.equal(parseUnits("60", 8));
     });
@@ -1644,7 +1644,7 @@ describe("DeviationBoundedOracle Integration", () => {
       // VAI debt = 950e8 => shortfall = 50e8
       vaiController.getVAIRepayAmount.whenCalledWith(userAddr).returns(parseUnits("950", 8));
 
-      const [err, liquidity, shortfall] = await comptroller.getAccountLiquidity(userAddr);
+      const [err, , shortfall] = await comptroller.getAccountLiquidity(userAddr);
       expect(err).to.equal(0);
       expect(shortfall).to.equal(parseUnits("50", 8));
     });

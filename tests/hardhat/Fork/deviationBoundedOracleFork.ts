@@ -818,7 +818,7 @@ if (FORK_MAINNET) {
       // =====================================================================
       describe("8. Keeper disables protection — normal operation resumes", () => {
         it("disableActiveProtectedPrice reverts before cooldown elapses", async () => {
-          const config = await dbo.assetProtectionConfig(USDT_ADDR);
+          await dbo.assetProtectionConfig(USDT_ADDR);
           await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.be.reverted;
         });
 
@@ -1130,7 +1130,7 @@ if (FORK_MAINNET) {
             const borrowAmt = parseUnits("0.001", 18);
             const btcb5c = BEP20__factory.connect(BTCB_ADDR, borrower5c);
             const uBalBefore = await btcb5c.balanceOf(await borrower5c.getAddress());
-            const borrowBefore = await vBTC.borrowBalanceStored(await borrower5c.getAddress());
+            await vBTC.borrowBalanceStored(await borrower5c.getAddress());
             await expect(vBTC.connect(borrower5c).borrow(borrowAmt)).to.emit(vBTC, "Borrow");
             expect(await btcb5c.balanceOf(await borrower5c.getAddress())).to.equal(uBalBefore.add(borrowAmt));
           });
