@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
+
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { VBep20 } from "../Tokens/VTokens/VBep20.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
@@ -59,9 +59,7 @@ contract VenusLens is ExponentialNoError {
 
     struct VTokenUnderlyingPrice {
         address vToken;
-        uint spotPrice;
-        uint collateralPrice;
-        uint debtPrice;
+        uint underlyingPrice;
     }
 
     struct AccountLimits {
@@ -256,7 +254,7 @@ contract VenusLens is ExponentialNoError {
                 VTokenBalances memory vTokenBalanceInfo = vTokenBalances(vToken, account);
 
                 VTokenUnderlyingPrice memory underlyingPriceResponse = vTokenUnderlyingPrice(vToken);
-                uint underlyingPrice = underlyingPriceResponse.spotPrice;
+                uint underlyingPrice = underlyingPriceResponse.underlyingPrice;
                 Exp memory underlyingPriceMantissa = Exp({ mantissa: underlyingPrice });
 
                 //get dailyXvsSupplyMarket
@@ -345,15 +343,11 @@ contract VenusLens is ExponentialNoError {
     function vTokenUnderlyingPrice(VToken vToken) public view returns (VTokenUnderlyingPrice memory) {
         ComptrollerInterface comptroller = ComptrollerInterface(address(vToken.comptroller()));
         ResilientOracleInterface priceOracle = comptroller.oracle();
-        IDeviationBoundedOracle dbo = comptroller.deviationBoundedOracle();
-        (uint256 collateralPrice, uint256 debtPrice) = dbo.getBoundedPricesView(address(vToken));
 
         return
             VTokenUnderlyingPrice({
                 vToken: address(vToken),
-                spotPrice: priceOracle.getUnderlyingPrice(address(vToken)),
-                collateralPrice: collateralPrice,
-                debtPrice: debtPrice
+                underlyingPrice: priceOracle.getUnderlyingPrice(address(vToken))
             });
     }
 
