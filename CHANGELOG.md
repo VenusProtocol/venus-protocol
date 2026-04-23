@@ -1,3 +1,8 @@
+## 10.2.0-dev.5 (2026-04-23)
+
+* Merge pull request #667 from VenusProtocol/feat/audit ([fea3e83](https://github.com/VenusProtocol/venus-protocol/commit/fea3e83)), closes [#667](https://github.com/VenusProtocol/venus-protocol/issues/667)
+* docs(audits): rename and add donation attack patch audit reports ([feb5489](https://github.com/VenusProtocol/venus-protocol/commit/feb5489))
+
 ## 10.2.0-dev.4 (2026-03-20)
 
 * Merge pull request #664 from VenusProtocol/feat/VPD-808 ([7c95843](https://github.com/VenusProtocol/venus-protocol/commit/7c95843)), closes [#664](https://github.com/VenusProtocol/venus-protocol/issues/664)
