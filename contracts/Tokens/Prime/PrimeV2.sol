@@ -93,9 +93,6 @@ contract PrimeV2 is
     /// @notice Emitted when interest is claimed
     event InterestClaimed(address indexed user, address indexed market, uint256 amount);
 
-    /// @notice Emitted when PrimeLeaderboard address is set
-    event PrimeLeaderboardSet(address indexed oldLeaderboard, address indexed newLeaderboard);
-
     /// @notice Emitted when an incomplete score update round is discarded
     event IncompleteRoundDiscarded(uint256 indexed roundId, uint256 remainingUpdates);
 
@@ -225,6 +222,7 @@ contract PrimeV2 is
      * @custom:event Emits Mint event on new token issuance
      * @custom:error Throw InvalidLimit if mint limit would be exceeded
      * @custom:error Throw UserAlreadyHasPrimeToken if user already has a token
+     * @custom:error Throw ScoreUpdateInProgress if a score update round is active
      * @custom:access Controlled by ACM
      */
     function issue(address user) external {
@@ -241,6 +239,7 @@ contract PrimeV2 is
      * @param users Array of user addresses
      * @custom:event Emits Mint event on new token issuance
      * @custom:error Throw InvalidLimit if mint limit would be exceeded
+     * @custom:error Throw ScoreUpdateInProgress if a score update round is active
      * @custom:access Controlled by ACM
      */
     function issueBatch(address[] calldata users) external {
@@ -271,6 +270,7 @@ contract PrimeV2 is
      * @param user User address
      * @custom:event Emits Burn event
      * @custom:error Throw UserHasNoPrimeToken if user has no prime token
+     * @custom:error Throw ScoreUpdateInProgress if a score update round is active
      * @custom:access Controlled by ACM
      */
     function burn(address user) external {
@@ -284,6 +284,7 @@ contract PrimeV2 is
      * @notice Burn Prime tokens for multiple users (admin function)
      * @param users Array of user addresses
      * @custom:event Emits Burn event for each user
+     * @custom:error Throw ScoreUpdateInProgress if a score update round is active
      * @custom:access Controlled by ACM
      */
     function burnBatch(address[] calldata users) external {
@@ -517,23 +518,6 @@ contract PrimeV2 is
     }
 
     // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
-
-    /**
-     * @notice Set the PrimeLeaderboard contract address
-     * @param primeLeaderboard_ Address of PrimeLeaderboard
-     * @custom:event Emits PrimeLeaderboardSet event
-     * @custom:error Throw InvalidAddress if address is zero
-     * @custom:access Controlled by ACM
-     */
-    function setPrimeLeaderboard(address primeLeaderboard_) external {
-        _checkAccessAllowed("setPrimeLeaderboard(address)");
-        if (primeLeaderboard_ == address(0)) revert InvalidAddress();
-
-        address oldLeaderboard = primeLeaderboard;
-        primeLeaderboard = primeLeaderboard_;
-
-        emit PrimeLeaderboardSet(oldLeaderboard, primeLeaderboard_);
-    }
 
     /**
      * @notice Add a market to Prime

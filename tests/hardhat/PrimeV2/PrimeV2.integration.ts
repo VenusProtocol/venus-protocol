@@ -23,11 +23,6 @@ describe("PrimeV2 Integration Tests", () => {
       f = await loadFixture(deployIntegrationFixture);
     });
 
-    it("should store PrimeLeaderboard address in PrimeV2", async () => {
-      expect(await f.primeV2.primeLeaderboard()).to.equal(f.primeLeaderboard.address);
-      expect(await f.primeV2.primeLeaderboard()).to.not.equal(ethers.constants.AddressZero);
-    });
-
     it("should store PrimeV2 address in PrimeLeaderboard", async () => {
       expect(await f.primeLeaderboard.primeV2()).to.equal(f.primeV2.address);
       expect(await f.primeLeaderboard.primeV2()).to.not.equal(ethers.constants.AddressZero);
@@ -513,13 +508,6 @@ describe("PrimeV2 Integration Tests", () => {
 
     beforeEach(async () => {
       f = await loadFixture(deployIntegrationFixture);
-    });
-
-    it("should have primeV2.primeLeaderboard() pointing to real PrimeLeaderboard", async () => {
-      const storedAddress = await f.primeV2.primeLeaderboard();
-      expect(storedAddress).to.equal(f.primeLeaderboard.address);
-      const code = await ethers.provider.getCode(storedAddress);
-      expect(code).to.not.equal("0x");
     });
 
     it("should have primeLeaderboard.primeV2() pointing to real PrimeV2", async () => {

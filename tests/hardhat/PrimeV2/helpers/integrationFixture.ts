@@ -110,7 +110,6 @@ export async function deployIntegrationFixture(): Promise<IntegrationFixture> {
     constructorArgs: [xvsVault.address, xvsAddress, 0],
   })) as PrimeLeaderboard;
 
-  await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
   await primeLeaderboard.setPrimeV2(primeV2.address);
 
   return {

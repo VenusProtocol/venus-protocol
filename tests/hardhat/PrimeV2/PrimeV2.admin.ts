@@ -1,7 +1,6 @@
 import { smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
-import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
 import { PrimeV2Fixture, deployPrimeV2Fixture } from "./helpers/primeV2Fixture";
@@ -15,31 +14,6 @@ describe("PrimeV2 - Admin Functions", () => {
   beforeEach(async () => {
     f = await loadFixture(deployPrimeV2Fixture);
     f.accessControlManager.isAllowedToCall.returns(true);
-  });
-
-  describe("PrimeLeaderboard Integration", () => {
-    beforeEach(async () => {
-      await f.primeV2.setPrimeLeaderboard(f.primeLeaderboard.address);
-    });
-
-    it("should set PrimeLeaderboard address", async () => {
-      expect(await f.primeV2.primeLeaderboard()).to.equal(f.primeLeaderboard.address);
-    });
-
-    it("should emit PrimeLeaderboardSet event", async () => {
-      const newLeaderboard = ethers.Wallet.createRandom().address;
-
-      await expect(f.primeV2.setPrimeLeaderboard(newLeaderboard))
-        .to.emit(f.primeV2, "PrimeLeaderboardSet")
-        .withArgs(f.primeLeaderboard.address, newLeaderboard);
-    });
-
-    it("should revert setting zero address for PrimeLeaderboard", async () => {
-      await expect(f.primeV2.setPrimeLeaderboard(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
-        f.primeV2,
-        "InvalidAddress",
-      );
-    });
   });
 
   describe("issue (single)", () => {

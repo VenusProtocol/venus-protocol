@@ -4,6 +4,7 @@ pragma solidity ^0.5.16;
 import { SafeMath } from "../Utils/SafeMath.sol";
 import { IBEP20 } from "../Utils/IBEP20.sol";
 import { IPrimeV5 } from "../Tokens/Prime/IPrimeV5.sol";
+
 contract XVSVaultAdminStorage {
     /**
      * @notice Administrator for this contract

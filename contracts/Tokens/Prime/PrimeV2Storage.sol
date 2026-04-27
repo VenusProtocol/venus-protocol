@@ -81,9 +81,6 @@ contract PrimeV2StorageV1 {
     /// @notice Core pool comptroller address
     address public corePoolComptroller;
 
-    /// @notice Address of PrimeLeaderboard contract
-    address public primeLeaderboard;
-
     // ═══════════════════ INCOME TRACKING ═══════════════════
 
     /// @notice Unreleased income from PrimeLiquidityProvider per token

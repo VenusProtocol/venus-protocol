@@ -211,7 +211,6 @@ if (FORK_MAINNET) {
           "removeMarket(address)",
           "updateAlpha(uint128,uint128)",
           "updateMultipliers(address,uint256,uint256)",
-          "setPrimeLeaderboard(address)",
           "setLimit(uint256)",
           "pause()",
           "unpause()",
@@ -234,7 +233,6 @@ if (FORK_MAINNET) {
         }
 
         // ── Wire contracts ──
-        await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
         await primeLeaderboard.setPrimeV2(primeV2.address);
 
         // ── Add vUSDT market ──
@@ -314,7 +312,6 @@ if (FORK_MAINNET) {
         });
 
         it("should wire PrimeV2 and PrimeLeaderboard together", async () => {
-          expect(await primeV2.primeLeaderboard()).to.equal(primeLeaderboard.address);
           expect(await primeLeaderboard.primeV2()).to.equal(primeV2.address);
         });
 

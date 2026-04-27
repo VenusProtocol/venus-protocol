@@ -128,12 +128,6 @@ interface IPrimeV2 {
     // ═══════════════════ ADMIN FUNCTIONS ═══════════════════
 
     /**
-     * @notice Set PrimeLeaderboard contract address
-     * @param primeLeaderboard Address of PrimeLeaderboard
-     */
-    function setPrimeLeaderboard(address primeLeaderboard) external;
-
-    /**
      * @notice Add a market to the Prime program
      * @param market Market vToken address
      * @param supplyMultiplier Supply multiplier (scaled by 1e18)
