@@ -41,6 +41,7 @@ contract PrimeLeaderboard is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable xvsVaultPoolId;
 
+    /// @notice Initializes immutable references; disables further initialization
     /// @param xvsVault_ Address of XVSVault contract
     /// @param xvsVaultRewardToken_ Reward token address in XVSVault
     /// @param xvsVaultPoolId_ Pool ID in XVSVault
@@ -59,6 +60,7 @@ contract PrimeLeaderboard is
     /**
      * @notice Initialize the PrimeLeaderboard contract
      * @param accessControlManager_ Address of access control manager
+     * @param loopsLimit_ Maximum number of loops allowed in a single transaction
      */
     function initialize(address accessControlManager_, uint256 loopsLimit_) external initializer {
         __AccessControlled_init(accessControlManager_);
@@ -93,6 +95,7 @@ contract PrimeLeaderboard is
      * @param users Array of user addresses to initialize
      * @param amounts Array of staked amounts (in XVS wei)
      * @param timestamps Array of deposit timestamps
+     * @custom:event Emits StakerInitialized for each user successfully seeded
      * @custom:error Throw StakersAlreadyInitialized if finalizeInitialization was already called
      * @custom:error Throw LengthMismatch if array lengths don't match
      * @custom:access Controlled by ACM
@@ -135,6 +138,7 @@ contract PrimeLeaderboard is
     /**
      * @notice Finalize staker initialization, preventing further seeding
      * @dev Must be called after all initializeStakers batches are complete
+     * @custom:event Emits StakersInitializationFinalized
      * @custom:error Throw StakersAlreadyInitialized if already finalized
      * @custom:access Controlled by ACM
      */
@@ -159,6 +163,7 @@ contract PrimeLeaderboard is
      * @custom:event Emits DepositsCompacted event if deposits are compacted
      * @custom:error Throw OnlyXVSVaultAllowed if caller is not XVSVault
      * @custom:error Throw ZeroAddress if user address is zero
+     * @custom:access Only callable by XVSVault
      */
     function xvsUpdated(address user) external override {
         if (msg.sender != xvsVault) revert OnlyXVSVaultAllowed();
@@ -342,6 +347,7 @@ contract PrimeLeaderboard is
     /**
      * @notice Set the limit for the loops can iterate to avoid the DOS
      * @param loopsLimit Limit for the max loops can execute at a time
+     * @custom:event Emits MaxLoopsLimitUpdated event
      * @custom:access Controlled by ACM
      */
     function setMaxLoopsLimit(uint256 loopsLimit) external {
@@ -369,10 +375,9 @@ contract PrimeLeaderboard is
         // Add new deposit to the stack
         deposits.push(Deposit({ amount: amount.toUint128(), timestamp: block.timestamp.toUint64(), _reserved: 0 }));
 
-        uint256 newTotalStaked = totalStaked[user] + amount;
-        totalStaked[user] = newTotalStaked;
+        totalStaked[user] += amount;
 
-        emit DepositRecorded(user, amount, block.timestamp, newTotalStaked, deposits.length);
+        emit DepositRecorded(user, amount, block.timestamp, totalStaked[user], deposits.length);
     }
 
     /**
@@ -403,10 +408,9 @@ contract PrimeLeaderboard is
             }
         }
 
-        uint256 newTotalStaked = totalStaked[user] - amount;
-        totalStaked[user] = newTotalStaked;
+        totalStaked[user] -= amount;
 
-        emit WithdrawalRecorded(user, amount, newTotalStaked);
+        emit WithdrawalRecorded(user, amount, totalStaked[user]);
     }
 
     /**
