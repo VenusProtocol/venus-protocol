@@ -169,6 +169,10 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
     /**
      * @notice Claim all xvs accrued by the holders
+     * @dev The shortfall probe uses the CF path, which reads DeviationBoundedOracle (DBO) bounded prices.
+     *      When DBO protection mode is active, a holder with a position that is healthy at spot prices may still
+     *      show a positive shortfall here, and in that case XVS earned will not be granted as collateral even when
+     *      `collateral` is true. This is consistent with the borrow/redeem CF paths under DBO.
      * @param holders The addresses to claim XVS for
      * @param vTokens The list of markets to claim XVS in
      * @param borrowers Whether or not to claim XVS earned by borrowing

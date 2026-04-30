@@ -359,6 +359,76 @@ describe("VAIController", async () => {
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(parseUnits("32", 18));
       expect(await vaiController.pastVAIInterest(user1.address)).to.eq(parseUnits("2", 18));
     });
+
+    describe("L01: persists DBO state for every entered asset", async () => {
+      let dboFake: FakeContract<IDeviationBoundedOracle>;
+
+      beforeEach(async () => {
+        dboFake = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+        // Stub the view used by getMintableVAI so the mint can compute a non-zero allowance
+        dboFake.getBoundedPricesView.returns([bigNumber18, bigNumber18]);
+        await comptroller.setDeviationBoundedOracle(dboFake.address);
+      });
+
+      it("calls updateProtectionState for the single entered asset before computing mintable VAI", async () => {
+        await vaiController.connect(user1).mintVAI(mintAmount);
+
+        expect(dboFake.updateProtectionState).to.have.been.calledOnce;
+        expect(dboFake.updateProtectionState).to.have.been.calledWith(vusdt.address);
+        expect(await vai.balanceOf(user1.address)).to.eq(mintAmount);
+      });
+
+      it("calls updateProtectionState once per entered asset when the minter is in multiple markets", async () => {
+        // Spin up a second market and enter it as user1
+        const InterestRateModelHarness = await (await ethers.getContractFactory("InterestRateModelHarness")).deploy(0);
+        const secondVTokenFactory = await ethers.getContractFactory("VBep20Harness");
+        const usdc = (await (await ethers.getContractFactory("BEP20Harness")).deploy(
+          bigNumber18.mul(100000000),
+          "usdc",
+          BigNumber.from(18),
+          "BEP20 usdc",
+        )) as BEP20Harness;
+        const vusdc = (await secondVTokenFactory.deploy(
+          usdc.address,
+          comptroller.address,
+          InterestRateModelHarness.address,
+          bigNumber18,
+          "VToken usdc",
+          "vusdc",
+          BigNumber.from(18),
+          wallet.address,
+        )) as VBep20Harness;
+        await priceOracle.setUnderlyingPrice(vusdc.address, bigNumber18);
+        await comptroller._supportMarket(vusdc.address);
+        await comptroller["setCollateralFactor(address,uint256,uint256)"](
+          vusdc.address,
+          bigNumber17.mul(5),
+          bigNumber17.mul(5),
+        );
+        await vusdc.setAccessControlManager(accessControl.address);
+        await vusdc.setProtocolShareReserve(protocolShareReserve.address);
+        await vusdc.setReduceReservesBlockDelta(10000000000);
+        await vusdc.harnessSetBalance(user1.address, bigNumber18.mul(200));
+        await comptroller.connect(user1).enterMarkets([vusdc.address]);
+
+        // Re-stub on the same instance — beforeEach already set it
+        dboFake.updateProtectionState.reset();
+
+        await vaiController.connect(user1).mintVAI(mintAmount);
+
+        const enteredMarkets = await comptroller.getAssetsIn(user1.address);
+        expect(enteredMarkets.length).to.eq(2);
+        expect(dboFake.updateProtectionState).to.have.callCount(enteredMarkets.length);
+        expect(dboFake.updateProtectionState.atCall(0)).to.have.been.calledWith(enteredMarkets[0]);
+        expect(dboFake.updateProtectionState.atCall(1)).to.have.been.calledWith(enteredMarkets[1]);
+      });
+
+      it("propagates revert when DBO.updateProtectionState reverts", async () => {
+        dboFake.updateProtectionState.reverts("DBO: forced revert");
+
+        await expect(vaiController.connect(user1).mintVAI(mintAmount)).to.be.reverted;
+      });
+    });
   });
 
   describe("#repayVAI", async () => {

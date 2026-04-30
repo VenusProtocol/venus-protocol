@@ -124,6 +124,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         uint256 vaiNewTotalSupply = add_(vaiTotalSupply, mintVAIAmount);
         require(vaiNewTotalSupply <= mintCap, "mint cap reached");
 
+        _updateProtectionStateForEnteredMarkets(minter);
+
         uint256 accountMintableVAI;
         (err, accountMintableVAI) = getMintableVAI(minter);
         require(err == uint256(Error.NO_ERROR), "could not compute mintable amount");
@@ -883,5 +885,17 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     /// @dev Reverts if the passed amount is zero
     function _ensureNonzeroAmount(uint256 amount) private pure {
         require(amount > 0, "amount can't be zero");
+    }
+
+    /// @dev Persists the DBO protection window for every market the minter has entered, so VAI minting
+    ///      records the same on-chain price history as the borrow path. Extracted from `mintVAI` to avoid
+    ///      stack-too-deep in that function.
+    function _updateProtectionStateForEnteredMarkets(address minter) private {
+        IDeviationBoundedOracle dbo = comptroller.deviationBoundedOracle();
+        VToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
+        uint256 enteredLength = enteredMarkets.length;
+        for (uint256 i; i < enteredLength; ++i) {
+            dbo.updateProtectionState(address(enteredMarkets[i]));
+        }
     }
 }
