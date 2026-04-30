@@ -11,9 +11,10 @@ import { FacetCutAction, getSelectors } from "./diamond";
 type FacetName = "MarketFacet" | "PolicyFacet" | "RewardFacet" | "SetterFacet" | "FlashLoanFacet" | "FacetBase";
 type CutEntry = [string, number, string[]];
 
-// FacetBase is a base contract whose selectors are inlined into the other facets. We surface
-// any IFacetBase selectors not already claimed under this placeholder so the operator can
-// reassign them manually to the appropriate setter facet before submitting the cut.
+// FacetBase is a base contract whose selectors are inlined into the other facets. Each
+// IFacetBase selector is routed to whichever concrete facet currently owns it on-chain so
+// it rides along in that facet's cut entry. Anything not currently attached to a known
+// facet falls into this placeholder for manual reassignment before submitting the cut.
 const FACETBASE_PLACEHOLDER = "*FacetBase";
 
 // Interfaces used to derive function selectors for each facet.
@@ -112,6 +113,23 @@ async function generateCutParams() {
       oldFacetNameByAddress.set(f.facetAddress, fname);
     }
   }
+
+  // Redistribute IFacetBase selectors to whichever concrete facet currently owns them
+  // on-chain. Inherited selectors get attached to the deployed contract's address (not
+  // FacetBase, which has no on-chain instance), so we follow that same attribution.
+  const facetBaseSelectors = newSelectorsByFacet.get("FacetBase") ?? [];
+  const remainingFacetBaseSelectors: string[] = [];
+  for (const sel of facetBaseSelectors) {
+    const currentOwner = selectorToCurrentFacet.get(sel);
+    const currentOwnerFacet = currentOwner ? oldFacetNameByAddress.get(currentOwner) : undefined;
+    if (currentOwnerFacet && currentOwnerFacet !== "FacetBase") {
+      const list = newSelectorsByFacet.get(currentOwnerFacet)!;
+      if (!list.includes(sel)) list.push(sel);
+    } else {
+      remainingFacetBaseSelectors.push(sel);
+    }
+  }
+  newSelectorsByFacet.set("FacetBase", remainingFacetBaseSelectors);
 
   const cut: CutEntry[] = [];
   // Each selector may appear in at most one cut entry; later facets defer to earlier ones.

@@ -382,12 +382,9 @@ describe("VAIController", async () => {
         // Spin up a second market and enter it as user1
         const InterestRateModelHarness = await (await ethers.getContractFactory("InterestRateModelHarness")).deploy(0);
         const secondVTokenFactory = await ethers.getContractFactory("VBep20Harness");
-        const usdc = (await (await ethers.getContractFactory("BEP20Harness")).deploy(
-          bigNumber18.mul(100000000),
-          "usdc",
-          BigNumber.from(18),
-          "BEP20 usdc",
-        )) as BEP20Harness;
+        const usdc = (await (
+          await ethers.getContractFactory("BEP20Harness")
+        ).deploy(bigNumber18.mul(100000000), "usdc", BigNumber.from(18), "BEP20 usdc")) as BEP20Harness;
         const vusdc = (await secondVTokenFactory.deploy(
           usdc.address,
           comptroller.address,
