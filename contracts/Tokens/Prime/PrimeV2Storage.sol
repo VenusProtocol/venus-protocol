@@ -97,6 +97,15 @@ contract PrimeV2StorageV1 {
     /// @notice Number of pending score updates in current round
     uint256 public pendingScoreUpdates;
 
+    /// @notice Address of PrimeLeaderboard contract for permissionless eligibility checks
+    address public primeLeaderboard;
+
+    /// @notice Minimum effective stake required for permissionless Prime minting
+    uint256 public mintThreshold;
+
+    /// @notice Unix timestamp after which permissionless minting is closed (0 = no deadline)
+    uint256 public mintDeadline;
+
     /// @notice Storage gap for future upgrades
-    uint256[44] private __gap;
+    uint256[41] private __gap;
 }

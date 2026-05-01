@@ -158,11 +158,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (network.name === "hardhat") {
     const accessControlManager = await ethers.getContract("AccessControlManager");
     await accessControlManager.giveCallPermission(primeLeaderboard.address, "setPrimeV2(address)", deployer);
+    await accessControlManager.giveCallPermission(primeV2.address, "setPrimeLeaderboard(address)", deployer);
+    await accessControlManager.giveCallPermission(primeV2.address, "setMintThreshold(uint256,uint256)", deployer);
   }
 
   // ============ Wire contracts together ============
   console.log("Setting PrimeV2 on PrimeLeaderboard...");
   await primeLeaderboard.setPrimeV2(primeV2.address);
+
+  console.log("Setting PrimeLeaderboard on PrimeV2...");
+  await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
 
   console.log("PrimeV2 deployment complete.");
   console.log(`  PrimeLeaderboard: ${primeLeaderboard.address}`);

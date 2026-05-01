@@ -13,6 +13,7 @@ import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/t
 import { PrimeV2StorageV1 } from "./PrimeV2Storage.sol";
 import { Scores } from "./libs/Scores.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
+import { IPrimeLeaderboard } from "./IPrimeLeaderboard.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
@@ -96,6 +97,15 @@ contract PrimeV2 is
     /// @notice Emitted when an incomplete score update round is discarded
     event IncompleteRoundDiscarded(uint256 indexed roundId, uint256 remainingUpdates);
 
+    /// @notice Emitted when mint threshold and deadline are updated
+    event MintThresholdUpdated(uint256 oldThreshold, uint256 newThreshold, uint256 deadline);
+
+    /// @notice Emitted when prime leaderboard address is updated
+    event PrimeLeaderboardSet(address indexed oldLeaderboard, address indexed newLeaderboard);
+
+    /// @notice Emitted when a user is skipped in claimPrimeBatch due to insufficient score
+    event SkippedIneligibleUser(address indexed user, uint256 score, uint256 threshold);
+
     // ═══════════════════ ERRORS ═══════════════════
 
     /// @notice Error thrown when market is not supported
@@ -136,6 +146,18 @@ contract PrimeV2 is
 
     /// @notice Error thrown when trying to remove a market that still has active members with scores
     error MarketHasActiveMembers();
+
+    /// @notice Error thrown when user's effective stake is below the mint threshold
+    error EligibilityBelowThreshold(address user, uint256 score, uint256 threshold);
+
+    /// @notice Error thrown when primeLeaderboard address is not set
+    error LeaderboardNotSet();
+
+    /// @notice Error thrown when mintThreshold is zero (not configured for this epoch)
+    error MintThresholdNotSet();
+
+    /// @notice Error thrown when the permissionless minting window has expired
+    error MintWindowClosed();
 
     /**
      * @notice PrimeV2 constructor
@@ -215,6 +237,92 @@ contract PrimeV2 is
     }
 
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
+
+    /**
+     * @notice Mint a Prime token for a user in a permissionless way
+     * @dev Checks user's effective stake from PrimeLeaderboard against mintThreshold.
+     *      Anyone can call this on behalf of an eligible user. No ACM required.
+     *      mintThreshold must be set by governance after each epoch before this is usable.
+     * @param user User address to mint for
+     * @custom:event Emits Mint event on new token issuance
+     * @custom:error Throw ScoreUpdateInProgress if a score update round is active
+     * @custom:error Throw UserAlreadyHasPrimeToken if user already has a token
+     * @custom:error Throw LeaderboardNotSet if primeLeaderboard address is not configured
+     * @custom:error Throw MintThresholdNotSet if mintThreshold is zero
+     * @custom:error Throw EligibilityBelowThreshold if user's effective stake < mintThreshold
+     * @custom:error Throw InvalidLimit if mint limit would be exceeded
+     * @custom:error Throw MintWindowClosed if the minting deadline has passed
+     */
+    function claimPrime(address user) external nonReentrant whenNotPaused {
+        if (user == address(0)) revert InvalidAddress();
+        if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
+        if (isPrimeHolder[user]) revert UserAlreadyHasPrimeToken();
+
+        address leaderboard = primeLeaderboard;
+        if (leaderboard == address(0)) revert LeaderboardNotSet();
+
+        uint256 threshold = mintThreshold;
+        if (threshold == 0) revert MintThresholdNotSet();
+
+        uint256 deadline = mintDeadline;
+        if (deadline != 0 && block.timestamp > deadline) revert MintWindowClosed();
+
+        uint256 score = IPrimeLeaderboard(leaderboard).getEffectiveStake(user);
+        if (score < threshold) revert EligibilityBelowThreshold(user, score, threshold);
+
+        _mint(user);
+        _initializeMarkets(user);
+    }
+
+    /**
+     * @notice Mint Prime tokens for multiple users in a permissionless way
+     * @dev Non-holders below mintThreshold are skipped with a SkippedIneligibleUser event
+     *      (not reverted), so one ineligible user cannot block the rest of the batch.
+     *      Existing Prime holders are silently skipped. Anyone can call this. No ACM required.
+     * @param users Array of user addresses to mint for
+     * @custom:event Emits Mint event for each new token issuance
+     * @custom:event Emits SkippedIneligibleUser for each non-holder below threshold
+     * @custom:error Throw ScoreUpdateInProgress if a score update round is active
+     * @custom:error Throw LeaderboardNotSet if primeLeaderboard address is not configured
+     * @custom:error Throw MintThresholdNotSet if mintThreshold is zero
+     * @custom:error Throw MintWindowClosed if the minting deadline has passed
+     * @custom:error Throw InvalidLimit if mint limit would be exceeded
+     */
+    function claimPrimeBatch(address[] calldata users) external nonReentrant whenNotPaused {
+        if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
+
+        address leaderboard = primeLeaderboard;
+        if (leaderboard == address(0)) revert LeaderboardNotSet();
+
+        uint256 threshold = mintThreshold;
+        if (threshold == 0) revert MintThresholdNotSet();
+
+        uint256 deadline = mintDeadline;
+        if (deadline != 0 && block.timestamp > deadline) revert MintWindowClosed();
+
+        uint256 usersLength = users.length;
+        _ensureMaxLoops(usersLength);
+
+        _accrueAllMarkets();
+
+        for (uint256 i; i < usersLength; ) {
+            address user = users[i];
+
+            if (!isPrimeHolder[user]) {
+                uint256 score = IPrimeLeaderboard(leaderboard).getEffectiveStake(user);
+                if (score < threshold) {
+                    emit SkippedIneligibleUser(user, score, threshold);
+                } else {
+                    _mint(user);
+                    _initializeMarketsWithoutAccrual(user);
+                }
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
 
     /**
      * @notice Issue a Prime token to a single user (admin function)
@@ -700,6 +808,39 @@ contract PrimeV2 is
     function setMaxLoopsLimit(uint256 loopsLimit) external {
         _checkAccessAllowed("setMaxLoopsLimit(uint256)");
         _setMaxLoopsLimit(loopsLimit);
+    }
+
+    /**
+     * @notice Set the PrimeLeaderboard contract address used for permissionless mint eligibility
+     * @param primeLeaderboard_ Address of PrimeLeaderboard contract
+     * @custom:event Emits PrimeLeaderboardSet event
+     * @custom:error Throw InvalidAddress if address is zero
+     * @custom:access Controlled by ACM
+     */
+    function setPrimeLeaderboard(address primeLeaderboard_) external {
+        _checkAccessAllowed("setPrimeLeaderboard(address)");
+        if (primeLeaderboard_ == address(0)) revert InvalidAddress();
+
+        emit PrimeLeaderboardSet(primeLeaderboard, primeLeaderboard_);
+        primeLeaderboard = primeLeaderboard_;
+    }
+
+    /**
+     * @notice Set the minimum effective stake threshold and minting deadline for permissionless Prime minting
+     * @dev Governance calls this after each epoch. Pass mintThreshold_ = 0 to disable the permissionless
+     *      minting window immediately. Pass mintDeadline_ = 0 for no expiry.
+     *      The window auto-closes once block.timestamp exceeds mintDeadline_.
+     * @param mintThreshold_ New mint threshold (set to 0 to close the window)
+     * @param mintDeadline_ Unix timestamp after which minting is closed (0 = no deadline)
+     * @custom:event Emits MintThresholdUpdated event
+     * @custom:access Controlled by ACM
+     */
+    function setMintThreshold(uint256 mintThreshold_, uint256 mintDeadline_) external {
+        _checkAccessAllowed("setMintThreshold(uint256,uint256)");
+
+        emit MintThresholdUpdated(mintThreshold, mintThreshold_, mintDeadline_);
+        mintThreshold = mintThreshold_;
+        mintDeadline = mintDeadline_;
     }
 
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════

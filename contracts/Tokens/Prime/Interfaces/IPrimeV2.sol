@@ -16,6 +16,18 @@ interface IPrimeV2 {
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
 
     /**
+     * @notice Mint a Prime token for a user permissionlessly (requires mintThreshold to be set)
+     * @param user Address to mint token for
+     */
+    function claimPrime(address user) external;
+
+    /**
+     * @notice Mint Prime tokens for multiple users permissionlessly
+     * @param users Array of addresses to mint tokens for
+     */
+    function claimPrimeBatch(address[] calldata users) external;
+
+    /**
      * @notice Issue a Prime token to a single user
      * @param user Address to issue token to
      */
@@ -177,4 +189,17 @@ interface IPrimeV2 {
      * @param loopsLimit Number of loops limit
      */
     function setMaxLoopsLimit(uint256 loopsLimit) external;
+
+    /**
+     * @notice Set the PrimeLeaderboard contract address
+     * @param primeLeaderboard_ Address of PrimeLeaderboard contract
+     */
+    function setPrimeLeaderboard(address primeLeaderboard_) external;
+
+    /**
+     * @notice Set the minimum effective stake threshold and minting deadline for permissionless minting
+     * @param mintThreshold_ New mint threshold (0 = disable permissionless minting)
+     * @param mintDeadline_ Unix timestamp after which minting is closed (0 = no deadline)
+     */
+    function setMintThreshold(uint256 mintThreshold_, uint256 mintDeadline_) external;
 }
