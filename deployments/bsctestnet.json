@@ -4552,7 +4552,7 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0x72dCB93F8c3fB00D31076e93b6E87C342A3eCC9c",
+      "address": "0xdBD0992dEd0a1EC14CE0532e60ea023F79372eD9",
       "abi": [
         {
           "inputs": [],
@@ -5596,7 +5596,7 @@
       ]
     },
     "FlashLoanFacet": {
-      "address": "0x32348c5bB52E5468A11901e70BdE061192feCAf4",
+      "address": "0x694ee0149bE810F68aEbf3D7969a79D760769B18",
       "abi": [
         {
           "inputs": [],
@@ -6152,6 +6152,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -20679,7 +20692,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x8e0e15C99Ab0985cB39B2FE36532E5692730eBA9",
+      "address": "0xE160Afd62cAE8FCB16F6b702B325883dd80358d4",
       "abi": [
         {
           "inputs": [],
@@ -21390,6 +21403,19 @@
             }
           ],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -28427,7 +28453,7 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0xf8d94ef23c1188f8ab1009E56D558d7834d1F019",
+      "address": "0xDAfA77ED8b2CdF4dBE2D1aB27770eDE6A4a54463",
       "abi": [
         {
           "inputs": [],
@@ -29078,6 +29104,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -37823,7 +37862,7 @@
       ]
     },
     "RewardFacet": {
-      "address": "0x0bc7922Cc08Ea32E196d25805558a84dF54beC6a",
+      "address": "0x977515f4043111ba5e44C09D3Af071ba5B9B34a1",
       "abi": [
         {
           "inputs": [],
@@ -38522,6 +38561,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -39481,7 +39533,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0x4fc4C41388237D13A430879417f143EF54e5BB05",
+      "address": "0x38DC0fcEC79675c41f3e461797A7dd99EF3baC6E",
       "abi": [
         {
           "inputs": [],
@@ -40011,6 +40063,25 @@
             }
           ],
           "name": "NewComptrollerLens",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "oldDeviationBoundedOracle",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "newDeviationBoundedOracle",
+              "type": "address"
+            }
+          ],
+          "name": "NewDeviationBoundedOracle",
           "type": "event"
         },
         {
@@ -41006,6 +41077,19 @@
         },
         {
           "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "flashLoanPaused",
           "outputs": [
             {
@@ -41427,6 +41511,25 @@
             }
           ],
           "name": "setCollateralFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "newDeviationBoundedOracle",
+              "type": "address"
+            }
+          ],
+          "name": "setDeviationBoundedOracle",
           "outputs": [
             {
               "internalType": "uint256",
@@ -41994,7 +42097,7 @@
       ]
     },
     "SnapshotLens": {
-      "address": "0xBe9174A13577B016280aEc20a3b369C5BA272241",
+      "address": "0x88bB0AF511B5AB585460E7c36150Db82c28D9E5E",
       "abi": [
         {
           "inputs": [
@@ -42060,7 +42163,17 @@
                 },
                 {
                   "internalType": "uint256",
-                  "name": "assetPrice",
+                  "name": "spotPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedCollateralPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedDebtPrice",
                   "type": "uint256"
                 },
                 {
@@ -42166,7 +42279,17 @@
                 },
                 {
                   "internalType": "uint256",
-                  "name": "assetPrice",
+                  "name": "spotPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedCollateralPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedDebtPrice",
                   "type": "uint256"
                 },
                 {
@@ -57429,7 +57552,7 @@
       ]
     },
     "Unitroller_Implementation": {
-      "address": "0x1774f993861B14B7C3963F3e09f67cfBd2B32198",
+      "address": "0xf00Ba2930E43C96719Ca40c8B5a48F4c9A004c52",
       "abi": [
         {
           "anonymous": false,
@@ -57641,6 +57764,19 @@
           "outputs": [
             {
               "internalType": "contract ComptrollerLensInterface",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
               "name": "",
               "type": "address"
             }
@@ -68620,7 +68756,7 @@
       ]
     },
     "VaiUnitroller_Implementation": {
-      "address": "0xC1CE7174D58f177fd2b418292A6E60CDE9bACF78",
+      "address": "0xd2848305b0ee7646C930240D79549D50d6Ed024F",
       "abi": [
         {
           "anonymous": false,
