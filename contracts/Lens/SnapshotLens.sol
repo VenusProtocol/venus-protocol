@@ -9,6 +9,7 @@ import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { VBep20 } from "../Tokens/VTokens/VBep20.sol";
 import { WeightFunction } from "../Comptroller/Diamond/interfaces/IFacetBase.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 
 contract SnapshotLens is ExponentialNoError {
     struct AccountSnapshot {
@@ -21,7 +22,9 @@ contract SnapshotLens is ExponentialNoError {
         uint256 collateral;
         uint256 borrows;
         uint256 borrowsInUsd;
-        uint256 assetPrice;
+        uint256 spotPrice;
+        uint256 boundedCollateralPrice;
+        uint256 boundedDebtPrice;
         uint256 accruedInterest;
         uint vTokenDecimals;
         uint underlyingDecimals;
@@ -95,22 +98,30 @@ contract SnapshotLens is ExponentialNoError {
         );
         vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
-        // Get the normalized price of the asset
+        // Get the normalized spot price of the asset
         vars.oraclePriceMantissa = ComptrollerInterface(comptrollerAddress).oracle().getUnderlyingPrice(
             address(vToken)
         );
         vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
-        // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
-        vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
+        // Get bounded prices from DBO (used in CF-path liquidity calculations)
+        IDeviationBoundedOracle boundedOracle = ComptrollerInterface(comptrollerAddress).deviationBoundedOracle();
+        (uint256 boundedCollateralPriceMantissa, uint256 boundedDebtPriceMantissa) = boundedOracle.getBoundedPricesView(
+            address(vToken)
+        );
 
-        //Collateral = tokensToDenom * vTokenBalance
+        // Collateral uses bounded collateral price (mirrors ComptrollerLens CF path)
+        Exp memory collateralPrice = Exp({ mantissa: boundedCollateralPriceMantissa });
+        vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), collateralPrice);
         vars.collateral = mul_ScalarTruncate(vars.tokensToDenom, vars.vTokenBalance);
 
+        // Supply in USD uses spot price (real market value of supplied assets)
         vars.balanceOfUnderlying = vToken.balanceOfUnderlying(account);
         vars.supplyInUsd = mul_ScalarTruncate(vars.oraclePrice, vars.balanceOfUnderlying);
 
-        vars.borrowsInUsd = mul_ScalarTruncate(vars.oraclePrice, vars.borrowBalance);
+        // Borrows in USD uses bounded debt price (mirrors ComptrollerLens CF path)
+        Exp memory debtPrice = Exp({ mantissa: boundedDebtPriceMantissa });
+        vars.borrowsInUsd = mul_ScalarTruncate(debtPrice, vars.borrowBalance);
 
         address underlyingAssetAddress;
         uint underlyingDecimals;
@@ -137,7 +148,9 @@ contract SnapshotLens is ExponentialNoError {
                 collateral: vars.collateral,
                 borrows: vars.borrowBalance,
                 borrowsInUsd: vars.borrowsInUsd,
-                assetPrice: vars.oraclePriceMantissa,
+                spotPrice: vars.oraclePriceMantissa,
+                boundedCollateralPrice: boundedCollateralPriceMantissa,
+                boundedDebtPrice: boundedDebtPriceMantissa,
                 accruedInterest: vToken.borrowIndex(),
                 vTokenDecimals: vToken.decimals(),
                 underlyingDecimals: underlyingDecimals,

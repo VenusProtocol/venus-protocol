@@ -8902,7 +8902,7 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0x732138e18fa6f8f8E456ad829DB429A450a79758",
+      "address": "0x75A71Ad878f6f24616A2AE21d046C0C8E72f67F8",
       "abi": [
         {
           "inputs": [],
@@ -11976,7 +11976,7 @@
       ]
     },
     "FlashLoanFacet": {
-      "address": "0x72a284f144F2BE56549573DDFac2A90F8D662ed1",
+      "address": "0x7F00af2f30a55e79311392C98fBBfA629D19b3A5",
       "abi": [
         {
           "inputs": [],
@@ -12532,6 +12532,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -35551,7 +35564,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x87FdF72FA2fB29Cb43f03aCa261A8DC2C613a860",
+      "address": "0x7397B6bcFA9332Cc8791c886F339B4D114651719",
       "abi": [
         {
           "inputs": [],
@@ -36262,6 +36275,19 @@
             }
           ],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -40527,7 +40553,7 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0x3C115aA5800A589D1E0c3163f3f562D5544F060f",
+      "address": "0x1CcDaf39085bae4e27c3Ba100561b1AD1B5A6b80",
       "abi": [
         {
           "inputs": [],
@@ -41178,6 +41204,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -48108,7 +48147,7 @@
       ]
     },
     "RewardFacet": {
-      "address": "0x7fcEc39e83f17469069b7A0f24A59B5BbEC0faBb",
+      "address": "0xFaC00Dc856F454BB674c8588d4CC16Edef9dc28b",
       "abi": [
         {
           "inputs": [],
@@ -48807,6 +48846,19 @@
               "internalType": "uint96",
               "name": "",
               "type": "uint96"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -50270,7 +50322,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0x11B38582c61058eDd9a526561567B4c7b02060e7",
+      "address": "0x4a45FBAf2A736bdF025DEd1D0Af3dF80070EDac0",
       "abi": [
         {
           "inputs": [],
@@ -50800,6 +50852,25 @@
             }
           ],
           "name": "NewComptrollerLens",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "oldDeviationBoundedOracle",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "newDeviationBoundedOracle",
+              "type": "address"
+            }
+          ],
+          "name": "NewDeviationBoundedOracle",
           "type": "event"
         },
         {
@@ -51795,6 +51866,19 @@
         },
         {
           "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "flashLoanPaused",
           "outputs": [
             {
@@ -52216,6 +52300,25 @@
             }
           ],
           "name": "setCollateralFactor",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
+              "name": "newDeviationBoundedOracle",
+              "type": "address"
+            }
+          ],
+          "name": "setDeviationBoundedOracle",
           "outputs": [
             {
               "internalType": "uint256",
@@ -65991,7 +66094,7 @@
       ]
     },
     "Unitroller_Implementation": {
-      "address": "0xB2243Da976F2cbAAa4dd1a76BF7F6EFbe22c4CFc",
+      "address": "0x82cA18785BBbacBeD1C4f482921E2B2E989D8C08",
       "abi": [
         {
           "anonymous": false,
@@ -66203,6 +66306,19 @@
           "outputs": [
             {
               "internalType": "contract ComptrollerLensInterface",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "deviationBoundedOracle",
+          "outputs": [
+            {
+              "internalType": "contract IDeviationBoundedOracle",
               "name": "",
               "type": "address"
             }
@@ -78135,7 +78251,7 @@
       ]
     },
     "VaiUnitroller_Implementation": {
-      "address": "0xFD754b21F5dbbf6eb282911Cc0112cbF88190767",
+      "address": "0x8A7d8589A597619A7842d3BC284b9a5a276FaE56",
       "abi": [
         {
           "anonymous": false,

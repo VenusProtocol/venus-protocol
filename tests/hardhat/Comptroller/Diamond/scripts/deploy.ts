@@ -19,11 +19,16 @@ export async function deployFacets() {
   // deploy facets
   const FacetNames = ["MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet", "FlashLoanFacet"];
   const cut: any = [];
+  let rewardFacetAddress = "";
 
   for (const FacetName of FacetNames) {
     const Facet = await ethers.getContractFactory(FacetName);
     const facet = await Facet.deploy();
     await facet.deployed();
+
+    if (FacetName === "RewardFacet") {
+      rewardFacetAddress = facet.address;
+    }
 
     const FacetInterface = await ethers.getContractAt(`I${FacetName}`, facet.address);
 
@@ -33,6 +38,16 @@ export async function deployFacets() {
       functionSelectors: getSelectors(FacetInterface),
     });
   }
+
+  // IFacetBase selectors are inlined into every facet (each inherits FacetBase) but must be
+  // registered exactly once on the diamond. Route them through RewardFacet's address to match
+  // how they used to be picked up via `IRewardFacet is IFacetBase` (before param generator script change).
+  const FacetBaseInterface = await ethers.getContractAt("IFacetBase", rewardFacetAddress);
+  cut.push({
+    facetAddress: rewardFacetAddress,
+    action: FacetCutAction.Add,
+    functionSelectors: getSelectors(FacetBaseInterface),
+  });
 
   return {
     diamond,

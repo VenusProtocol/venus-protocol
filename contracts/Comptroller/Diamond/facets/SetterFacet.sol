@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
@@ -41,6 +42,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(ResilientOracleInterface oldPriceOracle, ResilientOracleInterface newPriceOracle);
+
+    /// @notice Emitted when deviation bounded oracle is changed
+    event NewDeviationBoundedOracle(
+        IDeviationBoundedOracle oldDeviationBoundedOracle,
+        IDeviationBoundedOracle newDeviationBoundedOracle
+    );
 
     /// @notice Emitted when borrow cap for a vToken is changed
     event NewBorrowCap(VToken indexed vToken, uint256 newBorrowCap);
@@ -762,6 +769,26 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         emit BorrowAllowedUpdated(poolId, vToken, m.isBorrowAllowed, borrowAllowed);
         m.isBorrowAllowed = borrowAllowed;
+    }
+
+    /**
+     * @notice Sets the DeviationBoundedOracle for conservative CF-path pricing
+     * @param newDeviationBoundedOracle The new DeviationBoundedOracle contract
+     * @return uint256 0=success, otherwise a failure
+     */
+    function setDeviationBoundedOracle(
+        IDeviationBoundedOracle newDeviationBoundedOracle
+    ) external compareAddress(address(deviationBoundedOracle), address(newDeviationBoundedOracle)) returns (uint256) {
+        ensureAllowed("setDeviationBoundedOracle(address)");
+
+        ensureNonzeroAddress(address(newDeviationBoundedOracle));
+
+        IDeviationBoundedOracle oldDeviationBoundedOracle = deviationBoundedOracle;
+        deviationBoundedOracle = newDeviationBoundedOracle;
+
+        emit NewDeviationBoundedOracle(oldDeviationBoundedOracle, newDeviationBoundedOracle);
+
+        return uint256(Error.NO_ERROR);
     }
 
     /**
