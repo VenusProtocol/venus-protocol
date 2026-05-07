@@ -288,7 +288,14 @@ describe("VAIController", async () => {
         const spotPxBefore = await priceOracle.getUnderlyingPrice(vusdt.address);
         expect(spotPxBefore).to.eq(SPOT_UNDERLYING_PRICE);
 
-        await dbo.setTokenConfig(usdt.address, 3600, TRIGGER_THRESHOLD, RESET_THRESHOLD, true);
+        await dbo.setTokenConfig({
+          asset: usdt.address,
+          cooldownPeriod: 3600,
+          triggerThreshold: TRIGGER_THRESHOLD,
+          resetThreshold: RESET_THRESHOLD,
+          enableBoundedPricing: true,
+          enableCaching: true,
+        });
 
         const [, mintableAtSpotBounded] = await vaiController.getMintableVAI(user1.address);
         expect(mintableAtSpotBounded).to.eq(bigNumber18.mul(100));
