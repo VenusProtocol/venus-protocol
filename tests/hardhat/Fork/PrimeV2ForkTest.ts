@@ -44,7 +44,6 @@ const Addr = {
 
 // ═══════════════════ CONSTANTS ═══════════════════
 const BLOCK_NUMBER = 80742480;
-const MAXIMUM_XVS_CAP = parseEther("100000");
 const BLOCKS_PER_YEAR = 70080000;
 const MINIMUM_STAKE = parseEther("500");
 const DAY = 86400;
@@ -187,16 +186,7 @@ if (FORK_MAINNET) {
           PrimeV2Factory,
           [1, 2, Addr.ACM, Addr.PLP, Addr.COMPTROLLER, Addr.ORACLE, 100],
           {
-            constructorArgs: [
-              Addr.WBNB,
-              Addr.vBNB,
-              MAXIMUM_XVS_CAP,
-              Addr.XVS_VAULT,
-              Addr.XVS,
-              XVS_POOL_ID,
-              false,
-              BLOCKS_PER_YEAR,
-            ],
+            constructorArgs: [Addr.WBNB, Addr.vBNB, Addr.XVS_VAULT, Addr.XVS, XVS_POOL_ID, false, BLOCKS_PER_YEAR],
             unsafeAllow: ["constructor", "internal-function-storage"],
           },
         )) as PrimeV2;
@@ -308,7 +298,6 @@ if (FORK_MAINNET) {
         it("should deploy PrimeV2 with correct immutable parameters", async () => {
           expect(await primeV2.WRAPPED_NATIVE_TOKEN()).to.equal(Addr.WBNB);
           expect(await primeV2.NATIVE_MARKET()).to.equal(Addr.vBNB);
-          expect(await primeV2.MAXIMUM_XVS_CAP()).to.equal(MAXIMUM_XVS_CAP);
         });
 
         it("should wire PrimeV2 and PrimeLeaderboard together", async () => {
@@ -821,19 +810,17 @@ if (FORK_MAINNET) {
       // 9. EDGE CASES & SECURITY
       // ═══════════════════════════════════════════════════════════
       describe("Edge Cases & Security", () => {
-        it("should cap XVS balance at MAXIMUM_XVS_CAP for scoring", async () => {
-          // Fund user with more than 100k XVS
+        it("should score using full XVS balance (no cap)", async () => {
+          // Fund user with more than 100k XVS — previously capped at 100k for scoring,
+          // now the full balance flows into the score formula.
           await fundXVS(user1Addr, parseEther("200000"));
           await depositToVault(user1, parseEther("200000"));
 
-          // Score should use capped XVS (100k), not actual balance (205k)
           const xvsBalance = await primeV2.xvsBalanceOfUser(user1Addr);
           expect(xvsBalance).to.equal(parseEther("205000")); // 5000 + 200000
 
-          // But when issuing Prime, the internal _xvsBalanceForScore caps it
           await primeV2.issue(user1Addr);
           const interest = await primeV2.interests(Addr.vUSDT, user1Addr);
-          // Score should be based on capped XVS, verified by it being > 0
           expect(interest.score).to.be.gt(0);
         });
 

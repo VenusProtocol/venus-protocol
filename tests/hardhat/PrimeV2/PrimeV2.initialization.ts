@@ -3,7 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { ethers, upgrades } from "hardhat";
 
-import { BLOCKS_PER_YEAR, MAXIMUM_XVS_CAP, PrimeV2Fixture, deployPrimeV2Fixture } from "./helpers/primeV2Fixture";
+import { BLOCKS_PER_YEAR, PrimeV2Fixture, deployPrimeV2Fixture } from "./helpers/primeV2Fixture";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -63,7 +63,6 @@ describe("PrimeV2 - Initialization", () => {
           constructorArgs: [
             f.wrappedNativeToken,
             f.nativeMarket,
-            MAXIMUM_XVS_CAP,
             ethers.constants.AddressZero,
             f.xvsAddress,
             0,
@@ -95,7 +94,6 @@ describe("PrimeV2 - Initialization", () => {
           constructorArgs: [
             f.wrappedNativeToken,
             f.nativeMarket,
-            MAXIMUM_XVS_CAP,
             f.xvsVault.address,
             f.xvsAddress,
             0,

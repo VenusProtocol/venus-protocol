@@ -56,7 +56,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   };
 
   const networkName: string = network.name;
-  const maximumXVSCap = ethers.utils.parseEther("100000");
   const xvsVaultAlphaNumerator = 1;
   const xvsVaultAlphaDenominator = 2;
   const loopsLimit = 20;
@@ -123,7 +122,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
       nativeMarket ? nativeMarket : ZERO_ADDRESS,
-      maximumXVSCap,
       xvsVaultAddress,
       xvsAddress,
       xVSVaultPoolId[networkName],

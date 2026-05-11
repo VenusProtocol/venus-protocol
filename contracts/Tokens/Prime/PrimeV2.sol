@@ -43,10 +43,6 @@ contract PrimeV2 is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable NATIVE_MARKET;
 
-    /// @notice Maximum XVS considered for score calculation
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable MAXIMUM_XVS_CAP;
-
     /// @notice Address of XVSVault contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable xvsVault;
@@ -163,7 +159,6 @@ contract PrimeV2 is
      * @notice PrimeV2 constructor
      * @param wrappedNativeToken_ Address of wrapped native token
      * @param nativeMarket_ Address of native market
-     * @param maximumXVSCap_ Maximum XVS taken in account when calculating user score
      * @param xvsVault_ Address of XVSVault contract
      * @param xvsVaultRewardToken_ Reward token address in XVSVault
      * @param xvsVaultPoolId_ Pool ID in XVSVault
@@ -174,7 +169,6 @@ contract PrimeV2 is
     constructor(
         address wrappedNativeToken_,
         address nativeMarket_,
-        uint256 maximumXVSCap_,
         address xvsVault_,
         address xvsVaultRewardToken_,
         uint256 xvsVaultPoolId_,
@@ -186,7 +180,6 @@ contract PrimeV2 is
 
         WRAPPED_NATIVE_TOKEN = wrappedNativeToken_;
         NATIVE_MARKET = nativeMarket_;
-        MAXIMUM_XVS_CAP = maximumXVSCap_;
         xvsVault = xvsVault_;
         xvsVaultRewardToken = xvsVaultRewardToken_;
         xvsVaultPoolId = xvsVaultPoolId_;
@@ -1099,7 +1092,7 @@ contract PrimeV2 is
      * @return score Calculated score
      */
     function _calculateScore(address market, address user) internal returns (uint256) {
-        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
+        uint256 xvsBalanceForScore = _xvsBalanceOfUser(user);
 
         IVToken vToken = IVToken(market);
         uint256 borrow = vToken.borrowBalanceStored(user);
@@ -1177,18 +1170,6 @@ contract PrimeV2 is
 
         if (xvs <= pendingWithdrawals) return 0;
         return xvs - pendingWithdrawals;
-    }
-
-    /**
-     * @notice Cap XVS balance for score calculation
-     * @param xvsBalance XVS balance
-     * @return Capped XVS balance
-     */
-    function _xvsBalanceForScore(uint256 xvsBalance) internal view returns (uint256) {
-        if (xvsBalance > MAXIMUM_XVS_CAP) {
-            return MAXIMUM_XVS_CAP;
-        }
-        return xvsBalance;
     }
 
     /**

@@ -367,16 +367,7 @@ describe("PrimeV2 - Admin Functions", () => {
           100,
         ],
         {
-          constructorArgs: [
-            f.wrappedNativeToken,
-            f.nativeMarket,
-            convertToUnit(100000, 18),
-            f.xvsVault.address,
-            f.xvsAddress,
-            0,
-            false,
-            70080000,
-          ],
+          constructorArgs: [f.wrappedNativeToken, f.nativeMarket, f.xvsVault.address, f.xvsAddress, 0, false, 70080000],
           unsafeAllow: ["constructor", "state-variable-immutable", "internal-function-storage"],
         },
       );
@@ -524,16 +515,7 @@ describe("PrimeV2 - Admin Functions", () => {
           100,
         ],
         {
-          constructorArgs: [
-            f.wrappedNativeToken,
-            f.nativeMarket,
-            convertToUnit(100000, 18),
-            f.xvsVault.address,
-            f.xvsAddress,
-            0,
-            false,
-            70080000,
-          ],
+          constructorArgs: [f.wrappedNativeToken, f.nativeMarket, f.xvsVault.address, f.xvsAddress, 0, false, 70080000],
           unsafeAllow: ["constructor", "state-variable-immutable", "internal-function-storage"],
         },
       );

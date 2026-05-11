@@ -16,7 +16,6 @@ import {
 
 chai.use(smock.matchers);
 
-export const MAXIMUM_XVS_CAP = convertToUnit(100000, 18);
 export const BLOCKS_PER_YEAR = 70080000;
 
 export interface PrimeV2Fixture {
@@ -88,16 +87,7 @@ export async function deployPrimeV2Fixture(): Promise<PrimeV2Fixture> {
     PrimeV2Factory,
     [1, 2, accessControlManager.address, primeLiquidityProvider.address, comptrollerAddress, oracle.address, 100],
     {
-      constructorArgs: [
-        wrappedNativeToken,
-        nativeMarket,
-        MAXIMUM_XVS_CAP,
-        xvsVault.address,
-        xvsAddress,
-        0,
-        false,
-        BLOCKS_PER_YEAR,
-      ],
+      constructorArgs: [wrappedNativeToken, nativeMarket, xvsVault.address, xvsAddress, 0, false, BLOCKS_PER_YEAR],
       unsafeAllow: ["constructor", "state-variable-immutable", "internal-function-storage"],
     },
   )) as PrimeV2;
