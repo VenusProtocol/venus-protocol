@@ -31,7 +31,7 @@ chai.use(smock.matchers);
 export const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 export const bigNumber16 = BigNumber.from("10000000000000000"); // 1e16
 
-type SetupProtocolFixture = {
+export type SetupProtocolFixture = {
   oracle: FakeContract<ResilientOracleInterface>;
   accessControl: FakeContract<IAccessControlManager>;
   comptrollerLens: MockContract<ComptrollerLens>;
@@ -48,7 +48,7 @@ type SetupProtocolFixture = {
   _primeLiquidityProvider: PrimeLiquidityProvider;
 };
 
-async function deployProtocol(): Promise<SetupProtocolFixture> {
+export async function deployProtocol(): Promise<SetupProtocolFixture> {
   const [wallet, user1, user2, user3] = await ethers.getSigners();
 
   const oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
