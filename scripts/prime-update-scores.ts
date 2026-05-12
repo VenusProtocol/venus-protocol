@@ -18,7 +18,8 @@
  *   npx hardhat run scripts/prime-update-scores.ts --network <network>
  *
  * Optional env vars:
- *   FROM_BLOCK         First block to scan for Mint/Burn (default: 0)
+ *   FROM_BLOCK         First block to scan for Mint/Burn
+ *                      (default: BSC mainnet Prime deploy block, 33_264_762)
  *   BLOCK_RANGE        Max blocks per getLogs call (default: 5000)
  *   DRY_RUN            "1" to skip sending txs
  */
@@ -136,10 +137,17 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
   const maxLoops: bigint = (await prime.maxLoopsLimit()).toBigInt();
   log(`round ${roundId}, maxLoopsLimit ${maxLoops}`);
 
+  // Parallelize isScoreUpdated reads in batches to avoid serial RPC latency
+  // when there are many holders. RPC providers tolerate ~20 in-flight reads
+  // comfortably without rate-limiting.
+  const ISSCOREUPDATED_BATCH = 20;
   const remaining: string[] = [];
-  for (const h of holders) {
-    const done: boolean = await prime.isScoreUpdated(roundId, h);
-    if (!done) remaining.push(h);
+  for (let i = 0; i < holders.length; i += ISSCOREUPDATED_BATCH) {
+    const slice = holders.slice(i, i + ISSCOREUPDATED_BATCH);
+    const flags: boolean[] = await Promise.all(slice.map(h => prime.isScoreUpdated(roundId, h)));
+    for (let j = 0; j < slice.length; j++) {
+      if (!flags[j]) remaining.push(slice[j]);
+    }
   }
   log(`Pending this round: ${remaining.length}`);
 
@@ -174,8 +182,14 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
   return { pendingBefore, pendingAfter, batchesSent: batches.length, usersUpdated };
 }
 
+// BSC mainnet Prime deployment block (proxy creation tx
+// 0xfd09cf4011f863f65f1dc6a37cb325468f0ce6311849f77205e891bd36107433).
+// Used as the default lower bound for the Mint/Burn event scan so an
+// operator on bscmainnet doesn't have to look it up manually.
+const PRIME_BSCMAINNET_DEPLOY_BLOCK = 33_264_762;
+
 async function main() {
-  const fromBlock = Number(process.env.FROM_BLOCK ?? 0);
+  const fromBlock = Number(process.env.FROM_BLOCK ?? PRIME_BSCMAINNET_DEPLOY_BLOCK);
   const blockRange = Number(process.env.BLOCK_RANGE ?? 5000);
   const dryRun = process.env.DRY_RUN === "1";
 
