@@ -23,7 +23,9 @@
  *   BLOCK_RANGE        Max blocks per getLogs call (default: 5000)
  *   DRY_RUN            "1" to skip sending txs
  */
+import * as fs from "fs";
 import { deployments, ethers } from "hardhat";
+import * as path from "path";
 
 export type HolderEvent = {
   kind: "Mint" | "Burn";
@@ -139,12 +141,28 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
 
   // Parallelize isScoreUpdated reads in batches to avoid serial RPC latency
   // when there are many holders. RPC providers tolerate ~20 in-flight reads
-  // comfortably without rate-limiting.
+  // comfortably without rate-limiting. Retry transient transport errors
+  // (ECONNRESET / TLS disconnect) up to 5 times with exponential backoff.
   const ISSCOREUPDATED_BATCH = 20;
+  const retryRead = async (h: string): Promise<boolean> => {
+    let lastErr: any;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        return await prime.isScoreUpdated(roundId, h);
+      } catch (e: any) {
+        lastErr = e;
+        const msg = String(e?.message ?? e);
+        const transient = /ECONNRESET|socket disconnect|ETIMEDOUT|EAI_AGAIN|network|timeout|fetch failed/i.test(msg);
+        if (!transient) throw e;
+        await new Promise(r => setTimeout(r, 250 * 2 ** attempt));
+      }
+    }
+    throw lastErr;
+  };
   const remaining: string[] = [];
   for (let i = 0; i < holders.length; i += ISSCOREUPDATED_BATCH) {
     const slice = holders.slice(i, i + ISSCOREUPDATED_BATCH);
-    const flags: boolean[] = await Promise.all(slice.map(h => prime.isScoreUpdated(roundId, h)));
+    const flags: boolean[] = await Promise.all(slice.map(retryRead));
     for (let j = 0; j < slice.length; j++) {
       if (!flags[j]) remaining.push(slice[j]);
     }
@@ -158,8 +176,11 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
     return { pendingBefore, pendingAfter: pendingBefore, batchesSent: 0, usersUpdated: 0 };
   }
 
-  const batches = chunk(remaining, Number(maxLoops));
-  log(`Sending ${batches.length} batch(es) of up to ${maxLoops} users`);
+  // BSC RPC nodes cap per-tx gas at ~16.7M (2^24). The contract's maxLoopsLimit
+  // (20) implies ~20M gas per batch — over the cap. Allow operator override.
+  const batchSize = process.env.BATCH_SIZE ? Number(process.env.BATCH_SIZE) : Number(maxLoops);
+  const batches = chunk(remaining, batchSize);
+  log(`Sending ${batches.length} batch(es) of up to ${batchSize} users`);
 
   let usersUpdated = 0;
   for (let i = 0; i < batches.length; i++) {
@@ -170,8 +191,31 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
       continue;
     }
 
-    const tx = await prime.updateScores(batch);
-    const rcpt = await tx.wait();
+    // Bypass eth_estimateGas. BSC RPC nodes cap per-tx gas at 16,777,216 (2^24),
+    // so we must stay under that. 14 users * ~0.93M/user ≈ 13M; 15M leaves margin.
+    let rcpt: any;
+    let lastErr: any;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        // If a previous attempt broadcast a tx whose receipt fetch failed,
+        // wait for that specific hash before resending (avoids nonce conflict).
+        if (lastErr?.transactionHash) {
+          rcpt = await prime.provider.waitForTransaction(lastErr.transactionHash, 1, 60_000);
+        } else {
+          const tx = await prime.updateScores(batch, { gasLimit: 15_000_000 });
+          rcpt = await tx.wait();
+        }
+        break;
+      } catch (e: any) {
+        lastErr = e;
+        const msg = String(e?.message ?? e);
+        const transient =
+          /ECONNRESET|socket disconnect|ETIMEDOUT|EAI_AGAIN|network|timeout|fetch failed|server response/i.test(msg);
+        if (!transient || attempt === 4) throw e;
+        log(`    transient error (attempt ${attempt + 1}/5): ${msg.slice(0, 100)}`);
+        await new Promise(r => setTimeout(r, 500 * 2 ** attempt));
+      }
+    }
     log(`    tx ${rcpt.transactionHash} gasUsed=${rcpt.gasUsed.toString()}`);
     usersUpdated += batch.length;
   }
@@ -198,10 +242,26 @@ async function main() {
 
   const prime = await ethers.getContractAt("Prime", dep.address);
 
-  console.log("Reconstructing holder set from Mint/Burn events...");
-  const events = await fetchHolderEvents(prime, fromBlock, blockRange, undefined, m => console.log(m));
-  const holders = eventsToHolders(events);
-  console.log(`Total current holders: ${holders.length}`);
+  // Holder list is expensive to reconstruct (full event-log scan from Prime
+  // deploy block). Cache it on disk so reruns after a crash / partial drain
+  // can skip the scan. Set HOLDERS_FILE=- to force a fresh scan.
+  const chainId = (await ethers.provider.getNetwork()).chainId;
+  const cachePath = process.env.HOLDERS_FILE ?? path.join(__dirname, `..`, `.prime-holders-${chainId}.json`);
+
+  let holders: string[];
+  if (cachePath !== "-" && fs.existsSync(cachePath)) {
+    holders = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    console.log(`Loaded ${holders.length} holders from cache: ${cachePath}`);
+  } else {
+    console.log("Reconstructing holder set from Mint/Burn events...");
+    const events = await fetchHolderEvents(prime, fromBlock, blockRange, undefined, m => console.log(m));
+    holders = eventsToHolders(events);
+    console.log(`Total current holders: ${holders.length}`);
+    if (cachePath !== "-") {
+      fs.writeFileSync(cachePath, JSON.stringify(holders, null, 2));
+      console.log(`Wrote holder cache: ${cachePath}`);
+    }
+  }
 
   await runUpdate(prime, holders, { dryRun, log: m => console.log(m) });
 }
