@@ -1,3 +1,10 @@
+## 10.2.0-dev.7 (2026-05-17)
+
+* Merge pull request #671 from VenusProtocol/feat/VPD-1182 ([7bb5c03](https://github.com/VenusProtocol/venus-protocol/commit/7bb5c03)), closes [#671](https://github.com/VenusProtocol/venus-protocol/issues/671)
+* fix(prime-update-scores): harden for BSC mainnet ([71884cc](https://github.com/VenusProtocol/venus-protocol/commit/71884cc))
+* refactor: parallelize isScoreUpdated, default FROM_BLOCK ([dbf0369](https://github.com/VenusProtocol/venus-protocol/commit/dbf0369))
+* feat(prime): add script to drain pendingScoreUpdates after addMarket ([99c9435](https://github.com/VenusProtocol/venus-protocol/commit/99c9435))
+
 ## 10.2.0-dev.6 (2026-05-07)
 
 * Merge branch 'feat/vpd-893-comptroller-deployment' into feat/vpd-893-bounded-price-oracle ([01a16a3](https://github.com/VenusProtocol/venus-protocol/commit/01a16a3))
