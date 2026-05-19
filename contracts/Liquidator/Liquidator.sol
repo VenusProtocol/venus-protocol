@@ -482,7 +482,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         vaiController.accrueVAIInterest();
         uint256 _vaiDebt = vaiController.getVAIRepayAmount(borrower_);
         bool _isVAILiquidationPaused = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
-        bool _isForcedLiquidationEnabled = comptroller.isForcedLiquidationEnabled(vToken_);
+        bool _isForcedLiquidationEnabled = comptroller.isForcedLiquidationEnabled(vToken_) ||
+            comptroller.isForcedLiquidationEnabledForUser(borrower_, vToken_);
         if (
             _isForcedLiquidationEnabled ||
             _isVAILiquidationPaused ||
