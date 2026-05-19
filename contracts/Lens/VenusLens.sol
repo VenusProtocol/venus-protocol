@@ -155,6 +155,10 @@ contract VenusLens is ExponentialNoError {
      * @notice Query the metadata of a vToken by its address
      * @param vToken The address of the vToken to fetch VTokenMetadata
      * @return VTokenMetadata struct with vToken supply and borrow information.
+     * @dev Despite the getter-style name, this function is state-changing: it calls
+     *      `vToken.exchangeRateCurrent()`, which invokes `accrueInterest()` on the market. Off-chain
+     *      consumers MUST use `eth_call` (a static call) to avoid sending a transaction; on-chain
+     *      callers must treat this as a state-mutating operation.
      */
     function vTokenMetadata(VToken vToken) public returns (VTokenMetadata memory) {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
@@ -224,6 +228,10 @@ contract VenusLens is ExponentialNoError {
      * @notice Get VTokenMetadata for an array of vToken addresses
      * @param vTokens Array of vToken addresses to fetch VTokenMetadata
      * @return Array of structs with vToken supply and borrow information.
+     * @dev Despite the getter-style name, this function is state-changing: it calls `vTokenMetadata`
+     *      per asset, which invokes `accrueInterest()` via `exchangeRateCurrent()` on every market.
+     *      Off-chain consumers MUST use `eth_call` (a static call) to avoid sending a transaction;
+     *      on-chain callers must treat this as a state-mutating operation.
      */
     function vTokenMetadataAll(VToken[] calldata vTokens) external returns (VTokenMetadata[] memory) {
         uint vTokenCount = vTokens.length;
@@ -239,6 +247,11 @@ contract VenusLens is ExponentialNoError {
      * @param account Address of account to fetch the daily XVS distribution
      * @param comptrollerAddress Address of the comptroller proxy
      * @return Amount of XVS distributed daily to an account
+     * @dev Despite the getter-style name, this function is state-changing: it invokes
+     *      `vTokenMetadata` and `vTokenBalances` per market, which call `exchangeRateCurrent()`,
+     *      `borrowBalanceCurrent()` and `balanceOfUnderlying()` — all of which accrue interest.
+     *      Off-chain consumers MUST use `eth_call` (a static call) to avoid sending a transaction;
+     *      on-chain callers must treat this as a state-mutating operation.
      */
     function getDailyXVS(address payable account, address comptrollerAddress) external returns (uint) {
         ComptrollerInterface comptrollerInstance = ComptrollerInterface(comptrollerAddress);
@@ -288,6 +301,11 @@ contract VenusLens is ExponentialNoError {
      * @param vToken Address of the token to check the balance of
      * @param account Account address to fetch the balance of
      * @return VTokenBalances with token balance information
+     * @dev Despite the getter-style name, this function is state-changing: it calls
+     *      `vToken.borrowBalanceCurrent(account)` and `vToken.balanceOfUnderlying(account)`, both
+     *      of which invoke `accrueInterest()` on the market. Off-chain consumers MUST use
+     *      `eth_call` (a static call) to avoid sending a transaction; on-chain callers must treat
+     *      this as a state-mutating operation.
      */
     function vTokenBalances(VToken vToken, address payable account) public returns (VTokenBalances memory) {
         uint balanceOf = vToken.balanceOf(account);
@@ -322,6 +340,11 @@ contract VenusLens is ExponentialNoError {
      * @param vTokens Addresses of the tokens to check the balance of
      * @param account Account address to fetch the balance of
      * @return VTokenBalances Array with token balance information
+     * @dev Despite the getter-style name, this function is state-changing: it calls `vTokenBalances`
+     *      per asset, which invokes `accrueInterest()` via `borrowBalanceCurrent()` and
+     *      `balanceOfUnderlying()` on every supplied market. Off-chain consumers MUST use
+     *      `eth_call` (a static call) to avoid sending a transaction; on-chain callers must treat
+     *      this as a state-mutating operation.
      */
     function vTokenBalancesAll(
         VToken[] calldata vTokens,
@@ -404,6 +427,11 @@ contract VenusLens is ExponentialNoError {
      * @param comptroller Comptroller proxy contract address
      * @param account Account address
      * @return Struct with XVS balance and voter details and XVS allocation
+     * @dev Despite the getter-style name, this function is state-changing AND has external side
+     *      effects: it calls `comptroller.claimVenus(account)`, which actually transfers any pending
+     *      XVS rewards to `account` (not just an accrual). Off-chain consumers MUST use `eth_call`
+     *      (a static call) to avoid sending a transaction; on-chain callers must treat this as a
+     *      state-mutating operation whose side effect is observable to the user being queried.
      */
     function getXVSBalanceMetadataExt(
         IXVS xvs,

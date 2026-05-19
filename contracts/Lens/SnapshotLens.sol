@@ -54,6 +54,13 @@ contract SnapshotLens is ExponentialNoError {
         bool isACollateral;
     }
 
+    /**
+     * @dev Despite the getter-style name, this function is state-changing: it iterates every market the
+     *      account is in and, per asset, invokes the single-market overload below, which calls
+     *      `vToken.balanceOfUnderlying` and `vToken.exchangeRateCurrent` — both of which accrue interest.
+     *      Off-chain consumers MUST use `eth_call` (a static call) to avoid sending a transaction; on-chain
+     *      callers must treat this as a state-mutating operation.
+     */
     function getAccountSnapshot(
         address payable account,
         address comptrollerAddress
@@ -78,6 +85,13 @@ contract SnapshotLens is ExponentialNoError {
         return false;
     }
 
+    /**
+     * @dev Despite the getter-style name, this function is state-changing: it calls
+     *      `vToken.balanceOfUnderlying(account)` and `vToken.exchangeRateCurrent()`, both of which
+     *      invoke `accrueInterest()` on the market. Off-chain consumers MUST use `eth_call`
+     *      (a static call) to avoid sending a transaction; on-chain callers must treat this as a
+     *      state-mutating operation.
+     */
     function getAccountSnapshot(
         address payable account,
         address comptrollerAddress,
