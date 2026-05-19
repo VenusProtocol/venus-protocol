@@ -1433,10 +1433,16 @@ describe("DeviationBoundedOracle Integration", () => {
       await enterCollateralMarket(comptroller, vTokenA, user);
       await comptroller.connect(user).enterMarkets([vTokenB.address]);
 
+      // Give vTokenB a non-zero supply so it is not skipped by the zero-balance
+      // short-circuit in `_calculateAccountPosition` (entered markets with no supply
+      // and no debt contribute zero to both sums and skip the oracle fetch).
+      const userAddr = await user.getAddress();
+      vTokenB.getAccountSnapshot.whenCalledWith(userAddr).returns([0, COLLATERAL_BALANCE, 0, EXCHANGE_RATE]);
+
       dbo.getBoundedPricesView.reset();
       dbo.getBoundedPricesView.returns([BOUNDED_COLLATERAL_PRICE, BOUNDED_DEBT_PRICE]);
 
-      await comptroller.getBorrowingPower(await user.getAddress());
+      await comptroller.getBorrowingPower(userAddr);
 
       expect(dbo.getBoundedPricesView).to.have.been.calledWith(vTokenA.address);
       expect(dbo.getBoundedPricesView).to.have.been.calledWith(vTokenB.address);
