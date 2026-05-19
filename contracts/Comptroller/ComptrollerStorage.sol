@@ -52,7 +52,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice No longer used. Kept in place so the storage layout stays consistent across upgrades.
      */
-    uint256 public maxAssets;
+    uint256 private maxAssets;
 
     /**
      * @notice Per-account mapping of "assets you are in".
