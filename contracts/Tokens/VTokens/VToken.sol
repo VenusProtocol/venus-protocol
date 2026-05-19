@@ -111,8 +111,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function balanceOfUnderlying(address owner) external override returns (uint) {
         Exp memory exchangeRate = Exp({ mantissa: exchangeRateCurrent() });
-        (MathError mErr, uint balance) = mulScalarTruncate(exchangeRate, accountTokens[owner]);
-        ensureNoMathError(mErr);
+        (MathError mathErr, uint balance) = mulScalarTruncate(exchangeRate, accountTokens[owner]);
+        ensureNoMathError(mathErr);
         return balance;
     }
 
@@ -290,15 +290,15 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint borrowBalance;
         uint exchangeRateMantissa;
 
-        MathError mErr;
+        MathError mathErr;
 
-        (mErr, borrowBalance) = borrowBalanceStoredInternal(account);
-        if (mErr != MathError.NO_ERROR) {
+        (mathErr, borrowBalance) = borrowBalanceStoredInternal(account);
+        if (mathErr != MathError.NO_ERROR) {
             return (uint(Error.MATH_ERROR), 0, 0, 0);
         }
 
-        (mErr, exchangeRateMantissa) = exchangeRateStoredInternal();
-        if (mErr != MathError.NO_ERROR) {
+        (mathErr, exchangeRateMantissa) = exchangeRateStoredInternal();
+        if (mathErr != MathError.NO_ERROR) {
             return (uint(Error.MATH_ERROR), 0, 0, 0);
         }
 
@@ -726,8 +726,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return Calculated exchange rate scaled by 1e18
      */
     function exchangeRateStored() public view override returns (uint) {
-        (MathError err, uint result) = exchangeRateStoredInternal();
-        ensureNoMathError(err);
+        (MathError mathErr, uint result) = exchangeRateStoredInternal();
+        ensureNoMathError(mathErr);
         return result;
     }
 
@@ -737,8 +737,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The calculated balance
      */
     function borrowBalanceStored(address account) public view override returns (uint) {
-        (MathError err, uint result) = borrowBalanceStoredInternal(account);
-        ensureNoMathError(err);
+        (MathError mathErr, uint result) = borrowBalanceStoredInternal(account);
+        ensureNoMathError(mathErr);
         return result;
     }
 
@@ -778,15 +778,15 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return protocolFee The portion of the total fee allocated to the protocol.
      */
     function calculateFlashLoanFee(uint256 amount) public view returns (uint256, uint256) {
-        MathError mErr;
+        MathError mathErr;
         uint256 totalFee;
         uint256 protocolFee;
 
-        (mErr, totalFee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanFeeMantissa);
-        ensureNoMathError(mErr);
+        (mathErr, totalFee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanFeeMantissa);
+        ensureNoMathError(mathErr);
 
-        (mErr, protocolFee) = mulScalarTruncate(Exp({ mantissa: totalFee }), flashLoanProtocolShareMantissa);
-        ensureNoMathError(mErr);
+        (mathErr, protocolFee) = mulScalarTruncate(Exp({ mantissa: totalFee }), flashLoanProtocolShareMantissa);
+        ensureNoMathError(mathErr);
 
         return (totalFee, protocolFee);
     }
@@ -823,7 +823,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Do the calculations, checking for {under,over}flow */
         MathError mathErr;
         uint allowanceNew;
-        uint srvTokensNew;
+        uint srcTokensNew;
         uint dstTokensNew;
 
         (mathErr, allowanceNew) = subUInt(startingAllowance, tokens);
@@ -831,7 +831,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return fail(Error.MATH_ERROR, FailureInfo.TRANSFER_NOT_ALLOWED);
         }
 
-        (mathErr, srvTokensNew) = subUInt(accountTokens[src], tokens);
+        (mathErr, srcTokensNew) = subUInt(accountTokens[src], tokens);
         if (mathErr != MathError.NO_ERROR) {
             return fail(Error.MATH_ERROR, FailureInfo.TRANSFER_NOT_ENOUGH);
         }
@@ -845,7 +845,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
 
-        accountTokens[src] = srvTokensNew;
+        accountTokens[src] = srcTokensNew;
         accountTokens[dst] = dstTokensNew;
 
         /* Eat some of the allowance (if necessary) */
@@ -1902,8 +1902,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         require(caller_ == admin, "Unauthorized");
     }
 
-    function ensureNoMathError(MathError mErr) private pure {
-        require(mErr == MathError.NO_ERROR, "math error");
+    function ensureNoMathError(MathError mathErr) private pure {
+        require(mathErr == MathError.NO_ERROR, "math error");
     }
 
     function ensureNonZeroAddress(address address_) private pure {
