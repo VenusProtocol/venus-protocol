@@ -227,8 +227,8 @@ async function grantPermissions(): Promise<void> {
 async function grantDBOPermissions(dboAddress: string): Promise<void> {
   const timelockAddr = await timelock.getAddress();
   const dboPerms = [
-    "setTokenConfig(address,uint64,uint256,uint256,bool)",
-    "disableActiveProtectedPrice(address)",
+    "setTokenConfig((address,uint64,uint256,uint256,bool,bool))",
+    "syncPriceBoundsAndProtections((address,uint8,uint256)[])",
     "updateMinPrice(address,uint128)",
     "updateMaxPrice(address,uint128)",
     "setThresholds(address,uint256,uint256)",
@@ -264,7 +264,7 @@ async function neutralizeDBO(): Promise<void> {
     // Disable protection if active (range = 2% < 5% reset threshold, cooldown elapsed)
     const cfg = await dbo.assetProtectionConfig(asset);
     if (cfg.currentlyUsingProtectedPrice) {
-      await dbo.connect(timelock).disableActiveProtectedPrice(asset);
+      await dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: asset, action: 2, value: 0 }]);
     }
   }
 
@@ -313,16 +313,20 @@ if (FORK_MAINNET) {
         await comptroller.setIsBorrowAllowed(0, vUSDT_ADDRESS, true);
         await comptroller.setIsBorrowAllowed(0, vBTC_ADDRESS, true);
 
-        // 6. Configure DBO tokens (setTokenConfig calls getPrice internally)
-        await dbo
-          .connect(timelock)
-          .setTokenConfig(USDT_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD, true);
-        await dbo
-          .connect(timelock)
-          .setTokenConfig(BTCB_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD, true);
-        await dbo
-          .connect(timelock)
-          .setTokenConfig(WBNB_ADDR, COOLDOWN_PERIOD, TRIGGER_THRESHOLD, RESET_THRESHOLD, true);
+        // 6. Configure DBO tokens (setTokenConfig calls getPrice internally).
+        // The latest DBO API takes a TokenConfigInput struct (asset, cooldownPeriod,
+        // triggerThreshold, resetThreshold, enableBoundedPricing, enableCaching) instead
+        // of the old 5-positional-argument form.
+        const tokenConfigDefaults = {
+          cooldownPeriod: COOLDOWN_PERIOD,
+          triggerThreshold: TRIGGER_THRESHOLD,
+          resetThreshold: RESET_THRESHOLD,
+          enableBoundedPricing: true,
+          enableCaching: false,
+        };
+        await dbo.connect(timelock).setTokenConfig({ asset: USDT_ADDR, ...tokenConfigDefaults });
+        await dbo.connect(timelock).setTokenConfig({ asset: BTCB_ADDR, ...tokenConfigDefaults });
+        await dbo.connect(timelock).setTokenConfig({ asset: WBNB_ADDR, ...tokenConfigDefaults });
 
         // 7. Wire DBO into comptroller
         await comptroller.setDeviationBoundedOracle(dbo.address);
@@ -819,7 +823,8 @@ if (FORK_MAINNET) {
       describe("8. Keeper disables protection — normal operation resumes", () => {
         it("disableActiveProtectedPrice reverts before cooldown elapses", async () => {
           await dbo.assetProtectionConfig(USDT_ADDR);
-          await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.be.reverted;
+          await expect(dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]))
+            .to.be.reverted;
         });
 
         it("keeper narrows window + disables protection after cooldown", async () => {
@@ -835,7 +840,8 @@ if (FORK_MAINNET) {
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, newMin);
 
           // Disable protection
-          await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.not.be.reverted;
+          await expect(dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]))
+            .to.not.be.reverted;
 
           const updatedConfig = await dbo.assetProtectionConfig(USDT_ADDR);
           expect(updatedConfig.currentlyUsingProtectedPrice).to.be.false;
@@ -1284,7 +1290,9 @@ if (FORK_MAINNET) {
             await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PUMPED.mul(95).div(100));
             // Range = ($1.515 - $1.425) / $1.425 ≈ 6.3%
             // With reset=8%, 6.3% < 8% → disableActiveProtectedPrice should succeed
-            await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.not.be.reverted;
+            await expect(
+              dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]),
+            ).to.not.be.reverted;
 
             // User can now borrow at spot capacity
             const borrowAmt = parseUnits("0.05", 18);
@@ -1343,14 +1351,18 @@ if (FORK_MAINNET) {
             await dbo.connect(timelock).updateMinPrice(USDT_ADDR, newMin);
 
             // Still within new 2-hour cooldown → revert
-            await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.be.reverted;
+            await expect(
+              dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]),
+            ).to.be.reverted;
           });
 
           it("after extended cooldown elapses — disableActiveProtectedPrice succeeds", async () => {
             // Advance past remaining cooldown
             await time.increase(COOLDOWN_PERIOD + 1);
 
-            await expect(dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR)).to.not.be.reverted;
+            await expect(
+              dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]),
+            ).to.not.be.reverted;
 
             // User can now borrow
             const borrowAmt = parseUnits("0.05", 18);
@@ -1671,7 +1683,7 @@ if (FORK_MAINNET) {
           await time.increase(COOLDOWN_PERIOD + 1);
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100)); // $1.01
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100)); // $0.99
-          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
+          await dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]);
 
           // Verify protection is disabled
           const cfgAfter = await dbo.assetProtectionConfig(USDT_ADDR);
@@ -1863,7 +1875,7 @@ if (FORK_MAINNET) {
           // Narrow window to allow disable
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
+          await dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]);
 
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
           expect(config.currentlyUsingProtectedPrice).to.be.false;
@@ -1944,7 +1956,7 @@ if (FORK_MAINNET) {
 
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
+          await dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]);
 
           const config = await dbo.assetProtectionConfig(USDT_ADDR);
           expect(config.currentlyUsingProtectedPrice).to.be.false;
@@ -2061,7 +2073,7 @@ if (FORK_MAINNET) {
           resetPrices();
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
+          await dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]);
           expect((await dbo.assetProtectionConfig(USDT_ADDR)).currentlyUsingProtectedPrice).to.be.false;
 
           // Borrow now allowed — protection disabled, spot prices used
@@ -2186,7 +2198,7 @@ if (FORK_MAINNET) {
           resetPrices();
           await dbo.connect(timelock).updateMaxPrice(USDT_ADDR, USDT_PRICE.mul(101).div(100));
           await dbo.connect(timelock).updateMinPrice(USDT_ADDR, USDT_PRICE.mul(99).div(100));
-          await dbo.connect(timelock).disableActiveProtectedPrice(USDT_ADDR);
+          await dbo.connect(timelock).syncPriceBoundsAndProtections([{ asset: USDT_ADDR, action: 2, value: 0 }]);
 
           const [, cfLiquidity] = await comptroller.getBorrowingPower(user26Addr);
           const [, ltLiquidity] = await comptroller.getAccountLiquidity(user26Addr);

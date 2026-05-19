@@ -252,6 +252,13 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), vars);
             }
+
+            // Skip entered markets where the account has neither supply nor debt and which are
+            // not the market being modified
+            if (asset != vTokenModify && vars.vTokenBalance == 0 && vars.borrowBalance == 0) {
+                continue;
+            }
+
             vars.weightedFactor = Exp({
                 mantissa: ComptrollerInterface(comptroller).getEffectiveLtvFactor(
                     account,
