@@ -142,11 +142,38 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
      */
     function seizeVenus(address[] calldata holders, address recipient) external returns (uint256) {
         ensureAllowed("seizeVenus(address[],address)");
+        return _seizeVenus(holders, recipient, allMarkets);
+    }
 
+    /**
+     * @notice Seize XVS rewards allocated to holders, filtered to the supplied markets
+     * @dev Caller-curated counterpart to `seizeVenus(address[],address)`. Use this when some
+     *      markets in `allMarkets` have been unlisted — `ensureListed` inside the reward update
+     *      loop would otherwise revert the full call. Mirrors `claimVenus(address[],VToken[],...)`.
+     * @param holders Addresses of the XVS holders
+     * @param recipient Address of the XVS token recipient
+     * @param vTokens The list of markets to seize XVS from
+     * @return The total amount of XVS tokens seized and transferred to recipient
+     */
+    function seizeVenus(
+        address[] calldata holders,
+        address recipient,
+        VToken[] calldata vTokens
+    ) external returns (uint256) {
+        ensureAllowed("seizeVenus(address[],address,VToken[])");
+        return _seizeVenus(holders, recipient, vTokens);
+    }
+
+    /// @dev Shared body for both `seizeVenus` overloads. Caller is responsible for ACM gating.
+    function _seizeVenus(
+        address[] calldata holders,
+        address recipient,
+        VToken[] memory vTokens
+    ) internal returns (uint256) {
         uint256 holdersLength = holders.length;
         uint256 totalHoldings;
 
-        updateAndDistributeRewardsInternal(holders, allMarkets, true, true);
+        updateAndDistributeRewardsInternal(holders, vTokens, true, true);
         for (uint256 j; j < holdersLength; ++j) {
             address holder = holders[j];
             uint256 userHolding = venusAccrued[holder];
