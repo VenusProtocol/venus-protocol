@@ -251,10 +251,24 @@ contract VBep20 is VToken, VBep20Interface {
     }
 
     /**
-     * @notice Transfer excess tokens to caller and sync internalCash with actual balance
-     * @dev Admin-only. For migration: pass 0 (just syncs). For sweep: pass the excess amount.
-     *      Transfers `transferAmount` of underlying to msg.sender, then sets internalCash = balanceOf(address(this)).
-     * @param transferAmount Amount of underlying to transfer to msg.sender before syncing
+     * @notice Admin resynchronisation entry point for the market's `internalCash` accounting.
+     *         Optionally transfers `transferAmount` of underlying to the admin, then sets
+     *         `internalCash = balanceOf(address(this))`.
+     *
+     * @dev This is the canonical way to:
+     *      - Migrate from raw-balance accounting to `internalCash`-tracked accounting (pass any
+     *        legitimate excess as `transferAmount`).
+     *      - Incorporate a verified donation into tracked cash (pass `0` — `transferAmount = 0`
+     *        is a pure sync, no tokens leave the market).
+     *      - Recover after external balance drift caused by atypical transfers.
+     *
+     *      `internalCash` is the donation-attack hardening: deposits/withdrawals route through
+     *      it instead of `balanceOf`. This admin-only function is the only path that can fold
+     *      external balance changes back into that accounting, and must therefore be governance-
+     *      gated (timelock + VIP) at the admin level.
+     *
+     * @param transferAmount Amount of underlying to transfer to `msg.sender` (admin) before
+     *        syncing. Pass `0` to sync without withdrawing.
      */
     function sweepTokenAndSync(uint256 transferAmount) external {
         require(msg.sender == admin);
