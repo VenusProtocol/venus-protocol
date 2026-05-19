@@ -155,6 +155,7 @@ contract VenusLens is ExponentialNoError {
      * @notice Query the metadata of a vToken by its address
      * @param vToken The address of the vToken to fetch VTokenMetadata
      * @return VTokenMetadata struct with vToken supply and borrow information.
+     * @dev State-mutating function.
      */
     function vTokenMetadata(VToken vToken) public returns (VTokenMetadata memory) {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
@@ -224,6 +225,7 @@ contract VenusLens is ExponentialNoError {
      * @notice Get VTokenMetadata for an array of vToken addresses
      * @param vTokens Array of vToken addresses to fetch VTokenMetadata
      * @return Array of structs with vToken supply and borrow information.
+     * @dev State-mutating function.
      */
     function vTokenMetadataAll(VToken[] calldata vTokens) external returns (VTokenMetadata[] memory) {
         uint vTokenCount = vTokens.length;
@@ -239,6 +241,7 @@ contract VenusLens is ExponentialNoError {
      * @param account Address of account to fetch the daily XVS distribution
      * @param comptrollerAddress Address of the comptroller proxy
      * @return Amount of XVS distributed daily to an account
+     * @dev State-mutating function.
      */
     function getDailyXVS(address payable account, address comptrollerAddress) external returns (uint) {
         ComptrollerInterface comptrollerInstance = ComptrollerInterface(comptrollerAddress);
@@ -288,6 +291,7 @@ contract VenusLens is ExponentialNoError {
      * @param vToken Address of the token to check the balance of
      * @param account Account address to fetch the balance of
      * @return VTokenBalances with token balance information
+     * @dev State-mutating function.
      */
     function vTokenBalances(VToken vToken, address payable account) public returns (VTokenBalances memory) {
         uint balanceOf = vToken.balanceOf(account);
@@ -322,6 +326,7 @@ contract VenusLens is ExponentialNoError {
      * @param vTokens Addresses of the tokens to check the balance of
      * @param account Account address to fetch the balance of
      * @return VTokenBalances Array with token balance information
+     * @dev State-mutating function.
      */
     function vTokenBalancesAll(
         VToken[] calldata vTokens,
@@ -404,6 +409,7 @@ contract VenusLens is ExponentialNoError {
      * @param comptroller Comptroller proxy contract address
      * @param account Account address
      * @return Struct with XVS balance and voter details and XVS allocation
+     * @dev State-mutating function.
      */
     function getXVSBalanceMetadataExt(
         IXVS xvs,
