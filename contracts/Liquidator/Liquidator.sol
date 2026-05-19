@@ -474,8 +474,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
     }
 
-    /// @dev Checks liquidation action in comptroller and vaiDebt with minLiquidatableVAI threshold
-    function _checkForceVAILiquidate(address vToken_, address borrower_) private view {
+    /// @dev Accrues VAI interest and check liquidation action in comptroller and vaiDebt with minLiquidatableVAI threshold.
+    function _checkForceVAILiquidate(address vToken_, address borrower_) private {
+        vaiController.accrueVAIInterest();
         uint256 _vaiDebt = vaiController.getVAIRepayAmount(borrower_);
         bool _isVAILiquidationPaused = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
         bool _isForcedLiquidationEnabled = comptroller.isForcedLiquidationEnabled(vToken_);
