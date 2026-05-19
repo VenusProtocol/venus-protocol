@@ -136,9 +136,26 @@ describe("Comptroller", () => {
     describe("seizeVenus", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user).seizeVenus([ethers.constants.AddressZero], ethers.constants.AddressZero),
+          comptroller
+            .connect(user)
+            ["seizeVenus(address[],address)"]([ethers.constants.AddressZero], ethers.constants.AddressZero),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "seizeVenus(address[],address)");
+      });
+
+      it("curated overload should have its own AccessControl signature", async () => {
+        accessControl.isAllowedToCall.reset();
+        await expect(
+          comptroller
+            .connect(user)
+            [
+              "seizeVenus(address[],address,address[])"
+            ]([ethers.constants.AddressZero], ethers.constants.AddressZero, []),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "seizeVenus(address[],address,VToken[])",
+        );
       });
     });
   });

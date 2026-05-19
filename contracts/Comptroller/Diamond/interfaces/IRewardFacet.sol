@@ -25,4 +25,10 @@ interface IRewardFacet {
         bool collateral
     ) external;
     function seizeVenus(address[] calldata holders, address recipient) external returns (uint256);
+
+    function seizeVenus(
+        address[] calldata holders,
+        address recipient,
+        VToken[] calldata vTokens
+    ) external returns (uint256);
 }
