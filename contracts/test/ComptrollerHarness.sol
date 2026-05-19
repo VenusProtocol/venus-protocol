@@ -117,6 +117,15 @@ contract ComptrollerHarness is ComptrollerMock {
         return userAccrued;
     }
 
+    function harnessGrantXVSInternal(
+        address user,
+        uint amount,
+        uint shortfall,
+        bool collateral
+    ) external returns (uint) {
+        return grantXVSInternal(user, amount, shortfall, collateral);
+    }
+
     function harnessAddVenusMarkets(address[] memory vTokens) public {
         for (uint i = 0; i < vTokens.length; i++) {
             // temporarily set venusSpeed to 1 (will be fixed by `harnessRefreshVenusSpeeds`)

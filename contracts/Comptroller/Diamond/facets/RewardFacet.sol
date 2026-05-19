@@ -109,6 +109,8 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
         address xvsVToken_ = xvsVToken;
 
+        require(getCorePoolMarket(xvsVToken_).accountMembership[user], "vXVS market not entered");
+
         xvs_.safeApprove(xvsVToken_, 0);
         xvs_.safeApprove(xvsVToken_, amount);
         require(VBep20Interface(xvsVToken_).mintBehalf(user, amount) == uint256(Error.NO_ERROR), "mint behalf error");
