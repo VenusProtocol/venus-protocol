@@ -47,5 +47,5 @@ contract PrimeLeaderboardStorageV1 {
     bool public stakersInitialized;
 
     /// @notice Storage gap for future upgrades
-    uint256[48] private __gap;
+    uint256[45] private __gap;
 }
