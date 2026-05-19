@@ -1861,7 +1861,8 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         } else {
             /*
              * Otherwise:
-             *  exchangeRate = (totalCash + totalBorrows + flashLoanAmount - totalReserves) / totalSupply
+             * exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+             * (totalCash already includes flashLoanAmount)
              */
             uint totalCash = _getCashPriorWithFlashLoan();
             uint cashPlusBorrowsMinusReserves;
