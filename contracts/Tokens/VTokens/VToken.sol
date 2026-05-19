@@ -1869,11 +1869,7 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             Exp memory exchangeRate;
             MathError mathErr;
 
-            (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(
-                totalCash,
-                totalBorrows,
-                totalReserves
-            );
+            (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(totalCash, totalBorrows, totalReserves);
             if (mathErr != MathError.NO_ERROR) {
                 return (mathErr, 0);
             }
