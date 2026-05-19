@@ -1861,16 +1861,16 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         } else {
             /*
              * Otherwise:
-             *  exchangeRate = (cashIncludingFlashLoan + totalBorrows - totalReserves) / totalSupply
-             *  where cashIncludingFlashLoan = getCashPrior() + flashLoanAmount
+             *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+             *  where totalCash = getCashPrior() + flashLoanAmount
              */
-            uint cashIncludingFlashLoan = _getCashPriorWithFlashLoan();
+            uint totalCash = _getCashPriorWithFlashLoan();
             uint cashPlusBorrowsMinusReserves;
             Exp memory exchangeRate;
             MathError mathErr;
 
             (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(
-                cashIncludingFlashLoan,
+                totalCash,
                 totalBorrows,
                 totalReserves
             );
