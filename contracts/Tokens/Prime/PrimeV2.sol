@@ -694,8 +694,6 @@ contract PrimeV2 is
             }
         }
 
-        _queueScoreUpdates();
-
         emit MarketRemoved(market);
     }
 
