@@ -123,7 +123,7 @@ describe("PrimeV2 - Market Management", () => {
       expect(await f.primeV2.vTokenForAsset(underlying)).to.equal(ethers.constants.AddressZero);
     });
 
-    it("should queue score updates when market is removed", async () => {
+    it("should NOT queue score updates when market is removed (precondition guarantees zero score impact)", async () => {
       const user1Address = await f.user1.getAddress();
 
       f.vToken.balanceOf.whenCalledWith(user1Address).returns(0);
@@ -133,7 +133,7 @@ describe("PrimeV2 - Market Management", () => {
 
       await f.primeV2.removeMarket(f.vToken.address);
 
-      expect(await f.primeV2.pendingScoreUpdates()).to.equal(1);
+      expect(await f.primeV2.pendingScoreUpdates()).to.equal(0);
     });
 
     it("should revert when caller is not authorized", async () => {

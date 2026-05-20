@@ -657,6 +657,7 @@ contract PrimeV2 is
 
         vTokenForAsset[underlying] = market;
         _allMarkets.push(market);
+        _ensureMaxLoops(_allMarkets.length);
 
         _queueScoreUpdates();
 
