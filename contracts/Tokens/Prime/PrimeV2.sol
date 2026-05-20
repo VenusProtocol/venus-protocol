@@ -155,6 +155,9 @@ contract PrimeV2 is
     /// @notice Error thrown when the permissionless minting window has expired
     error MintWindowClosed();
 
+    /// @notice Error thrown when mintDeadline is not strictly in the future
+    error InvalidDeadline();
+
     /**
      * @notice PrimeV2 constructor
      * @param wrappedNativeToken_ Address of wrapped native token
@@ -828,6 +831,7 @@ contract PrimeV2 is
      */
     function setMintThreshold(uint256 mintThreshold_, uint256 mintDeadline_) external {
         _checkAccessAllowed("setMintThreshold(uint256,uint256)");
+        if (mintDeadline_ != 0 && mintDeadline_ <= block.timestamp) revert InvalidDeadline();
 
         emit MintThresholdUpdated(mintThreshold, mintThreshold_, mintDeadline_);
         mintThreshold = mintThreshold_;

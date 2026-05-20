@@ -304,6 +304,26 @@ describe("PrimeV2 - Admin Functions", () => {
         "Unauthorized",
       );
     });
+
+    it("should revert InvalidDeadline when mintDeadline is in the past", async () => {
+      const threshold = convertToUnit(100, 18);
+      const pastDeadline = (await time.latest()) - 1;
+
+      await expect(f.primeV2.setMintThreshold(threshold, pastDeadline)).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidDeadline",
+      );
+    });
+
+    it("should revert InvalidDeadline when mintDeadline equals current block timestamp", async () => {
+      const threshold = convertToUnit(100, 18);
+      const nowDeadline = await time.latest();
+
+      await expect(f.primeV2.setMintThreshold(threshold, nowDeadline)).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidDeadline",
+      );
+    });
   });
 
   describe("claimPrime", () => {
