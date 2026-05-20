@@ -46,6 +46,13 @@ describe("PrimeV2 - Admin Functions", () => {
         "Unauthorized",
       );
     });
+
+    it("should revert InvalidAddress when user is zero address", async () => {
+      await expect(f.primeV2["issue(address)"](ethers.constants.AddressZero)).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidAddress",
+      );
+    });
   });
 
   describe("issueBatch", () => {
@@ -78,6 +85,15 @@ describe("PrimeV2 - Admin Functions", () => {
       await expect(f.primeV2.issueBatch([await f.user1.getAddress()])).to.be.revertedWithCustomError(
         f.primeV2,
         "Unauthorized",
+      );
+    });
+
+    it("should revert InvalidAddress when any user in batch is zero address", async () => {
+      const user1Address = await f.user1.getAddress();
+
+      await expect(f.primeV2.issueBatch([user1Address, ethers.constants.AddressZero])).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidAddress",
       );
     });
   });

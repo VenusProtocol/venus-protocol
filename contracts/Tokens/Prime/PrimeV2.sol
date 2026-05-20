@@ -324,6 +324,7 @@ contract PrimeV2 is
      * @notice Issue a Prime token to a single user (admin function)
      * @param user User address
      * @custom:event Emits Mint event on new token issuance
+     * @custom:error Throw InvalidAddress if user is zero address
      * @custom:error Throw InvalidLimit if mint limit would be exceeded
      * @custom:error Throw UserAlreadyHasPrimeToken if user already has a token
      * @custom:error Throw ScoreUpdateInProgress if a score update round is active
@@ -331,6 +332,7 @@ contract PrimeV2 is
      */
     function issue(address user) external {
         _checkAccessAllowed("issue(address)");
+        if (user == address(0)) revert InvalidAddress();
         if (pendingScoreUpdates > 0) revert ScoreUpdateInProgress();
         if (isPrimeHolder[user]) revert UserAlreadyHasPrimeToken();
 
@@ -342,6 +344,7 @@ contract PrimeV2 is
      * @notice Issue Prime tokens to multiple users (admin function)
      * @param users Array of user addresses
      * @custom:event Emits Mint event on new token issuance
+     * @custom:error Throw InvalidAddress if any user in the batch is zero address
      * @custom:error Throw InvalidLimit if mint limit would be exceeded
      * @custom:error Throw ScoreUpdateInProgress if a score update round is active
      * @custom:access Controlled by ACM
@@ -357,6 +360,7 @@ contract PrimeV2 is
 
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
+            if (user == address(0)) revert InvalidAddress();
 
             if (!isPrimeHolder[user]) {
                 _mint(user);
@@ -633,6 +637,7 @@ contract PrimeV2 is
      * @custom:error Throw InvalidMultipliers if both multipliers are zero
      * @custom:error Throw InvalidVToken if market is not listed
      * @custom:error Throw AssetAlreadyExists if asset already has a market
+     * @custom:error Throw MaxLoopsLimitExceeded if listing this market would exceed loopsLimit
      * @custom:access Controlled by ACM
      */
     function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
@@ -828,6 +833,7 @@ contract PrimeV2 is
      * @param mintThreshold_ New mint threshold (set to 0 to close the window)
      * @param mintDeadline_ Unix timestamp after which minting is closed (0 = no deadline)
      * @custom:event Emits MintThresholdUpdated event
+     * @custom:error Throw InvalidDeadline if mintDeadline_ is non-zero and not strictly in the future
      * @custom:access Controlled by ACM
      */
     function setMintThreshold(uint256 mintThreshold_, uint256 mintDeadline_) external {
