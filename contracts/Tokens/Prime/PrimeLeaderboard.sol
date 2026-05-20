@@ -117,16 +117,15 @@ contract PrimeLeaderboard is
 
             // Idempotent: skip users already seeded
             if (totalStaked[user] == 0 && amounts[i] > 0) {
+                uint64 ts = timestamps[i];
+                if (ts == 0 || ts > block.timestamp) revert InvalidTimestamp();
+
                 _depositStacks[user].push(
-                    Deposit({
-                        amount: SafeCastUpgradeable.toUint128(amounts[i]),
-                        timestamp: timestamps[i],
-                        _reserved: 0
-                    })
+                    Deposit({ amount: SafeCastUpgradeable.toUint128(amounts[i]), timestamp: ts, _reserved: 0 })
                 );
                 totalStaked[user] = amounts[i];
 
-                emit StakerInitialized(user, amounts[i], timestamps[i]);
+                emit StakerInitialized(user, amounts[i], ts);
             }
 
             unchecked {
