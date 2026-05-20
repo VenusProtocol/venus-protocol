@@ -165,7 +165,7 @@ contract PrimeLeaderboard is
      * @custom:error Throw ZeroAddress if user address is zero
      * @custom:access Only callable by XVSVault
      */
-    function xvsUpdated(address user) external override {
+    function xvsUpdated(address user) external override nonReentrant {
         if (msg.sender != xvsVault) revert OnlyXVSVaultAllowed();
         if (user == address(0)) revert ZeroAddress();
 
