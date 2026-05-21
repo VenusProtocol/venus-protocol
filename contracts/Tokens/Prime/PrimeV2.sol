@@ -1199,7 +1199,7 @@ contract PrimeV2 is
      * @param alphaDenominator_ Alpha denominator
      */
     function _checkAlphaArguments(uint128 alphaNumerator_, uint128 alphaDenominator_) internal pure {
-        if (alphaDenominator_ == 0 || alphaNumerator_ > alphaDenominator_) {
+        if (alphaNumerator_ == 0 || alphaNumerator_ >= alphaDenominator_) {
             revert InvalidAlphaArguments();
         }
     }

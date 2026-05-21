@@ -185,6 +185,14 @@ describe("PrimeV2 - Admin Functions", () => {
     it("should revert with zero denominator", async () => {
       await expect(f.primeV2.updateAlpha(1, 0)).to.be.revertedWithCustomError(f.primeV2, "InvalidAlphaArguments");
     });
+
+    it("should revert with zero numerator (alpha = 0)", async () => {
+      await expect(f.primeV2.updateAlpha(0, 2)).to.be.revertedWithCustomError(f.primeV2, "InvalidAlphaArguments");
+    });
+
+    it("should revert when numerator equals denominator (alpha = 1)", async () => {
+      await expect(f.primeV2.updateAlpha(2, 2)).to.be.revertedWithCustomError(f.primeV2, "InvalidAlphaArguments");
+    });
   });
 
   describe("pause/unpause", () => {
