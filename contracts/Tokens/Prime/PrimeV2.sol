@@ -158,6 +158,9 @@ contract PrimeV2 is
     /// @notice Error thrown when mintDeadline is not strictly in the future
     error InvalidDeadline();
 
+    /// @notice Error thrown when caller is not the PrimeLeaderboard contract
+    error OnlyPrimeLeaderboard();
+
     /**
      * @notice PrimeV2 constructor
      * @param wrappedNativeToken_ Address of wrapped native token
@@ -499,8 +502,10 @@ contract PrimeV2 is
      * @dev Called by PrimeLeaderboard when a user's XVS stake changes to ensure
      *      rewards are accrued at the old score before the score is recalculated
      * @param user User address
+     * @custom:error Throw OnlyPrimeLeaderboard if caller is not the PrimeLeaderboard contract
      */
     function accrueInterestAndUpdateScore(address user) external {
+        if (msg.sender != primeLeaderboard) revert OnlyPrimeLeaderboard();
         _accrueInterestAndUpdateScore(user);
     }
 

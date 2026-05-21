@@ -1,5 +1,5 @@
 import { smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { ethers } from "hardhat";
 
@@ -181,10 +181,17 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
   it("should accrue interest and update score across all markets", async () => {
     f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
 
-    await f.primeV2["accrueInterestAndUpdateScore(address)"](user1Address);
+    await setBalance(f.primeLeaderboard.address, ethers.utils.parseEther("1"));
+    await f.primeV2.connect(f.primeLeaderboard.wallet)["accrueInterestAndUpdateScore(address)"](user1Address);
 
     const interest = await f.primeV2.interests(f.vToken.address, user1Address);
     expect(interest.accrued).to.be.gt(0);
+  });
+
+  it("should revert OnlyPrimeLeaderboard when single-arg accrueInterestAndUpdateScore is called by non-leaderboard", async () => {
+    await expect(
+      f.primeV2.connect(f.user1)["accrueInterestAndUpdateScore(address)"](user1Address),
+    ).to.be.revertedWithCustomError(f.primeV2, "OnlyPrimeLeaderboard");
   });
 
   it("should return pending rewards via getPendingRewardsStatic", async () => {

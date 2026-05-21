@@ -264,11 +264,14 @@ describe("PrimeV2 - Admin Functions", () => {
 
   describe("setPrimeLeaderboard", () => {
     it("should set primeLeaderboard address and emit event", async () => {
-      await expect(f.primeV2.setPrimeLeaderboard(f.primeLeaderboard.address))
-        .to.emit(f.primeV2, "PrimeLeaderboardSet")
-        .withArgs(ethers.constants.AddressZero, f.primeLeaderboard.address);
+      const previous = await f.primeV2.primeLeaderboard();
+      const newLeaderboard = ethers.Wallet.createRandom().address;
 
-      expect(await f.primeV2.primeLeaderboard()).to.equal(f.primeLeaderboard.address);
+      await expect(f.primeV2.setPrimeLeaderboard(newLeaderboard))
+        .to.emit(f.primeV2, "PrimeLeaderboardSet")
+        .withArgs(previous, newLeaderboard);
+
+      expect(await f.primeV2.primeLeaderboard()).to.equal(newLeaderboard);
     });
 
     it("should revert when setting zero address", async () => {

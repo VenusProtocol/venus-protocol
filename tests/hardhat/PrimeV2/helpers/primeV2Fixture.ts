@@ -92,6 +92,8 @@ export async function deployPrimeV2Fixture(): Promise<PrimeV2Fixture> {
     },
   )) as PrimeV2;
 
+  await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
+
   return {
     primeV2,
     accessControlManager,
