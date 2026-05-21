@@ -60,6 +60,18 @@ describe("PrimeV2 - Market Management", () => {
       ).to.be.revertedWithCustomError(f.primeV2, "InvalidVToken");
     });
 
+    it("should revert UnsupportedUnderlyingDecimals when underlying token decimals > 18", async () => {
+      f.underlyingToken.decimals.returns(19);
+
+      try {
+        await expect(
+          f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18)),
+        ).to.be.revertedWithCustomError(f.primeV2, "UnsupportedUnderlyingDecimals");
+      } finally {
+        f.underlyingToken.decimals.returns(18);
+      }
+    });
+
     it("should revert when asset already has a market", async () => {
       await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
 

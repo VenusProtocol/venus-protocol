@@ -161,6 +161,9 @@ contract PrimeV2 is
     /// @notice Error thrown when caller is not the PrimeLeaderboard contract
     error OnlyPrimeLeaderboard();
 
+    /// @notice Error thrown when underlying token decimals exceed 18
+    error UnsupportedUnderlyingDecimals(uint256 decimals);
+
     /**
      * @notice PrimeV2 constructor
      * @param wrappedNativeToken_ Address of wrapped native token
@@ -643,6 +646,7 @@ contract PrimeV2 is
      * @custom:error Throw InvalidVToken if market is not listed
      * @custom:error Throw AssetAlreadyExists if asset already has a market
      * @custom:error Throw MaxLoopsLimitExceeded if listing this market would exceed loopsLimit
+     * @custom:error Throw UnsupportedUnderlyingDecimals if underlying token has decimals > 18
      * @custom:access Controlled by ACM
      */
     function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
@@ -656,6 +660,9 @@ contract PrimeV2 is
 
         address underlying = _getUnderlying(market);
         if (vTokenForAsset[underlying] != address(0)) revert AssetAlreadyExists();
+
+        uint256 underlyingDecimals = IERC20MetadataUpgradeable(underlying).decimals();
+        if (underlyingDecimals > 18) revert UnsupportedUnderlyingDecimals(underlyingDecimals);
 
         markets[market] = Market({
             supplyMultiplier: supplyMultiplier,
