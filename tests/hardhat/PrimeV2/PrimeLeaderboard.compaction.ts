@@ -151,6 +151,56 @@ describe("PrimeLeaderboard - Weighted Average Timestamp Compaction", () => {
     f.accessControlManager.isAllowedToCall.returns(true);
   });
 
+  it("should use amount-weighted timestamp, not earliest, when Pass 1 merges max-tier deposits", async () => {
+    const user1Address = await f.user1.getAddress();
+    const { ethers: ethersLib } = await import("hardhat");
+
+    // Setup: 31 deposits, each 91 days apart, equal incremental amount.
+    // At the time of compaction (triggered by the 31st), all 30 prior deposits
+    // sit at >= 90d (max-tier duration), so Pass 1 merges them all. The
+    // merged-entry timestamp must be the amount-weighted average of
+    // constituents, not the earliest.
+    const perDeposit = 100;
+    const spacing = 91 * DAY;
+
+    const firstDepositBlock = await ethersLib.provider.getBlock("latest");
+    const t0 = firstDepositBlock.timestamp;
+
+    await simulateDeposit(f.primeLeaderboard, f.xvsVault, f.xvsAddress, user1Address, convertToUnit(perDeposit, 18));
+
+    for (let i = 2; i <= 30; i++) {
+      await time.increase(spacing);
+      await simulateDeposit(
+        f.primeLeaderboard,
+        f.xvsVault,
+        f.xvsAddress,
+        user1Address,
+        convertToUnit(perDeposit * i, 18),
+      );
+    }
+
+    // 31st deposit triggers compaction.
+    await time.increase(spacing);
+    await simulateDeposit(
+      f.primeLeaderboard,
+      f.xvsVault,
+      f.xvsAddress,
+      user1Address,
+      convertToUnit(perDeposit * 31, 18),
+    );
+
+    const deposits = await f.primeLeaderboard.getDeposits(user1Address);
+    expect(deposits.length).to.be.lessThan(30);
+
+    const mergedTimestamp = deposits[0].timestamp.toNumber();
+
+    // Earliest timestamp would be ~t0. Amount-weighted average across all 30
+    // equal-sized deposits placed 91 days apart should land ~14.5 * 91 days
+    // past t0. Assert at least 100 days past t0 to confirm we're not on the
+    // earliest-timestamp path.
+    expect(mergedTimestamp).to.be.greaterThan(t0 + 100 * DAY);
+  });
+
   it("should use weighted average timestamp, not earliest, when compacting by tier", async () => {
     const user1Address = await f.user1.getAddress();
     const { ethers: ethersLib } = await import("hardhat");

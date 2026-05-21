@@ -454,7 +454,7 @@ contract PrimeLeaderboard is
         uint256 maxTierDuration = _multiplierDurations[_multiplierDurations.length - 1];
 
         uint256 mergedAmount = 0;
-        uint64 earliestTimestamp = type(uint64).max;
+        uint256 weightedTimestampSum = 0;
         uint256 writeIndex = 0;
 
         for (uint256 readIndex; readIndex < depositsLength; ) {
@@ -462,11 +462,15 @@ contract PrimeLeaderboard is
             uint256 holdingDuration = block.timestamp - uint256(d.timestamp);
 
             if (holdingDuration >= maxTierDuration) {
-                // This deposit has max multiplier, accumulate for merging
+                // This deposit has max multiplier, accumulate for merging.
+                // Track amount-weighted timestamp sum so that if multiplier tiers are later
+                // extended with a longer top duration, the merged entry's effective age
+                // reflects the true mean of its constituents instead of over-crediting the
+                // entire amount at the new top-tier multiplier.
+                // Overflow safe: amount * timestamp <= 2^128 * 2^64 = 2^192, and the sum is
+                // bounded by MAX_DEPOSITS_PER_USER * 2^192 < 2^256.
                 mergedAmount += uint256(d.amount);
-                if (d.timestamp < earliestTimestamp) {
-                    earliestTimestamp = d.timestamp;
-                }
+                weightedTimestampSum += uint256(d.amount) * uint256(d.timestamp);
             } else {
                 // Keep this deposit as-is
                 if (writeIndex != readIndex) {
@@ -494,9 +498,10 @@ contract PrimeLeaderboard is
                 deposits[i + 1] = deposits[i];
             }
 
-            // Insert merged deposit at index 0, preserving the earliest original timestamp
-            // so that if multiplier tiers are later increased, the true hold duration is retained
-            deposits[0] = Deposit({ amount: mergedAmount.toUint128(), timestamp: earliestTimestamp, _reserved: 0 });
+            // Insert merged deposit at index 0 with the amount-weighted average timestamp
+            // of its constituents.
+            uint64 mergedTimestamp = uint64(weightedTimestampSum / mergedAmount);
+            deposits[0] = Deposit({ amount: mergedAmount.toUint128(), timestamp: mergedTimestamp, _reserved: 0 });
 
             writeIndex++;
         }
