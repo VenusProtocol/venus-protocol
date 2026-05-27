@@ -211,3 +211,51 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
     expect(rewards[0].amount).to.be.gt(0);
   });
 });
+
+describe("PrimeV2 - Carry-forward when sumOfMembersScore is zero", () => {
+  let f: PrimeV2Fixture;
+
+  beforeEach(async () => {
+    f = await loadFixture(deployPrimeV2Fixture);
+    f.accessControlManager.isAllowedToCall.returns(true);
+    f.comptroller.markets.returns(true);
+  });
+
+  it("accrueInterest does not advance unreleasedPLPIncome when sumOfMembersScore is zero", async () => {
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(0);
+
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    const market = await f.primeV2.markets(f.vToken.address);
+    expect(market.rewardIndex).to.equal(0);
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(0);
+  });
+
+  it("carries accumulated PLP income forward to the first scored user", async () => {
+    const user1Address = await f.user1.getAddress();
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(0);
+
+    f.vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(1000, 18));
+    f.xvsVault.getUserInfo.whenCalledWith(f.xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
+
+    await f.primeV2["issue(address)"](user1Address);
+
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    const market = await f.primeV2.markets(f.vToken.address);
+    expect(market.rewardIndex).to.be.gt(0);
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(convertToUnit(100, 18));
+  });
+});
