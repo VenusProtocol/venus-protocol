@@ -500,7 +500,8 @@ contract PrimeLeaderboard is
 
             // Insert merged deposit at index 0 with the amount-weighted average timestamp
             // of its constituents.
-            uint64 mergedTimestamp = uint64(weightedTimestampSum / mergedAmount);
+            // Ceil the weighted timestamp so the merged deposit's duration rounds down conservatively.
+            uint64 mergedTimestamp = uint64((weightedTimestampSum + mergedAmount - 1) / mergedAmount);
             deposits[0] = Deposit({ amount: mergedAmount.toUint128(), timestamp: mergedTimestamp, _reserved: 0 });
 
             writeIndex++;
@@ -558,7 +559,8 @@ contract PrimeLeaderboard is
                 --i;
             }
             if (tierAmounts[i] > 0) {
-                uint64 avgTimestamp = uint64(tierWeightedTimestamps[i] / tierAmounts[i]);
+                // Ceil the weighted timestamp so the merged deposit's duration rounds down conservatively.
+                uint64 avgTimestamp = uint64((tierWeightedTimestamps[i] + tierAmounts[i] - 1) / tierAmounts[i]);
                 deposits[newCount] = Deposit({
                     amount: tierAmounts[i].toUint128(),
                     timestamp: avgTimestamp,
