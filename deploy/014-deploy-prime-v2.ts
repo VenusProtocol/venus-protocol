@@ -90,44 +90,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol:ProxyAdmin",
   );
 
-  // ============ Deploy PrimeLeaderboard ============
-  await deploy("PrimeLeaderboard", {
-    from: deployer,
-    log: true,
-    deterministicDeployment: false,
-    args: [xvsVaultAddress, xvsAddress, xVSVaultPoolId[networkName]],
-    proxy: {
-      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
-      proxyContract: "OptimizedTransparentUpgradeableProxy",
-      execute: {
-        methodName: "initialize",
-        args: [acmAddress, 100],
-      },
-      viaAdminContract: {
-        name: "DefaultProxyAdmin",
-        artifact: defaultProxyAdmin,
-      },
-    },
-  });
-
+  // ============ PrimeLeaderboard (deployed in 014-deploy-prime-leaderboard.ts) ============
   const primeLeaderboard = await ethers.getContract("PrimeLeaderboard");
 
   // ============ Deploy PrimeV2 ============
   const plp = await ethers.getContract("PrimeLiquidityProvider");
 
-  await deploy("PrimeV2", {
+  const constructorArgs = [
+    wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
+    nativeMarket ? nativeMarket : ZERO_ADDRESS,
+    xvsVaultAddress,
+    xvsAddress,
+    xVSVaultPoolId[networkName],
+    isTimeBased,
+    blocksPerYear[networkName],
+  ];
+
+  const primeV2Deployment = await deploy("PrimeV2", {
     from: deployer,
     log: true,
     deterministicDeployment: false,
-    args: [
-      wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
-      nativeMarket ? nativeMarket : ZERO_ADDRESS,
-      xvsVaultAddress,
-      xvsAddress,
-      xVSVaultPoolId[networkName],
-      isTimeBased,
-      blocksPerYear[networkName],
-    ],
+    args: constructorArgs,
     proxy: {
       owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
       proxyContract: "OptimizedTransparentUpgradeableProxy",
@@ -152,20 +135,34 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const primeV2 = await ethers.getContract("PrimeV2");
 
-  // ============ Grant ACM permissions for wiring ============
+  // ============ Verify implementation ============
+  if (network.name !== "hardhat" && primeV2Deployment.implementation) {
+    try {
+      await hre.run("verify:verify", {
+        address: primeV2Deployment.implementation,
+        constructorArguments: constructorArgs,
+      });
+    } catch (error) {
+      console.error("PrimeV2 implementation verification failed:", error);
+    }
+  }
+
+  // ============ Wire contracts together ============
+  // On live networks the setPrimeV2 / setPrimeLeaderboard wiring is performed via a VIP
+  // (both setters are ACM-gated and called by governance). On hardhat we grant the deployer
+  // permission and wire inline so local/integration runs have a usable, fully-wired pair.
   if (network.name === "hardhat") {
     const accessControlManager = await ethers.getContract("AccessControlManager");
     await accessControlManager.giveCallPermission(primeLeaderboard.address, "setPrimeV2(address)", deployer);
     await accessControlManager.giveCallPermission(primeV2.address, "setPrimeLeaderboard(address)", deployer);
     await accessControlManager.giveCallPermission(primeV2.address, "setMintThreshold(uint256,uint256)", deployer);
+
+    console.log("Setting PrimeV2 on PrimeLeaderboard...");
+    await primeLeaderboard.setPrimeV2(primeV2.address);
+
+    console.log("Setting PrimeLeaderboard on PrimeV2...");
+    await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
   }
-
-  // ============ Wire contracts together ============
-  console.log("Setting PrimeV2 on PrimeLeaderboard...");
-  await primeLeaderboard.setPrimeV2(primeV2.address);
-
-  console.log("Setting PrimeLeaderboard on PrimeV2...");
-  await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
 
   console.log("PrimeV2 deployment complete.");
   console.log(`  PrimeLeaderboard: ${primeLeaderboard.address}`);
@@ -173,6 +170,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["PrimeV2"];
-func.dependencies = ["Prime"]; // Depends on PrimeLiquidityProvider from Prime deployment
 
 export default func;
