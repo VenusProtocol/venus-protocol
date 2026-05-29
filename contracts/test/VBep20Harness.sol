@@ -147,6 +147,10 @@ contract VBep20Harness is VBep20Immutable {
         return err;
     }
 
+    function harnessAddReservesFresh(uint amount) public returns (uint) {
+        return _addReservesFresh(amount);
+    }
+
     function harnessReduceReservesFresh(uint amount) public returns (uint) {
         return _reduceReservesFresh(amount);
     }
@@ -398,6 +402,10 @@ contract VBep20DelegateHarness is VBep20Delegate {
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
+    }
+
+    function harnessAddReservesFresh(uint amount) public returns (uint) {
+        return _addReservesFresh(amount);
     }
 
     function harnessReduceReservesFresh(uint amount) public returns (uint) {

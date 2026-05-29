@@ -154,7 +154,7 @@ describe("Comptroller", () => {
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "seizeVenus(address[],address,VToken[])",
+          "seizeVenus(address[],address,address[])",
         );
       });
     });
