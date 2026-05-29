@@ -99,6 +99,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.error("PrimeLeaderboard implementation verification failed:", error);
     }
   }
+
+  // ============ Transfer ownership to Timelock ============
+  if (network.name !== "hardhat") {
+    console.log("Transferring PrimeLeaderboard ownership to Timelock...");
+    await primeLeaderboard.transferOwnership(adminAccount[networkName]);
+    console.log(`PrimeLeaderboard ownership transfer initiated to ${adminAccount[networkName]} (pending acceptance)`);
+  }
 };
 
 func.tags = ["PrimeLeaderboard"];

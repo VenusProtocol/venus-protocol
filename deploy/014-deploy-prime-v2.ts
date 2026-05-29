@@ -164,6 +164,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
   }
 
+  // ============ Transfer ownership to Timelock ============
+  if (network.name !== "hardhat") {
+    console.log("Transferring PrimeV2 ownership to Timelock...");
+    await primeV2.transferOwnership(adminAccount[networkName]);
+    console.log(`PrimeV2 ownership transfer initiated to ${adminAccount[networkName]} (pending acceptance)`);
+  }
+
   console.log("PrimeV2 deployment complete.");
   console.log(`  PrimeLeaderboard: ${primeLeaderboard.address}`);
   console.log(`  PrimeV2: ${primeV2.address}`);
