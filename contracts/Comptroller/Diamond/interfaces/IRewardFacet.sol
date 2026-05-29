@@ -13,6 +13,8 @@ interface IRewardFacet {
 
     function claimVenusAsCollateral(address holder) external;
 
+    function claimVenusAsCollateral(address holder, VToken[] calldata vTokens) external;
+
     function _grantXVS(address recipient, uint256 amount) external;
 
     function getXVSVTokenAddress() external view returns (address);
