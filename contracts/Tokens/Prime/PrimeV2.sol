@@ -475,14 +475,15 @@ contract PrimeV2 is
         uint256 distributionIncome = totalAccruedInPLP - unreleasedPLPIncome[underlying];
 
         if (distributionIncome == 0) return;
-        // Carry distributable income forward until at least one user has a positive
-        // score in this market. Without this guard, advancing unreleasedPLPIncome
-        // here would silently drop the slice because rewardIndex cannot be bumped
-        // when sumOfMembersScore is zero.
-        if (market.sumOfMembersScore == 0) return;
 
         unreleasedPLPIncome[underlying] = totalAccruedInPLP;
-        market.rewardIndex += (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+
+        uint256 delta;
+        if (market.sumOfMembersScore != 0) {
+            delta = (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+        }
+
+        market.rewardIndex += delta;
     }
 
     /**
