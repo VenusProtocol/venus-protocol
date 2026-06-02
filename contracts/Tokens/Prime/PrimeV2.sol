@@ -102,6 +102,9 @@ contract PrimeV2 is
     /// @notice Emitted when a user is skipped in claimPrimeBatch due to insufficient score
     event SkippedIneligibleUser(address indexed user, uint256 score, uint256 threshold);
 
+    /// @notice Emitted when governance reclaims an undistributed reward slice for a market
+    event UndistributedSwept(address indexed underlying, address indexed to, uint256 amount);
+
     // ═══════════════════ ERRORS ═══════════════════
 
     /// @notice Error thrown when market is not supported
@@ -478,12 +481,13 @@ contract PrimeV2 is
 
         unreleasedPLPIncome[underlying] = totalAccruedInPLP;
 
-        uint256 delta;
         if (market.sumOfMembersScore != 0) {
-            delta = (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+            market.rewardIndex += (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+        } else {
+            // No scored members yet: record the slice so governance can
+            // reclaim it later via sweepUndistributed instead of stranding it.
+            undistributedReward[underlying] += distributionIncome;
         }
-
-        market.rewardIndex += delta;
     }
 
     /**
@@ -852,6 +856,45 @@ contract PrimeV2 is
         emit MintThresholdUpdated(mintThreshold, mintThreshold_, mintDeadline_);
         mintThreshold = mintThreshold_;
         mintDeadline = mintDeadline_;
+    }
+
+    /**
+     * @notice Reclaim PLP income that accrued for a market while no scored
+     *         members existed in it
+     * @dev Flushes any pending PLP delta via accrueInterest first so the
+     *      slice is fully captured in undistributedReward, then pulls funds
+     *      from PrimeLiquidityProvider when Prime's local balance is short,
+     *      mirroring the _claimInterest pattern (delete unreleasedPLPIncome
+     *      then call releaseFunds, both sides reset atomically).
+     * @param vToken Market address whose underlying slice should be swept
+     * @param to Recipient of the swept tokens
+     * @custom:event Emits UndistributedSwept on a non-zero transfer
+     * @custom:error Throw MarketNotSupported if vToken is not a Prime market
+     * @custom:error Throw InvalidAddress if to is the zero address
+     * @custom:access Controlled by ACM
+     */
+    function sweepUndistributed(address vToken, address to) external {
+        _checkAccessAllowed("sweepUndistributed(address,address)");
+        if (to == address(0)) revert InvalidAddress();
+
+        address underlying = _getUnderlying(vToken);
+
+        accrueInterest(vToken);
+
+        uint256 amount = undistributedReward[underlying];
+        if (amount == 0) return;
+
+        IERC20Upgradeable asset = IERC20Upgradeable(underlying);
+        uint256 available = asset.balanceOf(address(this));
+        if (amount > available) {
+            delete unreleasedPLPIncome[underlying];
+            IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(underlying);
+        }
+
+        delete undistributedReward[underlying];
+        asset.safeTransfer(to, amount);
+
+        emit UndistributedSwept(underlying, to, amount);
     }
 
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════

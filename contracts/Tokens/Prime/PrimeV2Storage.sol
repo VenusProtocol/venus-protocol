@@ -86,6 +86,11 @@ contract PrimeV2StorageV1 {
     /// @notice Unreleased income from PrimeLiquidityProvider per token
     mapping(address => uint256) public unreleasedPLPIncome;
 
+    /// @notice Income accrued while no scored members existed in the market.
+    ///         Tracked per underlying so governance can reclaim the slice via
+    ///         sweepUndistributed without touching user-owed funds.
+    mapping(address => uint256) public undistributedReward;
+
     // ═══════════════════ SCORE UPDATE TRACKING ═══════════════════
 
     /// @notice Mapping to track if user's score was updated in a round
@@ -107,5 +112,5 @@ contract PrimeV2StorageV1 {
     uint256 public mintDeadline;
 
     /// @notice Storage gap for future upgrades
-    uint256[41] private __gap;
+    uint256[40] private __gap;
 }

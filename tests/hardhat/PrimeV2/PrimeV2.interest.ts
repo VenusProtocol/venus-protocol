@@ -211,3 +211,102 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
     expect(rewards[0].amount).to.be.gt(0);
   });
 });
+
+describe("PrimeV2 - Undistributed reward sweep", () => {
+  let f: PrimeV2Fixture;
+  let adminAddress: string;
+
+  beforeEach(async () => {
+    f = await loadFixture(deployPrimeV2Fixture);
+    f.accessControlManager.isAllowedToCall.returns(true);
+    f.comptroller.markets.returns(true);
+    adminAddress = await f.admin.getAddress();
+  });
+
+  it("records distributionIncome into undistributedReward when sumOfMembersScore is zero", async () => {
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    const market = await f.primeV2.markets(f.vToken.address);
+    expect(market.rewardIndex).to.equal(0);
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(convertToUnit(100, 18));
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(convertToUnit(100, 18));
+  });
+
+  it("does not record into undistributedReward once a scored member exists", async () => {
+    const user1Address = await f.user1.getAddress();
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    f.vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(1000, 18));
+    f.xvsVault.getUserInfo.whenCalledWith(f.xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
+    await f.primeV2["issue(address)"](user1Address);
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    const market = await f.primeV2.markets(f.vToken.address);
+    expect(market.rewardIndex).to.be.gt(0);
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(0);
+  });
+
+  it("sweepUndistributed transfers the recorded slice when Prime has the balance locally", async () => {
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    f.underlyingToken.balanceOf.whenCalledWith(f.primeV2.address).returns(convertToUnit(100, 18));
+    f.underlyingToken.transfer.returns(true);
+
+    const tx = f.primeV2.sweepUndistributed(f.vToken.address, adminAddress);
+    await expect(tx)
+      .to.emit(f.primeV2, "UndistributedSwept")
+      .withArgs(f.underlyingAddress, adminAddress, convertToUnit(100, 18));
+
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(0);
+    expect(f.underlyingToken.transfer).to.have.been.calledWith(adminAddress, convertToUnit(100, 18));
+    expect(f.primeLiquidityProvider.releaseFunds).to.not.have.been.called;
+  });
+
+  it("sweepUndistributed pulls from PLP via releaseFunds when local balance is short", async () => {
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    f.underlyingToken.balanceOf.whenCalledWith(f.primeV2.address).returns(convertToUnit(0, 18));
+    f.underlyingToken.transfer.returns(true);
+
+    await f.primeV2.sweepUndistributed(f.vToken.address, adminAddress);
+
+    expect(f.primeLiquidityProvider.releaseFunds).to.have.been.calledWith(f.underlyingAddress);
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(0);
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(0);
+  });
+
+  it("sweepUndistributed is a no-op when undistributedReward is zero", async () => {
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    const tx = f.primeV2.sweepUndistributed(f.vToken.address, adminAddress);
+    await expect(tx).to.not.emit(f.primeV2, "UndistributedSwept");
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(0);
+  });
+
+  it("sweepUndistributed reverts on zero recipient", async () => {
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    await expect(
+      f.primeV2.sweepUndistributed(f.vToken.address, ethers.constants.AddressZero),
+    ).to.be.revertedWithCustomError(f.primeV2, "InvalidAddress");
+  });
+});
