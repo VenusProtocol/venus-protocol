@@ -105,6 +105,9 @@ contract PrimeV2 is
     /// @notice Emitted when governance reclaims an undistributed reward slice for a market
     event UndistributedSwept(address indexed underlying, address indexed to, uint256 amount);
 
+    /// @notice Emitted when the keeper records the on-chain start of a reward cycle.
+    event CycleSnapshotRecorded(uint256 indexed cycleId, uint256 blockNumber, uint256 timestamp);
+
     // ═══════════════════ ERRORS ═══════════════════
 
     /// @notice Error thrown when market is not supported
@@ -569,6 +572,48 @@ contract PrimeV2 is
         }
     }
 
+    /**
+     * @notice Lifetime accrued rewards for many users in a single market
+     * @dev Pure view over the lifetimeAccrued mapping; intended for the off-chain cycle
+     *      pipeline to snapshot per-(market, user) earnings without indexing events.
+     * @param market vToken address
+     * @param users Array of user addresses
+     * @return amounts Array of lifetime accrued amounts, indexed parallel to users
+     */
+    function getLifetimeAccruedByMarket(
+        address market,
+        address[] calldata users
+    ) external view returns (uint256[] memory amounts) {
+        uint256 usersLength = users.length;
+        amounts = new uint256[](usersLength);
+        for (uint256 i; i < usersLength; ) {
+            amounts[i] = interests[market][users[i]].lifetimeAccrued;
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
+     * @notice Lifetime accrued rewards for one user across many markets
+     * @param user User address
+     * @param markets_ Array of vToken addresses
+     * @return amounts Array of lifetime accrued amounts, indexed parallel to markets_
+     */
+    function getLifetimeAccruedByUser(
+        address user,
+        address[] calldata markets_
+    ) external view returns (uint256[] memory amounts) {
+        uint256 marketsLength = markets_.length;
+        amounts = new uint256[](marketsLength);
+        for (uint256 i; i < marketsLength; ) {
+            amounts[i] = interests[markets_[i]][user].lifetimeAccrued;
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     // ═══════════════════ SCORE FUNCTIONS ═══════════════════
 
     /**
@@ -859,6 +904,23 @@ contract PrimeV2 is
     }
 
     /**
+     * @notice Emit a cycle-start anchor event so the off-chain pipeline can recover cycle
+     *         boundaries by indexing the event log
+     * @dev Operational hook, not a policy lever. Grant the ACM permission
+     *      "recordCycleSnapshot(uint256)" to a keeper EOA/bot at deploy, not to the Timelock —
+     *      cycles fire on a recurring schedule (e.g. monthly) and routing each call through
+     *      governance is too slow. Not idempotent on-chain: duplicate cycleIds emit duplicate
+     *      events and must be de-duplicated by the indexer.
+     * @param cycleId Identifier of the cycle whose start is being recorded
+     * @custom:event Emits CycleSnapshotRecorded
+     * @custom:access Controlled by ACM — grant to keeper, not Timelock
+     */
+    function recordCycleSnapshot(uint256 cycleId) external {
+        _checkAccessAllowed("recordCycleSnapshot(uint256)");
+        emit CycleSnapshotRecorded(cycleId, block.number, block.timestamp);
+    }
+
+    /**
      * @notice Reclaim PLP income that accrued for a market while no scored
      *         members existed in it
      * @dev Flushes any pending PLP delta via accrueInterest first so the
@@ -1001,6 +1063,13 @@ contract PrimeV2 is
         if (marketExists && isPrimeHolder[user]) {
             accrueInterest(vToken);
             amount = _interestAccrued(vToken, user);
+            // _claimInterest runs its own accrual rather than going through
+            // _executeBoost, so bump lifetimeAccrued here too to keep the
+            // counter monotonic and complete. Skip the SSTORE when there's
+            // no fresh delta (idle market or zero score) to save gas.
+            if (amount != 0) {
+                interests[vToken][user].lifetimeAccrued += amount;
+            }
             interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
         }
         amount += interests[vToken][user].accrued;
@@ -1109,7 +1178,11 @@ contract PrimeV2 is
         }
 
         accrueInterest(vToken);
-        interests[vToken][user].accrued += _interestAccrued(vToken, user);
+        uint256 delta = _interestAccrued(vToken, user);
+        if (delta != 0) {
+            interests[vToken][user].accrued += delta;
+            interests[vToken][user].lifetimeAccrued += delta;
+        }
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
     }
 
@@ -1124,7 +1197,11 @@ contract PrimeV2 is
             return;
         }
 
-        interests[vToken][user].accrued += _interestAccrued(vToken, user);
+        uint256 delta = _interestAccrued(vToken, user);
+        if (delta != 0) {
+            interests[vToken][user].accrued += delta;
+            interests[vToken][user].lifetimeAccrued += delta;
+        }
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
     }
 

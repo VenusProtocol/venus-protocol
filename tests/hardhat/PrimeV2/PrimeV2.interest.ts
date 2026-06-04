@@ -210,6 +210,101 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
     expect(rewards[0].rewardToken).to.equal(f.underlyingAddress);
     expect(rewards[0].amount).to.be.gt(0);
   });
+
+  describe("lifetimeAccrued tracking", () => {
+    it("grows by the same delta as interests.accrued on accrual", async () => {
+      f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+
+      const before = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+      expect(before).to.equal(0);
+
+      await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+
+      const after = await f.primeV2.interests(f.vToken.address, user1Address);
+      expect(after.accrued).to.be.gt(0);
+      expect(after.lifetimeAccrued).to.equal(after.accrued);
+    });
+
+    it("does not change when the user claims interest", async () => {
+      f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+      await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+
+      const lifetimeBefore = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+      expect(lifetimeBefore).to.be.gt(0);
+
+      f.underlyingToken.balanceOf.whenCalledWith(f.primeV2.address).returns(convertToUnit(200, 18));
+      f.underlyingToken.transfer.returns(true);
+      await f.primeV2.connect(f.user1)["claimInterest(address)"](f.vToken.address);
+
+      const interestAfter = await f.primeV2.interests(f.vToken.address, user1Address);
+      expect(interestAfter.accrued).to.equal(0);
+      expect(interestAfter.lifetimeAccrued).to.equal(lifetimeBefore);
+    });
+
+    it("grows when claimInterest accrues a fresh delta without a prior accrueInterestAndUpdateScore", async () => {
+      // Skip the explicit accrue-and-update step entirely; let _claimInterest do its own accrual.
+      f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+      f.underlyingToken.balanceOf.whenCalledWith(f.primeV2.address).returns(convertToUnit(200, 18));
+      f.underlyingToken.transfer.returns(true);
+
+      const before = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+      expect(before).to.equal(0);
+
+      const tx = f.primeV2.connect(f.user1)["claimInterest(address)"](f.vToken.address);
+      await expect(tx).to.emit(f.primeV2, "InterestClaimed");
+
+      const after = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+      expect(after).to.be.gt(0);
+    });
+
+    it("keeps growing across accrue → claim → accrue cycles (monotonic)", async () => {
+      f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+      await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+      const afterFirst = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+
+      f.underlyingToken.balanceOf.whenCalledWith(f.primeV2.address).returns(convertToUnit(500, 18));
+      f.underlyingToken.transfer.returns(true);
+      await f.primeV2.connect(f.user1)["claimInterest(address)"](f.vToken.address);
+
+      f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(250, 18));
+      await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+
+      const afterSecond = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+      expect(afterSecond).to.be.gt(afterFirst);
+    });
+
+    it("getLifetimeAccruedByMarket returns per-user values, zero for non-holders", async () => {
+      const user2Address = await f.user2.getAddress();
+
+      f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+      await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+
+      const expected = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+
+      const amounts = await f.primeV2.getLifetimeAccruedByMarket(f.vToken.address, [user1Address, user2Address]);
+      expect(amounts.length).to.equal(2);
+      expect(amounts[0]).to.equal(expected);
+      expect(amounts[1]).to.equal(0);
+    });
+
+    it("getLifetimeAccruedByUser returns per-market values across single market input", async () => {
+      f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+      await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+
+      const expected = (await f.primeV2.interests(f.vToken.address, user1Address)).lifetimeAccrued;
+
+      const amounts = await f.primeV2.getLifetimeAccruedByUser(user1Address, [f.vToken.address]);
+      expect(amounts.length).to.equal(1);
+      expect(amounts[0]).to.equal(expected);
+    });
+
+    it("batch getters return empty arrays for empty inputs", async () => {
+      const byMarket = await f.primeV2.getLifetimeAccruedByMarket(f.vToken.address, []);
+      const byUser = await f.primeV2.getLifetimeAccruedByUser(user1Address, []);
+      expect(byMarket.length).to.equal(0);
+      expect(byUser.length).to.equal(0);
+    });
+  });
 });
 
 describe("PrimeV2 - Undistributed reward sweep", () => {

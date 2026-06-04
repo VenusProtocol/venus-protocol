@@ -38,9 +38,14 @@ contract PrimeV2StorageV1 {
 
     /// @notice Struct to track user's interest in a market
     struct Interest {
-        uint256 accrued; // Accrued rewards pending claim
+        uint256 accrued; // Accrued rewards pending claim (reset to 0 on claim)
         uint256 score; // User's score in this market
         uint256 rewardIndex; // Last recorded reward index
+        uint256 lifetimeAccrued; // Monotonic running total of all rewards ever accrued
+        //                         to this user in this market. Incremented every time
+        //                         `accrued` grows; never decremented by claim. Lets the
+        //                         off-chain cycle pipeline compute per-cycle earnings as
+        //                         the diff between two snapshots.
     }
 
     /// @notice Struct for pending reward info

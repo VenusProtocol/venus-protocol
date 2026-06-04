@@ -597,4 +597,24 @@ describe("PrimeV2 - Admin Functions", () => {
       );
     });
   });
+
+  describe("recordCycleSnapshot", () => {
+    it("emits CycleSnapshotRecorded with the current block and timestamp", async () => {
+      const tx = await f.primeV2.recordCycleSnapshot(1);
+      const receipt = await tx.wait();
+      const block = await ethers.provider.getBlock(receipt.blockNumber);
+
+      await expect(tx).to.emit(f.primeV2, "CycleSnapshotRecorded").withArgs(1, receipt.blockNumber, block.timestamp);
+    });
+
+    it("allows the same cycleId to be re-emitted (no on-chain idempotency)", async () => {
+      await expect(f.primeV2.recordCycleSnapshot(7)).to.emit(f.primeV2, "CycleSnapshotRecorded");
+      await expect(f.primeV2.recordCycleSnapshot(7)).to.emit(f.primeV2, "CycleSnapshotRecorded");
+    });
+
+    it("is ACM-gated", async () => {
+      f.accessControlManager.isAllowedToCall.returns(false);
+      await expect(f.primeV2.connect(f.user1).recordCycleSnapshot(1)).to.be.reverted;
+    });
+  });
 });
