@@ -108,6 +108,34 @@ interface IPrimeV2 {
      */
     function getPendingRewardsStatic(address user) external view returns (PendingReward[] memory pendingRewards);
 
+    /**
+     * @notice Lifetime accrued rewards for many users in a single market
+     * @param market vToken address
+     * @param users Array of user addresses
+     * @return amounts Lifetime accrued amounts, indexed parallel to users
+     */
+    function getLifetimeAccruedByMarket(
+        address market,
+        address[] calldata users
+    ) external view returns (uint256[] memory amounts);
+
+    /**
+     * @notice Lifetime accrued rewards for one user across many markets
+     * @param user User address
+     * @param markets_ Array of vToken addresses
+     * @return amounts Lifetime accrued amounts, indexed parallel to markets_
+     */
+    function getLifetimeAccruedByUser(
+        address user,
+        address[] calldata markets_
+    ) external view returns (uint256[] memory amounts);
+
+    /**
+     * @notice Record the start block of a reward cycle (idempotent, ACM-gated)
+     * @param cycleId Identifier of the cycle whose start is being recorded
+     */
+    function recordCycleSnapshot(uint256 cycleId) external;
+
     // ═══════════════════ SCORE FUNCTIONS ═══════════════════
 
     /**
