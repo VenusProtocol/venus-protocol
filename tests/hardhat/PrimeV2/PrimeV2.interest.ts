@@ -150,6 +150,37 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
     expect(interestAfterClaim.accrued).to.equal(0);
   });
 
+  it("former-holder residual claim still indexes pending PLP income for active holders", async () => {
+    const user2Address = await f.user2.getAddress();
+    f.vToken.balanceOf.whenCalledWith(user2Address).returns(convertToUnit(1000, 18));
+    f.xvsVault.getUserInfo.whenCalledWith(f.xvsAddress, 0, user2Address).returns([convertToUnit(1000, 18), 0, 0]);
+    await f.primeV2["issue(address)"](user2Address);
+
+    // Baseline: index the first PLP slice and settle user1's accrued.
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2.accrueInterest(f.vToken.address);
+    await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+
+    // user1 leaves Prime but keeps a residual accrued balance.
+    await f.primeV2.burn(user1Address);
+    expect(await f.primeV2.isUserPrimeHolder(user1Address)).to.be.false;
+    expect((await f.primeV2.interests(f.vToken.address, user1Address)).accrued).to.be.gt(0);
+
+    // Fresh PLP income accrues that has not been indexed into rewardIndex yet.
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(150, 18));
+    const rewardIndexBefore = (await f.primeV2.markets(f.vToken.address)).rewardIndex;
+
+    f.underlyingToken.balanceOf.whenCalledWith(f.primeV2.address).returns(convertToUnit(500, 18));
+    f.underlyingToken.transfer.returns(true);
+
+    // Former holder claims residual: must still accrue the market so the fresh
+    // slice is indexed for the remaining holder (user2) instead of stranded.
+    await f.primeV2.connect(f.user1)["claimInterest(address)"](f.vToken.address);
+
+    const rewardIndexAfter = (await f.primeV2.markets(f.vToken.address)).rewardIndex;
+    expect(rewardIndexAfter).to.be.gt(rewardIndexBefore);
+  });
+
   it("should revert claimInterest on removed market when user has no accrued interest", async () => {
     await f.primeV2.burn(user1Address);
     await f.primeV2.removeMarket(f.vToken.address);
@@ -403,5 +434,40 @@ describe("PrimeV2 - Undistributed reward sweep", () => {
     await expect(
       f.primeV2.sweepUndistributed(f.vToken.address, ethers.constants.AddressZero),
     ).to.be.revertedWithCustomError(f.primeV2, "InvalidAddress");
+  });
+
+  it("removeMarket flushes a pending PLP slice into recoverable undistributedReward", async () => {
+    const user1Address = await f.user1.getAddress();
+
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(0);
+    await f.primeV2.addMarket(f.vToken.address, convertToUnit(2, 18), convertToUnit(2, 18));
+
+    f.vToken.balanceOf.whenCalledWith(user1Address).returns(convertToUnit(1000, 18));
+    f.xvsVault.getUserInfo.whenCalledWith(f.xvsAddress, 0, user1Address).returns([convertToUnit(1000, 18), 0, 0]);
+    await f.primeV2["issue(address)"](user1Address);
+
+    // Index a baseline slice, then user1 leaves so sumOfMembersScore returns to 0.
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2.accrueInterest(f.vToken.address);
+    await f.primeV2.burn(user1Address);
+
+    // Fresh PLP income accrues while no scored members exist.
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(130, 18));
+
+    // removeMarket must flush the 30 slice into undistributedReward before delete,
+    // otherwise it would be stranded once accrueInterest can no longer run.
+    await f.primeV2.removeMarket(f.vToken.address);
+    expect((await f.primeV2.markets(f.vToken.address)).exists).to.be.false;
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(convertToUnit(30, 18));
+
+    // Governance can still sweep it even though the market was removed.
+    f.underlyingToken.balanceOf.whenCalledWith(f.primeV2.address).returns(convertToUnit(500, 18));
+    f.underlyingToken.transfer.returns(true);
+
+    await expect(f.primeV2.sweepUndistributed(f.vToken.address, adminAddress))
+      .to.emit(f.primeV2, "UndistributedSwept")
+      .withArgs(f.underlyingAddress, adminAddress, convertToUnit(30, 18));
+
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(0);
   });
 });
