@@ -317,6 +317,22 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x23AE4fd8E7844cdBc97775496eBd0E8248656028",
   },
+  // TODO add Underlying Token details
+  {
+    isMock: false,
+    name: "Test1",
+    symbol: "Test1",
+    decimals: 18,
+    tokenAddress: "0xA011111111111111111111111111111111111111",
+  },
+  // TODO update placeholder
+  {
+    isMock: false,
+    name: "Test2",
+    symbol: "Test2",
+    decimals: 18,
+    tokenAddress: "0xA011111111111111111111111111111111111111",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

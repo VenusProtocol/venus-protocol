@@ -262,6 +262,20 @@ const tokens = [
     symbol: "XAUM",
     decimals: 18,
   },
+  // TODO update placeholder
+  {
+    isMock: true,
+    name: "T4B",
+    symbol: "T4B",
+    decimals: 18,
+  },
+  // TODO update placeholder
+  {
+    isMock: true,
+    name: "N4B",
+    symbol: "N4B",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

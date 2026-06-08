@@ -892,4 +892,50 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    // PLACEHOLDER market — update name/symbol/asset/riskParameters before deploying.
+    name: "Venus PLACEHOLDER",
+    symbol: "vPLACEHOLDER",
+    asset: "Test1",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.6",
+      reserveFactor: "0.1",
+      supplyCap: "236",
+      borrowCap: "236",
+    },
+    initialSupply: {
+      amount: "0.26",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    // N-PLACEHOLDER market — update name/symbol/asset/riskParameters before deploying.
+    name: "Venus PLACEHOLDER",
+    symbol: "vPLACEHOLDER",
+    asset: "Test2",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.6",
+      reserveFactor: "0.1",
+      supplyCap: "450",
+      borrowCap: "450",
+    },
+    initialSupply: {
+      amount: "0.51",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bscmainnet">>[];
