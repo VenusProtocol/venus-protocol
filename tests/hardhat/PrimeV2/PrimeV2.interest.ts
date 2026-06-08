@@ -59,6 +59,33 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
     await expect(f.primeV2.accrueInterest(fakeMarket)).to.be.revertedWithCustomError(f.primeV2, "MarketNotSupported");
   });
 
+  it("carries a sub-threshold reward slice forward instead of stranding it", async () => {
+    // sumOfMembersScore is set by the issued holder in beforeEach.
+    const sumScore = (await f.primeV2.markets(f.vToken.address)).sumOfMembersScore;
+    expect(sumScore.gt(convertToUnit(1, 18))).to.equal(true); // ensures 1 wei of income truncates to 0
+
+    // A slice too small to move the index: income * 1e18 < sumOfMembersScore.
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(1);
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    // Index unchanged AND the slice is NOT marked consumed — the anchor stays put
+    // so the slice is retried on the next accrual instead of being stranded.
+    const after1 = await f.primeV2.markets(f.vToken.address);
+    expect(after1.rewardIndex).to.equal(0);
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(0);
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(0);
+
+    // Once enough income accumulates, the carried slice is included and the index moves.
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2.accrueInterest(f.vToken.address);
+
+    const after2 = await f.primeV2.markets(f.vToken.address);
+    expect(after2.rewardIndex).to.be.gt(0);
+    // Anchor advanced only by the indexed income; any remainder stays pending.
+    const anchor = await f.primeV2.unreleasedPLPIncome(f.underlyingAddress);
+    expect(anchor.lte(convertToUnit(100, 18))).to.equal(true);
+  });
+
   it("should claim interest and transfer tokens to user", async () => {
     f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
 

@@ -482,13 +482,25 @@ contract PrimeV2 is
 
         if (distributionIncome == 0) return;
 
-        unreleasedPLPIncome[underlying] = totalAccruedInPLP;
-
         if (market.sumOfMembersScore != 0) {
-            market.rewardIndex += (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+            uint256 indexDelta = (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+
+            // The slice is too small to move the index by a full unit. Leave it
+            // pending (do not advance the anchor) so it is retried on the next
+            // accrual once enough income accumulates, instead of being marked
+            // consumed and permanently stranded (precision-truncation leak).
+            if (indexDelta == 0) return;
+
+            market.rewardIndex += indexDelta;
+
+            // Advance the anchor only by the income actually reflected in the
+            // index; the truncation remainder stays pending for the next accrual.
+            uint256 indexedIncome = (indexDelta * market.sumOfMembersScore) / EXP_SCALE;
+            unreleasedPLPIncome[underlying] += indexedIncome;
         } else {
             // No scored members yet: record the slice so governance can
             // reclaim it later via sweepUndistributed instead of stranding it.
+            unreleasedPLPIncome[underlying] = totalAccruedInPLP;
             undistributedReward[underlying] += distributionIncome;
         }
     }
