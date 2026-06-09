@@ -773,10 +773,9 @@ export default [
     },
   },
   {
-    // T-PLACEHOLDER market — update name/symbol/asset/riskParameters before deploying.
-    name: "Venus T4B",
-    symbol: "vT4B",
-    asset: "T4B",
+    name: "Venus TSLAB",
+    symbol: "vTSLAB",
+    asset: "TSLAB",
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
@@ -796,10 +795,9 @@ export default [
     },
   },
   {
-    // N-PLACEHOLDER market — update name/symbol/asset/riskParameters before deploying.
-    name: "Venus N4B",
-    symbol: "vN4B",
-    asset: "N4B",
+    name: "Venus NVDAB",
+    symbol: "vNVDAB",
+    asset: "NVDAB",
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",

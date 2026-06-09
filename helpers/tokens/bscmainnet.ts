@@ -317,21 +317,19 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x23AE4fd8E7844cdBc97775496eBd0E8248656028",
   },
-  // TODO add Underlying Token details
   {
     isMock: false,
-    name: "Test1",
-    symbol: "Test1",
+    name: "TSLAB",
+    symbol: "TSLAB",
     decimals: 18,
-    tokenAddress: "0xA011111111111111111111111111111111111111",
+    tokenAddress: "0x5b1910eAaD6450E50f816082Aa078C41F10C292f",
   },
-  // TODO update placeholder
   {
     isMock: false,
-    name: "Test2",
-    symbol: "Test2",
+    name: "NVDAB",
+    symbol: "NVDAB",
     decimals: 18,
-    tokenAddress: "0xA011111111111111111111111111111111111111",
+    tokenAddress: "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
   },
 ] as const satisfies readonly TokenConfig[];
 

@@ -893,10 +893,9 @@ export default [
     },
   },
   {
-    // PLACEHOLDER market — update name/symbol/asset/riskParameters before deploying.
-    name: "Venus PLACEHOLDER",
-    symbol: "vPLACEHOLDER",
-    asset: "Test1",
+    name: "Venus TSLAB",
+    symbol: "vTSLAB",
+    asset: "TSLAB",
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
@@ -916,10 +915,9 @@ export default [
     },
   },
   {
-    // N-PLACEHOLDER market — update name/symbol/asset/riskParameters before deploying.
-    name: "Venus PLACEHOLDER",
-    symbol: "vPLACEHOLDER",
-    asset: "Test2",
+    name: "Venus NVDAB",
+    symbol: "vNVDAB",
+    asset: "NVDAB",
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
@@ -934,7 +932,7 @@ export default [
       borrowCap: "450",
     },
     initialSupply: {
-      amount: "0.51",
+      amount: "0.5",
       vTokenReceiver: "VTreasury",
     },
   },
