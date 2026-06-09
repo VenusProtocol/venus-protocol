@@ -269,6 +269,45 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
     expect(rewards[0].amount).to.be.gt(0);
   });
 
+  // ⚠️ TESTNET ONLY — remove with the resetCycle function before mainnet
+  it("[testnet] resetCycle wipes per-user and per-market cycle state, keeps config", async () => {
+    f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));
+    await f.primeV2["accrueInterestAndUpdateScore(address,address)"](user1Address, f.vToken.address);
+
+    const before = await f.primeV2.interests(f.vToken.address, user1Address);
+    expect(before.lifetimeAccrued).to.be.gt(0);
+    expect((await f.primeV2.markets(f.vToken.address)).sumOfMembersScore).to.be.gt(0);
+    expect(await f.primeV2.isUserPrimeHolder(user1Address)).to.be.true;
+    expect(await f.primeV2.totalTokens()).to.equal(1);
+
+    await expect(f.primeV2.resetCycle([user1Address])).to.emit(f.primeV2, "CycleReset").withArgs(1);
+
+    const after = await f.primeV2.interests(f.vToken.address, user1Address);
+    expect(after.score).to.equal(0);
+    expect(after.rewardIndex).to.equal(0);
+    expect(after.accrued).to.equal(0);
+    expect(after.lifetimeAccrued).to.equal(0);
+
+    const market = await f.primeV2.markets(f.vToken.address);
+    expect(market.sumOfMembersScore).to.equal(0);
+    expect(market.rewardIndex).to.equal(0);
+    expect(market.exists).to.be.true; // market config preserved
+    expect(market.supplyMultiplier).to.equal(convertToUnit(2, 18));
+
+    expect(await f.primeV2.isUserPrimeHolder(user1Address)).to.be.false;
+    expect(await f.primeV2.totalTokens()).to.equal(0);
+
+    // PLP anchor re-anchored to current accrued; undistributed + pending cleared
+    expect(await f.primeV2.unreleasedPLPIncome(f.underlyingAddress)).to.equal(convertToUnit(100, 18));
+    expect(await f.primeV2.undistributedReward(f.underlyingAddress)).to.equal(0);
+    expect(await f.primeV2.pendingScoreUpdates()).to.equal(0);
+  });
+
+  it("[testnet] resetCycle reverts when caller not authorized", async () => {
+    f.accessControlManager.isAllowedToCall.returns(false);
+    await expect(f.primeV2.resetCycle([user1Address])).to.be.reverted;
+  });
+
   describe("lifetimeAccrued tracking", () => {
     it("grows by the same delta as interests.accrued on accrual", async () => {
       f.primeLiquidityProvider.tokenAmountAccrued.returns(convertToUnit(100, 18));

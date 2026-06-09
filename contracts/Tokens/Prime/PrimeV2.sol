@@ -108,6 +108,9 @@ contract PrimeV2 is
     /// @notice Emitted when the keeper records the on-chain start of a reward cycle.
     event CycleSnapshotRecorded(uint256 indexed cycleId, uint256 blockNumber, uint256 timestamp);
 
+    /// @notice TESTNET ONLY — emitted when cycle state is reset for a batch of users
+    event CycleReset(uint256 usersCleared);
+
     // ═══════════════════ ERRORS ═══════════════════
 
     /// @notice Error thrown when market is not supported
@@ -981,6 +984,77 @@ contract PrimeV2 is
 
         emit UndistributedSwept(underlying, to, amount);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⚠️  TESTNET ONLY — REMOVE BEFORE MAINNET DEPLOYMENT  ⚠️
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * @notice TESTNET ONLY — reset all cycle work for a batch of users so the
+     *         cycle 1 / cycle 2 flows can be re-run from scratch
+     * @dev Clears each user's per-market interest (score, rewardIndex, accrued,
+     *      lifetimeAccrued) and Prime-holder status, zeroes every market's score
+     *      and reward index accumulators, and re-anchors PLP income tracking.
+     *      The caller MUST pass every current Prime holder (across batches); any
+     *      holder not included keeps stale state and will corrupt the re-test.
+     *      MUST be removed before mainnet deployment.
+     * @param users Users whose cycle state should be cleared
+     * @custom:access Controlled by ACM
+     */
+    function resetCycle(address[] calldata users) external {
+        _checkAccessAllowed("resetCycle(address[])");
+
+        address[] storage allMarkets = _allMarkets;
+        uint256 marketsLength = allMarkets.length;
+        uint256 usersLength = users.length;
+        _ensureMaxLoops(usersLength * marketsLength);
+
+        for (uint256 m; m < marketsLength; ) {
+            address market = allMarkets[m];
+
+            for (uint256 u; u < usersLength; ) {
+                delete interests[market][users[u]];
+                unchecked {
+                    ++u;
+                }
+            }
+
+            markets[market].sumOfMembersScore = 0;
+            markets[market].rewardIndex = 0;
+
+            // Re-anchor to the current PLP cumulative so the next accrual starts
+            // from a clean zero delta instead of replaying the entire accrued
+            // balance into the freshly reset cohort.
+            address underlying = _getUnderlying(market);
+            unreleasedPLPIncome[underlying] = IPrimeLiquidityProvider(primeLiquidityProvider).tokenAmountAccrued(
+                underlying
+            );
+            delete undistributedReward[underlying];
+
+            unchecked {
+                ++m;
+            }
+        }
+
+        for (uint256 i; i < usersLength; ) {
+            if (isPrimeHolder[users[i]]) {
+                delete isPrimeHolder[users[i]];
+                --totalTokens;
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
+        pendingScoreUpdates = 0;
+        ++nextScoreUpdateRoundId;
+
+        emit CycleReset(usersLength);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⚠️  END TESTNET ONLY  ⚠️
+    // ═══════════════════════════════════════════════════════════════════════
 
     // ═══════════════════ INTERNAL FUNCTIONS ═══════════════════
 

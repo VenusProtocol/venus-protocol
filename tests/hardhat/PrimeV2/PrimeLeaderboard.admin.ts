@@ -193,4 +193,40 @@ describe("PrimeLeaderboard - Staker Initialization", () => {
       f.primeLeaderboard.initializeStakers([await f.user1.getAddress()], [convertToUnit(1000, 18)], [0]),
     ).to.be.revertedWithCustomError(f.primeLeaderboard, "InvalidTimestamp");
   });
+
+  // ⚠️ TESTNET ONLY — remove with the resetCycle function before mainnet
+  it("[testnet] resetCycle clears seeded stakers and unlocks re-seeding", async () => {
+    const user1Address = await f.user1.getAddress();
+    const user2Address = await f.user2.getAddress();
+    const now = await time.latest();
+
+    await f.primeLeaderboard.initializeStakers(
+      [user1Address, user2Address],
+      [convertToUnit(1000, 18), convertToUnit(2000, 18)],
+      [now - 60 * DAY, now - 30 * DAY],
+    );
+    await f.primeLeaderboard.finalizeInitialization();
+    expect(await f.primeLeaderboard.stakersInitialized()).to.be.true;
+
+    await expect(f.primeLeaderboard.resetCycle([user1Address, user2Address]))
+      .to.emit(f.primeLeaderboard, "CycleReset")
+      .withArgs(2);
+
+    // staker state cleared and seeding unlocked
+    expect(await f.primeLeaderboard.totalStaked(user1Address)).to.equal(0);
+    expect(await f.primeLeaderboard.totalStaked(user2Address)).to.equal(0);
+    expect(await f.primeLeaderboard.getDepositCount(user1Address)).to.equal(0);
+    expect(await f.primeLeaderboard.getDepositCount(user2Address)).to.equal(0);
+    expect(await f.primeLeaderboard.stakersInitialized()).to.be.false;
+
+    // can seed again after reset
+    await f.primeLeaderboard.initializeStakers([user1Address], [convertToUnit(500, 18)], [now - 10 * DAY]);
+    expect(await f.primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(500, 18));
+  });
+
+  it("[testnet] resetCycle reverts when caller not authorized", async () => {
+    f.accessControlManager.isAllowedToCall.returns(false);
+
+    await expect(f.primeLeaderboard.resetCycle([await f.user1.getAddress()])).to.be.reverted;
+  });
 });

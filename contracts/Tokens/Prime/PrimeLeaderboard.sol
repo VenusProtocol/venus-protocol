@@ -41,6 +41,9 @@ contract PrimeLeaderboard is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable xvsVaultPoolId;
 
+    /// @notice TESTNET ONLY — emitted when staker state is reset for a batch of users
+    event CycleReset(uint256 usersCleared);
+
     /// @notice Initializes immutable references; disables further initialization
     /// @param xvsVault_ Address of XVSVault contract
     /// @param xvsVaultRewardToken_ Reward token address in XVSVault
@@ -149,6 +152,43 @@ contract PrimeLeaderboard is
 
         emit StakersInitializationFinalized();
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⚠️  TESTNET ONLY — REMOVE BEFORE MAINNET DEPLOYMENT  ⚠️
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * @notice TESTNET ONLY — reset staker state for a batch of users so the
+     *         migration/seeding flow can be re-run from scratch
+     * @dev Clears each passed user's deposit stack and total staked, and unlocks
+     *      seeding by resetting stakersInitialized. The caller MUST pass every
+     *      seeded staker (across batches); any staker not included keeps stale
+     *      state and will corrupt the re-test. MUST be removed before mainnet.
+     * @param users Stakers whose state should be cleared
+     * @custom:access Controlled by ACM
+     */
+    function resetCycle(address[] calldata users) external {
+        _checkAccessAllowed("resetCycle(address[])");
+
+        uint256 usersLength = users.length;
+        _ensureMaxLoops(usersLength);
+
+        for (uint256 i; i < usersLength; ) {
+            delete _depositStacks[users[i]];
+            delete totalStaked[users[i]];
+            unchecked {
+                ++i;
+            }
+        }
+
+        stakersInitialized = false;
+
+        emit CycleReset(usersLength);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⚠️  END TESTNET ONLY  ⚠️
+    // ═══════════════════════════════════════════════════════════════════════
 
     // ═══════════════════ XVS VAULT CALLBACK ═══════════════════
 
