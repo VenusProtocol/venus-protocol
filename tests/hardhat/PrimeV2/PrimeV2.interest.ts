@@ -280,7 +280,9 @@ describe("PrimeV2 - Interest Accrual and Claiming", () => {
     expect(await f.primeV2.isUserPrimeHolder(user1Address)).to.be.true;
     expect(await f.primeV2.totalTokens()).to.equal(1);
 
-    await expect(f.primeV2.resetCycle([user1Address])).to.emit(f.primeV2, "CycleReset").withArgs(1);
+    await expect(f.primeV2.resetCycle([user1Address]))
+      .to.emit(f.primeV2, "CycleReset")
+      .withArgs(1);
 
     const after = await f.primeV2.interests(f.vToken.address, user1Address);
     expect(after.score).to.equal(0);

@@ -1046,8 +1046,10 @@ contract PrimeV2 is
             }
         }
 
+        // pendingScoreUpdates = 0 unblocks issue/burn; the next _queueScoreUpdates
+        // already bumps nextScoreUpdateRoundId, so stale per-user round flags are
+        // naturally bypassed without clearing them here.
         pendingScoreUpdates = 0;
-        ++nextScoreUpdateRoundId;
 
         emit CycleReset(usersLength);
     }
