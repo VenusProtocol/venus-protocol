@@ -365,11 +365,13 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev Can only be called by the Comptroller contract. This function performs the actual transfer of the underlying
      *      asset by calling the `doTransferOut` internal function.
      *      - The caller must be the Comptroller contract.
+     *      - Accrues interest on the full pre-loan cash before any underlying leaves the market.
      *      - Sets the flashLoanAmount to track the borrowed amount during the flash loan process.
      * @param to The address to which the underlying asset is to be transferred.
      * @param amount The amount of the underlying asset to transfer.
      * @custom:error InvalidComptroller is thrown if the caller is not the Comptroller.
      * @custom:error FlashLoanAlreadyActive is thrown if there is already an active flash loan.
+     * @custom:error AccrueInterestFailed is thrown if interest accrual fails before the transfer.
      * @custom:error InsufficientCash is thrown when the vToken does not have enough cash to lend
      * @custom:event Emits TransferOutUnderlyingFlashLoan event on successful transfer of amount to receiver
      */
@@ -380,6 +382,13 @@ abstract contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         if (flashLoanAmount > 0) {
             revert FlashLoanAlreadyActive();
+        }
+
+        // Accrue while flashLoanAmount is still zero, so the rate uses the full pre-loan cash.
+        // This makes the market fresh for the block; the later flashLoanDebtPosition() accrual short-circuits.
+        uint accrueError = accrueInterest();
+        if (accrueError != uint(Error.NO_ERROR)) {
+            revert AccrueInterestFailed(accrueError);
         }
 
         if (getCashPrior() < amount) {
