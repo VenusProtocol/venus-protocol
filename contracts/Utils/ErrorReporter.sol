@@ -82,6 +82,10 @@ contract ComptrollerErrorReporter {
     /// @notice Thrown when too many assets are requested in a single flash loan
     error TooManyAssetsRequested(uint256 requested, uint256 maximum);
 
+    /// @notice Thrown when liquidationThreshold * liquidationIncentive >= 1e18, which would make liquidations
+    ///         stop reducing (or even increase) the account shortfall
+    error UnsafeLiquidationParams(uint256 liquidationThresholdMantissa, uint256 liquidationIncentiveMantissa);
+
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,

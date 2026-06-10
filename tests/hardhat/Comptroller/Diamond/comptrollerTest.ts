@@ -107,12 +107,13 @@ describe("Comptroller", () => {
     let unitroller: Unitroller;
     let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
+    let oracle: FakeContract<PriceOracle>;
     const initialIncentive = convertToUnit("0", 18);
     const validIncentive = convertToUnit("1.1", 18);
     const tooSmallIncentive = convertToUnit("0.99999", 18);
 
     beforeEach(async () => {
-      ({ unitroller, vToken } = await loadFixture(deploySimpleComptroller));
+      ({ unitroller, vToken, oracle } = await loadFixture(deploySimpleComptroller));
       comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     });
 
@@ -141,6 +142,17 @@ describe("Comptroller", () => {
       await expect(
         comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, validIncentive),
       ).to.be.revertedWith("old value is same as new value");
+    });
+
+    it("reverts when liquidationThreshold * incentive >= 1", async () => {
+      const threshold = convertToUnit("0.9", 18);
+      const unsafeIncentive = convertToUnit("1.2", 18); // 0.9 * 1.2 = 1.08 >= 1
+      await comptroller._supportMarket(vToken.address);
+      configureOracle(oracle);
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](vToken.address, threshold, threshold);
+      await expect(comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, unsafeIncentive))
+        .to.be.revertedWithCustomError(comptroller, "UnsafeLiquidationParams")
+        .withArgs(threshold, unsafeIncentive);
     });
   });
 
@@ -492,6 +504,18 @@ describe("Comptroller", () => {
         .withArgs(corePoolId, vToken.address, "0", half);
 
       expect(await comptroller.isMarketListed(vToken.address)).to.be.true;
+    });
+
+    it("reverts when threshold * liquidationIncentive >= 1", async () => {
+      const incentive = convertToUnit("1.1", 18);
+      const unsafeThreshold = convertToUnit("0.95", 18); // 0.95 * 1.1 = 1.045 >= 1
+      await comptroller._supportMarket(vToken.address);
+      await comptroller["setLiquidationIncentive(address,uint256)"](vToken.address, incentive);
+      await expect(
+        comptroller["setCollateralFactor(address,uint256,uint256)"](vToken.address, unsafeThreshold, unsafeThreshold),
+      )
+        .to.be.revertedWithCustomError(comptroller, "UnsafeLiquidationParams")
+        .withArgs(unsafeThreshold, incentive);
     });
   });
 
