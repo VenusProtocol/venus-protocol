@@ -655,13 +655,13 @@ describe("FlashLoan", async () => {
     it("Accrues interest at flash-loan start on the full pre-loan cash (partial repayment does not over-charge)", async () => {
       // Regression test for the flash-loan accrual ordering fix.
       //
-      // transferOutUnderlyingFlashLoan() now accrues interest BEFORE any underlying leaves the
+      // transferOutUnderlyingFlashLoan() accrues interest BEFORE any underlying leaves the
       // market and before flashLoanAmount is set, so getBorrowRate() sees the full pre-loan cash.
-      // The market is then fresh for the block, so the later accrual inside flashLoanDebtPosition()
-      // short-circuits and never runs with an understated cash. Without the fix, in the partial
-      // repayment path the only accrual would happen inside flashLoanDebtPosition() with cash that
-      // is missing the unpaid amount (and the protocol fee), inflating utilization and over-charging
-      // existing borrowers.
+      // This is the only accrual in the flow: flashLoanDebtPosition() no longer re-accrues, it relies
+      // on the market already being fresh for the block. Without the fix, in the partial repayment
+      // path the only accrual would happen inside flashLoanDebtPosition() with cash that is missing
+      // the unpaid amount (and the protocol fee), inflating utilization and over-charging existing
+      // borrowers.
       await vTokenA.setFlashLoanEnabled(true);
       await vTokenB.setFlashLoanEnabled(true);
 
