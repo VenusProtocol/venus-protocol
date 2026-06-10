@@ -46,6 +46,13 @@ describe("PrimeV2 - Admin Functions", () => {
         "Unauthorized",
       );
     });
+
+    it("should revert InvalidAddress when user is zero address", async () => {
+      await expect(f.primeV2["issue(address)"](ethers.constants.AddressZero)).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidAddress",
+      );
+    });
   });
 
   describe("issueBatch", () => {
@@ -78,6 +85,15 @@ describe("PrimeV2 - Admin Functions", () => {
       await expect(f.primeV2.issueBatch([await f.user1.getAddress()])).to.be.revertedWithCustomError(
         f.primeV2,
         "Unauthorized",
+      );
+    });
+
+    it("should revert InvalidAddress when any user in batch is zero address", async () => {
+      const user1Address = await f.user1.getAddress();
+
+      await expect(f.primeV2.issueBatch([user1Address, ethers.constants.AddressZero])).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidAddress",
       );
     });
   });
@@ -169,6 +185,14 @@ describe("PrimeV2 - Admin Functions", () => {
     it("should revert with zero denominator", async () => {
       await expect(f.primeV2.updateAlpha(1, 0)).to.be.revertedWithCustomError(f.primeV2, "InvalidAlphaArguments");
     });
+
+    it("should revert with zero numerator (alpha = 0)", async () => {
+      await expect(f.primeV2.updateAlpha(0, 2)).to.be.revertedWithCustomError(f.primeV2, "InvalidAlphaArguments");
+    });
+
+    it("should revert when numerator equals denominator (alpha = 1)", async () => {
+      await expect(f.primeV2.updateAlpha(2, 2)).to.be.revertedWithCustomError(f.primeV2, "InvalidAlphaArguments");
+    });
   });
 
   describe("pause/unpause", () => {
@@ -240,11 +264,14 @@ describe("PrimeV2 - Admin Functions", () => {
 
   describe("setPrimeLeaderboard", () => {
     it("should set primeLeaderboard address and emit event", async () => {
-      await expect(f.primeV2.setPrimeLeaderboard(f.primeLeaderboard.address))
-        .to.emit(f.primeV2, "PrimeLeaderboardSet")
-        .withArgs(ethers.constants.AddressZero, f.primeLeaderboard.address);
+      const previous = await f.primeV2.primeLeaderboard();
+      const newLeaderboard = ethers.Wallet.createRandom().address;
 
-      expect(await f.primeV2.primeLeaderboard()).to.equal(f.primeLeaderboard.address);
+      await expect(f.primeV2.setPrimeLeaderboard(newLeaderboard))
+        .to.emit(f.primeV2, "PrimeLeaderboardSet")
+        .withArgs(previous, newLeaderboard);
+
+      expect(await f.primeV2.primeLeaderboard()).to.equal(newLeaderboard);
     });
 
     it("should revert when setting zero address", async () => {
@@ -302,6 +329,26 @@ describe("PrimeV2 - Admin Functions", () => {
       await expect(f.primeV2.setMintThreshold(convertToUnit(100, 18), 0)).to.be.revertedWithCustomError(
         f.primeV2,
         "Unauthorized",
+      );
+    });
+
+    it("should revert InvalidDeadline when mintDeadline is in the past", async () => {
+      const threshold = convertToUnit(100, 18);
+      const pastDeadline = (await time.latest()) - 1;
+
+      await expect(f.primeV2.setMintThreshold(threshold, pastDeadline)).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidDeadline",
+      );
+    });
+
+    it("should revert InvalidDeadline when mintDeadline equals current block timestamp", async () => {
+      const threshold = convertToUnit(100, 18);
+      const nowDeadline = await time.latest();
+
+      await expect(f.primeV2.setMintThreshold(threshold, nowDeadline)).to.be.revertedWithCustomError(
+        f.primeV2,
+        "InvalidDeadline",
       );
     });
   });
@@ -548,6 +595,26 @@ describe("PrimeV2 - Admin Functions", () => {
         f.primeV2,
         "ScoreUpdateInProgress",
       );
+    });
+  });
+
+  describe("recordCycleSnapshot", () => {
+    it("emits CycleSnapshotRecorded with the current block and timestamp", async () => {
+      const tx = await f.primeV2.recordCycleSnapshot(1);
+      const receipt = await tx.wait();
+      const block = await ethers.provider.getBlock(receipt.blockNumber);
+
+      await expect(tx).to.emit(f.primeV2, "CycleSnapshotRecorded").withArgs(1, receipt.blockNumber, block.timestamp);
+    });
+
+    it("allows the same cycleId to be re-emitted (no on-chain idempotency)", async () => {
+      await expect(f.primeV2.recordCycleSnapshot(7)).to.emit(f.primeV2, "CycleSnapshotRecorded");
+      await expect(f.primeV2.recordCycleSnapshot(7)).to.emit(f.primeV2, "CycleSnapshotRecorded");
+    });
+
+    it("is ACM-gated", async () => {
+      f.accessControlManager.isAllowedToCall.returns(false);
+      await expect(f.primeV2.connect(f.user1).recordCycleSnapshot(1)).to.be.reverted;
     });
   });
 });

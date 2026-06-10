@@ -117,16 +117,15 @@ contract PrimeLeaderboard is
 
             // Idempotent: skip users already seeded
             if (totalStaked[user] == 0 && amounts[i] > 0) {
+                uint64 ts = timestamps[i];
+                if (ts == 0 || ts > block.timestamp) revert InvalidTimestamp();
+
                 _depositStacks[user].push(
-                    Deposit({
-                        amount: SafeCastUpgradeable.toUint128(amounts[i]),
-                        timestamp: timestamps[i],
-                        _reserved: 0
-                    })
+                    Deposit({ amount: SafeCastUpgradeable.toUint128(amounts[i]), timestamp: ts, _reserved: 0 })
                 );
                 totalStaked[user] = amounts[i];
 
-                emit StakerInitialized(user, amounts[i], timestamps[i]);
+                emit StakerInitialized(user, amounts[i], ts);
             }
 
             unchecked {
@@ -165,7 +164,7 @@ contract PrimeLeaderboard is
      * @custom:error Throw ZeroAddress if user address is zero
      * @custom:access Only callable by XVSVault
      */
-    function xvsUpdated(address user) external override {
+    function xvsUpdated(address user) external override nonReentrant {
         if (msg.sender != xvsVault) revert OnlyXVSVaultAllowed();
         if (user == address(0)) revert ZeroAddress();
 
@@ -455,7 +454,7 @@ contract PrimeLeaderboard is
         uint256 maxTierDuration = _multiplierDurations[_multiplierDurations.length - 1];
 
         uint256 mergedAmount = 0;
-        uint64 earliestTimestamp = type(uint64).max;
+        uint256 weightedTimestampSum = 0;
         uint256 writeIndex = 0;
 
         for (uint256 readIndex; readIndex < depositsLength; ) {
@@ -463,11 +462,15 @@ contract PrimeLeaderboard is
             uint256 holdingDuration = block.timestamp - uint256(d.timestamp);
 
             if (holdingDuration >= maxTierDuration) {
-                // This deposit has max multiplier, accumulate for merging
+                // This deposit has max multiplier, accumulate for merging.
+                // Track amount-weighted timestamp sum so that if multiplier tiers are later
+                // extended with a longer top duration, the merged entry's effective age
+                // reflects the true mean of its constituents instead of over-crediting the
+                // entire amount at the new top-tier multiplier.
+                // Overflow safe: amount * timestamp <= 2^128 * 2^64 = 2^192, and the sum is
+                // bounded by MAX_DEPOSITS_PER_USER * 2^192 < 2^256.
                 mergedAmount += uint256(d.amount);
-                if (d.timestamp < earliestTimestamp) {
-                    earliestTimestamp = d.timestamp;
-                }
+                weightedTimestampSum += uint256(d.amount) * uint256(d.timestamp);
             } else {
                 // Keep this deposit as-is
                 if (writeIndex != readIndex) {
@@ -495,9 +498,11 @@ contract PrimeLeaderboard is
                 deposits[i + 1] = deposits[i];
             }
 
-            // Insert merged deposit at index 0, preserving the earliest original timestamp
-            // so that if multiplier tiers are later increased, the true hold duration is retained
-            deposits[0] = Deposit({ amount: mergedAmount.toUint128(), timestamp: earliestTimestamp, _reserved: 0 });
+            // Insert merged deposit at index 0 with the amount-weighted average timestamp
+            // of its constituents.
+            // Ceil the weighted timestamp so the merged deposit's duration rounds down conservatively.
+            uint64 mergedTimestamp = uint64((weightedTimestampSum + mergedAmount - 1) / mergedAmount);
+            deposits[0] = Deposit({ amount: mergedAmount.toUint128(), timestamp: mergedTimestamp, _reserved: 0 });
 
             writeIndex++;
         }
@@ -554,7 +559,8 @@ contract PrimeLeaderboard is
                 --i;
             }
             if (tierAmounts[i] > 0) {
-                uint64 avgTimestamp = uint64(tierWeightedTimestamps[i] / tierAmounts[i]);
+                // Ceil the weighted timestamp so the merged deposit's duration rounds down conservatively.
+                uint64 avgTimestamp = uint64((tierWeightedTimestamps[i] + tierAmounts[i] - 1) / tierAmounts[i]);
                 deposits[newCount] = Deposit({
                     amount: tierAmounts[i].toUint128(),
                     timestamp: avgTimestamp,

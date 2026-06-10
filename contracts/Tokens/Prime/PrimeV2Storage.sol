@@ -38,9 +38,14 @@ contract PrimeV2StorageV1 {
 
     /// @notice Struct to track user's interest in a market
     struct Interest {
-        uint256 accrued; // Accrued rewards pending claim
+        uint256 accrued; // Accrued rewards pending claim (reset to 0 on claim)
         uint256 score; // User's score in this market
         uint256 rewardIndex; // Last recorded reward index
+        uint256 lifetimeAccrued; // Monotonic running total of all rewards ever accrued
+        //                         to this user in this market. Incremented every time
+        //                         `accrued` grows; never decremented by claim. Lets the
+        //                         off-chain cycle pipeline compute per-cycle earnings as
+        //                         the diff between two snapshots.
     }
 
     /// @notice Struct for pending reward info
@@ -86,6 +91,11 @@ contract PrimeV2StorageV1 {
     /// @notice Unreleased income from PrimeLiquidityProvider per token
     mapping(address => uint256) public unreleasedPLPIncome;
 
+    /// @notice Income accrued while no scored members existed in the market.
+    ///         Tracked per underlying so governance can reclaim the slice via
+    ///         sweepUndistributed without touching user-owed funds.
+    mapping(address => uint256) public undistributedReward;
+
     // ═══════════════════ SCORE UPDATE TRACKING ═══════════════════
 
     /// @notice Mapping to track if user's score was updated in a round
@@ -107,5 +117,5 @@ contract PrimeV2StorageV1 {
     uint256 public mintDeadline;
 
     /// @notice Storage gap for future upgrades
-    uint256[41] private __gap;
+    uint256[40] private __gap;
 }

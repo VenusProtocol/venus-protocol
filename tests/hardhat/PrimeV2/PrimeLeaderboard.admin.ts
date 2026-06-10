@@ -1,5 +1,5 @@
 import { smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { ethers } from "hardhat";
 
@@ -119,9 +119,10 @@ describe("PrimeLeaderboard - Staker Initialization", () => {
   it("should seed staker data in batches", async () => {
     const user1Address = await f.user1.getAddress();
     const user2Address = await f.user2.getAddress();
+    const now = await time.latest();
 
     const amounts = [convertToUnit(1000, 18), convertToUnit(2000, 18)];
-    const timestamps = [1700000000, 1700100000];
+    const timestamps = [now - 60 * DAY, now - 30 * DAY];
 
     await f.primeLeaderboard.initializeStakers([user1Address, user2Address], amounts, timestamps);
 
@@ -133,10 +134,11 @@ describe("PrimeLeaderboard - Staker Initialization", () => {
 
   it("should be idempotent (skip already seeded users)", async () => {
     const user1Address = await f.user1.getAddress();
+    const now = await time.latest();
 
-    await f.primeLeaderboard.initializeStakers([user1Address], [convertToUnit(1000, 18)], [1700000000]);
+    await f.primeLeaderboard.initializeStakers([user1Address], [convertToUnit(1000, 18)], [now - 60 * DAY]);
 
-    await f.primeLeaderboard.initializeStakers([user1Address], [convertToUnit(5000, 18)], [1700200000]);
+    await f.primeLeaderboard.initializeStakers([user1Address], [convertToUnit(5000, 18)], [now - 30 * DAY]);
 
     expect(await f.primeLeaderboard.totalStaked(user1Address)).to.equal(convertToUnit(1000, 18));
     expect(await f.primeLeaderboard.getDepositCount(user1Address)).to.equal(1);
@@ -144,9 +146,10 @@ describe("PrimeLeaderboard - Staker Initialization", () => {
 
   it("should revert after finalization", async () => {
     await f.primeLeaderboard.finalizeInitialization();
+    const now = await time.latest();
 
     await expect(
-      f.primeLeaderboard.initializeStakers([await f.user1.getAddress()], [convertToUnit(1000, 18)], [1700000000]),
+      f.primeLeaderboard.initializeStakers([await f.user1.getAddress()], [convertToUnit(1000, 18)], [now - 30 * DAY]),
     ).to.be.revertedWithCustomError(f.primeLeaderboard, "StakersAlreadyInitialized");
   });
 
@@ -175,5 +178,19 @@ describe("PrimeLeaderboard - Staker Initialization", () => {
     await expect(
       f.primeLeaderboard.initializeStakers([await f.user1.getAddress()], [convertToUnit(1000, 18)], [1700000000]),
     ).to.be.reverted;
+  });
+
+  it("should revert InvalidTimestamp when seeded timestamp is in the future", async () => {
+    const now = await time.latest();
+
+    await expect(
+      f.primeLeaderboard.initializeStakers([await f.user1.getAddress()], [convertToUnit(1000, 18)], [now + 60 * DAY]),
+    ).to.be.revertedWithCustomError(f.primeLeaderboard, "InvalidTimestamp");
+  });
+
+  it("should revert InvalidTimestamp when seeded timestamp is zero", async () => {
+    await expect(
+      f.primeLeaderboard.initializeStakers([await f.user1.getAddress()], [convertToUnit(1000, 18)], [0]),
+    ).to.be.revertedWithCustomError(f.primeLeaderboard, "InvalidTimestamp");
   });
 });

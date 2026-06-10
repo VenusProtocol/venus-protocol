@@ -68,6 +68,9 @@ interface IPrimeLeaderboard {
     /// @notice Thrown when staker initialization has already been finalized
     error StakersAlreadyInitialized();
 
+    /// @notice Thrown when a seeded staker timestamp is zero or in the future
+    error InvalidTimestamp();
+
     // ═══════════════════ XVS VAULT CALLBACK ═══════════════════
 
     /// @notice Called by XVSVault on deposit/withdrawal to update deposit tracking

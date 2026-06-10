@@ -101,6 +101,7 @@ export async function deployIntegrationFixture(): Promise<IntegrationFixture> {
   })) as PrimeLeaderboard;
 
   await primeLeaderboard.setPrimeV2(primeV2.address);
+  await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
 
   return {
     primeV2,
