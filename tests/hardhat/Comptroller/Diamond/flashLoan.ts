@@ -416,12 +416,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
@@ -494,12 +494,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
@@ -551,12 +551,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       // Set borrow caps to allow borrowing
@@ -675,12 +675,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       await comptroller._setMarketBorrowCaps(
@@ -794,12 +794,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       // Set borrow caps to allow borrowing
