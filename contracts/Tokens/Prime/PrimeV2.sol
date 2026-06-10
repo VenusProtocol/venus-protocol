@@ -482,13 +482,25 @@ contract PrimeV2 is
 
         if (distributionIncome == 0) return;
 
-        unreleasedPLPIncome[underlying] = totalAccruedInPLP;
-
         if (market.sumOfMembersScore != 0) {
-            market.rewardIndex += (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+            uint256 indexDelta = (distributionIncome * EXP_SCALE) / market.sumOfMembersScore;
+
+            // The slice is too small to move the index by a full unit. Leave it
+            // pending (do not advance the anchor) so it is retried on the next
+            // accrual once enough income accumulates, instead of being marked
+            // consumed and permanently stranded (precision-truncation leak).
+            if (indexDelta == 0) return;
+
+            market.rewardIndex += indexDelta;
+
+            // Advance the anchor only by the income actually reflected in the
+            // index; the truncation remainder stays pending for the next accrual.
+            uint256 indexedIncome = (indexDelta * market.sumOfMembersScore) / EXP_SCALE;
+            unreleasedPLPIncome[underlying] += indexedIncome;
         } else {
             // No scored members yet: record the slice so governance can
             // reclaim it later via sweepUndistributed instead of stranding it.
+            unreleasedPLPIncome[underlying] = totalAccruedInPLP;
             undistributedReward[underlying] += distributionIncome;
         }
     }
@@ -741,6 +753,12 @@ contract PrimeV2 is
         if (!markets[market].exists) revert MarketNotSupported();
         if (markets[market].sumOfMembersScore > 0) revert MarketHasActiveMembers();
 
+        // Flush any pending PLP slice before deletion. sumOfMembersScore is 0
+        // here, so accrueInterest routes the slice into undistributedReward
+        // (recoverable via sweepUndistributed) instead of stranding it once the
+        // market is deleted and accrueInterest can no longer run for it.
+        accrueInterest(market);
+
         address underlying = _getUnderlying(market);
 
         // Clear market state
@@ -941,7 +959,12 @@ contract PrimeV2 is
 
         address underlying = _getUnderlying(vToken);
 
-        accrueInterest(vToken);
+        // Skip accrual for removed markets: accrueInterest reverts on !exists,
+        // and their pending slice was already flushed into undistributedReward
+        // by removeMarket before deletion. Active markets still flush here.
+        if (markets[vToken].exists) {
+            accrueInterest(vToken);
+        }
 
         uint256 amount = undistributedReward[underlying];
         if (amount == 0) return;
@@ -1060,17 +1083,25 @@ contract PrimeV2 is
         bool marketExists = markets[vToken].exists;
 
         uint256 amount;
-        if (marketExists && isPrimeHolder[user]) {
+        if (marketExists) {
+            // accrueInterest is a market-global operation: it indexes pending
+            // PLP income into rewardIndex for ALL holders. It must run before
+            // the releaseFunds path below can pull and clear that income, even
+            // when `user` is no longer a Prime holder — otherwise a residual
+            // claim strands the freshly accrued slice as untracked surplus.
             accrueInterest(vToken);
-            amount = _interestAccrued(vToken, user);
-            // _claimInterest runs its own accrual rather than going through
-            // _executeBoost, so bump lifetimeAccrued here too to keep the
-            // counter monotonic and complete. Skip the SSTORE when there's
-            // no fresh delta (idle market or zero score) to save gas.
-            if (amount != 0) {
-                interests[vToken][user].lifetimeAccrued += amount;
+
+            if (isPrimeHolder[user]) {
+                amount = _interestAccrued(vToken, user);
+                // _claimInterest runs its own accrual rather than going through
+                // _executeBoost, so bump lifetimeAccrued here too to keep the
+                // counter monotonic and complete. Skip the SSTORE when there's
+                // no fresh delta (idle market or zero score) to save gas.
+                if (amount != 0) {
+                    interests[vToken][user].lifetimeAccrued += amount;
+                }
+                interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
             }
-            interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
         }
         amount += interests[vToken][user].accrued;
 
