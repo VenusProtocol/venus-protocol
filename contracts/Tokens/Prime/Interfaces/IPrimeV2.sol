@@ -182,6 +182,13 @@ interface IPrimeV2 {
     function removeMarket(address market) external;
 
     /**
+     * @notice Reclaim PLP income that accrued for a market while it had no scored members
+     * @param vToken Market address whose underlying slice should be swept
+     * @param to Recipient of the swept tokens
+     */
+    function sweepUndistributed(address vToken, address to) external;
+
+    /**
      * @notice Set maximum token limit
      * @param tokenLimit Maximum number of Prime tokens
      */
