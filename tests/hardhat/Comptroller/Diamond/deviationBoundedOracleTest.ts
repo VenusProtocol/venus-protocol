@@ -1035,6 +1035,26 @@ describe("DeviationBoundedOracle Integration", () => {
       expect(liquidity).to.equal(0);
       expect(shortfall).to.equal(0);
     });
+
+    it("G.7 - skips an entered zero-balance market even if its price feed reverts", async () => {
+      const { comptroller, vTokenA, vTokenB, user, dbo } = fixture;
+      await enterCollateralMarket(comptroller, vTokenA, user);
+      // User is also entered into vTokenB but holds no supply and no debt there
+      await enterCollateralMarket(comptroller, vTokenB, user);
+      const userAddr = await user.getAddress();
+
+      vTokenB.getAccountSnapshot.whenCalledWith(userAddr).returns([0, 0, 0, EXCHANGE_RATE]);
+
+      // The price feed for the empty market reverts — if vTokenB were priced this would bubble up
+      dbo.getBoundedPricesView.whenCalledWith(vTokenB.address).reverts();
+
+      // vTokenB is skipped before its feed is queried, so liquidity is computed from vTokenA only
+      const [err, liquidity, shortfall] = await comptroller.getBorrowingPower(userAddr);
+      expect(err).to.equal(0);
+      expect(liquidity).to.equal(parseUnits("640", 8));
+      expect(shortfall).to.equal(0);
+      expect(dbo.getBoundedPricesView).to.not.have.been.calledWith(vTokenB.address);
+    });
   });
 
   // =========================================================================
@@ -1123,6 +1143,27 @@ describe("DeviationBoundedOracle Integration", () => {
       expect(err).to.equal(0);
       expect(liquidity).to.equal(0);
       expect(shortfall).to.equal(0);
+    });
+
+    it("H.6 - skips an entered zero-balance market even if its spot price feed reverts", async () => {
+      const { comptroller, vTokenA, vTokenB, user, oracle } = fixture;
+      await enterCollateralMarket(comptroller, vTokenA, user);
+      // User is also entered into vTokenB but holds no supply and no debt there
+      await enterCollateralMarket(comptroller, vTokenB, user);
+      const userAddr = await user.getAddress();
+
+      vTokenB.getAccountSnapshot.whenCalledWith(userAddr).returns([0, 0, 0, EXCHANGE_RATE]);
+
+      // The spot price feed for the empty market reverts — if vTokenB were priced this would bubble up
+      oracle.getUnderlyingPrice.whenCalledWith(vTokenB.address).reverts();
+
+      // vTokenB is skipped before its feed is queried, so liquidity is computed from vTokenA only
+      // LT = 0.9, spot = $1, balance = 1000e8 => sumCollateral = 900e8
+      const [err, liquidity, shortfall] = await comptroller.getAccountLiquidity(userAddr);
+      expect(err).to.equal(0);
+      expect(liquidity).to.equal(parseUnits("900", 8));
+      expect(shortfall).to.equal(0);
+      expect(oracle.getUnderlyingPrice).to.not.have.been.calledWith(vTokenB.address);
     });
   });
 

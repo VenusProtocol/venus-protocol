@@ -1115,6 +1115,74 @@ describe("Comptroller", () => {
     });
   });
 
+  describe("getAccountLiquidity (skips empty entered markets)", () => {
+    let comptroller: ComptrollerMock;
+    let oracle: FakeContract<PriceOracle>;
+    let collateralVToken: FakeContract<VToken>;
+    let emptyVToken: FakeContract<VToken>;
+
+    type Contracts = SimpleComptrollerFixture & {
+      collateralVToken: FakeContract<VToken>;
+      emptyVToken: FakeContract<VToken>;
+    };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const collateralVToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+      const emptyVToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+      return { ...contracts, collateralVToken, emptyVToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, oracle, collateralVToken, emptyVToken } = await loadFixture(deploy));
+      configureOracle(oracle);
+
+      for (const vToken of [collateralVToken, emptyVToken]) {
+        vToken.comptroller.returns(comptroller.address);
+        vToken.isVToken.returns(true);
+        vToken.exchangeRateStored.returns(convertToUnit(1, 18));
+        vToken.totalSupply.returns(convertToUnit("1000000", 8));
+        vToken.totalBorrows.returns(0);
+        vToken.borrowIndex.returns(convertToUnit(1, 18));
+        vToken.borrowBalanceStored.returns(0);
+        await comptroller._supportMarket(vToken.address);
+        // CF = 0.8, LT = 0.9
+        await comptroller["setCollateralFactor(address,uint256,uint256)"](
+          vToken.address,
+          convertToUnit("0.8", 18),
+          convertToUnit("0.9", 18),
+        );
+      }
+    });
+
+    it("does not revert when an entered zero-balance market has a reverting price feed", async () => {
+      const account = accounts[0].address;
+
+      // Real collateral position in collateralVToken; no supply/debt in emptyVToken
+      collateralVToken.getAccountSnapshot
+        .whenCalledWith(account)
+        .returns([0, convertToUnit("1000", 8), 0, convertToUnit(1, 18)]);
+      emptyVToken.getAccountSnapshot.whenCalledWith(account).returns([0, 0, 0, convertToUnit(1, 18)]);
+
+      await comptroller.connect(accounts[0]).enterMarkets([collateralVToken.address, emptyVToken.address]);
+
+      // Clear the call history from setup (setCollateralFactor reads each market's price), then
+      // re-arm: spot price $1 everywhere, but the empty market's feed reverts — if emptyVToken
+      // were priced during the liquidity calc this would bubble up and revert the whole call
+      oracle.getUnderlyingPrice.reset();
+      oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
+      oracle.getUnderlyingPrice.whenCalledWith(emptyVToken.address).reverts();
+
+      // emptyVToken is skipped before its feed is queried, so liquidity is computed from collateralVToken only
+      // LT = 0.9, spot = $1, balance = 1000e8 => sumCollateral = 900e8
+      const [err, liquidity, shortfall] = await comptroller.getAccountLiquidity(account);
+      expect(err).to.equal(0);
+      expect(liquidity).to.equal(convertToUnit("900", 8));
+      expect(shortfall).to.equal(0);
+      expect(oracle.getUnderlyingPrice).to.not.have.been.calledWith(emptyVToken.address);
+    });
+  });
+
   describe("E-Mode Pool", async () => {
     let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
