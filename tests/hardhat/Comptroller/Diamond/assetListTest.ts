@@ -45,6 +45,8 @@ describe("Comptroller: assetListTest", () => {
   let BAT: FakeContract<VBep20Immutable>;
   let SKT: FakeContract<VBep20Immutable>;
   let allTokens: FakeContract<VBep20Immutable>[];
+  let oracle: FakeContract<PriceOracle>;
+  let dbo: FakeContract<IDeviationBoundedOracle>;
 
   type AssetListFixture = {
     unitroller: MockContract<ComptrollerMock>;
@@ -71,7 +73,7 @@ describe("Comptroller: assetListTest", () => {
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
-    const dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+    dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
     dbo.getBoundedPricesView.returns([convertToUnit("1", 18), convertToUnit("1", 18)]);
     await comptroller.setDeviationBoundedOracle(dbo.address);
     const names = ["OMG", "ZRX", "BAT", "sketch"];
@@ -92,6 +94,7 @@ describe("Comptroller: assetListTest", () => {
 
   function configure({ oracle, allTokens, names }: AssetListFixture) {
     oracle.getUnderlyingPrice.returns(convertToUnit("0.5", 18));
+    dbo.getBoundedPricesView.returns([convertToUnit("1", 18), convertToUnit("1", 18)]);
     allTokens.map((vToken, i) => {
       vToken.isVToken.returns(true);
       vToken.symbol.returns(names[i]);
@@ -104,7 +107,7 @@ describe("Comptroller: assetListTest", () => {
     [root, customer] = await ethers.getSigners();
     const contracts = await loadFixture(assetListFixture);
     configure(contracts);
-    ({ unitroller, OMG, ZRX, BAT, SKT, allTokens } = contracts);
+    ({ unitroller, oracle, OMG, ZRX, BAT, SKT, allTokens } = contracts);
   });
 
   async function checkMarkets(expectedTokens: FakeContract<VBep20Immutable>[]) {
@@ -221,12 +224,35 @@ describe("Comptroller: assetListTest", () => {
 
     it("rejects unless redeem allowed", async () => {
       await enterAndCheckMarkets([OMG, BAT], [OMG, BAT]);
+      // Hold a non-zero OMG balance so the hypothetical liquidity check runs on exit.
+      OMG.getAccountSnapshot.returns([0, 1, 0, 1]);
       // We need to borrow at least 2, otherwise our borrow balance in USD gets truncated
       // when multiplied by price=0.5
       BAT.getAccountSnapshot.returns([0, 0, 2, 1]);
 
       // BAT has a negative balance and there's no supply, thus account should be underwater
       await exitAndCheckMarkets(OMG, [OMG, BAT], Error.REJECTION);
+    });
+
+    it("allows exiting a zero-balance market even when the account is underwater", async () => {
+      await enterAndCheckMarkets([OMG, BAT], [OMG, BAT]);
+      // OMG balance is zero (default snapshot); BAT is an unbacked borrow, so the account is underwater.
+      BAT.getAccountSnapshot.returns([0, 0, 2, 1]);
+
+      // A zero-balance market contributes no collateral, so dropping it cannot change the
+      // account's liquidity. The liquidity check is skipped and the exit is allowed.
+      await exitAndCheckMarkets(OMG, [BAT], Error.NO_ERROR);
+    });
+
+    it("allows exiting a zero-balance market when its price feed reverts", async () => {
+      await enterAndCheckMarkets([OMG], [OMG]);
+      // Simulate a delisted market whose oracle feed has been retired and now reverts.
+      oracle.getUnderlyingPrice.reverts("oracle feed retired");
+      dbo.getBoundedPricesView.reverts("oracle feed retired");
+
+      // OMG balance is zero, so the liquidity check that would query the reverting feed is
+      // skipped and the user can still remove the dead market from their asset list.
+      await exitAndCheckMarkets(OMG, [], Error.NO_ERROR);
     });
 
     it("accepts when you're not in the market already", async () => {

@@ -258,9 +258,17 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         /* Fail if the sender is not permitted to redeem all of their tokens */
-        uint256 allowed = redeemAllowedInternal(vTokenAddress, msg.sender, tokensHeld);
-        if (allowed != 0) {
-            return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
+        // When the sender holds no balance in this market there is nothing to redeem, and a market
+        // with a zero balance contributes no collateral to the account. Removing it from the account's
+        // asset list therefore cannot reduce the account's liquidity, so the hypothetical liquidity
+        // check is unnecessary here. Skipping it also lets users exit a delisted market whose oracle
+        // feed has been retired: that check fetches a fresh price for every entered market and would
+        // otherwise revert, leaving the account unable to operate on its other markets.
+        if (tokensHeld != 0) {
+            uint256 allowed = redeemAllowedInternal(vTokenAddress, msg.sender, tokensHeld);
+            if (allowed != 0) {
+                return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
+            }
         }
 
         Market storage marketToExit = getCorePoolMarket(address(vToken));
