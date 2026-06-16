@@ -907,7 +907,7 @@ export default [
       collateralFactor: "0.6",
       reserveFactor: "0.1",
       supplyCap: "236",
-      borrowCap: "236",
+      borrowCap: "0",
     },
     initialSupply: {
       amount: "0.26",
@@ -929,10 +929,32 @@ export default [
       collateralFactor: "0.6",
       reserveFactor: "0.1",
       supplyCap: "450",
-      borrowCap: "450",
+      borrowCap: "0",
     },
     initialSupply: {
       amount: "0.5",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus SpaceX",
+    symbol: "vSPCXB",
+    asset: "SPCXB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.5",
+      reserveFactor: "0.1",
+      supplyCap: "500",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.51",
       vTokenReceiver: "VTreasury",
     },
   },

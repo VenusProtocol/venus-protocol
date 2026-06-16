@@ -274,6 +274,12 @@ const tokens = [
     symbol: "NVDAB",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "SpaceX",
+    symbol: "SPCXB",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

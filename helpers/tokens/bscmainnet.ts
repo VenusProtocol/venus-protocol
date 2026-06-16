@@ -331,6 +331,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
   },
+  {
+    isMock: false,
+    name: "SpaceX",
+    symbol: "SPCXB",
+    decimals: 18,
+    tokenAddress: "0xbe9D156892E55e7154BcD3cB0FEA677F9D3103E1",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
