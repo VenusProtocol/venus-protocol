@@ -262,6 +262,24 @@ const tokens = [
     symbol: "XAUM",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "TSLAB",
+    symbol: "TSLAB",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "NVDAB",
+    symbol: "NVDAB",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "SpaceX",
+    symbol: "SPCXB",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

@@ -317,6 +317,27 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x23AE4fd8E7844cdBc97775496eBd0E8248656028",
   },
+  {
+    isMock: false,
+    name: "TSLAB",
+    symbol: "TSLAB",
+    decimals: 18,
+    tokenAddress: "0x5b1910eAaD6450E50f816082Aa078C41F10C292f",
+  },
+  {
+    isMock: false,
+    name: "NVDAB",
+    symbol: "NVDAB",
+    decimals: 18,
+    tokenAddress: "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
+  },
+  {
+    isMock: false,
+    name: "SpaceX",
+    symbol: "SPCXB",
+    decimals: 18,
+    tokenAddress: "0xbe9D156892E55e7154BcD3cB0FEA677F9D3103E1",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
