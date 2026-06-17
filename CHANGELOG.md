@@ -1,3 +1,16 @@
+## 10.2.0-dev.8 (2026-06-17)
+
+* Merge pull request #675 from caltechustc/develop ([b531da6](https://github.com/VenusProtocol/venus-protocol/commit/b531da6)), closes [#675](https://github.com/VenusProtocol/venus-protocol/issues/675)
+* Merge pull request #679 from VenusProtocol/feat/vpd-1341 ([1bbfe13](https://github.com/VenusProtocol/venus-protocol/commit/1bbfe13)), closes [#679](https://github.com/VenusProtocol/venus-protocol/issues/679)
+* feat: deploy new core markets for bscmainnet and bsctestnet ([9e2811d](https://github.com/VenusProtocol/venus-protocol/commit/9e2811d))
+* feat: deploy new markets on testnet ([54e5255](https://github.com/VenusProtocol/venus-protocol/commit/54e5255))
+* feat: deploy SPCXB market on bnb chain ([019f60f](https://github.com/VenusProtocol/venus-protocol/commit/019f60f))
+* feat: updating deployment files ([48184e0](https://github.com/VenusProtocol/venus-protocol/commit/48184e0))
+* feat: updating deployment files ([bbd4545](https://github.com/VenusProtocol/venus-protocol/commit/bbd4545))
+* feat: updating deployment files ([ac0e1ce](https://github.com/VenusProtocol/venus-protocol/commit/ac0e1ce))
+* fix(deployments): rename PT-USDe-30Oct2025 testnet artifacts to canonical 30OCT2025 casing ([99357f7](https://github.com/VenusProtocol/venus-protocol/commit/99357f7))
+* chore: fix wrong path in comment ([95faa37](https://github.com/VenusProtocol/venus-protocol/commit/95faa37))
+
 ## 10.2.0-dev.7 (2026-05-17)
 
 * Merge pull request #671 from VenusProtocol/feat/VPD-1182 ([7bb5c03](https://github.com/VenusProtocol/venus-protocol/commit/7bb5c03)), closes [#671](https://github.com/VenusProtocol/venus-protocol/issues/671)
