@@ -1,0 +1,334 @@
+import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import { BigNumber, Contract } from "ethers";
+import { ethers, upgrades } from "hardhat";
+
+// Atomic BStockLiquidator — exercised against the BStock mocks. Covers both funding modes
+// (inventory + Venus-style flash loan), the seize->redeem->sell pipeline, the pool-gate routing
+// (with and without a treasury cut), the admin surface (operator/router/sweep/init), and every
+// guard (operator gating, router allowlist, shortfall, minOut, and the flash-callback checks).
+// Position state is "manipulated" through the mock comptroller's shortfall and seize incentive.
+
+const U = (n: string) => ethers.utils.parseUnits(n, 18);
+const ZERO = ethers.constants.AddressZero;
+const INCENTIVE = U("1.1"); // 10% — mock seizes repay * 1.1
+
+describe("BStockLiquidator (atomic)", () => {
+  let owner: any, operator: any, borrower: any, stranger: any;
+  let usdt: Contract, bStock: Contract;
+  let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract;
+  let liq: Contract;
+
+  const REPAY = U("5000");
+  const SEIZED = REPAY.mul(INCENTIVE).div(U("1")); // 5500 bStock at 1:1 redeem
+  const OUT = SEIZED; // router rate 1:1 -> 5500 USDT
+  const MIN_OUT = U("5400");
+
+  async function deploy() {
+    [owner, operator, borrower, stranger] = await ethers.getSigners();
+
+    const ERC20 = await ethers.getContractFactory("MockMintableERC20");
+    usdt = await ERC20.deploy("Tether", "USDT", 18);
+    bStock = await ERC20.deploy("Tesla bStock", "TSLAB", 18);
+
+    comptroller = await (await ethers.getContractFactory("MockComptrollerLite")).deploy();
+    vBStock = await (
+      await ethers.getContractFactory("MockVTokenCollateral")
+    ).deploy(bStock.address, comptroller.address);
+    vDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, comptroller.address);
+    router = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+
+    liq = await deployLiquidator(comptroller.address);
+    await liq.connect(owner).setRouter(router.address, true);
+
+    // Liquidity for the pipeline: collateral market holds bStock to pay redeem; router holds USDT to pay swap.
+    await bStock.mint(vBStock.address, SEIZED);
+    await usdt.mint(router.address, OUT);
+
+    // Borrower is underwater.
+    await comptroller.setShortfall(U("800"));
+  }
+
+  async function deployLiquidator(comptrollerAddr: string) {
+    const Factory = await ethers.getContractFactory("BStockLiquidator");
+    return upgrades.deployProxy(Factory, [owner.address], {
+      constructorArgs: [comptrollerAddr],
+      unsafeAllow: ["constructor", "state-variable-immutable"],
+    });
+  }
+
+  // swap(tokenIn, amountIn, tokenOut, to): fixed-amount calldata forwarded to the allowlisted router.
+  function swapCalldata(amountIn: BigNumber, to: string) {
+    return router.interface.encodeFunctionData("swap", [bStock.address, amountIn, usdt.address, to]);
+  }
+
+  // swapAll(tokenIn, tokenOut, to): pulls the contract's whole bStock balance (used when the exact
+  // seized amount isn't known up front, e.g. when a treasury cut shrinks it).
+  function swapAllCalldata(to: string) {
+    return router.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, to]);
+  }
+
+  function params(over: Partial<any> = {}) {
+    return {
+      borrower: borrower.address,
+      vDebt: vDebt.address,
+      vBStock: vBStock.address,
+      repayAmount: REPAY,
+      router: router.address,
+      swapCalldata: swapCalldata(SEIZED, liq.address),
+      minOut: MIN_OUT,
+      ...over,
+    };
+  }
+
+  beforeEach(deploy);
+
+  describe("inventory mode", () => {
+    it("repays, seizes, redeems, sells, and keeps the incentive as profit", async () => {
+      await usdt.mint(liq.address, REPAY); // pre-funded inventory
+
+      expect(await liq.connect(owner).callStatic.liquidate(params())).to.equal(OUT);
+
+      await expect(liq.connect(owner).liquidate(params()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+
+      // Started with REPAY, repaid REPAY, received OUT -> ends at OUT (profit = OUT - REPAY = 500).
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+      // No standing bStock approval, no leftover bStock.
+      expect(await bStock.allowance(liq.address, router.address)).to.equal(0);
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+    });
+
+    it("lets an allowlisted operator (not just owner) trigger it", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await liq.connect(owner).setOperator(operator.address, true);
+      await expect(liq.connect(operator).liquidate(params())).to.emit(liq, "Liquidated");
+    });
+
+    it("routes the repay through the Venus Liquidator when the pool gate is set", async () => {
+      const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
+      await comptroller.setLiquidatorContract(venusLiq.address);
+      await usdt.mint(liq.address, REPAY);
+
+      await expect(liq.connect(owner).liquidate(params()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+
+      // The repay went to the gated Venus Liquidator, not to vDebt directly.
+      expect(await usdt.balanceOf(venusLiq.address)).to.equal(REPAY);
+    });
+
+    it("handles the Venus Liquidator treasury cut via delta accounting (sells only what was credited)", async () => {
+      const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
+      await venusLiq.setTreasuryCut(U("0.1")); // liquidator keeps back 10% of the seized collateral
+      await comptroller.setLiquidatorContract(venusLiq.address);
+      await usdt.mint(liq.address, REPAY);
+
+      const seizedAfterCut = SEIZED.mul(9).div(10); // 4950 credited to the contract
+      // Use swapAll: the exact seized amount is only known on-chain after the cut.
+      await expect(
+        liq.connect(owner).liquidate(params({ swapCalldata: swapAllCalldata(liq.address), minOut: U("4900") })),
+      )
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, seizedAfterCut, seizedAfterCut, false);
+
+      // 5000 inventory - 5000 repaid + 4950 proceeds = 4950, nothing stuck.
+      expect(await usdt.balanceOf(liq.address)).to.equal(seizedAfterCut);
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+    });
+
+    it("excludes pre-existing bStock from the seize (sells only what it just seized)", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await bStock.mint(liq.address, U("100")); // stray bStock sitting in the contract
+      // seizedBStock in the event is the DELTA (SEIZED), not SEIZED + 100.
+      await expect(liq.connect(owner).liquidate(params()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+      expect(await bStock.balanceOf(liq.address)).to.equal(U("100")); // stray untouched
+    });
+  });
+
+  describe("flash mode", () => {
+    it("flash-borrows the repay, settles atomically, repays principal + premium", async () => {
+      await usdt.mint(vDebt.address, REPAY); // the vToken lends the principal
+      await comptroller.setFlashPremium(U("0.001")); // 0.1% premium
+      const premium = REPAY.mul(U("0.001")).div(U("1")); // 5 USDT
+
+      await expect(liq.connect(owner).flashLiquidate(params()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, true);
+
+      // Contract keeps proceeds minus principal minus premium; no inventory was used.
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT.sub(REPAY).sub(premium));
+      // vToken received the liquidateBorrow repay AND the flash repayment (principal + premium).
+      expect(await usdt.balanceOf(vDebt.address)).to.equal(REPAY.mul(2).add(premium));
+    });
+
+    it("reverts the whole tx (flash unwinds) when the sale underdelivers", async () => {
+      await usdt.mint(vDebt.address, REPAY);
+      await router.setRate(U("0.5")); // 5500 bStock -> 2750 USDT, below minOut
+      await expect(liq.connect(owner).flashLiquidate(params())).to.be.revertedWithCustomError(liq, "InsufficientOut");
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // nothing stuck
+    });
+
+    it("will not let USDT inventory mask a swap that fails to cover principal + premium", async () => {
+      await usdt.mint(vDebt.address, REPAY); // flash principal
+      await usdt.mint(liq.address, U("2000")); // inventory that could silently backfill
+      await comptroller.setFlashPremium(U("0.001")); // premium -> obligation 5005
+      await router.setRate(U("0.8")); // 5500 -> 4400 USDT: clears a loose minOut but < 5005
+      const p = params({ minOut: U("4000") });
+      await expect(liq.connect(owner).flashLiquidate(p)).to.be.revertedWithCustomError(liq, "InsufficientOut");
+      expect(await usdt.balanceOf(liq.address)).to.equal(U("2000")); // inventory untouched
+    });
+  });
+
+  describe("flash callback guards (executeOperation)", () => {
+    it("rejects a caller other than the Comptroller", async () => {
+      await expect(
+        liq.connect(stranger).executeOperation([vDebt.address], [REPAY], [0], liq.address, liq.address, "0x"),
+      ).to.be.revertedWithCustomError(liq, "OnlyComptroller");
+    });
+
+    it("rejects the Comptroller calling outside an in-flight flash", async () => {
+      // msg.sender == comptroller but no flash is active (_flashActive == false).
+      await impersonateAccount(comptroller.address);
+      await setBalance(comptroller.address, U("1"));
+      const asComptroller = await ethers.getSigner(comptroller.address);
+      await expect(
+        liq.connect(asComptroller).executeOperation([vDebt.address], [REPAY], [0], liq.address, liq.address, "0x"),
+      ).to.be.revertedWithCustomError(liq, "NoFlashInFlight");
+    });
+
+    it("rejects a flash callback that reports a foreign initiator", async () => {
+      const evil = await (await ethers.getContractFactory("MockMaliciousFlashComptroller")).deploy();
+      await evil.setMode(0); // BadInitiator
+      const evilLiq = await deployLiquidator(evil.address);
+      await evilLiq.connect(owner).setRouter(router.address, true);
+      await expect(evilLiq.connect(owner).flashLiquidate(params())).to.be.revertedWithCustomError(
+        evilLiq,
+        "BadInitiator",
+      );
+    });
+
+    it("rejects a flash callback whose flashed asset != params.vDebt", async () => {
+      const evil = await (await ethers.getContractFactory("MockMaliciousFlashComptroller")).deploy();
+      await evil.setMode(1); // WrongAsset
+      const evilLiq = await deployLiquidator(evil.address);
+      await evilLiq.connect(owner).setRouter(router.address, true);
+      await expect(evilLiq.connect(owner).flashLiquidate(params())).to.be.revertedWithCustomError(
+        evilLiq,
+        "WrongFlashAsset",
+      );
+    });
+  });
+
+  describe("liquidation guards", () => {
+    beforeEach(async () => {
+      await usdt.mint(liq.address, REPAY);
+    });
+
+    it("rejects a non-operator caller", async () => {
+      await expect(liq.connect(stranger).liquidate(params())).to.be.revertedWithCustomError(liq, "NotOperator");
+    });
+
+    it("rejects a non-allowlisted router (defends the low-level call)", async () => {
+      await expect(liq.connect(owner).liquidate(params({ router: stranger.address }))).to.be.revertedWithCustomError(
+        liq,
+        "RouterNotAllowed",
+      );
+    });
+
+    it("rejects a healthy (no-shortfall) borrower", async () => {
+      await comptroller.setShortfall(0);
+      await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "NotLiquidatable");
+    });
+
+    it("enforces minOut", async () => {
+      await router.setRate(U("0.9")); // 4950 USDT < 5400 minOut
+      await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "InsufficientOut");
+    });
+
+    it("bubbles up a non-zero liquidateBorrow error code", async () => {
+      await vDebt.setLiquidateError(99);
+      await expect(liq.connect(owner).liquidate(params()))
+        .to.be.revertedWithCustomError(liq, "LiquidateBorrowFailed")
+        .withArgs(99);
+    });
+
+    it("bubbles up a non-zero redeem error code", async () => {
+      await vBStock.setRedeemError(7);
+      await expect(liq.connect(owner).liquidate(params()))
+        .to.be.revertedWithCustomError(liq, "RedeemFailed")
+        .withArgs(7);
+    });
+
+    it("reverts SwapFailed when the router call reverts", async () => {
+      // amountIn exceeds what the contract holds/approves, so the router's transferFrom reverts.
+      await expect(
+        liq.connect(owner).liquidate(params({ swapCalldata: swapCalldata(SEIZED.mul(2), liq.address) })),
+      ).to.be.revertedWithCustomError(liq, "SwapFailed");
+    });
+  });
+
+  describe("admin", () => {
+    it("locks the initializer and rejects a zero owner / zero comptroller", async () => {
+      await expect(liq.initialize(owner.address)).to.be.revertedWith("Initializable: contract is already initialized");
+      const Factory = await ethers.getContractFactory("BStockLiquidator");
+      // zero comptroller -> implementation constructor reverts
+      await expect(Factory.deploy(ZERO)).to.be.revertedWithCustomError(Factory, "ZeroAddressNotAllowed");
+      // zero owner -> initializer reverts during proxy deploy
+      await expect(
+        upgrades.deployProxy(Factory, [ZERO], {
+          constructorArgs: [comptroller.address],
+          unsafeAllow: ["constructor", "state-variable-immutable"],
+        }),
+      ).to.be.revertedWithCustomError(Factory, "ZeroAddressNotAllowed");
+    });
+
+    it("setOperator: owner-only, non-zero, emits, and toggles access", async () => {
+      await expect(liq.connect(stranger).setOperator(operator.address, true)).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
+      await expect(liq.connect(owner).setOperator(ZERO, true)).to.be.revertedWithCustomError(
+        liq,
+        "ZeroAddressNotAllowed",
+      );
+      await expect(liq.connect(owner).setOperator(operator.address, true))
+        .to.emit(liq, "OperatorSet")
+        .withArgs(operator.address, true);
+      expect(await liq.isOperator(operator.address)).to.equal(true);
+
+      // Revoking takes effect: the operator can no longer trigger a liquidation.
+      await usdt.mint(liq.address, REPAY);
+      await liq.connect(owner).setOperator(operator.address, false);
+      await expect(liq.connect(operator).liquidate(params())).to.be.revertedWithCustomError(liq, "NotOperator");
+    });
+
+    it("setRouter: owner-only, non-zero, emits", async () => {
+      await expect(liq.connect(stranger).setRouter(stranger.address, true)).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
+      await expect(liq.connect(owner).setRouter(ZERO, true)).to.be.revertedWithCustomError(
+        liq,
+        "ZeroAddressNotAllowed",
+      );
+      await expect(liq.connect(owner).setRouter(stranger.address, true))
+        .to.emit(liq, "RouterSet")
+        .withArgs(stranger.address, true);
+      expect(await liq.isRouter(stranger.address)).to.equal(true);
+    });
+
+    it("sweep: owner withdraws tokens and emits, non-owner reverts", async () => {
+      await usdt.mint(liq.address, U("123"));
+      await expect(liq.connect(stranger).sweep(usdt.address, stranger.address, U("1"))).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
+      await expect(liq.connect(owner).sweep(usdt.address, owner.address, U("123")))
+        .to.emit(liq, "Swept")
+        .withArgs(usdt.address, owner.address, U("123"));
+      expect(await usdt.balanceOf(owner.address)).to.equal(U("123"));
+      expect(await usdt.balanceOf(liq.address)).to.equal(0);
+    });
+  });
+});
