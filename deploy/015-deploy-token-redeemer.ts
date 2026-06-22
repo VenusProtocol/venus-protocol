@@ -19,6 +19,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["TokenRedeemer"];
-func.skip = async hre => hre.network.name !== "hardhat" && hre.network.name !== "bscmainnet";
+func.skip = async hre => !["hardhat", "bscmainnet", "bsctestnet"].includes(hre.network.name);
 
 export default func;
