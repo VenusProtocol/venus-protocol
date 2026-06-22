@@ -24,6 +24,9 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when XVS rewards are seized from the holder
     event VenusSeized(address indexed holder, uint256 amount);
 
+    /// @notice Emitted when a holder's claim is skipped because the liquidity probe returned an error
+    event ClaimSkipped(address indexed holder, uint256 errorCode);
+
     using SafeERC20 for IERC20;
 
     /**
@@ -247,13 +250,20 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
                 holder,
                 VToken(address(0)),
                 0,
                 0,
                 WeightFunction.USE_COLLATERAL_FACTOR
             );
+
+            // Fail closed if liquidity can't be determined (err != NO_ERROR): skip the holder,
+            // leaving their accrual intact to claim later, and emit ClaimSkipped to mark the deferral.
+            if (err != Error.NO_ERROR) {
+                emit ClaimSkipped(holder, uint256(err));
+                continue;
+            }
 
             uint256 value = venusAccrued[holder];
             delete venusAccrued[holder];
