@@ -126,6 +126,11 @@ contract MockVTokenCollateral {
         require(ERC20(underlying).transfer(msg.sender, redeemTokens), "redeem transfer failed");
         return 0;
     }
+
+    /// @dev 1:1, matching `redeem` above. Read by the off-chain script to precompute the seize.
+    function exchangeRateStored() external pure returns (uint256) {
+        return 1e18;
+    }
 }
 
 /// @dev Debt vToken mock. liquidateBorrow pulls `repayAmount` of the debt
