@@ -842,6 +842,8 @@ export default [
     name: "Venus UXRP",
     symbol: "vUXRP",
     asset: "UXRP",
+    // IRM model is reused: this jump-rate config (base 0%, multiplier 6.67%, kink 75%,
+    // jump multiplier 627%) matches an already-deployed JumpRateModel, so no new IRM is deployed.
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
