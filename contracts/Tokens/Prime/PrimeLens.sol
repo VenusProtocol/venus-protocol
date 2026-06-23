@@ -48,6 +48,10 @@ interface IPrimeV2WithStorage {
     ) external view returns (uint256 accrued, uint256 score, uint256 rewardIndex, uint256 lifetimeAccrued);
 
     function vTokenForAsset(address underlying) external view returns (address);
+
+    function NATIVE_MARKET() external view returns (address);
+
+    function WRAPPED_NATIVE_TOKEN() external view returns (address);
 }
 
 /**
@@ -235,6 +239,9 @@ contract PrimeLens {
     }
 
     function _getUnderlying(address vToken) internal view returns (address) {
+        if (vToken == primeV2.NATIVE_MARKET()) {
+            return primeV2.WRAPPED_NATIVE_TOKEN();
+        }
         return IVToken(vToken).underlying();
     }
 }

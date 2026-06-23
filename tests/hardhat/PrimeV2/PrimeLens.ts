@@ -61,6 +61,17 @@ describe("PrimeLens", () => {
       const actual = await lens.incomeDistributionYearly(f.vToken.address);
       expect(actual).to.equal(expected);
     });
+
+    it("resolves NATIVE_MARKET to WRAPPED_NATIVE_TOKEN when querying PLP", async () => {
+      const speed = convertToUnit(2, 16);
+      f.primeLiquidityProvider.getEffectiveDistributionSpeed.whenCalledWith(f.wrappedNativeToken).returns(speed);
+
+      const blocksPerYear = await f.primeV2.blocksOrSecondsPerYear();
+      const expected = blocksPerYear.mul(speed);
+
+      const actual = await lens.incomeDistributionYearly(f.nativeMarket);
+      expect(actual).to.equal(expected);
+    });
   });
 
   describe("calculateAPR", () => {
