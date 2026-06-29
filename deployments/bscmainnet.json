@@ -47989,7 +47989,7 @@
       ]
     },
     "PrimeV2": {
-      "address": "0x4f5fd115Df31CC48De880a988D74aaD931851628",
+      "address": "0x059EabA8676b03e4e8f009eFb7F587C28450F50f",
       "abi": [
         {
           "anonymous": false,
@@ -49904,7 +49904,7 @@
       ]
     },
     "PrimeV2_Implementation": {
-      "address": "0x2648BA36ff33C24313DD7A47ae5c0E5FF73E84dC",
+      "address": "0x18cB7198CBB6D6e94001458CF3Cf47C106D83a1B",
       "abi": [
         {
           "inputs": [
@@ -51729,7 +51729,7 @@
       ]
     },
     "PrimeV2_Proxy": {
-      "address": "0x4f5fd115Df31CC48De880a988D74aaD931851628",
+      "address": "0x059EabA8676b03e4e8f009eFb7F587C28450F50f",
       "abi": [
         {
           "inputs": [
