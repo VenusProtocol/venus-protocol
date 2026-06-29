@@ -13,6 +13,42 @@ interface IPrimeV2 {
         uint256 amount;
     }
 
+    struct APRInfo {
+        // supply APR of the user in BPS
+        uint256 supplyAPR;
+        // borrow APR of the user in BPS
+        uint256 borrowAPR;
+        // total score of the market
+        uint256 totalScore;
+        // score of the user
+        uint256 userScore;
+        // XVS balance of the user used for score
+        uint256 xvsBalanceForScore;
+        // capital of the user
+        uint256 capital;
+        // capped supply of the user
+        uint256 cappedSupply;
+        // capped borrow of the user
+        uint256 cappedBorrow;
+        // supply cap of the user in USD
+        uint256 supplyCapUSD;
+        // borrow cap of the user in USD
+        uint256 borrowCapUSD;
+    }
+
+    struct Capital {
+        // capital of the user
+        uint256 capital;
+        // capped supply of the user
+        uint256 cappedSupply;
+        // capped borrow of the user
+        uint256 cappedBorrow;
+        // supply cap of the user in USD
+        uint256 supplyCapUSD;
+        // borrow cap of the user in USD
+        uint256 borrowCapUSD;
+    }
+
     // ═══════════════════ PRIME TOKEN MANAGEMENT ═══════════════════
 
     /**
