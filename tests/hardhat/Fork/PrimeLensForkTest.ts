@@ -33,7 +33,7 @@ const Addr = {
   vBNB: "0x2E7222e51c0f6e98610A1543Aa3836E092CDe62c",
 };
 
-const BLOCK_NUMBER = 115033000;
+const BLOCK_NUMBER = 107053770;
 // Block-based config (matches existing testnet PrimeV2 deployment).
 const TIME_BASED = false;
 const BLOCKS_PER_YEAR = 70080000;

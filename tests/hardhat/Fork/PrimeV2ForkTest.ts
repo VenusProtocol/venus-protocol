@@ -205,6 +205,7 @@ if (FORK_MAINNET) {
           "pause()",
           "unpause()",
           "setMaxLoopsLimit(uint256)",
+          "setPrimeLeaderboard(address)",
         ];
         const leaderboardPerms = [
           "setPrimeV2(address)",
@@ -224,6 +225,7 @@ if (FORK_MAINNET) {
 
         // ── Wire contracts ──
         await primeLeaderboard.setPrimeV2(primeV2.address);
+        await primeV2.setPrimeLeaderboard(primeLeaderboard.address);
 
         // ── Add vUSDT market ──
         await primeV2.addMarket(Addr.vUSDT, parseEther("2"), parseEther("2"));
@@ -1113,12 +1115,20 @@ if (FORK_MAINNET) {
         });
 
         it("should accrue interest and update score for all markets via single-arg overload", async () => {
-          // Single-arg version accrues all markets and updates score
-          await primeV2["accrueInterestAndUpdateScore(address)"](user1Addr);
+          // Single-arg overload is gated to primeLeaderboard (L04 audit fix);
+          // exercise it via the leaderboard's xvsUpdated path, the production caller.
+          await primeLeaderboard.connect(xvsVaultSigner).xvsUpdated(user1Addr);
 
           const scoreAfter = (await primeV2.interests(Addr.vUSDT, user1Addr)).score;
           // Score might change slightly due to interest accrual
           expect(scoreAfter).to.be.gte(0);
+        });
+
+        it("should revert single-arg accrueInterestAndUpdateScore from non-leaderboard caller", async () => {
+          await expect(primeV2["accrueInterestAndUpdateScore(address)"](user1Addr)).to.be.revertedWithCustomError(
+            primeV2,
+            "OnlyPrimeLeaderboard",
+          );
         });
       });
 
