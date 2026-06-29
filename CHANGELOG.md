@@ -1,3 +1,9 @@
+## 10.2.0-dev.9 (2026-06-29)
+
+* Merge pull request #682 from VenusProtocol/feat/VPD-1168 ([092a43f](https://github.com/VenusProtocol/venus-protocol/commit/092a43f)), closes [#682](https://github.com/VenusProtocol/venus-protocol/issues/682)
+* feat: add BNB Core deprecation interest rate model ([615781b](https://github.com/VenusProtocol/venus-protocol/commit/615781b))
+* feat: updating deployment files ([b778211](https://github.com/VenusProtocol/venus-protocol/commit/b778211))
+
 ## 10.2.0-dev.8 (2026-06-17)
 
 * Merge pull request #675 from caltechustc/develop ([b531da6](https://github.com/VenusProtocol/venus-protocol/commit/b531da6)), closes [#675](https://github.com/VenusProtocol/venus-protocol/issues/675)
