@@ -280,6 +280,12 @@ const tokens = [
     symbol: "SPCXB",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "Modern Central Bank Token",
+    symbol: "MCBT",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
