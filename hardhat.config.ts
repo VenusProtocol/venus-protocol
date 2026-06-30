@@ -362,6 +362,12 @@ function isFork() {
               london: 13000000,
             },
           },
+          97: {
+            hardforkHistory: {
+              berlin: 0,
+              london: 0,
+            },
+          },
         },
         allowUnlimitedContractSize: false,
         loggingEnabled: false,

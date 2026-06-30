@@ -6,6 +6,9 @@ pragma experimental ABIEncoderV2;
  * @title IPrimeV5
  * @author Venus
  * @notice Interface for Prime Token
+ * @dev In PrimeV2, primeToken points to PrimeLeaderboard which only implements xvsUpdated().
+ *  The other functions (accrueInterestAndUpdateScore, accrueInterest, isUserPrimeHolder) are
+ *  retained for backwards compatibility but are not called by the vault.
  */
 interface IPrimeV5 {
     /**
