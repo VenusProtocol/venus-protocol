@@ -51,7 +51,10 @@ const COMPTROLLER_ABI = [
   "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
   "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
   "function treasuryPercent() view returns (uint256)",
+  "function liquidatorContract() view returns (address)",
+  "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
 ];
+const VENUS_LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
 function env(name: string, required = true): string {
   const v = process.env[name];
@@ -95,11 +98,29 @@ export async function atomicLiquidate(signer: Signer) {
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error ${seizeErr}`);
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const ONE = BigNumber.from(10).pow(18);
-  // Core redeem routes `treasuryPercent` of the redeemed underlying to the treasury, so the contract
-  // ends up holding LESS than seizeTokens*rate. The quote must match what we actually hold, else the
-  // Native router pull (fixed amountIn) reverts. 0 today, but governance-settable.
+
+  // The seize is routed through the pool-wide Venus Liquidator, which keeps a treasury cut of the
+  // liquidation BONUS (see Liquidator._splitLiquidationIncentive), so this contract receives fewer
+  // vTokens than `seizeTokens`. Deduct that cut, else the precomputed amount overstates our holdings
+  // and the fixed-amountIn router pull reverts. 0 today, but governance-settable.
+  let vReceived = seizeTokens;
+  const gate: string = await comptroller.liquidatorContract();
+  if (gate !== ethers.constants.AddressZero) {
+    const venusLiquidator = new Contract(gate, VENUS_LIQUIDATOR_ABI, signer);
+    const liqTreasuryPct: BigNumber = await venusLiquidator.treasuryPercentMantissa();
+    if (!liqTreasuryPct.eq(0)) {
+      const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+      const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
+      const ours = bonusAmount.mul(liqTreasuryPct).div(ONE);
+      vReceived = seizeTokens.sub(ours);
+    }
+  }
+
+  // Core redeem then routes `treasuryPercent` of the redeemed underlying to the treasury, so we hold
+  // LESS still. The quote must match what we actually hold, else the Native router pull (fixed
+  // amountIn) reverts. 0 today, but governance-settable.
   const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
-  const seizedRaw = seizeTokens.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
+  const seizedRaw = vReceived.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   const seizedHuman = ethers.utils.formatUnits(seizedRaw, bStockDec);
   console.log(`seize ${ethers.utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${seizedHuman} ${bStockSym}`);
 

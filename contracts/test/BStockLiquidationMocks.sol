@@ -70,6 +70,11 @@ contract MockComptrollerLite {
         return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
     }
 
+    /// @dev Read by the off-chain script to size the Venus Liquidator's bonus cut.
+    function getEffectiveLiquidationIncentive(address, address) external view returns (uint256) {
+        return liquidationIncentiveMantissa;
+    }
+
     /// @dev Flash lender: send principal from the (pre-funded) debt vToken, call back, pull repay.
     function executeFlashLoan(
         address payable /* onBehalf */,
@@ -209,6 +214,11 @@ contract MockVenusLiquidator {
 
     function setTreasuryCut(uint256 m) external {
         treasuryCutMantissa = m;
+    }
+
+    /// @dev Mirrors the real Venus Liquidator getter the off-chain script reads to precompute the cut.
+    function treasuryPercentMantissa() external view returns (uint256) {
+        return treasuryCutMantissa;
     }
 
     function liquidateBorrow(
