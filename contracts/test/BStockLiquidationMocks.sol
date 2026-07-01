@@ -49,6 +49,10 @@ contract MockComptrollerLite {
         shortfall = s;
     }
 
+    function setTreasuryPercent(uint256 p) external {
+        treasuryPercent = p;
+    }
+
     function setLiquidatorContract(address l) external {
         liquidatorContract = l;
     }

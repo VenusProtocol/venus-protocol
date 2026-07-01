@@ -9,17 +9,21 @@
  * This script does NOT send anything. It READS chain state and EMITS a Safe Transaction Builder
  * batch JSON for the signers to review and execute.
  *
- * Two logical actions, four transactions in one atomic batch:
+ * Two logical actions, four transactions in one atomic batch. The repay is routed through the pool-wide
+ * Venus Liquidator gate when one is set (a direct vDebt.liquidateBorrow would revert UNAUTHORIZED); when
+ * unset, the Safe liquidates directly:
  *   Action 1 — fund + repay + seize:
- *     1. debtUnderlying.approve(vDebt, repay)              // let liquidateBorrow pull Safe funds
- *     2. vDebt.liquidateBorrow(borrower, repay, vBStock)   // seize vBStock to the Safe
- *     3. vBStock.redeem(seizeTokens)                       // vBStock -> raw bStock
+ *     1. debtUnderlying.approve(gate | vDebt, repay)                // let liquidateBorrow pull Safe funds
+ *     2. gate.liquidateBorrow(vDebt, borrower, repay, vBStock)      // routed; or vDebt.liquidateBorrow(borrower, repay, vBStock)
+ *     3. vBStock.redeem(received)                                   // the vBStock the Safe was credited -> raw bStock
  *   Action 2 — hand off:
- *     4. bStock.transfer(TARGET, seizedRaw)                // raw bStock -> Binance top-up
+ *     4. bStock.transfer(TARGET, seizedRaw)                         // raw bStock -> Binance top-up
  *
- * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens`, snapshotted at
- * the current block. If the borrower's position changes before the Safe executes, REGENERATE — a
- * stale `redeem(seizeTokens)` that exceeds the seized balance reverts the batch.
+ * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens`. When routed, the
+ * Liquidator keeps a treasury cut of the liquidation bonus, so the Safe is credited fewer vTokens than
+ * `seizeTokens`; we redeem only that credited amount (`received`). Snapshotted at the current block — if
+ * the borrower's position changes before the Safe executes, REGENERATE, else a stale redeem/transfer
+ * that exceeds the seized balance reverts the batch.
  *
  * Usage:
  *   RPC_URL=https://bsc-dataseed.bnbchain.org \
@@ -63,7 +67,10 @@ const COMPTROLLER_ABI = [
   "function liquidationIncentiveMantissa() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
   "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
+  "function treasuryPercent() view returns (uint256)",
+  "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
 ];
+const LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -73,8 +80,7 @@ function env(name: string, required = true): string {
   return v || "";
 }
 
-async function main() {
-  const provider = new providers.JsonRpcProvider(process.env.RPC_URL || DEFAULT_RPC);
+export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const safe = utils.getAddress(process.env.SAFE || DEFAULT_SAFE);
   const borrower = utils.getAddress(env("BORROWER"));
 
@@ -100,15 +106,15 @@ async function main() {
   const closeFactor: BigNumber = await comptroller.closeFactorMantissa();
   console.log(`repay: ${env("REPAY_AMOUNT")} ${debtSym}  (closeFactor=${utils.formatEther(closeFactor)})`);
 
-  // Direct liquidateBorrow is rejected (UNAUTHORIZED) when a liquidatorContract is set and the caller
-  // isn't it. The Safe must be that contract, or it must be unset.
-  const liquidatorContract: string = await comptroller.liquidatorContract();
-  if (liquidatorContract !== ZERO && utils.getAddress(liquidatorContract) !== safe) {
-    console.warn(
-      `WARN: Comptroller.liquidatorContract = ${liquidatorContract} (!= Safe). ` +
-        `Direct liquidateBorrow from the Safe will revert UNAUTHORIZED — route through that contract instead.`,
-    );
-  }
+  // Pool-wide Venus Liquidator gate: when set, a direct vDebt.liquidateBorrow from the Safe reverts
+  // UNAUTHORIZED, so we route the repay through that contract (its permissionless entry). When unset,
+  // the Safe liquidates directly. `repaySpender` is whichever pulls the repay.
+  const gate: string = await comptroller.liquidatorContract();
+  const routed = gate !== ZERO;
+  const repaySpender = routed ? utils.getAddress(gate) : vDebt.address;
+  console.log(
+    routed ? `routing repay through Venus Liquidator ${gate}` : "liquidatorContract unset — liquidating directly",
+  );
 
   const safeDebtBal: BigNumber = await debt.balanceOf(safe);
   if (safeDebtBal.lt(repay)) {
@@ -119,6 +125,7 @@ async function main() {
   }
 
   // --- seize math from on-chain truth ---
+  const ONE = BigNumber.from(10).pow(18);
   const [seizeErr, seizeTokens]: BigNumber[] = await comptroller.liquidateCalculateSeizeTokens(
     vDebt.address,
     vBStock.address,
@@ -126,10 +133,25 @@ async function main() {
   );
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error code ${seizeErr}`);
 
-  // Raw bStock from redeeming seizeTokens, FLOORED at the current exchange rate (rate only grows, so
-  // transferring this floor never exceeds what we hold).
+  // When routed, the Venus Liquidator keeps a treasury cut of the liquidation BONUS (see
+  // Liquidator._splitLiquidationIncentive), so the Safe is credited fewer vTokens than seizeTokens.
+  // Redeem only the credited amount, else the batch reverts.
+  let vReceived = seizeTokens;
+  if (routed) {
+    const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
+    if (!liqTreasuryPct.eq(0)) {
+      const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+      const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
+      const ours = bonusAmount.mul(liqTreasuryPct).div(ONE);
+      vReceived = seizeTokens.sub(ours);
+    }
+  }
+
+  // Raw bStock from redeeming vReceived, after Core's redeem treasuryPercent fee, FLOORED at the current
+  // exchange rate (rate only grows, so transferring this floor never exceeds what we hold).
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
-  const seizedRaw = seizeTokens.mul(exchangeRate).div(BigNumber.from(10).pow(18));
+  const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
+  const seizedRaw = vReceived.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   console.log(
     `seize: ${utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${utils.formatUnits(seizedRaw, bStockDec)} ` +
       `${bStockSym} (floor)`,
@@ -147,10 +169,14 @@ async function main() {
   }
 
   // --- build batch ---
+  const liquidateTx = routed
+    ? call(gate, "liquidateBorrow(address,address,uint256,address)", [vDebt.address, borrower, repay, vBStock.address])
+    : call(vDebt.address, "liquidateBorrow(address,uint256,address)", [borrower, repay, vBStock.address]);
+
   const txs = [
-    call(debt.address, "approve(address,uint256)", [vDebt.address, repay]),
-    call(vDebt.address, "liquidateBorrow(address,uint256,address)", [borrower, repay, vBStock.address]),
-    call(vBStock.address, "redeem(uint256)", [seizeTokens]),
+    call(debt.address, "approve(address,uint256)", [repaySpender, repay]),
+    liquidateTx,
+    call(vBStock.address, "redeem(uint256)", [vReceived]),
     call(bStock.address, "transfer(address,uint256)", [target, seizedRaw]),
   ];
 
@@ -166,6 +192,13 @@ async function main() {
     transactions: txs,
   });
 
+  return { batch, txs, routed, gate, seizeTokens, vReceived, seizedRaw, target };
+}
+
+async function main() {
+  const provider = new providers.JsonRpcProvider(process.env.RPC_URL || DEFAULT_RPC);
+  const { batch, txs } = await buildSafeFallbackBatch(provider);
+
   const out = process.env.OUT || path.join("out", "bstock-safe-fallback.json");
   await fs.mkdir(path.dirname(out), { recursive: true });
   await fs.writeFile(out, JSON.stringify(batch, null, 2));
@@ -173,9 +206,12 @@ async function main() {
   console.log("Import in Safe -> Apps -> Transaction Builder -> Load.");
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch(e => {
-    console.error(e);
-    process.exit(1);
-  });
+// Only run when executed directly (not when imported by a test).
+if (require.main === module) {
+  main()
+    .then(() => process.exit(0))
+    .catch(e => {
+      console.error(e);
+      process.exit(1);
+    });
+}
