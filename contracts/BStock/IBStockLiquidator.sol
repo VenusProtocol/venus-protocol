@@ -18,7 +18,7 @@ interface IBStockLiquidator {
         uint256 repayAmount; // debt underlying to repay (its own decimals)
         address router; // Native router = firm-quote txRequest.target (must be allowlisted)
         bytes swapCalldata; // firm-quote txRequest.calldata (MM-signed order)
-        uint256 minOut; // minimum debt-asset (USDT) the swap must yield, else revert
+        uint256 minOut; // minimum debt-asset amount the swap must yield, else revert
     }
 
     /// @notice Emitted when an operator is allowlisted or removed.
@@ -32,7 +32,7 @@ interface IBStockLiquidator {
     /// @param vBStock The seized bStock collateral market.
     /// @param repayAmount Debt underlying repaid.
     /// @param seizedBStock Raw bStock redeemed and sold.
-    /// @param debtOut Debt-asset (USDT) proceeds of the swap.
+    /// @param debtOut Debt-asset proceeds of the swap.
     /// @param flash True if funded by a flash loan, false if from inventory.
     event Liquidated(
         address indexed borrower,
@@ -86,7 +86,7 @@ interface IBStockLiquidator {
     /// @param amount Amount to withdraw.
     function sweep(address token, address to, uint256 amount) external;
 
-    /// @notice Liquidate using the contract's own debt-asset (USDT) inventory.
+    /// @notice Liquidate using the contract's own debt-asset inventory.
     /// @dev The contract must already hold >= `repayAmount` of `vDebt.underlying()`.
     ///      Profit (proceeds - repay) stays in the contract; withdraw it with `sweep`.
     /// @param params Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).

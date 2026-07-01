@@ -10,10 +10,10 @@ import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contract
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { IFlashLoanReceiver } from "../FlashLoan/interfaces/IFlashLoanReceiver.sol";
 
-// Shared Venus interfaces: IComptroller (Core diamond — gate, account liquidity, flash loan),
-// IVBep20 (the bStock/debt market surface), IVToken (flash-loan asset array element), and ILiquidator
-// (the pool-wide Venus Liquidator gate that pulls the repay and returns our share of the seized collateral).
-import { IComptroller, IVBep20, IVToken, ILiquidator } from "../InterfacesV8.sol";
+// Shared Venus interfaces: IComptroller (Core diamond — liquidator gate + flash loan), IVToken
+// (flash-loan asset array element), and ILiquidator (the pool-wide Venus Liquidator gate that pulls
+// the repay and returns our share of the seized collateral).
+import { IComptroller, IVToken, ILiquidator } from "../InterfacesV8.sol";
 import { IBStockLiquidator } from "./IBStockLiquidator.sol";
 
 /**
@@ -22,13 +22,13 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  * @notice Atomic backstop liquidator for bStock (ERC-8056 tokenized stock) collateral.
  *
  * In ONE transaction it repays an undercollateralized borrow, seizes the bStock vToken,
- * redeems it to the raw bStock, and sells that bStock to USDT through the Native RFQ router
- * using a pre-fetched, MM-signed firm-quote `txRequest`. Because seize and sell happen in the
- * same tx there is no price-drift window, and the realized USDT must clear `minOut` or the whole
- * call reverts — the protocol never ends up holding the RFQ-only asset.
+ * redeems it to the raw bStock, and sells that bStock to the debt asset through the Native RFQ
+ * router using a pre-fetched, MM-signed firm-quote `txRequest`. Because seize and sell
+ * happen in the same tx there is no price-drift window, and the realized debt-asset amount must clear
+ * `minOut` or the whole call reverts — the protocol never ends up holding the RFQ-only asset.
  *
  * Two funding modes share the same core (`_liquidate`):
- *   - INVENTORY: the contract is pre-funded with the debt asset (USDT) and repays from its own balance.
+ *   - INVENTORY: the contract is pre-funded with the debt asset and repays from its own balance.
  *   - FLASH:     the debt asset is flash-borrowed from Venus (`Comptroller.executeFlashLoan`) and repaid
  *                (+ premium) within the same tx; no capital is locked in the contract.
  *
@@ -36,7 +36,7 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  * `flashLiquidate` are operator-only (owner + allowlisted operators). It does not make bStock
  * liquidation exclusive: anyone may still liquidate bStock through the normal permissionless Venus
  * path with their own funds and their own offload. This contract is intentionally gated because it
- * custodies funds (USDT inventory / flash principal) and forwards a CALLER-SUPPLIED calldata blob to
+ * custodies funds (debt-asset inventory / flash principal) and forwards a CALLER-SUPPLIED calldata blob to
  * an external router — the swap's recipient (`to`) lives inside that calldata, so an open entrypoint
  * would let anyone route the proceeds to themselves and drain the contract. The router allowlist and
  * `minOut` bound the blast radius but cannot replace operator-gating.
@@ -46,14 +46,15 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *   - the swap target must be allowlisted (`isRouter`) — defends the low-level `router.call(swapCalldata)`.
  *   - the bStock approval to the router is the exact seized amount, reset to 0 after the swap.
  *   - `executeOperation` accepts calls only from the Comptroller with `initiator == this` (i.e. a flash we started).
- *   - realized USDT must clear `minOut` or the tx reverts.
+ *   - the realized debt-asset amount must clear `minOut` or the tx reverts.
  *
- * Core liquidation gate (handled automatically): Core has a POOL-WIDE `Comptroller.liquidatorContract`.
- * When it is set, a direct `vToken.liquidateBorrow` from an arbitrary caller reverts UNAUTHORIZED, so this
- * contract reads the gate at call time and routes the repay through that Venus Liquidator (which is the
- * permissionless entry anyone may call); when the gate is unset it liquidates directly. Routing through the
- * gate needs no governance change, and no other Core market is affected. Note: setting THIS contract as `liquidatorContract` is
- * NOT an option — the gate is pool-wide, so every other market's liquidations would be forced through here.
+ * Core liquidation gate (handled automatically): Core has a POOL-WIDE `Comptroller.liquidatorContract`,
+ * which is always configured on the networks this contract targets. While it is set, a direct
+ * `vToken.liquidateBorrow` from an arbitrary caller reverts UNAUTHORIZED, so this contract reads the gate
+ * at call time and routes the repay through that Venus Liquidator (the permissionless entry anyone may
+ * call), reverting if the gate is ever unset. Routing through the gate needs no governance change, and no
+ * other Core market is affected. Note: setting THIS contract as `liquidatorContract` is NOT an option —
+ * the gate is pool-wide, so every other market's liquidations would be forced through here.
  */
 contract BStockLiquidator is
     Ownable2StepUpgradeable,
@@ -63,8 +64,8 @@ contract BStockLiquidator is
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    /// @notice Core Comptroller (diamond): reads the liquidation gate / account liquidity and provides
-    ///         the flash loan via `executeFlashLoan`.
+    /// @notice Core Comptroller (diamond): reads the liquidation gate and provides the flash loan
+    ///         via `executeFlashLoan`.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IComptroller public immutable comptroller;
 
@@ -170,7 +171,7 @@ contract BStockLiquidator is
         address initiator,
         address /* onBehalf */,
         bytes calldata param
-    ) external override returns (bool success, uint256[] memory repayAmounts) {
+    ) external override returns (bool, uint256[] memory repayAmounts) {
         if (msg.sender != address(comptroller)) revert OnlyComptroller();
         // initiator == this proves the flash was started by our own flashLiquidate: the FlashLoanFacet
         // passes msg.sender (the executeFlashLoan caller) as `initiator`, and only flashLiquidate calls it.
@@ -182,7 +183,7 @@ contract BStockLiquidator is
         // Repay was just funded by the flash loan; run the liquidation + swap.
         (uint256 debtOut, uint256 seizedBStock) = _liquidate(params);
 
-        // The swap proceeds alone MUST cover principal + premium. Without this, any USDT inventory
+        // The swap proceeds alone MUST cover principal + premium. Without this, any debt-asset inventory
         // held by the contract would silently backfill an underwater swap (a real loss), since the
         // flash repayment is pulled from the total balance, not just the swap output.
         repayAmounts = new uint256[](1);
@@ -210,7 +211,7 @@ contract BStockLiquidator is
     /**
      * @dev The atomic sequence shared by both funding modes:
      *      approve debt -> liquidateBorrow (seize vBStock) -> redeem (raw bStock)
-     *      -> approve router -> swap to USDT via signed calldata -> assert minOut.
+     *      -> approve router -> swap to the debt asset via signed calldata -> assert minOut.
      *      A `calldata` struct from `liquidate` is copied to memory on entry; `executeOperation`
      *      already holds it in memory (decoded from the flash callback).
      * @param params Liquidation parameters.
@@ -243,7 +244,7 @@ contract BStockLiquidator is
         if (redeemErr != 0) revert RedeemFailed(redeemErr);
         seizedBStock = bStock.balanceOf(address(this)) - rawBefore;
 
-        // 3. Sell the bStock to USDT via the allowlisted Native router (MM-signed calldata).
+        // 3. Sell the bStock to the debt asset via the allowlisted Native router (MM-signed calldata).
         uint256 debtBefore = debt.balanceOf(address(this));
         bStock.forceApprove(params.router, seizedBStock);
         (bool ok, ) = params.router.call(params.swapCalldata);
