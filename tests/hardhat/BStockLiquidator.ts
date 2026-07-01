@@ -1,4 +1,3 @@
-import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { ethers, upgrades } from "hardhat";
@@ -193,16 +192,6 @@ describe("BStockLiquidator (atomic)", () => {
       ).to.be.revertedWithCustomError(liq, "OnlyComptroller");
     });
 
-    it("rejects the Comptroller calling outside an in-flight flash", async () => {
-      // msg.sender == comptroller but no flash is active (_flashActive == false).
-      await impersonateAccount(comptroller.address);
-      await setBalance(comptroller.address, U("1"));
-      const asComptroller = await ethers.getSigner(comptroller.address);
-      await expect(
-        liq.connect(asComptroller).executeOperation([vDebt.address], [REPAY], [0], liq.address, liq.address, "0x"),
-      ).to.be.revertedWithCustomError(liq, "NoFlashInFlight");
-    });
-
     it("rejects a flash callback that reports a foreign initiator", async () => {
       const evil = await (await ethers.getContractFactory("MockMaliciousFlashComptroller")).deploy();
       await evil.setMode(0); // BadInitiator
@@ -319,6 +308,14 @@ describe("BStockLiquidator (atomic)", () => {
       await usdt.mint(liq.address, U("123"));
       await expect(liq.connect(stranger).sweep(usdt.address, stranger.address, U("1"))).to.be.revertedWith(
         "Ownable: caller is not the owner",
+      );
+      await expect(liq.connect(owner).sweep(ZERO, owner.address, U("1"))).to.be.revertedWithCustomError(
+        liq,
+        "ZeroAddressNotAllowed",
+      );
+      await expect(liq.connect(owner).sweep(usdt.address, ZERO, U("1"))).to.be.revertedWithCustomError(
+        liq,
+        "ZeroAddressNotAllowed",
       );
       await expect(liq.connect(owner).sweep(usdt.address, owner.address, U("123")))
         .to.emit(liq, "Swept")

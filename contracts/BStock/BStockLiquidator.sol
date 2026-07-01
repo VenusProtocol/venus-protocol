@@ -45,7 +45,7 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *   - `liquidate` / `flashLiquidate` are `onlyOperator` (owner or allowlisted operator).
  *   - the swap target must be allowlisted (`isRouter`) — defends the low-level `router.call(swapCalldata)`.
  *   - the bStock approval to the router is the exact seized amount, reset to 0 after the swap.
- *   - `executeOperation` accepts calls only from the Comptroller, mid-flight (`_flashActive`), with `initiator == this`.
+ *   - `executeOperation` accepts calls only from the Comptroller with `initiator == this` (i.e. a flash we started).
  *   - realized USDT must clear `minOut` or the tx reverts.
  *
  * Core liquidation gate (handled automatically): Core has a POOL-WIDE `Comptroller.liquidatorContract`.
@@ -74,11 +74,8 @@ contract BStockLiquidator is
     /// @notice Routers allowed as the swap target (defends the low-level call).
     mapping(address => bool) public isRouter;
 
-    /// @dev True only while one of our own flash loans is mid-flight.
-    bool private _flashActive;
-
     /// @dev Reserved storage to allow new state variables in future upgrades without layout clashes.
-    uint256[49] private __gap;
+    uint256[50] private __gap;
 
     modifier onlyOperator() {
         if (msg.sender != owner() && !isOperator[msg.sender]) revert NotOperator();
@@ -123,6 +120,8 @@ contract BStockLiquidator is
 
     /// @inheritdoc IBStockLiquidator
     function sweep(address token, address to, uint256 amount) external override onlyOwner {
+        ensureNonzeroAddress(token);
+        ensureNonzeroAddress(to);
         IERC20Upgradeable(token).safeTransfer(to, amount);
         emit Swept(token, to, amount);
     }
@@ -154,7 +153,6 @@ contract BStockLiquidator is
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = params.repayAmount;
 
-        _flashActive = true;
         comptroller.executeFlashLoan(
             payable(address(this)),
             payable(address(this)),
@@ -162,7 +160,6 @@ contract BStockLiquidator is
             amounts,
             abi.encode(params)
         );
-        _flashActive = false;
     }
 
     /// @inheritdoc IFlashLoanReceiver
@@ -175,7 +172,8 @@ contract BStockLiquidator is
         bytes calldata param
     ) external override returns (bool success, uint256[] memory repayAmounts) {
         if (msg.sender != address(comptroller)) revert OnlyComptroller();
-        if (!_flashActive) revert NoFlashInFlight();
+        // initiator == this proves the flash was started by our own flashLiquidate: the FlashLoanFacet
+        // passes msg.sender (the executeFlashLoan caller) as `initiator`, and only flashLiquidate calls it.
         if (initiator != address(this)) revert BadInitiator(initiator);
 
         LiquidationParams memory params = abi.decode(param, (LiquidationParams));

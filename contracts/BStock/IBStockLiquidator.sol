@@ -67,9 +67,6 @@ interface IBStockLiquidator {
     /// @notice Thrown when the flash-loan initiator is not this contract.
     error BadInitiator(address initiator);
 
-    /// @notice Thrown when `executeOperation` is called outside one of our own flash loans.
-    error NoFlashInFlight();
-
     /// @notice Thrown when the flashed asset does not match `params.vDebt`.
     error WrongFlashAsset();
 
