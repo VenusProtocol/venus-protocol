@@ -133,12 +133,12 @@ contract BStockLiquidator is
 
     /// @inheritdoc IBStockLiquidator
     function liquidate(
-        LiquidationParams calldata p
+        LiquidationParams calldata params
     ) external override onlyOperator nonReentrant returns (uint256 usdtOut) {
-        _check(p);
+        _validateRouter(params.router);
         uint256 seizedBStock;
-        (usdtOut, seizedBStock) = _liquidate(p);
-        emit Liquidated(p.borrower, address(p.vBStock), p.repayAmount, seizedBStock, usdtOut, false);
+        (usdtOut, seizedBStock) = _liquidate(params);
+        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, usdtOut, false);
     }
 
     // --------------------------------------------------------------------- //
@@ -146,16 +146,22 @@ contract BStockLiquidator is
     // --------------------------------------------------------------------- //
 
     /// @inheritdoc IBStockLiquidator
-    function flashLiquidate(LiquidationParams calldata p) external override onlyOperator nonReentrant {
-        _check(p);
+    function flashLiquidate(LiquidationParams calldata params) external override onlyOperator nonReentrant {
+        _validateRouter(params.router);
 
         IVToken[] memory vTokens = new IVToken[](1);
-        vTokens[0] = p.vDebt;
+        vTokens[0] = params.vDebt;
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = p.repayAmount;
+        amounts[0] = params.repayAmount;
 
         _flashActive = true;
-        comptroller.executeFlashLoan(payable(address(this)), payable(address(this)), vTokens, amounts, abi.encode(p));
+        comptroller.executeFlashLoan(
+            payable(address(this)),
+            payable(address(this)),
+            vTokens,
+            amounts,
+            abi.encode(params)
+        );
         _flashActive = false;
     }
 
@@ -172,11 +178,11 @@ contract BStockLiquidator is
         if (!_flashActive) revert NoFlashInFlight();
         if (initiator != address(this)) revert BadInitiator(initiator);
 
-        LiquidationParams memory p = abi.decode(param, (LiquidationParams));
-        if (address(vTokens[0]) != address(p.vDebt)) revert WrongFlashAsset();
+        LiquidationParams memory params = abi.decode(param, (LiquidationParams));
+        if (address(vTokens[0]) != address(params.vDebt)) revert WrongFlashAsset();
 
         // Repay was just funded by the flash loan; run the liquidation + swap.
-        (uint256 usdtOut, uint256 seizedBStock) = _liquidate(p);
+        (uint256 usdtOut, uint256 seizedBStock) = _liquidate(params);
 
         // The swap proceeds alone MUST cover principal + premium. Without this, any USDT inventory
         // held by the contract would silently backfill an underwater swap (a real loss), since the
@@ -186,9 +192,9 @@ contract BStockLiquidator is
         if (usdtOut < repayAmounts[0]) revert InsufficientOut(usdtOut, repayAmounts[0]);
 
         // Approve the flashed vToken to pull back principal + premium.
-        IERC20Upgradeable(p.vDebt.underlying()).forceApprove(address(vTokens[0]), repayAmounts[0]);
+        IERC20Upgradeable(params.vDebt.underlying()).forceApprove(address(vTokens[0]), repayAmounts[0]);
 
-        emit Liquidated(p.borrower, address(p.vBStock), p.repayAmount, seizedBStock, usdtOut, true);
+        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, usdtOut, true);
         return (true, repayAmounts);
     }
 
@@ -196,11 +202,11 @@ contract BStockLiquidator is
     //                              Core                                     //
     // --------------------------------------------------------------------- //
 
-    /// @dev Pre-flight: router must be allowlisted and the borrower must have a shortfall.
-    function _check(LiquidationParams calldata p) private view {
-        if (!isRouter[p.router]) revert RouterNotAllowed(p.router);
-        (, , uint256 shortfall) = comptroller.getAccountLiquidity(p.borrower);
-        if (shortfall == 0) revert NotLiquidatable(p.borrower);
+    /// @dev Pre-flight: the swap router must be allowlisted. Liquidatability itself is not
+    ///      pre-checked here — Core's `liquidateBorrowAllowed` already enforces it, and pre-checking
+    ///      shortfall would wrongly block forced liquidations (which liquidate healthy accounts).
+    function _validateRouter(address router) private view {
+        if (!isRouter[router]) revert RouterNotAllowed(router);
     }
 
     /**
@@ -209,13 +215,13 @@ contract BStockLiquidator is
      *      -> approve router -> swap to USDT via signed calldata -> assert minOut.
      *      A `calldata` struct from `liquidate` is copied to memory on entry; `executeOperation`
      *      already holds it in memory (decoded from the flash callback).
-     * @param p Liquidation parameters.
+     * @param params Liquidation parameters.
      * @return usdtOut Debt-asset proceeds realized by the swap (reverts if below `minOut`).
      * @return seizedBStock Raw bStock redeemed and sold (balance delta).
      */
-    function _liquidate(LiquidationParams memory p) private returns (uint256 usdtOut, uint256 seizedBStock) {
-        IERC20Upgradeable debt = IERC20Upgradeable(p.vDebt.underlying());
-        IERC20Upgradeable bStock = IERC20Upgradeable(p.vBStock.underlying());
+    function _liquidate(LiquidationParams memory params) private returns (uint256 usdtOut, uint256 seizedBStock) {
+        IERC20Upgradeable debt = IERC20Upgradeable(params.vDebt.underlying());
+        IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
         // 1. Repay the borrow, seizing the bStock vToken to this contract.
         //    Core has a POOL-WIDE liquidator gate: if `liquidatorContract` is set, a direct
@@ -223,33 +229,38 @@ contract BStockLiquidator is
         //    Venus Liquidator (it pulls our repay and sends us our share of the seized collateral,
         //    treasury keeps a cut). If the gate is unset, we liquidate directly. Either way the
         //    seized amount is read as a BALANCE DELTA, so the Liquidator's cut is handled correctly.
-        uint256 vBefore = p.vBStock.balanceOf(address(this));
+        uint256 vBefore = params.vBStock.balanceOf(address(this));
         address gate = comptroller.liquidatorContract();
         if (gate == address(0)) {
-            debt.forceApprove(address(p.vDebt), p.repayAmount);
-            uint256 errCode = p.vDebt.liquidateBorrow(p.borrower, p.repayAmount, p.vBStock);
+            debt.forceApprove(address(params.vDebt), params.repayAmount);
+            uint256 errCode = params.vDebt.liquidateBorrow(params.borrower, params.repayAmount, params.vBStock);
             if (errCode != 0) revert LiquidateBorrowFailed(errCode);
         } else {
-            debt.forceApprove(gate, p.repayAmount);
-            ILiquidator(gate).liquidateBorrow(address(p.vDebt), p.borrower, p.repayAmount, p.vBStock);
+            debt.forceApprove(gate, params.repayAmount);
+            ILiquidator(gate).liquidateBorrow(
+                address(params.vDebt),
+                params.borrower,
+                params.repayAmount,
+                params.vBStock
+            );
         }
-        uint256 seizedV = p.vBStock.balanceOf(address(this)) - vBefore;
+        uint256 seizedV = params.vBStock.balanceOf(address(this)) - vBefore;
 
         // 2. Redeem the seized vBStock for raw bStock. Measure by DELTA so any pre-existing bStock
         //    (dust or a stray transfer) is excluded — we only sell what this redeem actually returned.
         uint256 rawBefore = bStock.balanceOf(address(this));
-        uint256 redeemErr = p.vBStock.redeem(seizedV);
+        uint256 redeemErr = params.vBStock.redeem(seizedV);
         if (redeemErr != 0) revert RedeemFailed(redeemErr);
         seizedBStock = bStock.balanceOf(address(this)) - rawBefore;
 
         // 3. Sell the bStock to USDT via the allowlisted Native router (MM-signed calldata).
         uint256 usdtBefore = debt.balanceOf(address(this));
-        bStock.forceApprove(p.router, seizedBStock);
-        (bool ok, ) = p.router.call(p.swapCalldata);
+        bStock.forceApprove(params.router, seizedBStock);
+        (bool ok, ) = params.router.call(params.swapCalldata);
         if (!ok) revert SwapFailed();
-        bStock.forceApprove(p.router, 0); // never leave a standing approval
+        bStock.forceApprove(params.router, 0); // never leave a standing approval
 
         usdtOut = debt.balanceOf(address(this)) - usdtBefore;
-        if (usdtOut < p.minOut) revert InsufficientOut(usdtOut, p.minOut);
+        if (usdtOut < params.minOut) revert InsufficientOut(usdtOut, params.minOut);
     }
 }

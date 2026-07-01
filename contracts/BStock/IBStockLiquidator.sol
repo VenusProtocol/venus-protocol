@@ -52,9 +52,6 @@ interface IBStockLiquidator {
     /// @notice Thrown when the supplied swap router is not allowlisted.
     error RouterNotAllowed(address router);
 
-    /// @notice Thrown when the borrower has no shortfall (nothing to liquidate).
-    error NotLiquidatable(address borrower);
-
     /// @notice Thrown when `vDebt.liquidateBorrow` returns a non-zero error code.
     error LiquidateBorrowFailed(uint256 errCode);
 
@@ -98,13 +95,13 @@ interface IBStockLiquidator {
     /// @notice Liquidate using the contract's own debt-asset (USDT) inventory.
     /// @dev The contract must already hold >= `repayAmount` of `vDebt.underlying()`.
     ///      Profit (proceeds - repay) stays in the contract; withdraw it with `sweep`.
-    /// @param p Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).
+    /// @param params Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).
     /// @return usdtOut Debt-asset proceeds realized by the swap.
-    function liquidate(LiquidationParams calldata p) external returns (uint256 usdtOut);
+    function liquidate(LiquidationParams calldata params) external returns (uint256 usdtOut);
 
     /// @notice Liquidate by flash-borrowing the repay amount from Venus, repaid (+ premium) in the same tx.
     /// @dev Requires this contract to be `authorizedFlashLoan` in the Comptroller and `vDebt` flash-enabled.
     ///      Profit (proceeds - repay - premium) stays in the contract; withdraw it with `sweep`.
-    /// @param p Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).
-    function flashLiquidate(LiquidationParams calldata p) external;
+    /// @param params Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).
+    function flashLiquidate(LiquidationParams calldata params) external;
 }

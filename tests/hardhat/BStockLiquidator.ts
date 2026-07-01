@@ -6,7 +6,7 @@ import { ethers, upgrades } from "hardhat";
 // Atomic BStockLiquidator — exercised against the BStock mocks. Covers both funding modes
 // (inventory + Venus-style flash loan), the seize->redeem->sell pipeline, the pool-gate routing
 // (with and without a treasury cut), the admin surface (operator/router/sweep/init), and every
-// guard (operator gating, router allowlist, shortfall, minOut, and the flash-callback checks).
+// guard (operator gating, router allowlist, minOut, and the flash-callback checks).
 // Position state is "manipulated" through the mock comptroller's shortfall and seize incentive.
 
 const U = (n: string) => ethers.utils.parseUnits(n, 18);
@@ -239,9 +239,9 @@ describe("BStockLiquidator (atomic)", () => {
       );
     });
 
-    it("rejects a healthy (no-shortfall) borrower", async () => {
+    it("no longer pre-blocks a zero-shortfall borrower (supports forced liquidations)", async () => {
       await comptroller.setShortfall(0);
-      await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "NotLiquidatable");
+      await expect(liq.connect(owner).liquidate(params())).to.emit(liq, "Liquidated");
     });
 
     it("enforces minOut", async () => {
