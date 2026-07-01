@@ -84,6 +84,10 @@ describe("bStock atomic liquidation script", () => {
     vDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, comptroller.address);
     router = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
 
+    // Core's pool-wide liquidator gate is always configured; every liquidation routes through it.
+    const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
+    await comptroller.setLiquidatorContract(venusLiq.address);
+
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
 

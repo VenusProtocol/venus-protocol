@@ -16,7 +16,7 @@ const INCENTIVE = U("1.1"); // 10% — mock seizes repay * 1.1
 describe("BStockLiquidator (atomic)", () => {
   let owner: any, operator: any, borrower: any, stranger: any;
   let usdt: Contract, bStock: Contract;
-  let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract;
+  let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, venusLiq: Contract;
   let liq: Contract;
 
   const REPAY = U("5000");
@@ -37,6 +37,11 @@ describe("BStockLiquidator (atomic)", () => {
     ).deploy(bStock.address, comptroller.address);
     vDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, comptroller.address);
     router = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+
+    // Core's pool-wide liquidator gate is always configured on the networks this contract targets,
+    // so every liquidation routes through the Venus Liquidator. Default treasury cut = 0.
+    venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
+    await comptroller.setLiquidatorContract(venusLiq.address);
 
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
@@ -106,9 +111,7 @@ describe("BStockLiquidator (atomic)", () => {
       await expect(liq.connect(operator).liquidate(params())).to.emit(liq, "Liquidated");
     });
 
-    it("routes the repay through the Venus Liquidator when the pool gate is set", async () => {
-      const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
-      await comptroller.setLiquidatorContract(venusLiq.address);
+    it("routes the repay through the Venus Liquidator (the pool gate)", async () => {
       await usdt.mint(liq.address, REPAY);
 
       await expect(liq.connect(owner).liquidate(params()))
@@ -120,9 +123,7 @@ describe("BStockLiquidator (atomic)", () => {
     });
 
     it("handles the Venus Liquidator treasury cut via delta accounting (sells only what was credited)", async () => {
-      const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
       await venusLiq.setTreasuryCut(U("0.1")); // liquidator keeps back 10% of the seized collateral
-      await comptroller.setLiquidatorContract(venusLiq.address);
       await usdt.mint(liq.address, REPAY);
 
       const seizedAfterCut = SEIZED.mul(9).div(10); // 4950 credited to the contract
@@ -161,8 +162,10 @@ describe("BStockLiquidator (atomic)", () => {
 
       // Contract keeps proceeds minus principal minus premium; no inventory was used.
       expect(await usdt.balanceOf(liq.address)).to.equal(OUT.sub(REPAY).sub(premium));
-      // vToken received the liquidateBorrow repay AND the flash repayment (principal + premium).
-      expect(await usdt.balanceOf(vDebt.address)).to.equal(REPAY.mul(2).add(premium));
+      // The liquidateBorrow repay went to the gated Venus Liquidator.
+      expect(await usdt.balanceOf(venusLiq.address)).to.equal(REPAY);
+      // vToken received only the flash repayment (principal + premium).
+      expect(await usdt.balanceOf(vDebt.address)).to.equal(REPAY.add(premium));
     });
 
     it("reverts the whole tx (flash unwinds) when the sale underdelivers", async () => {
@@ -247,13 +250,6 @@ describe("BStockLiquidator (atomic)", () => {
     it("enforces minOut", async () => {
       await router.setRate(U("0.9")); // 4950 USDT < 5400 minOut
       await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "InsufficientOut");
-    });
-
-    it("bubbles up a non-zero liquidateBorrow error code", async () => {
-      await vDebt.setLiquidateError(99);
-      await expect(liq.connect(owner).liquidate(params()))
-        .to.be.revertedWithCustomError(liq, "LiquidateBorrowFailed")
-        .withArgs(99);
     });
 
     it("bubbles up a non-zero redeem error code", async () => {

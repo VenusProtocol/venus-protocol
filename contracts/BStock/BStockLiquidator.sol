@@ -224,26 +224,18 @@ contract BStockLiquidator is
         IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
         // 1. Repay the borrow, seizing the bStock vToken to this contract.
-        //    Core has a POOL-WIDE liquidator gate: if `liquidatorContract` is set, a direct
-        //    `vToken.liquidateBorrow` reverts UNAUTHORIZED, so we route the repay through that
-        //    Venus Liquidator (it pulls our repay and sends us our share of the seized collateral,
-        //    treasury keeps a cut). If the gate is unset, we liquidate directly. Either way the
-        //    seized amount is read as a BALANCE DELTA, so the Liquidator's cut is handled correctly.
+        //    Core has a POOL-WIDE liquidator gate (`liquidatorContract`), which is always configured on
+        //    the networks this contract targets. While it is set, a direct `vToken.liquidateBorrow`
+        //    reverts UNAUTHORIZED, so we route the repay through that Venus Liquidator (it pulls our
+        //    repay and sends us our share of the seized collateral; treasury keeps a cut). The seized
+        //    amount is read as a BALANCE DELTA, so the Liquidator's cut is handled correctly. We guard
+        //    against an unset gate so a misconfig fails loudly instead of silently no-op'ing a call to
+        //    address(0) (a low-level call to a codeless address returns success).
         uint256 vBefore = params.vBStock.balanceOf(address(this));
         address gate = comptroller.liquidatorContract();
-        if (gate == address(0)) {
-            debt.forceApprove(address(params.vDebt), params.repayAmount);
-            uint256 errCode = params.vDebt.liquidateBorrow(params.borrower, params.repayAmount, params.vBStock);
-            if (errCode != 0) revert LiquidateBorrowFailed(errCode);
-        } else {
-            debt.forceApprove(gate, params.repayAmount);
-            ILiquidator(gate).liquidateBorrow(
-                address(params.vDebt),
-                params.borrower,
-                params.repayAmount,
-                params.vBStock
-            );
-        }
+        ensureNonzeroAddress(gate);
+        debt.forceApprove(gate, params.repayAmount);
+        ILiquidator(gate).liquidateBorrow(address(params.vDebt), params.borrower, params.repayAmount, params.vBStock);
         uint256 seizedV = params.vBStock.balanceOf(address(this)) - vBefore;
 
         // 2. Redeem the seized vBStock for raw bStock. Measure by DELTA so any pre-existing bStock

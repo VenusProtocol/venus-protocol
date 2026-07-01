@@ -52,9 +52,6 @@ interface IBStockLiquidator {
     /// @notice Thrown when the supplied swap router is not allowlisted.
     error RouterNotAllowed(address router);
 
-    /// @notice Thrown when `vDebt.liquidateBorrow` returns a non-zero error code.
-    error LiquidateBorrowFailed(uint256 errCode);
-
     /// @notice Thrown when `vBStock.redeem` returns a non-zero error code.
     error RedeemFailed(uint256 errCode);
 
