@@ -133,11 +133,11 @@ contract BStockLiquidator is
     /// @inheritdoc IBStockLiquidator
     function liquidate(
         LiquidationParams calldata params
-    ) external override onlyOperator nonReentrant returns (uint256 usdtOut) {
+    ) external override onlyOperator nonReentrant returns (uint256 debtOut) {
         _validateRouter(params.router);
         uint256 seizedBStock;
-        (usdtOut, seizedBStock) = _liquidate(params);
-        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, usdtOut, false);
+        (debtOut, seizedBStock) = _liquidate(params);
+        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, debtOut, false);
     }
 
     // --------------------------------------------------------------------- //
@@ -180,19 +180,19 @@ contract BStockLiquidator is
         if (address(vTokens[0]) != address(params.vDebt)) revert WrongFlashAsset();
 
         // Repay was just funded by the flash loan; run the liquidation + swap.
-        (uint256 usdtOut, uint256 seizedBStock) = _liquidate(params);
+        (uint256 debtOut, uint256 seizedBStock) = _liquidate(params);
 
         // The swap proceeds alone MUST cover principal + premium. Without this, any USDT inventory
         // held by the contract would silently backfill an underwater swap (a real loss), since the
         // flash repayment is pulled from the total balance, not just the swap output.
         repayAmounts = new uint256[](1);
         repayAmounts[0] = amounts[0] + premiums[0];
-        if (usdtOut < repayAmounts[0]) revert InsufficientOut(usdtOut, repayAmounts[0]);
+        if (debtOut < repayAmounts[0]) revert InsufficientOut(debtOut, repayAmounts[0]);
 
         // Approve the flashed vToken to pull back principal + premium.
         IERC20Upgradeable(params.vDebt.underlying()).forceApprove(address(vTokens[0]), repayAmounts[0]);
 
-        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, usdtOut, true);
+        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, debtOut, true);
         return (true, repayAmounts);
     }
 
@@ -214,10 +214,10 @@ contract BStockLiquidator is
      *      A `calldata` struct from `liquidate` is copied to memory on entry; `executeOperation`
      *      already holds it in memory (decoded from the flash callback).
      * @param params Liquidation parameters.
-     * @return usdtOut Debt-asset proceeds realized by the swap (reverts if below `minOut`).
+     * @return debtOut Debt-asset proceeds realized by the swap (reverts if below `minOut`).
      * @return seizedBStock Raw bStock redeemed and sold (balance delta).
      */
-    function _liquidate(LiquidationParams memory params) private returns (uint256 usdtOut, uint256 seizedBStock) {
+    function _liquidate(LiquidationParams memory params) private returns (uint256 debtOut, uint256 seizedBStock) {
         IERC20Upgradeable debt = IERC20Upgradeable(params.vDebt.underlying());
         IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
@@ -244,13 +244,13 @@ contract BStockLiquidator is
         seizedBStock = bStock.balanceOf(address(this)) - rawBefore;
 
         // 3. Sell the bStock to USDT via the allowlisted Native router (MM-signed calldata).
-        uint256 usdtBefore = debt.balanceOf(address(this));
+        uint256 debtBefore = debt.balanceOf(address(this));
         bStock.forceApprove(params.router, seizedBStock);
         (bool ok, ) = params.router.call(params.swapCalldata);
         if (!ok) revert SwapFailed();
         bStock.forceApprove(params.router, 0); // never leave a standing approval
 
-        usdtOut = debt.balanceOf(address(this)) - usdtBefore;
-        if (usdtOut < params.minOut) revert InsufficientOut(usdtOut, params.minOut);
+        debtOut = debt.balanceOf(address(this)) - debtBefore;
+        if (debtOut < params.minOut) revert InsufficientOut(debtOut, params.minOut);
     }
 }

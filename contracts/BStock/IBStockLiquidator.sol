@@ -32,14 +32,14 @@ interface IBStockLiquidator {
     /// @param vBStock The seized bStock collateral market.
     /// @param repayAmount Debt underlying repaid.
     /// @param seizedBStock Raw bStock redeemed and sold.
-    /// @param usdtOut Debt-asset (USDT) proceeds of the swap.
+    /// @param debtOut Debt-asset (USDT) proceeds of the swap.
     /// @param flash True if funded by a flash loan, false if from inventory.
     event Liquidated(
         address indexed borrower,
         address indexed vBStock,
         uint256 repayAmount,
         uint256 seizedBStock,
-        uint256 usdtOut,
+        uint256 debtOut,
         bool flash
     );
 
@@ -90,8 +90,8 @@ interface IBStockLiquidator {
     /// @dev The contract must already hold >= `repayAmount` of `vDebt.underlying()`.
     ///      Profit (proceeds - repay) stays in the contract; withdraw it with `sweep`.
     /// @param params Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).
-    /// @return usdtOut Debt-asset proceeds realized by the swap.
-    function liquidate(LiquidationParams calldata params) external returns (uint256 usdtOut);
+    /// @return debtOut Debt-asset proceeds realized by the swap.
+    function liquidate(LiquidationParams calldata params) external returns (uint256 debtOut);
 
     /// @notice Liquidate by flash-borrowing the repay amount from Venus, repaid (+ premium) in the same tx.
     /// @dev Requires this contract to be `authorizedFlashLoan` in the Comptroller and `vDebt` flash-enabled.
