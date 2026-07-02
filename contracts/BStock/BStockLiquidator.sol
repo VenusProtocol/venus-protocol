@@ -275,6 +275,9 @@ contract BStockLiquidator is
         ensureNonzeroAddress(gate);
         debt.forceApprove(gate, params.repayAmount);
         ILiquidator(gate).liquidateBorrow(address(params.vDebt), params.borrower, params.repayAmount, params.vBStock);
+        // Reset the gate approval: if the Liquidator pulled less than `repayAmount` (e.g. a close-factor
+        // cap), the remainder would otherwise linger as a standing allowance. Same invariant as `_swap`.
+        debt.forceApprove(gate, 0);
         uint256 seizedV = params.vBStock.balanceOf(address(this)) - vBefore;
 
         // 2. Redeem the seized vBStock for raw bStock. Measure by DELTA so any pre-existing bStock

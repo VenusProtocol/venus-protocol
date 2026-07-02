@@ -215,9 +215,16 @@ contract MockNativeRouter {
 contract MockVenusLiquidator {
     uint256 public incentiveMantissa = 1.1e18;
     uint256 public treasuryCutMantissa; // cut of the seized collateral kept by the liquidator (default 0)
+    uint256 public pullMantissa = 1e18; // fraction of repayAmount actually pulled (default 100%)
 
     function setTreasuryCut(uint256 m) external {
         treasuryCutMantissa = m;
+    }
+
+    /// @dev Simulate a partial repay pull (e.g. a close-factor cap): the gate pulls less than the
+    ///      caller approved, so a standing allowance would linger unless the caller resets it.
+    function setPullMantissa(uint256 m) external {
+        pullMantissa = m;
     }
 
     /// @dev Mirrors the real Venus Liquidator getter the off-chain script reads to precompute the cut.
@@ -232,7 +239,8 @@ contract MockVenusLiquidator {
         address vTokenCollateral
     ) external payable {
         address underlying = MockVTokenDebt(vToken).underlying();
-        require(ERC20(underlying).transferFrom(msg.sender, address(this), repayAmount), "repay pull failed");
+        uint256 pulled = (repayAmount * pullMantissa) / 1e18;
+        require(ERC20(underlying).transferFrom(msg.sender, address(this), pulled), "repay pull failed");
         uint256 seizeV = (repayAmount * incentiveMantissa) / 1e18;
         uint256 toCaller = seizeV - (seizeV * treasuryCutMantissa) / 1e18;
         MockVTokenCollateral(vTokenCollateral).creditSeize(msg.sender, toCaller);

@@ -153,6 +153,15 @@ describe("BStockLiquidator (atomic)", () => {
         .withArgs(borrower.address, vBStock.address, vDebt.address, REPAY, SEIZED, OUT, false);
       expect(await bStock.balanceOf(liq.address)).to.equal(U("100")); // stray untouched
     });
+
+    it("resets the gate approval to zero even when the Venus Liquidator pulls less than approved", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // Gate pulls only half the approved repay (mimics a close-factor cap); without the post-call
+      // reset the unpulled remainder would linger as a standing allowance to the gate.
+      await venusLiq.setPullMantissa(U("0.5"));
+      await liq.connect(owner).liquidate(params());
+      expect(await usdt.allowance(liq.address, venusLiq.address)).to.equal(0);
+    });
   });
 
   describe("flash mode", () => {
