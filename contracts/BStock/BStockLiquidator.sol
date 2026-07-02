@@ -138,6 +138,12 @@ contract BStockLiquidator is
     // --------------------------------------------------------------------- //
 
     /// @inheritdoc IBStockLiquidator
+    /// @dev INVENTORY mode spends the contract's OWN debt-asset capital, so — unlike FLASH mode, where
+    ///      `executeOperation` forces the swap proceeds to cover principal + premium — there is no
+    ///      built-in floor tying `debtOut` to `repayAmount`. This asymmetry is intentional: a repay can
+    ///      legitimately out-cost its proceeds (e.g. the Venus Liquidator keeps a treasury cut of the
+    ///      seized collateral, so proceeds land a few % under the repay). `minOut` IS the operator's
+    ///      chosen loss floor for inventory mode — set it to the lowest acceptable debt-asset return.
     function liquidate(
         LiquidationParams calldata params
     ) external override onlyOperator nonReentrant returns (uint256 debtOut) {
@@ -259,6 +265,9 @@ contract BStockLiquidator is
      * @return seizedBStock Raw bStock redeemed and sold (balance delta).
      */
     function _liquidate(LiquidationParams memory params) private returns (uint256 debtOut, uint256 seizedBStock) {
+        // Only ERC20 debt markets are supported: `underlying()` is read for both the debt and the
+        // collateral. A native-BNB debt market (vBNB) exposes no `underlying()` and repays via
+        // `msg.value`, so it reverts here loudly rather than silently mis-repaying.
         IERC20Upgradeable debt = IERC20Upgradeable(params.vDebt.underlying());
         IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
