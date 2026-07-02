@@ -136,10 +136,4 @@ export function quoteDeadline(q: NativeFirmQuote): number {
   return ds.length ? Math.min(...ds) : 0;
 }
 
-/** Known bStock token addresses on BNB Chain (18 decimals). */
-export const BSTOCK_TOKENS = {
-  TSLAB: "0x5b1910eAaD6450E50f816082Aa078C41F10C292f",
-  NVDAB: "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
-} as const;
-
 export const BSC_USDT = "0x55d398326f99059fF775485246999027B3197955";
