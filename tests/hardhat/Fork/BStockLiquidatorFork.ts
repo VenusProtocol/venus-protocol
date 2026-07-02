@@ -471,9 +471,13 @@ const test = () => {
         const markets: string[] = await c.getAllMarkets();
         let liquidated = 0;
         const report: string[] = [];
+        const tally: Record<string, number> = {}; // reason bucket -> count
 
         for (const vDebt of markets) {
           if (ethers.utils.getAddress(vDebt) === ethers.utils.getAddress(mkt.vBStock.address)) continue;
+          // Skip markets whose BORROW action is paused: we cannot open a fresh test position there, so
+          // there is nothing meaningful to liquidate — drop them entirely rather than list them as skips.
+          if (await c.actionPaused(vDebt, Action.BORROW)) continue;
           const sym = await marketSymbol(vDebt);
           const label = `${sym} (${vDebt})`;
           const snap = await ethers.provider.send("evm_snapshot", []);
@@ -482,8 +486,16 @@ const test = () => {
             if (reason === "OK") {
               liquidated++;
               report.push(`  ${label}: liquidated`);
+              tally["liquidated"] = (tally["liquidated"] || 0) + 1;
             } else {
               report.push(`  ${label}: skipped (${reason})`);
+              // Bucket by the reason head (e.g. "BorrowNotAllowedInPool", "no PCS route").
+              const bucket = reason
+                .replace(/^borrow \(/, "")
+                .replace(/\)$/, "")
+                .split("(")[0]
+                .trim();
+              tally[bucket] = (tally[bucket] || 0) + 1;
             }
           } catch (e: any) {
             // A skip reason is acceptable; any OTHER revert is a genuine failure.
@@ -493,7 +505,12 @@ const test = () => {
           }
           await ethers.provider.send("evm_revert", [snap]);
         }
+        const summary = Object.entries(tally)
+          .sort((a, b) => b[1] - a[1])
+          .map(([k, v]) => `${v} ${k}`)
+          .join(", ");
         console.log("      sweep:\n" + report.join("\n"));
+        console.log(`      summary: ${summary}`);
         expect(liquidated).to.be.gt(0); // at least the USDT/CAKE/BNB markets must liquidate
       });
     });
@@ -672,7 +689,7 @@ async function sweepOne(
   vDebt: string,
   fund: (t: string, to: string, a: BigNumber) => Promise<void>,
 ): Promise<string> {
-  if (await c.actionPaused(vDebt, Action.BORROW)) return "borrow paused";
+  // (BORROW-paused markets are filtered out by the caller before we get here.)
   if (await c.actionPaused(vDebt, Action.LIQUIDATE)) return "liquidate paused";
 
   const v = new ethers.Contract(vDebt, VTOKEN_ABI, owner);
@@ -719,9 +736,20 @@ async function sweepOne(
   } catch {
     return "dead oracle";
   }
-  const cap = cash.mul(20).div(100);
-  if (debtBorrow.gt(cap)) debtBorrow = cap;
   if (debtBorrow.eq(0)) return "unpriceable/dust";
+
+  // Thin markets don't hold enough cash for an $8k borrow, which would leave the account not-underwater
+  // (gate LiquidationFailed code=3). Seed the vToken's underlying cash directly so the full borrow fits;
+  // native BNB cash is the vToken's native balance. If the underlying can't be seeded, classify as skip.
+  try {
+    const need = debtBorrow.mul(3);
+    if (cash.lt(need)) {
+      if (isBnb) await setBalance(vDebt, need);
+      else await fund(underlying, vDebt, need);
+    }
+  } catch {
+    return "cannot seed market cash";
+  }
 
   // Build the underwater borrower defensively — quirky markets revert borrow ("math error"), hit caps,
   // or leave the account not-underwater; classify any of these as a skip rather than failing the sweep.
@@ -740,7 +768,13 @@ async function sweepOne(
   } catch (e: any) {
     const data = e.error?.data?.data || e.error?.data || e.data || "";
     const sel = typeof data === "string" && data.length >= 10 ? data.slice(0, 10) : "";
-    return `borrow (${e.reason || sel || (e.message || "").slice(0, 24)})`;
+    // Map the common Venus revert selectors to names so the sweep log reads clearly.
+    const known: Record<string, string> = {
+      "0x5b80c790": "BorrowNotAllowedInPool", // market is scoped to a non-core e-mode pool
+      "0x2e649eed": "BorrowCapExceeded",
+      "0x48c25881": "BorrowCashNotAvailable",
+    };
+    return `borrow (${e.reason || known[sel] || sel || (e.message || "").slice(0, 24)})`;
   }
   await mock.setRate(P_CRASH);
   const repay = debtBorrow.div(4);
@@ -796,10 +830,31 @@ async function sweepOne(
     const out = await liq.connect(owner).callStatic.liquidate({ ...params, minOut: 1 });
     await liq.connect(owner).liquidate({ ...params, minOut: out.mul(80).div(100) });
   } catch (e: any) {
-    return `liquidation (${(e.reason || e.message || "").slice(0, 32)})`;
+    return `liquidation (${decodeLiqRevert(liq, e)})`;
   }
   expect(await v.borrowBalanceStored(borrower)).to.be.lt(borrowBefore);
   return "OK";
+}
+
+// Decode a liquidation revert into a readable reason: the contract's own custom errors (InsufficientOut,
+// SwapFailed, RedeemFailed, …) via its ABI, the gate's LiquidationFailed(code), or a plain Error string.
+function decodeLiqRevert(liq: Contract, e: any): string {
+  if (e.reason) return e.reason;
+  const data = e.error?.data?.data || e.error?.data || e.data || "";
+  if (typeof data !== "string" || data.length < 10) return (e.message || "").slice(0, 32);
+  try {
+    const parsed = liq.interface.parseError(data);
+    const args = parsed.args?.length ? `(${parsed.args.map((a: any) => a.toString()).join(",")})` : "";
+    return `${parsed.name}${args}`;
+  } catch {
+    // Gate error LiquidationFailed(uint256) — the uint is the underlying vToken error code
+    // (Venus ComptrollerErrorReporter.Error: 3 = INSUFFICIENT_SHORTFALL, 4 = INSUFFICIENT_LIQUIDITY, …).
+    if (data.slice(0, 10) === "0x125a96ab") {
+      const code = BigNumber.from("0x" + data.slice(10, 74));
+      return `gate LiquidationFailed(code=${code.toString()})`;
+    }
+    return data.slice(0, 10);
+  }
 }
 
 if (FORK_MAINNET) {
