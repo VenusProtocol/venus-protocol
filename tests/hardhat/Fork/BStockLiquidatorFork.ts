@@ -470,7 +470,7 @@ const test = () => {
         );
         const markets: string[] = await c.getAllMarkets();
         let liquidated = 0;
-        const report: string[] = [];
+        const rows: { sym: string; addr: string; status: string; reason: string }[] = [];
         const tally: Record<string, number> = {}; // reason bucket -> count
 
         for (const vDebt of markets) {
@@ -479,38 +479,49 @@ const test = () => {
           // there is nothing meaningful to liquidate — drop them entirely rather than list them as skips.
           if (await c.actionPaused(vDebt, Action.BORROW)) continue;
           const sym = await marketSymbol(vDebt);
-          const label = `${sym} (${vDebt})`;
           const snap = await ethers.provider.send("evm_snapshot", []);
           try {
             const reason = await sweepOne(owner, c, pcs, mkt, mock, liq, vDebt, fund);
             if (reason === "OK") {
               liquidated++;
-              report.push(`  ${label}: liquidated`);
+              rows.push({ sym, addr: vDebt, status: "LIQUIDATED", reason: "" });
               tally["liquidated"] = (tally["liquidated"] || 0) + 1;
             } else {
-              report.push(`  ${label}: skipped (${reason})`);
-              // Bucket by the reason head (e.g. "BorrowNotAllowedInPool", "no PCS route").
-              const bucket = reason
+              // Normalize the reason head for the table + tally (e.g. "BorrowNotAllowedInPool").
+              const clean = reason
                 .replace(/^borrow \(/, "")
                 .replace(/\)$/, "")
                 .split("(")[0]
                 .trim();
-              tally[bucket] = (tally[bucket] || 0) + 1;
+              rows.push({ sym, addr: vDebt, status: "skipped", reason: clean });
+              tally[clean] = (tally[clean] || 0) + 1;
             }
           } catch (e: any) {
             // A skip reason is acceptable; any OTHER revert is a genuine failure.
-            report.push(`  ${label}: ERROR ${(e.message || "").slice(0, 80)}`);
+            rows.push({ sym, addr: vDebt, status: "ERROR", reason: (e.message || "").slice(0, 60) });
             await ethers.provider.send("evm_revert", [snap]);
             throw e;
           }
           await ethers.provider.send("evm_revert", [snap]);
         }
+
+        // Render an aligned table: MARKET | ADDRESS | STATUS | REASON.
+        const w = (s: string, n: number) => s.padEnd(n);
+        const cSym = Math.max(6, ...rows.map(r => r.sym.length));
+        const cStatus = Math.max(6, ...rows.map(r => r.status.length));
+        const bar = `  ${"-".repeat(cSym)}  ${"-".repeat(42)}  ${"-".repeat(cStatus)}  ------`;
+        const lines = [
+          `  ${w("MARKET", cSym)}  ${w("ADDRESS", 42)}  ${w("STATUS", cStatus)}  REASON`,
+          bar,
+          ...rows.map(r => `  ${w(r.sym, cSym)}  ${w(r.addr, 42)}  ${w(r.status, cStatus)}  ${r.reason}`),
+        ];
         const summary = Object.entries(tally)
           .sort((a, b) => b[1] - a[1])
           .map(([k, v]) => `${v} ${k}`)
           .join(", ");
-        console.log("      sweep:\n" + report.join("\n"));
-        console.log(`      summary: ${summary}`);
+        console.log("\n      dynamic sweep — one liquidation attempt per eligible Core market:\n");
+        console.log(lines.join("\n"));
+        console.log(`\n      SUMMARY: ${summary}\n`);
         expect(liquidated).to.be.gt(0); // at least the USDT/CAKE/BNB markets must liquidate
       });
     });
