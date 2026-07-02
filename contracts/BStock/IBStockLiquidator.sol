@@ -39,6 +39,7 @@ interface IBStockLiquidator {
     /// @notice Emitted on a successful liquidation.
     /// @param borrower The liquidated account.
     /// @param vBStock The seized bStock collateral market.
+    /// @param vDebt The repaid debt market.
     /// @param repayAmount Debt underlying repaid.
     /// @param seizedBStock Raw bStock redeemed and sold.
     /// @param debtOut Debt-asset proceeds of the swap.
@@ -46,6 +47,7 @@ interface IBStockLiquidator {
     event Liquidated(
         address indexed borrower,
         address indexed vBStock,
+        address indexed vDebt,
         uint256 repayAmount,
         uint256 seizedBStock,
         uint256 debtOut,

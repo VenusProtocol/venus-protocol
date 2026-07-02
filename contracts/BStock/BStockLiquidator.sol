@@ -145,7 +145,15 @@ contract BStockLiquidator is
         if (params.router2 != address(0)) _validateRouter(params.router2);
         uint256 seizedBStock;
         (debtOut, seizedBStock) = _liquidate(params);
-        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, debtOut, false);
+        emit Liquidated(
+            params.borrower,
+            address(params.vBStock),
+            address(params.vDebt),
+            params.repayAmount,
+            seizedBStock,
+            debtOut,
+            false
+        );
     }
 
     // --------------------------------------------------------------------- //
@@ -201,7 +209,15 @@ contract BStockLiquidator is
         // Approve the flashed vToken to pull back principal + premium.
         IERC20Upgradeable(params.vDebt.underlying()).forceApprove(address(vTokens[0]), repayAmounts[0]);
 
-        emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, debtOut, true);
+        emit Liquidated(
+            params.borrower,
+            address(params.vBStock),
+            address(params.vDebt),
+            params.repayAmount,
+            seizedBStock,
+            debtOut,
+            true
+        );
         return (true, repayAmounts);
     }
 

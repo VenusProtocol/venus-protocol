@@ -100,7 +100,7 @@ describe("BStockLiquidator (atomic)", () => {
 
       await expect(liq.connect(owner).liquidate(params()))
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+        .withArgs(borrower.address, vBStock.address, vDebt.address, REPAY, SEIZED, OUT, false);
 
       // Started with REPAY, repaid REPAY, received OUT -> ends at OUT (profit = OUT - REPAY = 500).
       expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
@@ -120,7 +120,7 @@ describe("BStockLiquidator (atomic)", () => {
 
       await expect(liq.connect(owner).liquidate(params()))
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+        .withArgs(borrower.address, vBStock.address, vDebt.address, REPAY, SEIZED, OUT, false);
 
       // The repay went to the gated Venus Liquidator, not to vDebt directly.
       expect(await usdt.balanceOf(venusLiq.address)).to.equal(REPAY);
@@ -136,7 +136,7 @@ describe("BStockLiquidator (atomic)", () => {
         liq.connect(owner).liquidate(params({ swapCalldata: swapAllCalldata(liq.address), minOut: U("4900") })),
       )
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, seizedAfterCut, seizedAfterCut, false);
+        .withArgs(borrower.address, vBStock.address, vDebt.address, REPAY, seizedAfterCut, seizedAfterCut, false);
 
       // 5000 inventory - 5000 repaid + 4950 proceeds = 4950, nothing stuck.
       expect(await usdt.balanceOf(liq.address)).to.equal(seizedAfterCut);
@@ -149,7 +149,7 @@ describe("BStockLiquidator (atomic)", () => {
       // seizedBStock in the event is the DELTA (SEIZED), not SEIZED + 100.
       await expect(liq.connect(owner).liquidate(params()))
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+        .withArgs(borrower.address, vBStock.address, vDebt.address, REPAY, SEIZED, OUT, false);
       expect(await bStock.balanceOf(liq.address)).to.equal(U("100")); // stray untouched
     });
   });
@@ -162,7 +162,7 @@ describe("BStockLiquidator (atomic)", () => {
 
       await expect(liq.connect(owner).flashLiquidate(params()))
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, true);
+        .withArgs(borrower.address, vBStock.address, vDebt.address, REPAY, SEIZED, OUT, true);
 
       // Contract keeps proceeds minus principal minus premium; no inventory was used.
       expect(await usdt.balanceOf(liq.address)).to.equal(OUT.sub(REPAY).sub(premium));
@@ -230,7 +230,7 @@ describe("BStockLiquidator (atomic)", () => {
 
       await expect(liq.connect(owner).liquidate(twoHopParams()))
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+        .withArgs(borrower.address, vBStock.address, vBtcb.address, REPAY, SEIZED, OUT, false);
 
       expect(await btcb.balanceOf(liq.address)).to.equal(OUT); // 5500 BTCB, profit = OUT - REPAY
       expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
@@ -247,7 +247,7 @@ describe("BStockLiquidator (atomic)", () => {
 
       await expect(liq.connect(owner).flashLiquidate(twoHopParams()))
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, true);
+        .withArgs(borrower.address, vBStock.address, vBtcb.address, REPAY, SEIZED, OUT, true);
 
       expect(await btcb.balanceOf(liq.address)).to.equal(OUT.sub(REPAY).sub(premium));
       expect(await btcb.balanceOf(vBtcb.address)).to.equal(REPAY.add(premium));
@@ -283,7 +283,7 @@ describe("BStockLiquidator (atomic)", () => {
 
       await expect(liq.connect(owner).liquidate(twoHopParams()))
         .to.emit(liq, "Liquidated")
-        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+        .withArgs(borrower.address, vBStock.address, vBtcb.address, REPAY, SEIZED, OUT, false);
 
       expect(await usdt.balanceOf(liq.address)).to.equal(U("2000")); // stray USDT untouched
       expect(await btcb.balanceOf(liq.address)).to.equal(OUT);
