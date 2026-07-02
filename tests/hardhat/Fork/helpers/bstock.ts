@@ -11,6 +11,7 @@
 // quote); on a fork we cannot reproduce that, so hop-1 is a MockNativeRouter pre-funded with USDT that
 // models the firm quote, while hop-2 (USDT->debt) uses REAL PancakeSwap where liquidity actually exists.
 import { setStorageAt } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
@@ -92,6 +93,11 @@ export const ERC20_ABI = [
   "function approve(address,uint256) returns (bool)",
   "function transfer(address,uint256) returns (bool)",
 ];
+const PCS_ABI = [
+  "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) returns (uint256[])",
+  "function getAmountsOut(uint256,address[]) view returns (uint256[])",
+];
+const RESILIENT_READ_ABI = ["function getUnderlyingPrice(address) view returns (uint256)"];
 
 /* ------------------------------------------------------------------ */
 /*                    deterministic PRNG (mulberry32)                 */
@@ -124,32 +130,46 @@ export function randBn(rnd: () => number, min: BigNumber, max: BigNumber): BigNu
 
 // Brute-force the ERC20 balances mapping slot, then write a balance directly — used to fund the mock
 // Native router with USDT and to top up thin debt markets without needing a whale.
-export async function findBalanceSlot(token: string): Promise<number | null> {
+//
+// The balances mapping location varies: the base slot index differs per token (proxies/OZ gaps push it
+// higher), and the mapping-key hashing order differs between Solidity `keccak(key,slot)` and Vyper-style
+// `keccak(slot,key)`. Probe a wide range in BOTH orders and return whichever reproduces balanceOf; some
+// tokens (unusual/ERC-7201-namespaced layouts) still won't be found and must be seeded via a whale.
+export interface BalanceSlot {
+  slot: number;
+  slotFirst: boolean; // true => key hashed as keccak(slot, key) (Vyper), false => keccak(key, slot)
+}
+
+function mappingSlot(account: string, loc: BalanceSlot): string {
+  const types = loc.slotFirst ? ["uint256", "address"] : ["address", "uint256"];
+  const values = loc.slotFirst ? [loc.slot, account] : [account, loc.slot];
+  return ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
+}
+
+export async function findBalanceSlot(token: string): Promise<BalanceSlot | null> {
   const probe = "0x" + "ba1".padStart(40, "0");
   const probeAmount = BigNumber.from("1234567890");
   const erc20 = new ethers.Contract(token, ERC20_ABI, ethers.provider);
-  for (let slot = 0; slot <= 12; slot++) {
-    const storageSlot = ethers.utils.keccak256(
-      ethers.utils.defaultAbiCoder.encode(["address", "uint256"], [probe, slot]),
-    );
-    const prev = await ethers.provider.getStorageAt(token, storageSlot);
-    await setStorageAt(token, storageSlot, ethers.utils.hexZeroPad(probeAmount.toHexString(), 32));
-    try {
-      const bal = await erc20.balanceOf(probe);
-      await setStorageAt(token, storageSlot, prev);
-      if (bal.eq(probeAmount)) return slot;
-    } catch {
-      await setStorageAt(token, storageSlot, prev);
+  for (let slot = 0; slot <= 60; slot++) {
+    for (const slotFirst of [false, true]) {
+      const loc = { slot, slotFirst };
+      const storageSlot = mappingSlot(probe, loc);
+      const prev = await ethers.provider.getStorageAt(token, storageSlot);
+      await setStorageAt(token, storageSlot, ethers.utils.hexZeroPad(probeAmount.toHexString(), 32));
+      try {
+        const bal = await erc20.balanceOf(probe);
+        await setStorageAt(token, storageSlot, prev);
+        if (bal.eq(probeAmount)) return loc;
+      } catch {
+        await setStorageAt(token, storageSlot, prev);
+      }
     }
   }
   return null;
 }
 
-export async function setTokenBalance(token: string, account: string, amount: BigNumber, slot: number) {
-  const storageSlot = ethers.utils.keccak256(
-    ethers.utils.defaultAbiCoder.encode(["address", "uint256"], [account, slot]),
-  );
-  await setStorageAt(token, storageSlot, ethers.utils.hexZeroPad(amount.toHexString(), 32));
+export async function setTokenBalance(token: string, account: string, amount: BigNumber, loc: BalanceSlot) {
+  await setStorageAt(token, mappingSlot(account, loc), ethers.utils.hexZeroPad(amount.toHexString(), 32));
 }
 
 /* ------------------------------------------------------------------ */
@@ -265,4 +285,143 @@ export async function listBStockMarket(owner: any, initialPriceUsd = parseUnits(
       await cAsTl.setCollateralFactor(vBStock.address, cf, cf);
     },
   };
+}
+
+/* ------------------------------------------------------------------ */
+/*                      mock Native RFQ router                        */
+/* ------------------------------------------------------------------ */
+
+// Deploy the MockNativeRouter used for the illiquid bStock->USDT hop and pre-fund it with USDT so it
+// can pay out the "firm quote". `rate` (1e18) is USDT-per-bStock, i.e. the MM's quoted bStock price.
+export async function deployFundedMockNative(owner: any, rate: BigNumber, usdtFloat = parseUnits("5000000", 18)) {
+  const mock = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+  await mock.setRate(rate);
+  const slot = await findBalanceSlot(TOK.USDT);
+  if (slot === null) throw new Error("could not locate USDT balance slot");
+  await setTokenBalance(TOK.USDT, mock.address, usdtFloat, slot);
+  return { mock, usdtSlot: slot };
+}
+
+/* ------------------------------------------------------------------ */
+/*                     underwater borrower factory                    */
+/* ------------------------------------------------------------------ */
+
+export interface UnderwaterCfg {
+  mkt: BStockMarket;
+  vDebt: string; // debt market to borrow from
+  borrower: string; // a CODELESS EOA (required for the native disbursement path)
+  collateralBStock: BigNumber; // raw bStock supplied as collateral (18-dec)
+  borrowAmount: BigNumber; // debt underlying to borrow (debt decimals)
+  crashPriceTo?: BigNumber; // if set, bStock oracle price is dropped here to force shortfall
+}
+
+// Build a real underwater position: supply bStock, enter the market, borrow the debt asset, then push
+// the account into shortfall by crashing the bStock oracle price (the realistic trigger for a bStock
+// backstop liquidation — the stock gapped down). Returns the impersonated borrower signer.
+export async function makeUnderwaterBorrower(cfg: UnderwaterCfg): Promise<any> {
+  const borrower = await initMainnetUser(cfg.borrower, parseUnits("10", 18));
+  if ((await ethers.provider.getCode(cfg.borrower)) !== "0x") {
+    throw new Error(`borrower ${cfg.borrower} must be a codeless EOA (native path relies on it)`);
+  }
+  await cfg.mkt.bStock.mint(cfg.borrower, cfg.collateralBStock);
+  await cfg.mkt.bStock.connect(borrower).approve(cfg.mkt.vBStock.address, cfg.collateralBStock);
+  await new ethers.Contract(cfg.mkt.vBStock.address, VTOKEN_ABI, borrower).mint(cfg.collateralBStock);
+  await new ethers.Contract(A.COMPTROLLER, COMPTROLLER_ABI, borrower).enterMarkets([cfg.mkt.vBStock.address]);
+  // Legacy vTokens return an error CODE from borrow() instead of reverting, so a capped/paused/illiquid
+  // market silently leaves zero debt — which would later surface as an opaque "LiquidationFailed(3)".
+  // Probe the code first and fail loudly, then execute and assert the debt actually materialized.
+  const vd = new ethers.Contract(cfg.vDebt, VTOKEN_ABI, borrower);
+  const code: BigNumber = await vd.callStatic.borrow(cfg.borrowAmount);
+  if (!code.eq(0)) throw new Error(`borrow(${cfg.vDebt}) returned code ${code.toString()} (cap/paused/liquidity)`);
+  await vd.borrow(cfg.borrowAmount);
+  if ((await vd.borrowBalanceStored(cfg.borrower)).eq(0)) throw new Error(`borrow(${cfg.vDebt}) produced no debt`);
+  if (cfg.crashPriceTo) await cfg.mkt.setPrice(cfg.crashPriceTo);
+  return borrower;
+}
+
+/* ------------------------------------------------------------------ */
+/*                          swap-hop builders                         */
+/* ------------------------------------------------------------------ */
+
+// Single hop (USDT debt): sell the whole seized bStock balance to USDT through the mock RFQ router.
+export function buildSingleHopMock(mkt: BStockMarket, mock: Contract, liqAddr: string): string {
+  return mock.interface.encodeFunctionData("swapAll", [mkt.bStock.address, TOK.USDT, liqAddr]);
+}
+
+// Two hops (non-USDT debt): hop-1 mock bStock->USDT (swapAll), hop-2 REAL PancakeSwap USDT->debt.
+// The hop-2 amountIn is under-shot so the fixed-amount PCS calldata always fits under the on-chain
+// approval (the actual USDT from hop-1 varies with the treasury cut). minOut tracks the live quote.
+export async function buildTwoHopMockThenPcs(
+  owner: any,
+  mkt: BStockMarket,
+  mock: Contract,
+  vDebt: string,
+  repay: BigNumber,
+  pathUsdtToDebt: string[],
+  liqAddr: string,
+  rate: BigNumber,
+): Promise<{ swapCalldata: string; swapCalldata2: string; expectedOut: BigNumber }> {
+  const comptroller = new ethers.Contract(A.COMPTROLLER, COMPTROLLER_ABI, owner);
+  const [, seizeTokens] = await comptroller.liquidateCalculateSeizeTokens(vDebt, mkt.vBStock.address, repay);
+  const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
+  const grossBStock = seizeTokens.mul(xr).div(ONE); // bStock the seized vTokens redeem to (pre treasury cut)
+  const usdtFromHop1 = grossBStock.mul(rate).div(ONE); // mock output at the quoted rate
+  const x2 = usdtFromHop1.mul(90).div(100); // under-shoot 10% to stay under the real approval after the cut
+  const pcs = new ethers.Contract(A.PCS_ROUTER, PCS_ABI, owner);
+  const expectedOut: BigNumber = (await pcs.getAmountsOut(x2, pathUsdtToDebt))[pathUsdtToDebt.length - 1];
+  const deadline = ethers.constants.MaxUint256;
+  return {
+    swapCalldata: mock.interface.encodeFunctionData("swapAll", [mkt.bStock.address, TOK.USDT, liqAddr]),
+    swapCalldata2: pcs.interface.encodeFunctionData("swapExactTokensForTokens", [
+      x2,
+      0,
+      pathUsdtToDebt,
+      liqAddr,
+      deadline,
+    ]),
+    expectedOut,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*                        invariant assertions                        */
+/* ------------------------------------------------------------------ */
+
+// Post-liquidation invariants that must hold on EVERY successful settle: the liquidator never keeps the
+// RFQ-only bStock, never strands native BNB, and the borrower's debt strictly shrank. Proceeds land as
+// the debt asset (callers check the returned debtOut against minOut).
+export async function assertSettledFor(
+  liq: Contract,
+  mkt: BStockMarket,
+  vDebt: string,
+  borrower: string,
+  borrowBefore: BigNumber,
+) {
+  expect(await mkt.bStock.balanceOf(liq.address)).to.equal(0);
+  expect(await ethers.provider.getBalance(liq.address)).to.equal(0);
+  const borrowAfter: BigNumber = await new ethers.Contract(vDebt, VTOKEN_ABI, ethers.provider).borrowBalanceStored(
+    borrower,
+  );
+  expect(borrowAfter).to.be.lt(borrowBefore);
+}
+
+// Rollback invariants: on any revert the borrow is untouched and the liquidator's inventory is intact.
+export async function assertRolledBack(
+  liq: Contract,
+  mkt: BStockMarket,
+  vDebt: string,
+  borrower: string,
+  borrowBefore: BigNumber,
+  debtToken: string,
+  inventoryBefore: BigNumber,
+) {
+  const borrowAfter: BigNumber = await new ethers.Contract(vDebt, VTOKEN_ABI, ethers.provider).borrowBalanceStored(
+    borrower,
+  );
+  expect(borrowAfter).to.be.gte(borrowBefore); // borrow not reduced (may accrue up)
+  expect(await new ethers.Contract(debtToken, ERC20_ABI, ethers.provider).balanceOf(liq.address)).to.equal(
+    inventoryBefore,
+  );
+  expect(await mkt.bStock.balanceOf(liq.address)).to.equal(0);
+  expect(await ethers.provider.getBalance(liq.address)).to.equal(0);
 }

@@ -81,6 +81,7 @@
     "eslint": "^8.25.0",
     "eslint-config-prettier": "^8.5.0",
     "ethers": "^5.7.0",
+    "fast-check": "^4.8.0",
     "hardhat": "2.22.18",
     "hardhat-contract-sizer": "^2.8.0",
     "hardhat-dependency-compiler": "^1.2.1",

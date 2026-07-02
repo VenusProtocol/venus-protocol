@@ -210,6 +210,48 @@ contract MockNativeRouter {
     }
 }
 
+/// @dev Malicious router: during the swap hop it re-enters the liquidator (via a preconfigured call)
+///      before completing a normal swap. Used to prove the `nonReentrant` guard blocks re-entry while
+///      the outer liquidation still settles. Must be allowlisted AND set as an operator so the re-entry
+///      clears `onlyOperator` and actually reaches the reentrancy guard.
+contract MockReentrantRouter {
+    uint256 public rate = 1e18;
+    address public target; // the liquidator to re-enter
+    bytes public reentryCalldata; // encoded liquidate/flashLiquidate call
+    bool public reentrySucceeded; // true iff the re-entry call returned success (guard FAILED)
+    bool public reentryAttempted;
+
+    function configure(address target_, bytes calldata reentryCalldata_) external {
+        target = target_;
+        reentryCalldata = reentryCalldata_;
+    }
+
+    function swap(address tokenIn, uint256 amountIn, address tokenOut, address to) external {
+        reentryAttempted = true;
+        // Attempt to re-enter; swallow the result so the OUTER swap/liquidation can still complete.
+        (bool ok, ) = target.call(reentryCalldata);
+        reentrySucceeded = ok;
+        require(ERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn), "in pull failed");
+        require(ERC20(tokenOut).transfer(to, (amountIn * rate) / 1e18), "out transfer failed");
+    }
+
+    /// @dev Same re-entry attempt, but pulls the caller's ENTIRE tokenIn balance and pays out — so the
+    ///      OUTER liquidation actually settles (clearing minOut), letting the test observe that the
+    ///      re-entry was blocked while the surrounding call succeeded.
+    function swapAll(address tokenIn, address tokenOut, address to) external {
+        reentryAttempted = true;
+        (bool ok, ) = target.call(reentryCalldata);
+        reentrySucceeded = ok;
+        uint256 amountIn = ERC20(tokenIn).balanceOf(msg.sender);
+        require(ERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn), "in pull failed");
+        require(ERC20(tokenOut).transfer(to, (amountIn * rate) / 1e18), "out transfer failed");
+    }
+
+    function setRate(uint256 r) external {
+        rate = r;
+    }
+}
+
 /// @dev Stand-in for the pool-wide Venus Liquidator (`liquidatorContract`). Pulls the repay from the
 ///      caller and credits the seized collateral (repay * incentive) to the caller, minus a treasury cut.
 contract MockVenusLiquidator {

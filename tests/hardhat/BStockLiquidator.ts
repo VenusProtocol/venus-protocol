@@ -192,6 +192,15 @@ describe("BStockLiquidator (atomic)", () => {
       expect(await usdt.balanceOf(venusLiq.address)).to.equal(REPAY);
       // vToken received only the flash repayment (principal + premium).
       expect(await usdt.balanceOf(vDebt.address)).to.equal(REPAY.add(premium));
+      // Gate approval reset in flash mode too.
+      expect(await usdt.allowance(liq.address, venusLiq.address)).to.equal(0);
+    });
+
+    it("resets the gate approval on a partial pull in flash mode", async () => {
+      await usdt.mint(vDebt.address, REPAY);
+      await venusLiq.setPullMantissa(U("0.5")); // gate pulls only half the approved repay
+      await liq.connect(owner).flashLiquidate(params());
+      expect(await usdt.allowance(liq.address, venusLiq.address)).to.equal(0);
     });
 
     it("reverts the whole tx (flash unwinds) when the sale underdelivers", async () => {
@@ -257,9 +266,10 @@ describe("BStockLiquidator (atomic)", () => {
       expect(await btcb.balanceOf(liq.address)).to.equal(OUT); // 5500 BTCB, profit = OUT - REPAY
       expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
       expect(await bStock.balanceOf(liq.address)).to.equal(0);
-      // No standing approvals on either hop.
+      // No standing approvals on either hop, nor to the gate (approved in the debt asset, BTCB).
       expect(await bStock.allowance(liq.address, router.address)).to.equal(0);
       expect(await usdt.allowance(liq.address, amm.address)).to.equal(0);
+      expect(await btcb.allowance(liq.address, venusLiq.address)).to.equal(0);
     });
 
     it("flash: flash-borrows BTCB, two-hop settles, repays principal + premium", async () => {
@@ -589,6 +599,74 @@ describe("BStockLiquidator (atomic)", () => {
         .withArgs(usdt.address, owner.address, U("123"));
       expect(await usdt.balanceOf(owner.address)).to.equal(U("123"));
       expect(await usdt.balanceOf(liq.address)).to.equal(0);
+    });
+  });
+
+  describe("deadline boundary", () => {
+    beforeEach(async () => {
+      await usdt.mint(liq.address, REPAY);
+    });
+
+    async function nextTs(offset: number) {
+      const t = (await ethers.provider.getBlock("latest")).timestamp + offset;
+      await ethers.provider.send("evm_setNextBlockTimestamp", [t]);
+      return t;
+    }
+
+    it("passes when deadline equals the block timestamp (guard is strict >)", async () => {
+      const t = await nextTs(100);
+      await expect(liq.connect(owner).liquidate(params({ deadline: t }))).to.emit(liq, "Liquidated");
+    });
+
+    it("reverts with (deadline, now) when the deadline is one second stale", async () => {
+      const t = await nextTs(100);
+      await expect(liq.connect(owner).liquidate(params({ deadline: t - 1 })))
+        .to.be.revertedWithCustomError(liq, "DeadlineExpired")
+        .withArgs(t - 1, t);
+    });
+
+    it("moves no funds on an expired deadline (reverts before any external call)", async () => {
+      const t = await nextTs(100);
+      await expect(liq.connect(owner).liquidate(params({ deadline: t - 1 }))).to.be.revertedWithCustomError(
+        liq,
+        "DeadlineExpired",
+      );
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // inventory untouched
+      expect(await usdt.balanceOf(venusLiq.address)).to.equal(0); // no repay pulled through the gate
+      expect(await usdt.allowance(liq.address, venusLiq.address)).to.equal(0); // no gate approval granted
+    });
+  });
+
+  describe("reentrancy", () => {
+    let evil: Contract;
+
+    beforeEach(async () => {
+      evil = await (await ethers.getContractFactory("MockReentrantRouter")).deploy();
+      await usdt.mint(evil.address, OUT); // the evil router pays out the swap like the normal one
+      await usdt.mint(liq.address, REPAY); // inventory to fund the outer liquidation
+      // Allowlist AND operator-grant the router so the re-entry clears onlyOperator and actually
+      // reaches the nonReentrant guard (otherwise it would revert on NotOperator, proving nothing).
+      await liq.connect(owner).setRouter(evil.address, true);
+      await liq.connect(owner).setOperator(evil.address, true);
+    });
+
+    it("blocks re-entry into liquidate while the outer liquidation still settles", async () => {
+      const reentry = liq.interface.encodeFunctionData("liquidate", [params()]);
+      await evil.configure(liq.address, reentry);
+      const p = params({ router: evil.address, swapCalldata: swapCalldata(SEIZED, liq.address) });
+
+      await expect(liq.connect(owner).liquidate(p)).to.emit(liq, "Liquidated");
+      expect(await evil.reentryAttempted()).to.equal(true);
+      expect(await evil.reentrySucceeded()).to.equal(false); // guard blocked the nested call
+    });
+
+    it("blocks cross-function re-entry into flashLiquidate", async () => {
+      const reentry = liq.interface.encodeFunctionData("flashLiquidate", [params()]);
+      await evil.configure(liq.address, reentry);
+      const p = params({ router: evil.address, swapCalldata: swapCalldata(SEIZED, liq.address) });
+
+      await expect(liq.connect(owner).liquidate(p)).to.emit(liq, "Liquidated");
+      expect(await evil.reentrySucceeded()).to.equal(false);
     });
   });
 });
