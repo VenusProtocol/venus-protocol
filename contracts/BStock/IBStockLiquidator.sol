@@ -16,7 +16,8 @@ interface IBStockLiquidator {
     ///      identical to the single-hop version. When `router2` is set it is two hops
     ///      (bStock -> `intermediateToken` -> debt): hop 1 sells bStock via `router`, hop 2 converts
     ///      the intermediate to the debt asset via `router2`. `minOut` is always the FINAL debt-asset
-    ///      floor across the whole chain.
+    ///      floor across the whole chain. `deadline` is a unix-timestamp expiry: the call reverts once
+    ///      `block.timestamp` passes it, so a stale tx cannot settle against an expired quote.
     struct LiquidationParams {
         address borrower; // account to liquidate
         IVBep20 vDebt; // borrowed market to repay (e.g. vUSDT)
@@ -28,6 +29,7 @@ interface IBStockLiquidator {
         address router2; // hop-2 router (AMM/aggregator): intermediate -> debt; address(0) = single-hop
         bytes swapCalldata2; // hop-2 calldata; the swap recipient inside it MUST be this contract
         address intermediateToken; // token hop 1 outputs and hop 2 consumes (e.g. USDT); required when router2 set
+        uint256 deadline; // unix timestamp after which the call reverts; guards a stale tx sitting in the mempool
     }
 
     /// @notice Emitted when an operator is allowlisted or removed.
@@ -88,6 +90,9 @@ interface IBStockLiquidator {
     /// @notice Thrown when the flashed asset does not match `params.vDebt`.
     error WrongFlashAsset();
 
+    /// @notice Thrown when the call is submitted after `params.deadline`.
+    error DeadlineExpired(uint256 deadline, uint256 nowTs);
+
     /// @notice Allow or disallow an address to trigger liquidations.
     /// @param operator Address to allowlist or remove.
     /// @param allowed True to allow, false to remove.
@@ -108,7 +113,7 @@ interface IBStockLiquidator {
     /// @dev The contract must already hold >= `repayAmount` of `vDebt.underlying()`.
     ///      Profit (proceeds - repay) stays in the contract; withdraw it with `sweep`.
     /// @param params Liquidation parameters (borrower, markets, repay, hop-1 router + calldata, final
-    ///        minOut, and the optional hop-2 router/calldata/intermediate for non-USDT debt).
+    ///        minOut, `deadline`, and the optional hop-2 router/calldata/intermediate for non-USDT debt).
     /// @return debtOut Debt-asset proceeds realized by the swap chain.
     function liquidate(LiquidationParams calldata params) external returns (uint256 debtOut);
 
@@ -116,6 +121,6 @@ interface IBStockLiquidator {
     /// @dev Requires this contract to be `authorizedFlashLoan` in the Comptroller and `vDebt` flash-enabled.
     ///      Profit (proceeds - repay - premium) stays in the contract; withdraw it with `sweep`.
     /// @param params Liquidation parameters (borrower, markets, repay, hop-1 router + calldata, final
-    ///        minOut, and the optional hop-2 router/calldata/intermediate for non-USDT debt).
+    ///        minOut, `deadline`, and the optional hop-2 router/calldata/intermediate for non-USDT debt).
     function flashLiquidate(LiquidationParams calldata params) external;
 }

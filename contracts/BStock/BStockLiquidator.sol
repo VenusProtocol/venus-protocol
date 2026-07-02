@@ -145,6 +145,7 @@ contract BStockLiquidator is
         if (params.router2 != address(0)) _validateRouter(params.router2);
 
         if (params.minOut == 0) revert ZeroMinOut();
+        if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
         uint256 seizedBStock;
         (debtOut, seizedBStock) = _liquidate(params);
         emit Liquidated(
@@ -168,6 +169,7 @@ contract BStockLiquidator is
         if (params.router2 != address(0)) _validateRouter(params.router2);
 
         if (params.minOut == 0) revert ZeroMinOut();
+        if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
 
         IVToken[] memory vTokens = new IVToken[](1);
         vTokens[0] = params.vDebt;

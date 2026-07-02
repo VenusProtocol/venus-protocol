@@ -86,6 +86,7 @@ describe("BStockLiquidator (atomic)", () => {
       router2: ZERO,
       swapCalldata2: "0x",
       intermediateToken: ZERO,
+      deadline: ethers.constants.MaxUint256, // never expires unless a test overrides it
       ...over,
     };
   }
@@ -363,6 +364,18 @@ describe("BStockLiquidator (atomic)", () => {
       await expect(liq.connect(owner).flashLiquidate(params({ minOut: 0 }))).to.be.revertedWithCustomError(
         liq,
         "ZeroMinOut",
+      );
+    });
+
+    it("rejects an expired deadline on both entrypoints", async () => {
+      // deadline in the past: a stale tx sitting in the mempool must not execute against an old quote.
+      await expect(liq.connect(owner).liquidate(params({ deadline: 1 }))).to.be.revertedWithCustomError(
+        liq,
+        "DeadlineExpired",
+      );
+      await expect(liq.connect(owner).flashLiquidate(params({ deadline: 1 }))).to.be.revertedWithCustomError(
+        liq,
+        "DeadlineExpired",
       );
     });
 

@@ -144,6 +144,7 @@ const test = () => {
         router2: ethers.constants.AddressZero,
         swapCalldata2: "0x",
         intermediateToken: ethers.constants.AddressZero,
+        deadline: ethers.constants.MaxUint256,
       };
 
       const borrowBefore = await vDebt.connect(owner).callStatic.borrowBalanceCurrent(borrower.address);

@@ -42,7 +42,7 @@ import { getAmmSwap } from "./lib/amm";
 import { BSC_USDT, getFirmQuote, quoteDeadline } from "./lib/native";
 
 const PARAMS_TUPLE =
-  "(address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut,address router2,bytes swapCalldata2,address intermediateToken)";
+  "(address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut,address router2,bytes swapCalldata2,address intermediateToken,uint256 deadline)";
 const LIQUIDATOR_ABI = [
   `function liquidate(${PARAMS_TUPLE}) returns (uint256)`,
   `function flashLiquidate(${PARAMS_TUPLE})`,
@@ -151,6 +151,8 @@ export async function atomicLiquidate(signer: Signer) {
   let router2 = ethers.constants.AddressZero;
   let swapCalldata2 = "0x";
   let intermediateToken = ethers.constants.AddressZero;
+  // On-chain deadline mirrors the RFQ quote's own expiry; the mock/fork path never expires.
+  let deadline: BigNumber = ethers.constants.MaxUint256;
 
   if (process.env.MOCK_NATIVE) {
     // Fork/local-test path: MOCK_NATIVE = "<router>:<calldata>" (hop 1), optional MOCK_AMM = same for
@@ -176,6 +178,7 @@ export async function atomicLiquidate(signer: Signer) {
     });
     const ttl = quoteDeadline(q) - Math.floor(Date.now() / 1000);
     if (ttl <= 0) throw new Error("quote already expired — refetch");
+    deadline = BigNumber.from(quoteDeadline(q)); // settle tx reverts on-chain past the quote's expiry
     router = q.txRequest.target;
     swapCalldata = q.txRequest.calldata;
     const midOut = BigNumber.from(q.amountOut); // USDT out of hop 1
@@ -230,6 +233,7 @@ export async function atomicLiquidate(signer: Signer) {
     router2,
     swapCalldata2,
     intermediateToken,
+    deadline,
   };
 
   // Inventory mode spends the contract's own debt-asset balance; warn early if it can't cover the
