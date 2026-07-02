@@ -6,4 +6,6 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 
 interface IWBNB is IERC20Upgradeable {
     function deposit() external payable;
+
+    function withdraw(uint256 amount) external;
 }

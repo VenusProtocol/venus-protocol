@@ -1,3 +1,4 @@
+import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Contract } from "ethers";
 import { ethers, upgrades } from "hardhat";
@@ -12,6 +13,8 @@ import { atomicLiquidate } from "../../scripts/bstock/atomic-liquidate";
 
 const U = (n: string) => ethers.utils.parseUnits(n, 18);
 const INCENTIVE = U("1.1"); // mock seizes repay * 1.1
+// Sentinel native BNB market (vBNB); no code — the ERC20 script paths never touch it.
+const VBNB = ethers.utils.getAddress("0x0000000000000000000000000000000000000b0b");
 
 const REPAY = U("5000");
 const SEIZED = REPAY.mul(INCENTIVE).div(U("1")); // 5500 bStock at 1:1 redeem
@@ -25,6 +28,7 @@ const SCRIPT_ENV = [
   "VDEBT",
   "REPAY_AMOUNT",
   "USDT_ADDR",
+  "WBNB_ADDR",
   "MOCK_NATIVE",
   "MOCK_AMM",
   "MOCK_OUT",
@@ -38,11 +42,12 @@ describe("bStock atomic liquidation script", () => {
   let owner: any, borrower: any;
   let usdt: Contract, bStock: Contract;
   let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, liq: Contract;
+  let wbnb: Contract, vWBNB: Contract;
 
   async function deployLiquidator(comptrollerAddr: string) {
     const Factory = await ethers.getContractFactory("BStockLiquidator");
     return upgrades.deployProxy(Factory, [owner.address], {
-      constructorArgs: [comptrollerAddr],
+      constructorArgs: [comptrollerAddr, VBNB, vWBNB.address, wbnb.address],
       unsafeAllow: ["constructor", "state-variable-immutable"],
     });
   }
@@ -85,9 +90,14 @@ describe("bStock atomic liquidation script", () => {
     vDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, comptroller.address);
     router = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
 
+    // WBNB + its market, for the BNB-debt constructor immutables (vWBNB is the flash source).
+    wbnb = await (await ethers.getContractFactory("WBNB")).deploy();
+    vWBNB = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(wbnb.address, comptroller.address);
+
     // Core's pool-wide liquidator gate is always configured; every liquidation routes through it.
     const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
     await comptroller.setLiquidatorContract(venusLiq.address);
+    await venusLiq.setVBnb(VBNB);
 
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
@@ -188,5 +198,30 @@ describe("bStock atomic liquidation script", () => {
 
     await expect(atomicLiquidate(owner)).to.be.rejectedWith("not allowlisted");
     expect(await btcb.balanceOf(liq.address)).to.equal(REPAY); // untouched
+  });
+
+  // Native BNB debt: VDEBT is vBNB (no underlying()), so the script auto-detects it, accounts the debt
+  // in WBNB, and appends the USDT->WBNB hop. The contract unwraps the repay and settles in native BNB.
+  it("bnb debt: auto-detects vBNB, accounts in WBNB, settles via the contract (inventory)", async () => {
+    const ammBnb = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+    await liq.connect(owner).setRouter(ammBnb.address, true);
+    await wbnb.setBalanceOf(ammBnb.address, OUT); // hop-2 pays WBNB
+    await wbnb.setBalanceOf(liq.address, REPAY); // pre-funded WBNB float (inventory)
+    await setBalance(wbnb.address, U("1000000")); // back the WBNB mock so withdraw() pays out
+
+    const hop1 = router.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, liq.address]);
+    const hop2 = ammBnb.interface.encodeFunctionData("swapAll", [usdt.address, wbnb.address, liq.address]);
+    setEnv({
+      VDEBT: VBNB, // sentinel vBNB: underlying() reverts -> script treats debt as native BNB
+      WBNB_ADDR: wbnb.address,
+      MOCK_NATIVE: `${router.address}:${hop1}`,
+      MOCK_AMM: `${ammBnb.address}:${hop2}`,
+    });
+
+    await atomicLiquidate(owner);
+
+    expect(await wbnb.balanceOf(liq.address)).to.equal(OUT); // float consumed, proceeds retained as WBNB
+    expect(await ethers.provider.getBalance(liq.address)).to.equal(0); // no native BNB retained
+    expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate consumed
   });
 });

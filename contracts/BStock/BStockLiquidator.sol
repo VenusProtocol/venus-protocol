@@ -9,6 +9,7 @@ import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contract
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { IFlashLoanReceiver } from "../FlashLoan/interfaces/IFlashLoanReceiver.sol";
+import { IWBNB } from "../external/IWBNB.sol";
 
 // Shared Venus interfaces: IComptroller (Core diamond — liquidator gate + flash loan), IVToken
 // (flash-loan asset array element), and ILiquidator (the pool-wide Venus Liquidator gate that pulls
@@ -34,6 +35,12 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *   - INVENTORY: the contract is pre-funded with the debt asset and repays from its own balance.
  *   - FLASH:     the debt asset is flash-borrowed from Venus (`Comptroller.executeFlashLoan`) and repaid
  *                (+ premium) within the same tx; no capital is locked in the contract.
+ *
+ * Native BNB debt (vBNB): supported in both modes with WBNB as the debt-accounting token. The repay
+ * must be native BNB, so exactly the repay amount of WBNB is unwrapped and forwarded to the gate's
+ * payable path; the two-hop swap lands WBNB (bStock->USDT->WBNB) and `minOut` is measured in WBNB
+ * (1:1 with BNB). FLASH mode borrows from vWBNB, NOT vBNB: vBNB cannot be flash-repaid (its
+ * `doTransferIn` requires `msg.value`), whereas vWBNB's underlying is a plain ERC20.
  *
  * Ownership / scope: this is Venus's OWN backstop tool, NOT a public utility — `liquidate` and
  * `flashLiquidate` are operator-only (owner + allowlisted operators). It does not make bStock
@@ -75,6 +82,21 @@ contract BStockLiquidator is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IComptroller public immutable comptroller;
 
+    /// @notice The native BNB market (vBNB). A debt equal to this address is settled with native BNB:
+    ///         WBNB is the debt-accounting token, and only the repay amount is unwrapped (see `_liquidate`).
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable vBNB;
+
+    /// @notice The WBNB market (vWBNB). BNB debt is flash-funded from here, NOT from vBNB: vBNB cannot be
+    ///         flash-repaid (its `doTransferIn` needs `msg.value`), whereas vWBNB's underlying is a plain
+    ///         ERC20 repaid via `transferFrom`.
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IVToken public immutable vWBNB;
+
+    /// @notice WBNB token: the debt-accounting asset for BNB debt, unwrapped to native BNB for the repay.
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IWBNB public immutable wbnb;
+
     /// @notice Addresses allowed to trigger a liquidation.
     mapping(address => bool) public isOperator;
 
@@ -89,12 +111,21 @@ contract BStockLiquidator is
         _;
     }
 
-    /// @notice Constructor for the implementation contract. Sets the immutable Comptroller and locks initializers.
+    /// @notice Constructor for the implementation contract. Sets the immutables and locks initializers.
     /// @param comptroller_ Venus Core Comptroller (diamond) — gates liquidation and provides flash loans.
+    /// @param vBNB_ Native BNB market; a debt equal to this address is settled in native BNB.
+    /// @param vWBNB_ WBNB market; the flash-borrow source for BNB debt (vBNB itself cannot be flash-repaid).
+    /// @param wbnb_ WBNB token; the debt-accounting asset for BNB debt, unwrapped for the native repay.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(IComptroller comptroller_) {
+    constructor(IComptroller comptroller_, address vBNB_, IVToken vWBNB_, IWBNB wbnb_) {
         ensureNonzeroAddress(address(comptroller_));
+        ensureNonzeroAddress(vBNB_);
+        ensureNonzeroAddress(address(vWBNB_));
+        ensureNonzeroAddress(address(wbnb_));
         comptroller = comptroller_;
+        vBNB = vBNB_;
+        vWBNB = vWBNB_;
+        wbnb = wbnb_;
         _disableInitializers();
     }
 
@@ -106,6 +137,13 @@ contract BStockLiquidator is
         __ReentrancyGuard_init();
         _transferOwnership(initialOwner);
     }
+
+    /// @notice Accept native BNB. The expected inflow is `wbnb.withdraw` during a BNB liquidation (the
+    ///         unwrapped repay is forwarded to the gate in the same call, so no BNB is retained on the
+    ///         happy path). Left permissive (not restricted to `wbnb`) both to keep the receive body
+    ///         minimal for WBNB's 2300-gas `.transfer` stipend and to tolerate a stray transfer or a
+    ///         future gate refund — any such balance is recoverable via `sweepNative`.
+    receive() external payable {}
 
     // --------------------------------------------------------------------- //
     //                               Admin                                   //
@@ -131,6 +169,14 @@ contract BStockLiquidator is
         ensureNonzeroAddress(to);
         IERC20Upgradeable(token).safeTransfer(to, amount);
         emit Swept(token, to, amount);
+    }
+
+    /// @inheritdoc IBStockLiquidator
+    function sweepNative(address to, uint256 amount) external override onlyOwner {
+        ensureNonzeroAddress(to);
+        (bool ok, ) = to.call{ value: amount }("");
+        if (!ok) revert NativeTransferFailed();
+        emit SweptNative(to, amount);
     }
 
     // --------------------------------------------------------------------- //
@@ -177,8 +223,10 @@ contract BStockLiquidator is
         if (params.minOut == 0) revert ZeroMinOut();
         if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
 
+        // BNB debt is flash-funded from vWBNB (an ERC20 market), not vBNB: vBNB cannot be flash-repaid.
+        // The flashed WBNB is unwrapped to native BNB for the repay inside `_liquidate` (see `executeOperation`).
         IVToken[] memory vTokens = new IVToken[](1);
-        vTokens[0] = params.vDebt;
+        vTokens[0] = (address(params.vDebt) == vBNB) ? vWBNB : IVToken(address(params.vDebt));
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = params.repayAmount;
 
@@ -206,7 +254,12 @@ contract BStockLiquidator is
         if (initiator != address(this)) revert BadInitiator(initiator);
 
         LiquidationParams memory params = abi.decode(param, (LiquidationParams));
-        if (address(vTokens[0]) != address(params.vDebt)) revert WrongFlashAsset();
+        // For BNB debt the flash is drawn from vWBNB, not vBNB (see `flashLiquidate`). Scoped so the
+        // temporary doesn't count against the stack depth of the rest of the function.
+        {
+            address expectedFlash = address(params.vDebt) == vBNB ? address(vWBNB) : address(params.vDebt);
+            if (address(vTokens[0]) != expectedFlash) revert WrongFlashAsset();
+        }
 
         // Repay was just funded by the flash loan; run the liquidation + swap.
         (uint256 debtOut, uint256 seizedBStock) = _liquidate(params);
@@ -218,8 +271,12 @@ contract BStockLiquidator is
         repayAmounts[0] = amounts[0] + premiums[0];
         if (debtOut < repayAmounts[0]) revert InsufficientOut(debtOut, repayAmounts[0]);
 
-        // Approve the flashed vToken to pull back principal + premium.
-        IERC20Upgradeable(params.vDebt.underlying()).forceApprove(address(vTokens[0]), repayAmounts[0]);
+        // Approve the flashed vToken to pull back principal + premium. For BNB debt the flashed asset is
+        // WBNB (from vWBNB); the ternary short-circuits so `underlying()` is never called on vBNB (it has none).
+        IERC20Upgradeable(address(params.vDebt) == vBNB ? address(wbnb) : params.vDebt.underlying()).forceApprove(
+            address(vTokens[0]),
+            repayAmounts[0]
+        );
 
         emit Liquidated(
             params.borrower,
@@ -265,10 +322,17 @@ contract BStockLiquidator is
      * @return seizedBStock Raw bStock redeemed and sold (balance delta).
      */
     function _liquidate(LiquidationParams memory params) private returns (uint256 debtOut, uint256 seizedBStock) {
-        // Only ERC20 debt markets are supported: `underlying()` is read for both the debt and the
-        // collateral. A native-BNB debt market (vBNB) exposes no `underlying()` and repays via
-        // `msg.value`, so it reverts here loudly rather than silently mis-repaying.
-        IERC20Upgradeable debt = IERC20Upgradeable(params.vDebt.underlying());
+        // A debt equal to `vBNB` is native BNB. vBNB has no `underlying()`, so the `isBnb` check MUST come
+        // first: the ternary short-circuits and `underlying()` is never evaluated for vBNB. WBNB is the
+        // debt-accounting token throughout (1:1 with BNB), so the whole swap/minOut path below is reused.
+        // KEEP THIS ORDER — hoisting `underlying()` above the check reverts every BNB liquidation.
+        bool isBnb = address(params.vDebt) == vBNB;
+        // Native RFQ only quotes bStock->USDT, so a BNB debt is inherently two-hop (...->WBNB). Reject a
+        // single-hop BNB config up front instead of failing opaquely later on a zero WBNB delta.
+        if (isBnb && params.router2 == address(0)) revert InvalidIntermediate();
+        IERC20Upgradeable debt = isBnb
+            ? IERC20Upgradeable(address(wbnb))
+            : IERC20Upgradeable(params.vDebt.underlying());
         IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
         // 1. Repay the borrow, seizing the bStock vToken to this contract.
@@ -282,11 +346,30 @@ contract BStockLiquidator is
         uint256 vBefore = params.vBStock.balanceOf(address(this));
         address gate = comptroller.liquidatorContract();
         ensureNonzeroAddress(gate);
-        debt.forceApprove(gate, params.repayAmount);
-        ILiquidator(gate).liquidateBorrow(address(params.vDebt), params.borrower, params.repayAmount, params.vBStock);
-        // Reset the gate approval: if the Liquidator pulled less than `repayAmount` (e.g. a close-factor
-        // cap), the remainder would otherwise linger as a standing allowance. Same invariant as `_swap`.
-        debt.forceApprove(gate, 0);
+        if (isBnb) {
+            // Unwrap EXACTLY the repay (WBNB held as inventory or drawn from the vWBNB flash) and forward
+            // native BNB to the gate's vBNB branch (`{value:}`). Only the repay portion is unwrapped, so
+            // pre-existing WBNB inventory is untouched; the swap proceeds below stay as WBNB. No approval
+            // is granted (value is forwarded), so there is no standing allowance to reset.
+            wbnb.withdraw(params.repayAmount);
+            ILiquidator(gate).liquidateBorrow{ value: params.repayAmount }(
+                address(params.vDebt),
+                params.borrower,
+                params.repayAmount,
+                params.vBStock
+            );
+        } else {
+            debt.forceApprove(gate, params.repayAmount);
+            ILiquidator(gate).liquidateBorrow(
+                address(params.vDebt),
+                params.borrower,
+                params.repayAmount,
+                params.vBStock
+            );
+            // Reset the gate approval: if the Liquidator pulled less than `repayAmount` (e.g. a close-factor
+            // cap), the remainder would otherwise linger as a standing allowance. Same invariant as `_swap`.
+            debt.forceApprove(gate, 0);
+        }
         uint256 seizedV = params.vBStock.balanceOf(address(this)) - vBefore;
 
         // 2. Redeem the seized vBStock for raw bStock. Measure by DELTA so any pre-existing bStock

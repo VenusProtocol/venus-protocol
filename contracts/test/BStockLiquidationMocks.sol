@@ -216,6 +216,7 @@ contract MockVenusLiquidator {
     uint256 public incentiveMantissa = 1.1e18;
     uint256 public treasuryCutMantissa; // cut of the seized collateral kept by the liquidator (default 0)
     uint256 public pullMantissa = 1e18; // fraction of repayAmount actually pulled (default 100%)
+    address public vBnb; // native BNB market; a repay for this vToken must arrive as msg.value
 
     function setTreasuryCut(uint256 m) external {
         treasuryCutMantissa = m;
@@ -225,6 +226,11 @@ contract MockVenusLiquidator {
     ///      caller approved, so a standing allowance would linger unless the caller resets it.
     function setPullMantissa(uint256 m) external {
         pullMantissa = m;
+    }
+
+    /// @dev Mirrors the real gate: a vBNB repay is native BNB (msg.value), not an ERC20 transferFrom.
+    function setVBnb(address v) external {
+        vBnb = v;
     }
 
     /// @dev Mirrors the real Venus Liquidator getter the off-chain script reads to precompute the cut.
@@ -238,9 +244,14 @@ contract MockVenusLiquidator {
         uint256 repayAmount,
         address vTokenCollateral
     ) external payable {
-        address underlying = MockVTokenDebt(vToken).underlying();
-        uint256 pulled = (repayAmount * pullMantissa) / 1e18;
-        require(ERC20(underlying).transferFrom(msg.sender, address(this), pulled), "repay pull failed");
+        if (vToken == vBnb) {
+            // Native BNB repay: require exact msg.value (mirrors Liquidator.sol) and keep the BNB.
+            require(msg.value == repayAmount, "bad value");
+        } else {
+            address underlying = MockVTokenDebt(vToken).underlying();
+            uint256 pulled = (repayAmount * pullMantissa) / 1e18;
+            require(ERC20(underlying).transferFrom(msg.sender, address(this), pulled), "repay pull failed");
+        }
         uint256 seizeV = (repayAmount * incentiveMantissa) / 1e18;
         uint256 toCaller = seizeV - (seizeV * treasuryCutMantissa) / 1e18;
         MockVTokenCollateral(vTokenCollateral).creditSeize(msg.sender, toCaller);

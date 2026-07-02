@@ -59,6 +59,9 @@ interface IBStockLiquidator {
     /// @notice Emitted when the owner withdraws a token.
     event Swept(address indexed token, address indexed to, uint256 amount);
 
+    /// @notice Emitted when the owner withdraws stuck native BNB.
+    event SweptNative(address indexed to, uint256 amount);
+
     /// @notice Thrown when the caller is neither the owner nor an allowlisted operator.
     error NotOperator();
 
@@ -93,6 +96,9 @@ interface IBStockLiquidator {
     /// @notice Thrown when the call is submitted after `params.deadline`.
     error DeadlineExpired(uint256 deadline, uint256 nowTs);
 
+    /// @notice Thrown when a native BNB transfer (the `sweepNative` payout) fails.
+    error NativeTransferFailed();
+
     /// @notice Allow or disallow an address to trigger liquidations.
     /// @param operator Address to allowlist or remove.
     /// @param allowed True to allow, false to remove.
@@ -108,6 +114,11 @@ interface IBStockLiquidator {
     /// @param to Recipient.
     /// @param amount Amount to withdraw.
     function sweep(address token, address to, uint256 amount) external;
+
+    /// @notice Withdraw stuck native BNB (a stray transfer, or a gate refund) to `to`.
+    /// @param to Recipient.
+    /// @param amount Amount of native BNB to withdraw.
+    function sweepNative(address to, uint256 amount) external;
 
     /// @notice Liquidate using the contract's own debt-asset inventory.
     /// @dev The contract must already hold >= `repayAmount` of `vDebt.underlying()`.

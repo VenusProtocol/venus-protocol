@@ -1,3 +1,4 @@
+import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { ethers, upgrades } from "hardhat";
@@ -11,11 +12,16 @@ import { ethers, upgrades } from "hardhat";
 const U = (n: string) => ethers.utils.parseUnits(n, 18);
 const ZERO = ethers.constants.AddressZero;
 const INCENTIVE = U("1.1"); // 10% — mock seizes repay * 1.1
+// Sentinel address for the native BNB market (vBNB). It has no code on purpose: the BNB happy-path
+// tests thus double as the guard that the contract never calls `underlying()` (or anything) on vBNB —
+// any such call would revert against a codeless address.
+const VBNB = ethers.utils.getAddress("0x0000000000000000000000000000000000000b0b");
 
 describe("BStockLiquidator (atomic)", () => {
   let owner: any, operator: any, borrower: any, stranger: any;
   let usdt: Contract, bStock: Contract;
   let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, venusLiq: Contract;
+  let wbnb: Contract, vWBNB: Contract;
   let liq: Contract;
 
   const REPAY = U("5000");
@@ -37,10 +43,16 @@ describe("BStockLiquidator (atomic)", () => {
     vDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, comptroller.address);
     router = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
 
+    // WBNB + its market: WBNB is the debt-accounting token for BNB debt, and vWBNB is the flash source
+    // (vBNB itself cannot be flash-repaid). The gate learns the native market so its repay branch matches.
+    wbnb = await (await ethers.getContractFactory("WBNB")).deploy();
+    vWBNB = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(wbnb.address, comptroller.address);
+
     // Core's pool-wide liquidator gate is always configured on the networks this contract targets,
     // so every liquidation routes through the Venus Liquidator. Default treasury cut = 0.
     venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
     await comptroller.setLiquidatorContract(venusLiq.address);
+    await venusLiq.setVBnb(VBNB);
 
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
@@ -56,7 +68,7 @@ describe("BStockLiquidator (atomic)", () => {
   async function deployLiquidator(comptrollerAddr: string) {
     const Factory = await ethers.getContractFactory("BStockLiquidator");
     return upgrades.deployProxy(Factory, [owner.address], {
-      constructorArgs: [comptrollerAddr],
+      constructorArgs: [comptrollerAddr, VBNB, vWBNB.address, wbnb.address],
       unsafeAllow: ["constructor", "state-variable-immutable"],
     });
   }
@@ -309,6 +321,111 @@ describe("BStockLiquidator (atomic)", () => {
     });
   });
 
+  // Native BNB debt. vBNB has no underlying() and its borrow is repaid in native BNB, so WBNB is the
+  // debt-accounting token: only the repay amount is unwrapped (WBNB -> BNB) for the gate's payable path,
+  // and the two-hop swap lands WBNB (bStock -> USDT -> WBNB). FLASH mode borrows from vWBNB (an ERC20
+  // market), not vBNB. The WBNB.withdraw -> proxy -> receive() path here exercises the 2300-gas stipend.
+  describe("BNB debt (native, WBNB-accounted)", () => {
+    let ammBnb: Contract;
+
+    // hop-2 calldata against the AMM mock: swap(USDT, amountIn, WBNB, to).
+    function bnbSwapCalldata(amountIn: BigNumber, to: string) {
+      return ammBnb.interface.encodeFunctionData("swap", [usdt.address, amountIn, wbnb.address, to]);
+    }
+    function bnbParams(over: Partial<any> = {}) {
+      return params({
+        vDebt: VBNB, // native BNB market
+        router2: ammBnb.address,
+        swapCalldata2: bnbSwapCalldata(SEIZED, liq.address),
+        intermediateToken: usdt.address,
+        ...over,
+      });
+    }
+
+    beforeEach(async () => {
+      ammBnb = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+      await liq.connect(owner).setRouter(ammBnb.address, true);
+      // hop-1 router (Native mock) already holds USDT (from deploy()); hop-2 AMM pays out WBNB.
+      await wbnb.setBalanceOf(ammBnb.address, OUT);
+      // Back the WBNB mock with native BNB so `withdraw()`'s `.transfer` can pay out the unwrapped repay.
+      await setBalance(wbnb.address, U("1000000"));
+    });
+
+    it("inventory: unwraps only the repay, sells bStock -> USDT -> WBNB, keeps the incentive", async () => {
+      await wbnb.setBalanceOf(liq.address, REPAY); // pre-funded WBNB float
+
+      expect(await liq.connect(owner).callStatic.liquidate(bnbParams())).to.equal(OUT);
+
+      await expect(liq.connect(owner).liquidate(bnbParams()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, VBNB, REPAY, SEIZED, OUT, false);
+
+      expect(await wbnb.balanceOf(liq.address)).to.equal(OUT); // float consumed, proceeds retained as WBNB
+      expect(await ethers.provider.getBalance(liq.address)).to.equal(0); // no native BNB retained
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+      // The native repay reached the gate.
+      expect(await ethers.provider.getBalance(venusLiq.address)).to.equal(REPAY);
+    });
+
+    it("flash: borrows WBNB from vWBNB, unwraps, settles, repays principal + premium", async () => {
+      await wbnb.setBalanceOf(vWBNB.address, REPAY); // vWBNB lends the WBNB principal
+      await comptroller.setFlashPremium(U("0.001"));
+      const premium = REPAY.mul(U("0.001")).div(U("1"));
+
+      await expect(liq.connect(owner).flashLiquidate(bnbParams()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, VBNB, REPAY, SEIZED, OUT, true);
+
+      expect(await wbnb.balanceOf(liq.address)).to.equal(OUT.sub(REPAY).sub(premium));
+      expect(await wbnb.balanceOf(vWBNB.address)).to.equal(REPAY.add(premium)); // principal + premium back
+      expect(await ethers.provider.getBalance(liq.address)).to.equal(0); // no native BNB retained
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate consumed
+    });
+
+    it("enforces minOut in WBNB when the hop-2 rate underdelivers", async () => {
+      await wbnb.setBalanceOf(liq.address, REPAY);
+      await ammBnb.setRate(U("0.9")); // 5500 USDT -> 4950 WBNB, below the 5400 minOut
+      await expect(liq.connect(owner).liquidate(bnbParams())).to.be.revertedWithCustomError(liq, "InsufficientOut");
+      expect(await wbnb.balanceOf(liq.address)).to.equal(REPAY); // reverted, float intact
+    });
+
+    it("flash: will not let WBNB inventory mask a swap below principal + premium", async () => {
+      await wbnb.setBalanceOf(vWBNB.address, REPAY); // flash principal
+      await wbnb.setBalanceOf(liq.address, U("2000")); // inventory that could silently backfill
+      await comptroller.setFlashPremium(U("0.001")); // obligation 5005
+      await ammBnb.setRate(U("0.8")); // 5500 -> 4400 WBNB: clears a loose minOut but < 5005
+      const p = bnbParams({ minOut: U("4000") });
+      await expect(liq.connect(owner).flashLiquidate(p)).to.be.revertedWithCustomError(liq, "InsufficientOut");
+      expect(await wbnb.balanceOf(liq.address)).to.equal(U("2000")); // inventory untouched
+    });
+
+    it("rejects a single-hop BNB config (router2 == 0)", async () => {
+      await wbnb.setBalanceOf(liq.address, REPAY);
+      await expect(
+        liq.connect(owner).liquidate(bnbParams({ router2: ZERO, swapCalldata2: "0x", intermediateToken: ZERO })),
+      ).to.be.revertedWithCustomError(liq, "InvalidIntermediate");
+    });
+
+    it("sweepNative: owner recovers stray native BNB, non-owner and zero recipient revert", async () => {
+      await setBalance(stranger.address, U("10"));
+      await stranger.sendTransaction({ to: liq.address, value: U("3") });
+      expect(await ethers.provider.getBalance(liq.address)).to.equal(U("3"));
+
+      await expect(liq.connect(stranger).sweepNative(stranger.address, U("1"))).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
+      await expect(liq.connect(owner).sweepNative(ZERO, U("1"))).to.be.revertedWithCustomError(
+        liq,
+        "ZeroAddressNotAllowed",
+      );
+      await expect(liq.connect(owner).sweepNative(owner.address, U("3")))
+        .to.emit(liq, "SweptNative")
+        .withArgs(owner.address, U("3"));
+      expect(await ethers.provider.getBalance(liq.address)).to.equal(0);
+    });
+  });
+
   describe("flash callback guards (executeOperation)", () => {
     it("rejects a caller other than the Comptroller", async () => {
       await expect(
@@ -408,11 +525,14 @@ describe("BStockLiquidator (atomic)", () => {
       await expect(liq.initialize(owner.address)).to.be.revertedWith("Initializable: contract is already initialized");
       const Factory = await ethers.getContractFactory("BStockLiquidator");
       // zero comptroller -> implementation constructor reverts
-      await expect(Factory.deploy(ZERO)).to.be.revertedWithCustomError(Factory, "ZeroAddressNotAllowed");
+      await expect(Factory.deploy(ZERO, VBNB, vWBNB.address, wbnb.address)).to.be.revertedWithCustomError(
+        Factory,
+        "ZeroAddressNotAllowed",
+      );
       // zero owner -> initializer reverts during proxy deploy
       await expect(
         upgrades.deployProxy(Factory, [ZERO], {
-          constructorArgs: [comptroller.address],
+          constructorArgs: [comptroller.address, VBNB, vWBNB.address, wbnb.address],
           unsafeAllow: ["constructor", "state-variable-immutable"],
         }),
       ).to.be.revertedWithCustomError(Factory, "ZeroAddressNotAllowed");

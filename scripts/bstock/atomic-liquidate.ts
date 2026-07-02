@@ -31,6 +31,9 @@
  *   SLIPPAGE        Native slippage %, default 0.5
  *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%)
  *   AMM_PROVIDER    hop-2 route source for non-USDT debt: kyberswap (default) | openocean | pcsv2
+ *   WBNB_ADDR       WBNB token, used only for a vBNB (native BNB) debt market (default: BSC WBNB).
+ *                   Native BNB debt is auto-detected (vBNB has no underlying()) and accounted in WBNB;
+ *                   the contract unwraps the repay, so pre-fund inventory in WBNB (MODE=inventory).
  *   DRY_RUN         "1" -> callStatic only, send nothing
  *   MOCK_NATIVE     hop-1 "router:calldata" for fork/local tests (see below)
  *   MOCK_AMM        hop-2 "router:calldata" for fork/local tests (two-hop); MOCK_OUT = final debt out
@@ -38,7 +41,7 @@
 import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { getAmmSwap } from "./lib/amm";
+import { BSC_WBNB, getAmmSwap } from "./lib/amm";
 import { BSC_USDT, getFirmQuote, quoteDeadline } from "./lib/native";
 
 const PARAMS_TUPLE =
@@ -85,15 +88,23 @@ export async function atomicLiquidate(signer: Signer) {
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, signer);
 
   const comptroller = new Contract(await vBStock.comptroller(), COMPTROLLER_ABI, signer);
-  const debt = new Contract(await vDebt.underlying(), ERC20_ABI, signer);
+
+  // vBNB has no underlying(): a native-BNB debt is accounted in WBNB (1:1 with BNB). The contract
+  // unwraps the repay internally, so off-chain the debt asset for the swap chain + minOut is WBNB.
+  let debtAddr: string;
+  let isBnb = false;
+  try {
+    debtAddr = await vDebt.underlying();
+  } catch {
+    isBnb = true;
+    debtAddr = ethers.utils.getAddress(process.env.WBNB_ADDR || BSC_WBNB);
+  }
+  const debt = new Contract(debtAddr, ERC20_ABI, signer);
   const bStock = new Contract(await vBStock.underlying(), ERC20_ABI, signer);
-  const [debtDec, debtSym, bStockDec, bStockSym] = await Promise.all([
-    debt.decimals(),
-    debt.symbol(),
-    bStock.decimals(),
-    bStock.symbol(),
-  ]);
+  const [bStockDec, bStockSym] = await Promise.all([bStock.decimals(), bStock.symbol()]);
+  const [debtDec, debtSym] = isBnb ? [18, "WBNB"] : await Promise.all([debt.decimals(), debt.symbol()]);
   const repay = ethers.utils.parseUnits(env("REPAY_AMOUNT"), debtDec);
+  if (isBnb) console.log(`native BNB debt: accounting in WBNB ${debt.address} (contract unwraps the repay)`);
 
   // 0. liquidatable?
   const [, , shortfall]: BigNumber[] = await comptroller.getAccountLiquidity(borrower);
