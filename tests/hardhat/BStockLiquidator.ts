@@ -1,4 +1,4 @@
-import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { SnapshotRestorer, setBalance, takeSnapshot } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { ethers, upgrades } from "hardhat";
@@ -102,6 +102,17 @@ describe("BStockLiquidator (atomic)", () => {
       ...over,
     };
   }
+
+  // Snapshot the pristine chain before the suite and restore it after, so per-test mutations of
+  // shared default signers (e.g. setBalance(stranger) in the sweepNative test) don't leak into
+  // later test files that reuse the same signer indexes (e.g. Fork/TokenRedeemer's treasury).
+  let pristine: SnapshotRestorer;
+  before(async () => {
+    pristine = await takeSnapshot();
+  });
+  after(async () => {
+    await pristine.restore();
+  });
 
   beforeEach(deploy);
 
