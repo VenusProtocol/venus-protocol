@@ -122,8 +122,8 @@ export async function atomicLiquidate(signer: Signer) {
     if (!liqTreasuryPct.eq(0)) {
       const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
       const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
-      const ours = bonusAmount.mul(liqTreasuryPct).div(ONE);
-      vReceived = seizeTokens.sub(ours);
+      const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
+      vReceived = seizeTokens.sub(treasuryCut);
     }
   }
 

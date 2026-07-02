@@ -29,7 +29,11 @@ export interface AmmSwapParams {
   chain?: string; // default "bsc"
   tokenIn: string; // intermediate (USDT)
   tokenOut: string; // debt asset
-  amountIn: string; // wei of tokenIn to sell (the exact hop-1 output)
+  // Wei of tokenIn to sell. Providers bake this into the swap calldata as a FIXED input amount, while
+  // the contract approves router2 only the ACTUAL on-chain hop-1 output (`midDelta`). Pass the exact
+  // hop-1 output: if `midDelta` ends up below this value the router pulls more than approved and the
+  // hop reverts `SwapFailed()`. Native RFQ (hop 1) fills firm quotes exactly, so the two match.
+  amountIn: string;
   recipient: string; // where the debt asset must land (the liquidator contract)
   slippage: number; // percent, e.g. 0.5
 }
@@ -122,6 +126,12 @@ async function openocean(p: AmmSwapParams): Promise<AmmSwap> {
  * Offline / CI fallback: encode PancakeSwap V2 `swapExactTokensForTokens` locally and read the
  * expected out from the router's `getAmountsOut` view. Path from `AMM_PATH` (comma-separated), else
  * a direct [tokenIn, tokenOut] pair; set AMM_PATH to route through WBNB when there is no direct pool.
+ *
+ * Caveat: `amountIn` is encoded verbatim as the V2 `amountIn`, so the router pulls exactly that many
+ * tokens. The contract approves router2 only the actual hop-1 output (`midDelta`), so if `midDelta`
+ * is even 1 wei below the `amountIn` passed here the pull exceeds the approval and the hop reverts
+ * `SwapFailed()` with no further detail. Hop 1 is a Native RFQ firm quote (exact fill), so in the
+ * normal flow `midDelta == amountIn`; keep hop 1 on Native and do not hand this a stale/rounded value.
  */
 async function pcsv2(p: AmmSwapParams, rpc?: providers.Provider): Promise<AmmSwap> {
   if (!rpc) throw new Error("pcsv2 AMM provider needs an RPC provider (pass one to getAmmSwap)");
