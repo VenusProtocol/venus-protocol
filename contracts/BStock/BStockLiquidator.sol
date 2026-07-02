@@ -143,6 +143,8 @@ contract BStockLiquidator is
     ) external override onlyOperator nonReentrant returns (uint256 debtOut) {
         _validateRouter(params.router);
         if (params.router2 != address(0)) _validateRouter(params.router2);
+
+        if (params.minOut == 0) revert ZeroMinOut();
         uint256 seizedBStock;
         (debtOut, seizedBStock) = _liquidate(params);
         emit Liquidated(
@@ -164,6 +166,8 @@ contract BStockLiquidator is
     function flashLiquidate(LiquidationParams calldata params) external override onlyOperator nonReentrant {
         _validateRouter(params.router);
         if (params.router2 != address(0)) _validateRouter(params.router2);
+
+        if (params.minOut == 0) revert ZeroMinOut();
 
         IVToken[] memory vTokens = new IVToken[](1);
         vTokens[0] = params.vDebt;

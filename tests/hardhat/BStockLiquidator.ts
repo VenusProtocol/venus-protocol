@@ -355,6 +355,17 @@ describe("BStockLiquidator (atomic)", () => {
       await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "InsufficientOut");
     });
 
+    it("rejects a zero minOut on both entrypoints", async () => {
+      await expect(liq.connect(owner).liquidate(params({ minOut: 0 }))).to.be.revertedWithCustomError(
+        liq,
+        "ZeroMinOut",
+      );
+      await expect(liq.connect(owner).flashLiquidate(params({ minOut: 0 }))).to.be.revertedWithCustomError(
+        liq,
+        "ZeroMinOut",
+      );
+    });
+
     it("bubbles up a non-zero redeem error code", async () => {
       await vBStock.setRedeemError(7);
       await expect(liq.connect(owner).liquidate(params()))

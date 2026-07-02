@@ -72,6 +72,10 @@ interface IBStockLiquidator {
     /// @notice Thrown when swap proceeds are below `minOut`.
     error InsufficientOut(uint256 got, uint256 minOut);
 
+    /// @notice Thrown when `minOut` is zero: a liquidation must set a non-zero debt-asset floor,
+    ///         else it would silently accept any proceeds (including zero).
+    error ZeroMinOut();
+
     /// @notice Thrown when a two-hop `intermediateToken` is zero, or equals the debt or bStock token.
     error InvalidIntermediate();
 
