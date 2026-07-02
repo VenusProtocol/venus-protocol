@@ -124,8 +124,13 @@ export async function atomicLiquidate(signer: Signer) {
   const seizedHuman = ethers.utils.formatUnits(seizedRaw, bStockDec);
   console.log(`seize ${ethers.utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${seizedHuman} ${bStockSym}`);
 
-  // 3. firm-quote, taker = the LIQUIDATOR CONTRACT (so it can submit + receive USDT).
-  const usdtAddr = process.env.USDT_ADDR || BSC_USDT;
+  // 3. firm-quote, taker = the LIQUIDATOR CONTRACT (so it can submit + receive the debt asset).
+  // The contract measures swap proceeds in the DEBT asset and enforces `minOut` in it, so the quote
+  // output token MUST be the debt underlying, not a hardcoded USDT. Native only quotes bStock->USDT on
+  // BSC (every bStock pair in the live orderbook is *<->USDT, no other quote token), so the debt market
+  // has to be USDT for this atomic path. Assert that up front instead of eating a cryptic on-chain
+  // InsufficientOut(0, minOut) revert; non-USDT debt is settled off-chain via the Safe fallback.
+  const nativeOut = ethers.utils.getAddress(process.env.USDT_ADDR || BSC_USDT);
   let router: string;
   let swapCalldata: string;
   let amountOut: BigNumber;
@@ -137,10 +142,17 @@ export async function atomicLiquidate(signer: Signer) {
     swapCalldata = data;
     amountOut = BigNumber.from(process.env.MOCK_OUT || "0");
   } else {
+    if (debt.address.toLowerCase() !== nativeOut.toLowerCase()) {
+      throw new Error(
+        `debt underlying ${debtSym} (${debt.address}) is not the Native RFQ output token (${nativeOut}). ` +
+          `Native only quotes bStock->USDT and the contract requires swap output == debt asset. ` +
+          `Use a USDT debt market, or the Safe fallback (safe-fallback.ts) for non-USDT debt.`,
+      );
+    }
     const q = await getFirmQuote({
       fromAddress: liquidator.address,
       tokenIn: bStock.address,
-      tokenOut: usdtAddr,
+      tokenOut: debt.address,
       amount: seizedHuman,
       slippage,
     });
