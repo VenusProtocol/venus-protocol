@@ -1,15 +1,21 @@
 /**
  * bStock ATOMIC liquidation — drives the on-chain `BStockLiquidator` contract.
  *
- * One tx: the contract repays the borrow, seizes + redeems the bStock, and sells it to
- * USDT via a pre-fetched Native firm-quote. This script does the OFF-CHAIN half (precompute
- * the seize amount, fetch the MM-signed firm-quote with `from_address = the contract`) and
- * then calls `liquidate` (inventory mode) or `flashLiquidate` (Venus flash-loan mode).
+ * One tx: the contract repays the borrow, seizes + redeems the bStock, and sells it to the debt
+ * asset in one or two hops. Hop 1 is always a pre-fetched Native firm-quote (bStock -> USDT). For a
+ * USDT debt market that single hop is the debt asset; for a non-USDT debt market a second hop
+ * (USDT -> debt via an allowlisted AMM/aggregator, see lib/amm.ts) is appended. This script does the
+ * OFF-CHAIN half (precompute the seize, fetch the quotes with `from_address = the contract`) and then
+ * calls `liquidate` (inventory mode) or `flashLiquidate` (Venus flash-loan mode).
  *
  *   1. Comptroller.liquidateCalculateSeizeTokens(vDebt, vBStock, repay)  -> seize vTokens
  *   2. seizeTokens * vBStock.exchangeRateStored() / 1e18                  -> raw bStock (floor)
- *   3. Native firm-quote (from_address = LIQUIDATOR contract)            -> txRequest + amountOut
+ *   3. Native firm-quote (bStock -> USDT) [+ AMM quote USDT -> debt]      -> router(s) + calldata + out
  *   4. BStockLiquidator.liquidate / flashLiquidate(params)               -> atomic settle
+ *
+ * IMPORTANT: for a two-hop run the settle tx MUST be submitted through Venus's PRIVATE RPC, never a
+ * public one — hop 2 is a public-mempool AMM swap and `minOut` only bounds loss, not sandwich-induced
+ * reverts. Prefer MODE=flash for two-hop so a revert only burns gas, not locked inventory.
  *
  * Usage:
  *   NATIVE_API_KEY=... LIQUIDATOR=0x.. BORROWER=0x.. VBSTOCK=0x.. VDEBT=0x.. REPAY_AMOUNT=5000 \
@@ -24,17 +30,22 @@
  *   MODE            "inventory" (default) | "flash"
  *   SLIPPAGE        Native slippage %, default 0.5
  *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%)
+ *   AMM_PROVIDER    hop-2 route source for non-USDT debt: kyberswap (default) | openocean | pcsv2
  *   DRY_RUN         "1" -> callStatic only, send nothing
- *   MOCK_NATIVE     router addr + calldata source for fork tests (see below)
+ *   MOCK_NATIVE     hop-1 "router:calldata" for fork/local tests (see below)
+ *   MOCK_AMM        hop-2 "router:calldata" for fork/local tests (two-hop); MOCK_OUT = final debt out
  */
 import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 
+import { getAmmSwap } from "./lib/amm";
 import { BSC_USDT, getFirmQuote, quoteDeadline } from "./lib/native";
 
+const PARAMS_TUPLE =
+  "(address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut,address router2,bytes swapCalldata2,address intermediateToken)";
 const LIQUIDATOR_ABI = [
-  "function liquidate((address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut)) returns (uint256)",
-  "function flashLiquidate((address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut))",
+  `function liquidate(${PARAMS_TUPLE}) returns (uint256)`,
+  `function flashLiquidate(${PARAMS_TUPLE})`,
   "function isRouter(address) view returns (bool)",
 ];
 const VTOKEN_ABI = [
@@ -124,35 +135,42 @@ export async function atomicLiquidate(signer: Signer) {
   const seizedHuman = ethers.utils.formatUnits(seizedRaw, bStockDec);
   console.log(`seize ${ethers.utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${seizedHuman} ${bStockSym}`);
 
-  // 3. firm-quote, taker = the LIQUIDATOR CONTRACT (so it can submit + receive the debt asset).
-  // The contract measures swap proceeds in the DEBT asset and enforces `minOut` in it, so the quote
-  // output token MUST be the debt underlying, not a hardcoded USDT. Native only quotes bStock->USDT on
-  // BSC (every bStock pair in the live orderbook is *<->USDT, no other quote token), so the debt market
-  // has to be USDT for this atomic path. Assert that up front instead of eating a cryptic on-chain
-  // InsufficientOut(0, minOut) revert; non-USDT debt is settled off-chain via the Safe fallback.
+  // 3. Build the swap, taker = the LIQUIDATOR CONTRACT (so it can submit + receive the debt asset).
+  // The contract measures proceeds in the DEBT asset and enforces `minOut` in it. Native only quotes
+  // bStock->USDT on BSC (every bStock pair in the live orderbook is *<->USDT), so:
+  //   - USDT debt  -> single hop: Native bStock->USDT is already the debt asset.
+  //   - other debt -> two hops:   Native bStock->USDT (hop 1), then USDT->debt via an allowlisted
+  //                               AMM/aggregator (hop 2, see lib/amm.ts). `minOut` is in the debt asset
+  //                               across the whole chain; `amountOut` below is the FINAL debt out.
   const nativeOut = ethers.utils.getAddress(process.env.USDT_ADDR || BSC_USDT);
+  const twoHop = debt.address.toLowerCase() !== nativeOut.toLowerCase();
+
   let router: string;
   let swapCalldata: string;
-  let amountOut: BigNumber;
+  let amountOut: BigNumber; // final debt-asset out (drives minOut)
+  let router2 = ethers.constants.AddressZero;
+  let swapCalldata2 = "0x";
+  let intermediateToken = ethers.constants.AddressZero;
 
   if (process.env.MOCK_NATIVE) {
-    // Fork-test path: MOCK_NATIVE = "<router>:<calldata>" pre-encoded against a MockNativeRouter.
+    // Fork/local-test path: MOCK_NATIVE = "<router>:<calldata>" (hop 1), optional MOCK_AMM = same for
+    // hop 2, both pre-encoded against a MockNativeRouter. MOCK_OUT is the FINAL debt out.
     const [r, data] = process.env.MOCK_NATIVE.split(":");
     router = ethers.utils.getAddress(r);
     swapCalldata = data;
     amountOut = BigNumber.from(process.env.MOCK_OUT || "0");
-  } else {
-    if (debt.address.toLowerCase() !== nativeOut.toLowerCase()) {
-      throw new Error(
-        `debt underlying ${debtSym} (${debt.address}) is not the Native RFQ output token (${nativeOut}). ` +
-          `Native only quotes bStock->USDT and the contract requires swap output == debt asset. ` +
-          `Use a USDT debt market, or the Safe fallback (safe-fallback.ts) for non-USDT debt.`,
-      );
+    if (process.env.MOCK_AMM) {
+      const [r2, data2] = process.env.MOCK_AMM.split(":");
+      router2 = ethers.utils.getAddress(r2);
+      swapCalldata2 = data2;
+      intermediateToken = nativeOut;
     }
+  } else {
+    // Hop 1: Native RFQ always outputs USDT (bStock pairs only with USDT on BSC).
     const q = await getFirmQuote({
       fromAddress: liquidator.address,
       tokenIn: bStock.address,
-      tokenOut: debt.address,
+      tokenOut: nativeOut,
       amount: seizedHuman,
       slippage,
     });
@@ -160,14 +178,42 @@ export async function atomicLiquidate(signer: Signer) {
     if (ttl <= 0) throw new Error("quote already expired — refetch");
     router = q.txRequest.target;
     swapCalldata = q.txRequest.calldata;
-    amountOut = BigNumber.from(q.amountOut);
-    console.log(
-      `Native quote: ${seizedHuman} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (TTL ${ttl}s, router ${router})`,
-    );
+    const midOut = BigNumber.from(q.amountOut); // USDT out of hop 1
+
+    if (twoHop) {
+      // Hop 2: convert the hop-1 USDT to the (non-USDT) debt asset via an allowlisted AMM/aggregator.
+      const amm = await getAmmSwap(
+        {
+          tokenIn: nativeOut,
+          tokenOut: debt.address,
+          amountIn: midOut.toString(),
+          recipient: liquidator.address,
+          slippage,
+        },
+        ethers.provider,
+      );
+      router2 = ethers.utils.getAddress(amm.router);
+      swapCalldata2 = amm.calldata;
+      intermediateToken = nativeOut;
+      amountOut = BigNumber.from(amm.expectedOut);
+      console.log(
+        `Native: ${seizedHuman} ${bStockSym} -> ${ethers.utils.formatUnits(midOut, 18)} USDT (TTL ${ttl}s, ${router}); ` +
+          `AMM: -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (${router2})`,
+      );
+    } else {
+      amountOut = midOut;
+      console.log(
+        `Native quote: ${seizedHuman} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (TTL ${ttl}s, router ${router})`,
+      );
+    }
   }
 
-  if (!(await liquidator.isRouter(router))) {
-    throw new Error(`router ${router} is not allowlisted on the liquidator — call setRouter first`);
+  // Both hop routers must be allowlisted on the liquidator (the low-level call is defended by isRouter).
+  const routers = router2 !== ethers.constants.AddressZero ? [router, router2] : [router];
+  for (const r of routers) {
+    if (!(await liquidator.isRouter(r))) {
+      throw new Error(`router ${r} is not allowlisted on the liquidator — call setRouter first`);
+    }
   }
 
   // minOut = amountOut minus an extra safety buffer on top of the quote slippage.
@@ -181,6 +227,9 @@ export async function atomicLiquidate(signer: Signer) {
     router,
     swapCalldata,
     minOut,
+    router2,
+    swapCalldata2,
+    intermediateToken,
   };
 
   // Inventory mode spends the contract's own debt-asset balance; warn early if it can't cover the

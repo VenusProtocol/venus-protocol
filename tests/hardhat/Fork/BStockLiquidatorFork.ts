@@ -140,6 +140,10 @@ const test = () => {
         // Loose floor: the real Venus Liquidator keeps a treasury cut of the seized collateral, so
         // proceeds land a few % under the full redeemed value. Profit is asserted strictly below.
         minOut: redeemed.mul(90).div(100),
+        // Single hop (USDT debt): no second AMM leg.
+        router2: ethers.constants.AddressZero,
+        swapCalldata2: "0x",
+        intermediateToken: ethers.constants.AddressZero,
       };
 
       const borrowBefore = await vDebt.connect(owner).callStatic.borrowBalanceCurrent(borrower.address);

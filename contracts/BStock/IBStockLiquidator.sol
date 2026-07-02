@@ -11,14 +11,23 @@ import { IVBep20 } from "../InterfacesV8.sol";
 ///      by {BStockLiquidator}, keeping this interface free of the concrete `VToken` dependency.
 interface IBStockLiquidator {
     /// @notice Parameters for a single liquidation.
+    /// @dev The swap can be one or two hops. When `router2 == address(0)` it is a single hop
+    ///      (bStock -> debt) and `swapCalldata2` / `intermediateToken` are ignored — behavior is
+    ///      identical to the single-hop version. When `router2` is set it is two hops
+    ///      (bStock -> `intermediateToken` -> debt): hop 1 sells bStock via `router`, hop 2 converts
+    ///      the intermediate to the debt asset via `router2`. `minOut` is always the FINAL debt-asset
+    ///      floor across the whole chain.
     struct LiquidationParams {
         address borrower; // account to liquidate
         IVBep20 vDebt; // borrowed market to repay (e.g. vUSDT)
         IVBep20 vBStock; // bStock collateral market to seize (e.g. vTSLAB)
         uint256 repayAmount; // debt underlying to repay (its own decimals)
-        address router; // Native router = firm-quote txRequest.target (must be allowlisted)
-        bytes swapCalldata; // firm-quote txRequest.calldata (MM-signed order)
-        uint256 minOut; // minimum debt-asset amount the swap must yield, else revert
+        address router; // hop-1 router = Native firm-quote txRequest.target (must be allowlisted)
+        bytes swapCalldata; // hop-1 calldata (MM-signed Native order): bStock -> intermediate (or -> debt if single-hop)
+        uint256 minOut; // minimum FINAL debt-asset amount the swap chain must yield, else revert
+        address router2; // hop-2 router (AMM/aggregator): intermediate -> debt; address(0) = single-hop
+        bytes swapCalldata2; // hop-2 calldata; the swap recipient inside it MUST be this contract
+        address intermediateToken; // token hop 1 outputs and hop 2 consumes (e.g. USDT); required when router2 set
     }
 
     /// @notice Emitted when an operator is allowlisted or removed.
@@ -61,6 +70,9 @@ interface IBStockLiquidator {
     /// @notice Thrown when swap proceeds are below `minOut`.
     error InsufficientOut(uint256 got, uint256 minOut);
 
+    /// @notice Thrown when a two-hop `intermediateToken` is zero, or equals the debt or bStock token.
+    error InvalidIntermediate();
+
     /// @notice Thrown when `executeOperation` is called by something other than the Comptroller.
     error OnlyComptroller();
 
@@ -89,13 +101,15 @@ interface IBStockLiquidator {
     /// @notice Liquidate using the contract's own debt-asset inventory.
     /// @dev The contract must already hold >= `repayAmount` of `vDebt.underlying()`.
     ///      Profit (proceeds - repay) stays in the contract; withdraw it with `sweep`.
-    /// @param params Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).
-    /// @return debtOut Debt-asset proceeds realized by the swap.
+    /// @param params Liquidation parameters (borrower, markets, repay, hop-1 router + calldata, final
+    ///        minOut, and the optional hop-2 router/calldata/intermediate for non-USDT debt).
+    /// @return debtOut Debt-asset proceeds realized by the swap chain.
     function liquidate(LiquidationParams calldata params) external returns (uint256 debtOut);
 
     /// @notice Liquidate by flash-borrowing the repay amount from Venus, repaid (+ premium) in the same tx.
     /// @dev Requires this contract to be `authorizedFlashLoan` in the Comptroller and `vDebt` flash-enabled.
     ///      Profit (proceeds - repay - premium) stays in the contract; withdraw it with `sweep`.
-    /// @param params Liquidation parameters (borrower, markets, repay, router, signed swap calldata, minOut).
+    /// @param params Liquidation parameters (borrower, markets, repay, hop-1 router + calldata, final
+    ///        minOut, and the optional hop-2 router/calldata/intermediate for non-USDT debt).
     function flashLiquidate(LiquidationParams calldata params) external;
 }

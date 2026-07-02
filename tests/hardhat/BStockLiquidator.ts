@@ -72,6 +72,8 @@ describe("BStockLiquidator (atomic)", () => {
     return router.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, to]);
   }
 
+  // Default builder is SINGLE-HOP (router2 = 0): every test using params() is also the single-hop
+  // regression against the new optional fields. Two-hop tests fill router2/swapCalldata2/intermediate.
   function params(over: Partial<any> = {}) {
     return {
       borrower: borrower.address,
@@ -81,6 +83,9 @@ describe("BStockLiquidator (atomic)", () => {
       router: router.address,
       swapCalldata: swapCalldata(SEIZED, liq.address),
       minOut: MIN_OUT,
+      router2: ZERO,
+      swapCalldata2: "0x",
+      intermediateToken: ZERO,
       ...over,
     };
   }
@@ -182,6 +187,115 @@ describe("BStockLiquidator (atomic)", () => {
       const p = params({ minOut: U("4000") });
       await expect(liq.connect(owner).flashLiquidate(p)).to.be.revertedWithCustomError(liq, "InsufficientOut");
       expect(await usdt.balanceOf(liq.address)).to.equal(U("2000")); // inventory untouched
+    });
+  });
+
+  // Two-hop: non-USDT debt. Hop 1 (Native mock) sells bStock -> USDT; hop 2 (a second router mock,
+  // standing in for the AMM/aggregator) converts USDT -> the debt token. A single final minOut in the
+  // debt token covers the whole chain. Both hops at 1:1 -> SEIZED bStock => OUT debt.
+  describe("two-hop mode (non-USDT debt)", () => {
+    let btcb: Contract, vBtcb: Contract, amm: Contract;
+
+    // hop-2 calldata against the AMM mock: swap(USDT, amountIn, BTCB, to).
+    function ammSwapCalldata(amountIn: BigNumber, to: string) {
+      return amm.interface.encodeFunctionData("swap", [usdt.address, amountIn, btcb.address, to]);
+    }
+    function ammSwapAllCalldata(to: string) {
+      return amm.interface.encodeFunctionData("swapAll", [usdt.address, btcb.address, to]);
+    }
+    function twoHopParams(over: Partial<any> = {}) {
+      return params({
+        vDebt: vBtcb.address, // debt is now BTCB, not USDT
+        router2: amm.address,
+        swapCalldata2: ammSwapCalldata(SEIZED, liq.address),
+        intermediateToken: usdt.address,
+        ...over,
+      });
+    }
+
+    beforeEach(async () => {
+      const ERC20 = await ethers.getContractFactory("MockMintableERC20");
+      btcb = await ERC20.deploy("Bitcoin BEP20", "BTCB", 18);
+      vBtcb = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(btcb.address, comptroller.address);
+      amm = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+      await liq.connect(owner).setRouter(amm.address, true);
+      // hop-1 router already holds USDT (from deploy()); hop-2 router pays out BTCB.
+      await btcb.mint(amm.address, OUT);
+    });
+
+    it("inventory: bStock -> USDT -> BTCB, keeps the incentive as profit", async () => {
+      await btcb.mint(liq.address, REPAY); // pre-funded debt inventory
+
+      expect(await liq.connect(owner).callStatic.liquidate(twoHopParams())).to.equal(OUT);
+
+      await expect(liq.connect(owner).liquidate(twoHopParams()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+
+      expect(await btcb.balanceOf(liq.address)).to.equal(OUT); // 5500 BTCB, profit = OUT - REPAY
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+      // No standing approvals on either hop.
+      expect(await bStock.allowance(liq.address, router.address)).to.equal(0);
+      expect(await usdt.allowance(liq.address, amm.address)).to.equal(0);
+    });
+
+    it("flash: flash-borrows BTCB, two-hop settles, repays principal + premium", async () => {
+      await btcb.mint(vBtcb.address, REPAY); // the vToken lends the principal
+      await comptroller.setFlashPremium(U("0.001"));
+      const premium = REPAY.mul(U("0.001")).div(U("1"));
+
+      await expect(liq.connect(owner).flashLiquidate(twoHopParams()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, true);
+
+      expect(await btcb.balanceOf(liq.address)).to.equal(OUT.sub(REPAY).sub(premium));
+      expect(await btcb.balanceOf(vBtcb.address)).to.equal(REPAY.add(premium));
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+    });
+
+    it("enforces minOut in the debt asset when the hop-2 (AMM) rate underdelivers", async () => {
+      await btcb.mint(liq.address, REPAY);
+      await amm.setRate(U("0.9")); // 5500 USDT -> 4950 BTCB, below the 5400 minOut
+      await expect(liq.connect(owner).liquidate(twoHopParams())).to.be.revertedWithCustomError(liq, "InsufficientOut");
+      expect(await btcb.balanceOf(liq.address)).to.equal(REPAY); // reverted, inventory intact
+    });
+
+    it("rejects a non-allowlisted hop-2 router (both entrypoints)", async () => {
+      await btcb.mint(liq.address, REPAY);
+      const p = twoHopParams({ router2: stranger.address });
+      await expect(liq.connect(owner).liquidate(p)).to.be.revertedWithCustomError(liq, "RouterNotAllowed");
+      await expect(liq.connect(owner).flashLiquidate(p)).to.be.revertedWithCustomError(liq, "RouterNotAllowed");
+    });
+
+    it("reverts InvalidIntermediate when the intermediate equals debt, bStock, or zero", async () => {
+      await btcb.mint(liq.address, REPAY);
+      for (const bad of [btcb.address, bStock.address, ZERO]) {
+        await expect(
+          liq.connect(owner).liquidate(twoHopParams({ intermediateToken: bad })),
+        ).to.be.revertedWithCustomError(liq, "InvalidIntermediate");
+      }
+    });
+
+    it("sells only the hop-1 proceeds — pre-existing intermediate inventory is excluded", async () => {
+      await btcb.mint(liq.address, REPAY);
+      await usdt.mint(liq.address, U("2000")); // stray USDT inventory
+
+      await expect(liq.connect(owner).liquidate(twoHopParams()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, REPAY, SEIZED, OUT, false);
+
+      expect(await usdt.balanceOf(liq.address)).to.equal(U("2000")); // stray USDT untouched
+      expect(await btcb.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("caps the hop-2 approval at the hop-1 delta (a swapAll cannot drain intermediate inventory)", async () => {
+      await btcb.mint(liq.address, REPAY);
+      await usdt.mint(liq.address, U("2000")); // inventory a greedy swapAll would try to take
+      // swapAll pulls the caller's ENTIRE USDT balance (7500), but the approval is capped at midDelta (5500).
+      const p = twoHopParams({ swapCalldata2: ammSwapAllCalldata(liq.address) });
+      await expect(liq.connect(owner).liquidate(p)).to.be.revertedWithCustomError(liq, "SwapFailed");
+      expect(await usdt.balanceOf(liq.address)).to.equal(U("2000")); // reverted, inventory intact
     });
   });
 

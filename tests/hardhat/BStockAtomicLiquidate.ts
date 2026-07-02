@@ -26,6 +26,7 @@ const SCRIPT_ENV = [
   "REPAY_AMOUNT",
   "USDT_ADDR",
   "MOCK_NATIVE",
+  "MOCK_AMM",
   "MOCK_OUT",
   "MODE",
   "DRY_RUN",
@@ -144,5 +145,48 @@ describe("bStock atomic liquidation script", () => {
 
     await expect(atomicLiquidate(owner)).to.be.rejectedWith("not allowlisted");
     expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+  });
+
+  // Two-hop (non-USDT debt): the debt is BTCB, so the script appends a hop-2 swap. Both hops are
+  // driven through MOCK_NATIVE (bStock->USDT) + MOCK_AMM (USDT->BTCB); MOCK_OUT is the final BTCB out.
+  async function deployTwoHop() {
+    const ERC20 = await ethers.getContractFactory("MockMintableERC20");
+    const btcb = await ERC20.deploy("Bitcoin BEP20", "BTCB", 18);
+    const vBtcb = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(btcb.address, comptroller.address);
+    const amm = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+    await btcb.mint(amm.address, OUT); // hop-2 router pays BTCB
+    const hop1 = router.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, liq.address]);
+    const hop2 = amm.interface.encodeFunctionData("swapAll", [usdt.address, btcb.address, liq.address]);
+    return { btcb, vBtcb, amm, hop1, hop2 };
+  }
+
+  it("two-hop mode: appends the AMM hop for non-USDT debt and settles via the contract", async () => {
+    const { btcb, vBtcb, amm, hop1, hop2 } = await deployTwoHop();
+    await liq.connect(owner).setRouter(amm.address, true);
+    await btcb.mint(liq.address, REPAY); // debt inventory
+    setEnv({
+      VDEBT: vBtcb.address,
+      MOCK_NATIVE: `${router.address}:${hop1}`,
+      MOCK_AMM: `${amm.address}:${hop2}`,
+    });
+
+    await atomicLiquidate(owner);
+
+    expect(await btcb.balanceOf(liq.address)).to.equal(OUT); // final debt asset, profit kept
+    expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+  });
+
+  it("two-hop mode: refuses when the hop-2 router is not allowlisted", async () => {
+    const { btcb, vBtcb, amm, hop1, hop2 } = await deployTwoHop();
+    // amm intentionally NOT allowlisted.
+    await btcb.mint(liq.address, REPAY);
+    setEnv({
+      VDEBT: vBtcb.address,
+      MOCK_NATIVE: `${router.address}:${hop1}`,
+      MOCK_AMM: `${amm.address}:${hop2}`,
+    });
+
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith("not allowlisted");
+    expect(await btcb.balanceOf(liq.address)).to.equal(REPAY); // untouched
   });
 });

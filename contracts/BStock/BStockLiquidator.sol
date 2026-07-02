@@ -22,10 +22,13 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  * @notice Atomic backstop liquidator for bStock (ERC-8056 tokenized stock) collateral.
  *
  * In ONE transaction it repays an undercollateralized borrow, seizes the bStock vToken,
- * redeems it to the raw bStock, and sells that bStock to the debt asset through the Native RFQ
- * router using a pre-fetched, MM-signed firm-quote `txRequest`. Because seize and sell
- * happen in the same tx there is no price-drift window, and the realized debt-asset amount must clear
- * `minOut` or the whole call reverts — the protocol never ends up holding the RFQ-only asset.
+ * redeems it to the raw bStock, and sells that bStock to the debt asset in one or two hops. Hop 1
+ * always sells bStock through the Native RFQ router using a pre-fetched, MM-signed firm-quote
+ * `txRequest`. For USDT debt that single hop lands the debt asset directly. For non-USDT debt an
+ * OPTIONAL hop 2 (Native quotes bStock->USDT only) converts the USDT to the debt asset through a
+ * second allowlisted router (an AMM/aggregator). Because seize and sell happen in the same tx there
+ * is no price-drift window, and the realized debt-asset amount must clear `minOut` or the whole call
+ * reverts — the protocol never ends up holding the RFQ-only asset or the intermediate.
  *
  * Two funding modes share the same core (`_liquidate`):
  *   - INVENTORY: the contract is pre-funded with the debt asset and repays from its own balance.
@@ -43,8 +46,11 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *
  * Security model:
  *   - `liquidate` / `flashLiquidate` are `onlyOperator` (owner or allowlisted operator).
- *   - the swap target must be allowlisted (`isRouter`) — defends the low-level `router.call(swapCalldata)`.
- *   - the bStock approval to the router is the exact seized amount, reset to 0 after the swap.
+ *   - BOTH swap targets (`router` and, when set, `router2`) must be allowlisted (`isRouter`) — defends
+ *     the low-level `router.call(swapCalldata)` on each hop.
+ *   - the approval to each router is the exact amount being sold on that hop, reset to 0 afterwards
+ *     (bStock on hop 1; the measured intermediate balance delta on hop 2, so pre-existing inventory
+ *     is never exposed).
  *   - `executeOperation` accepts calls only from the Comptroller with `initiator == this` (i.e. a flash we started).
  *   - the realized debt-asset amount must clear `minOut` or the tx reverts.
  *
@@ -136,6 +142,7 @@ contract BStockLiquidator is
         LiquidationParams calldata params
     ) external override onlyOperator nonReentrant returns (uint256 debtOut) {
         _validateRouter(params.router);
+        if (params.router2 != address(0)) _validateRouter(params.router2);
         uint256 seizedBStock;
         (debtOut, seizedBStock) = _liquidate(params);
         emit Liquidated(params.borrower, address(params.vBStock), params.repayAmount, seizedBStock, debtOut, false);
@@ -148,6 +155,7 @@ contract BStockLiquidator is
     /// @inheritdoc IBStockLiquidator
     function flashLiquidate(LiquidationParams calldata params) external override onlyOperator nonReentrant {
         _validateRouter(params.router);
+        if (params.router2 != address(0)) _validateRouter(params.router2);
 
         IVToken[] memory vTokens = new IVToken[](1);
         vTokens[0] = params.vDebt;
@@ -208,14 +216,24 @@ contract BStockLiquidator is
         if (!isRouter[router]) revert RouterNotAllowed(router);
     }
 
+    /// @dev One swap hop: approve the exact `amount` to the allowlisted `router`, forward the opaque
+    ///      calldata via a low-level call, then reset the approval to 0. The approval caps what the
+    ///      router can pull; if the calldata sells less, the remainder stays as inventory.
+    function _swap(IERC20Upgradeable token, address router, bytes memory data, uint256 amount) private {
+        token.forceApprove(router, amount);
+        (bool ok, ) = router.call(data);
+        if (!ok) revert SwapFailed();
+        token.forceApprove(router, 0); // never leave a standing approval
+    }
+
     /**
      * @dev The atomic sequence shared by both funding modes:
      *      approve debt -> liquidateBorrow (seize vBStock) -> redeem (raw bStock)
-     *      -> approve router -> swap to the debt asset via signed calldata -> assert minOut.
+     *      -> swap bStock to the debt asset (one hop, or two via an intermediate) -> assert minOut.
      *      A `calldata` struct from `liquidate` is copied to memory on entry; `executeOperation`
      *      already holds it in memory (decoded from the flash callback).
      * @param params Liquidation parameters.
-     * @return debtOut Debt-asset proceeds realized by the swap (reverts if below `minOut`).
+     * @return debtOut Debt-asset proceeds realized by the swap chain (reverts if below `minOut`).
      * @return seizedBStock Raw bStock redeemed and sold (balance delta).
      */
     function _liquidate(LiquidationParams memory params) private returns (uint256 debtOut, uint256 seizedBStock) {
@@ -244,12 +262,46 @@ contract BStockLiquidator is
         if (redeemErr != 0) revert RedeemFailed(redeemErr);
         seizedBStock = bStock.balanceOf(address(this)) - rawBefore;
 
-        // 3. Sell the bStock to the debt asset via the allowlisted Native router (MM-signed calldata).
+        // 3. Sell the bStock to the debt asset (one hop, or two via an intermediate) and assert minOut.
+        //    Extracted into `_sellToDebt` to keep this frame within the EVM stack limit.
+        debtOut = _sellToDebt(debt, bStock, seizedBStock, params);
+    }
+
+    /**
+     * @dev Sell `seizedBStock` to the debt asset and enforce `minOut`. Single hop by default
+     *      (bStock -> debt via the Native router). When `params.router2` is set, two hops
+     *      (bStock -> intermediate -> debt): hop 1 sells bStock to the intermediate (USDT) via the
+     *      Native router, hop 2 converts that intermediate to the debt asset via a second allowlisted
+     *      router (AMM/aggregator). `minOut` is measured in the debt asset across the whole chain.
+     * @return debtOut Debt-asset proceeds (balance delta), reverting if below `minOut`.
+     */
+    function _sellToDebt(
+        IERC20Upgradeable debt,
+        IERC20Upgradeable bStock,
+        uint256 seizedBStock,
+        LiquidationParams memory params
+    ) private returns (uint256 debtOut) {
         uint256 debtBefore = debt.balanceOf(address(this));
-        bStock.forceApprove(params.router, seizedBStock);
-        (bool ok, ) = params.router.call(params.swapCalldata);
-        if (!ok) revert SwapFailed();
-        bStock.forceApprove(params.router, 0); // never leave a standing approval
+        if (params.router2 == address(0)) {
+            _swap(bStock, params.router, params.swapCalldata, seizedBStock);
+        } else {
+            // The intermediate must be a real token distinct from both endpoints: if it equals `debt`,
+            // hop 1 would inflate the balance `debtBefore` snapshots against (breaking the proceeds
+            // delta); if it equals `bStock`, the hop-1 sell shrinks the balance and the midDelta
+            // subtraction underflows.
+            if (
+                params.intermediateToken == address(0) ||
+                params.intermediateToken == address(debt) ||
+                params.intermediateToken == address(bStock)
+            ) revert InvalidIntermediate();
+
+            IERC20Upgradeable mid = IERC20Upgradeable(params.intermediateToken);
+            uint256 midBefore = mid.balanceOf(address(this));
+            _swap(bStock, params.router, params.swapCalldata, seizedBStock); // hop 1: bStock -> intermediate
+            // Only the hop-1 proceeds are sold onward; any pre-existing intermediate inventory is excluded.
+            uint256 midDelta = mid.balanceOf(address(this)) - midBefore;
+            _swap(mid, params.router2, params.swapCalldata2, midDelta); // hop 2: intermediate -> debt
+        }
 
         debtOut = debt.balanceOf(address(this)) - debtBefore;
         if (debtOut < params.minOut) revert InsufficientOut(debtOut, params.minOut);
