@@ -5,10 +5,10 @@
  * firm-quote so we can eyeball price, spread, TTL and the returned txRequest.
  *
  * Usage:
- *   NATIVE_API_KEY=... npx hardhat run scripts/bstock/native-quote.ts
+ *   NATIVE_API_KEY=... npx hardhat run scripts/bstock/native-smoke.ts
  *
  * Options (env):
- *   NATIVE_API_KEY=... TOKEN=NVDAB AMOUNT=5 npx hardhat run scripts/bstock/native-quote.ts
+ *   NATIVE_API_KEY=... TOKEN=NVDAB AMOUNT=5 npx hardhat run scripts/bstock/native-smoke.ts
  *
  * Env:
  *   NATIVE_API_KEY   (required) Native Swap API key
