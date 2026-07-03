@@ -10,16 +10,17 @@
  * batch JSON for the signers to review and execute.
  *
  * Two logical actions, four transactions in one atomic batch. The repay is routed through the pool-wide
- * Venus Liquidator gate when one is set (a direct vDebt.liquidateBorrow would revert UNAUTHORIZED); when
- * unset, the Safe liquidates directly:
+ * Venus Liquidator gate (a direct vDebt.liquidateBorrow would revert UNAUTHORIZED). The on-chain
+ * BStockLiquidator routes every repay through this gate and reverts when it is unset, so this script
+ * aborts if the gate is unset rather than emit a batch that would revert on execution:
  *   Action 1 — fund + repay + seize:
- *     1. debtUnderlying.approve(gate | vDebt, repay)                // let liquidateBorrow pull Safe funds
- *     2. gate.liquidateBorrow(vDebt, borrower, repay, vBStock)      // routed; or vDebt.liquidateBorrow(borrower, repay, vBStock)
+ *     1. debtUnderlying.approve(gate, repay)                        // let the gate's liquidateBorrow pull Safe funds
+ *     2. gate.liquidateBorrow(vDebt, borrower, repay, vBStock)      // routed through the Venus Liquidator
  *     3. vBStock.redeem(received)                                   // the vBStock the Safe was credited -> raw bStock
  *   Action 2 — hand off:
  *     4. bStock.transfer(TARGET, seizedRaw)                         // raw bStock -> Binance top-up
  *
- * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens`. When routed, the
+ * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens`. The Venus
  * Liquidator keeps a treasury cut of the liquidation bonus, so the Safe is credited fewer vTokens than
  * `seizeTokens`; we redeem only that credited amount (`received`). Snapshotted at the current block — if
  * the borrower's position changes before the Safe executes, REGENERATE, else a stale redeem/transfer
@@ -106,15 +107,18 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const closeFactor: BigNumber = await comptroller.closeFactorMantissa();
   console.log(`repay: ${env("REPAY_AMOUNT")} ${debtSym}  (closeFactor=${utils.formatEther(closeFactor)})`);
 
-  // Pool-wide Venus Liquidator gate: when set, a direct vDebt.liquidateBorrow from the Safe reverts
-  // UNAUTHORIZED, so we route the repay through that contract (its permissionless entry). When unset,
-  // the Safe liquidates directly. `repaySpender` is whichever pulls the repay.
+  // Pool-wide Venus Liquidator gate: while it is set, a direct vDebt.liquidateBorrow from the Safe
+  // reverts UNAUTHORIZED, so the repay is routed through that contract (its permissionless entry). The
+  // on-chain BStockLiquidator routes every repay through this gate and reverts (ensureNonzeroAddress)
+  // when unset, so align here and abort rather than emit a batch that would revert on execution.
   const gate: string = await comptroller.liquidatorContract();
-  const routed = gate !== ZERO;
-  const repaySpender = routed ? utils.getAddress(gate) : vDebt.address;
-  console.log(
-    routed ? `routing repay through Venus Liquidator ${gate}` : "liquidatorContract unset — liquidating directly",
-  );
+  if (gate === ZERO) {
+    throw new Error(
+      "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the liquidation routes every repay through it and reverts when unset",
+    );
+  }
+  const repaySpender = utils.getAddress(gate);
+  console.log(`routing repay through Venus Liquidator ${gate}`);
 
   const safeDebtBal: BigNumber = await debt.balanceOf(safe);
   if (safeDebtBal.lt(repay)) {
@@ -133,18 +137,16 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   );
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error code ${seizeErr}`);
 
-  // When routed, the Venus Liquidator keeps a treasury cut of the liquidation BONUS (see
+  // The Venus Liquidator keeps a treasury cut of the liquidation BONUS (see
   // Liquidator._splitLiquidationIncentive), so the Safe is credited fewer vTokens than seizeTokens.
   // Redeem only the credited amount, else the batch reverts.
   let vReceived = seizeTokens;
-  if (routed) {
-    const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
-    if (!liqTreasuryPct.eq(0)) {
-      const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
-      const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
-      const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
-      vReceived = seizeTokens.sub(treasuryCut);
-    }
+  const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
+  if (!liqTreasuryPct.eq(0)) {
+    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+    const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
+    const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
+    vReceived = seizeTokens.sub(treasuryCut);
   }
 
   // Raw bStock from redeeming vReceived, after Core's redeem treasuryPercent fee, FLOORED at the current
@@ -169,9 +171,12 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   }
 
   // --- build batch ---
-  const liquidateTx = routed
-    ? call(gate, "liquidateBorrow(address,address,uint256,address)", [vDebt.address, borrower, repay, vBStock.address])
-    : call(vDebt.address, "liquidateBorrow(address,uint256,address)", [borrower, repay, vBStock.address]);
+  const liquidateTx = call(gate, "liquidateBorrow(address,address,uint256,address)", [
+    vDebt.address,
+    borrower,
+    repay,
+    vBStock.address,
+  ]);
 
   const txs = [
     call(debt.address, "approve(address,uint256)", [repaySpender, repay]),
@@ -192,7 +197,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
     transactions: txs,
   });
 
-  return { batch, txs, routed, gate, seizeTokens, vReceived, seizedRaw, target };
+  return { batch, txs, gate, seizeTokens, vReceived, seizedRaw, target };
 }
 
 async function main() {

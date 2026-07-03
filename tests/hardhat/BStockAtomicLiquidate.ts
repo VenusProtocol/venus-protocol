@@ -146,6 +146,15 @@ describe("bStock atomic liquidation script", () => {
     expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
   });
 
+  it("refuses when the Venus Liquidator gate is unset (aligns with the contract)", async () => {
+    await usdt.mint(liq.address, REPAY);
+    await comptroller.setLiquidatorContract(ethers.constants.AddressZero);
+    setEnv();
+
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/unset/i);
+    expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+  });
+
   it("refuses a router that is not allowlisted on the contract", async () => {
     await usdt.mint(liq.address, REPAY);
     // Deploy a second router that was never allowlisted, and point the (mock) quote at it.

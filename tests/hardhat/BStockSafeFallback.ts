@@ -13,9 +13,8 @@ const REPAY = U("5000");
 const INCENTIVE = U("1.1");
 const SEIZE = REPAY.mul(INCENTIVE).div(ONE); // 5500 vBStock at the mock's 1.1x incentive
 
-// liquidateBorrow selectors: 4-arg (routed, ILiquidator) vs 3-arg (direct, VBep20).
+// liquidateBorrow selector: the 4-arg ILiquidator (gate) form the script always routes through.
 const SEL_ROUTED = ethers.utils.id("liquidateBorrow(address,address,uint256,address)").slice(0, 10);
-const SEL_DIRECT = ethers.utils.id("liquidateBorrow(address,uint256,address)").slice(0, 10);
 
 describe("BStock safe-fallback batch generator", () => {
   let owner: any, borrower: any, target: any;
@@ -62,9 +61,8 @@ describe("BStock safe-fallback batch generator", () => {
 
   it("routes the repay through the Venus Liquidator gate (T1)", async () => {
     setEnv();
-    const { txs, routed, gate, vReceived, seizedRaw } = await buildSafeFallbackBatch(ethers.provider);
+    const { txs, gate, vReceived, seizedRaw } = await buildSafeFallbackBatch(ethers.provider);
 
-    expect(routed).to.equal(true);
     expect(ethers.utils.getAddress(gate)).to.equal(venusLiq.address);
     expect(txs).to.have.length(4);
 
@@ -92,17 +90,10 @@ describe("BStock safe-fallback batch generator", () => {
     expect(seizedRaw).to.equal(SEIZE); // cut 0, treasuryPercent 0 → full seize at 1:1 rate
   });
 
-  it("falls back to a direct liquidateBorrow when the gate is unset", async () => {
+  it("throws when the gate is unset, aligning with the on-chain liquidator", async () => {
     await comptroller.setLiquidatorContract(ethers.constants.AddressZero);
     setEnv();
-    const { txs, routed } = await buildSafeFallbackBatch(ethers.provider);
-
-    expect(routed).to.equal(false);
-    // approve spender is vDebt, liquidateBorrow is the 3-arg VBep20 form on vDebt
-    const approve = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], "0x" + txs[0].data.slice(10));
-    expect(approve[0]).to.equal(vDebt.address);
-    expect(ethers.utils.getAddress(txs[1].to)).to.equal(vDebt.address);
-    expect(txs[1].data.slice(0, 10)).to.equal(SEL_DIRECT);
+    await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/unset/i);
   });
 
   it("deducts the Liquidator bonus-cut so redeem matches what the Safe is credited", async () => {

@@ -123,21 +123,26 @@ export async function atomicLiquidate(signer: Signer) {
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const ONE = BigNumber.from(10).pow(18);
 
-  // The seize is routed through the pool-wide Venus Liquidator, which keeps a treasury cut of the
-  // liquidation BONUS (see Liquidator._splitLiquidationIncentive), so this contract receives fewer
-  // vTokens than `seizeTokens`. Deduct that cut, else the precomputed amount overstates our holdings
-  // and the fixed-amountIn router pull reverts. 0 today, but governance-settable.
-  let vReceived = seizeTokens;
+  // The contract routes EVERY repay through the pool-wide Venus Liquidator gate and reverts
+  // (ensureNonzeroAddress) when it is unset, so abort here rather than build a call that would revert.
   const gate: string = await comptroller.liquidatorContract();
-  if (gate !== ethers.constants.AddressZero) {
-    const venusLiquidator = new Contract(gate, VENUS_LIQUIDATOR_ABI, signer);
-    const liqTreasuryPct: BigNumber = await venusLiquidator.treasuryPercentMantissa();
-    if (!liqTreasuryPct.eq(0)) {
-      const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
-      const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
-      const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
-      vReceived = seizeTokens.sub(treasuryCut);
-    }
+  if (gate === ethers.constants.AddressZero) {
+    throw new Error(
+      "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the contract routes every repay through it and reverts when unset",
+    );
+  }
+
+  // The gate keeps a treasury cut of the liquidation BONUS (see Liquidator._splitLiquidationIncentive),
+  // so this contract receives fewer vTokens than `seizeTokens`. Deduct that cut, else the precomputed
+  // amount overstates our holdings and the fixed-amountIn router pull reverts. 0 today, but governance-settable.
+  let vReceived = seizeTokens;
+  const venusLiquidator = new Contract(gate, VENUS_LIQUIDATOR_ABI, signer);
+  const liqTreasuryPct: BigNumber = await venusLiquidator.treasuryPercentMantissa();
+  if (!liqTreasuryPct.eq(0)) {
+    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+    const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
+    const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
+    vReceived = seizeTokens.sub(treasuryCut);
   }
 
   // Core redeem then routes `treasuryPercent` of the redeemed underlying to the treasury, so we hold
