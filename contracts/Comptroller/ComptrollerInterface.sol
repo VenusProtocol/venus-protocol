@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
@@ -131,6 +132,8 @@ interface ComptrollerInterface {
     function markets(address) external view returns (bool, uint, bool, uint, uint, uint96, bool);
 
     function oracle() external view returns (ResilientOracleInterface);
+
+    function deviationBoundedOracle() external view returns (IDeviationBoundedOracle);
 
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
 

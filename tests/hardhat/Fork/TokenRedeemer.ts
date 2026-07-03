@@ -9,6 +9,7 @@ import { ethers } from "hardhat";
 
 import {
   FaucetToken,
+  IDeviationBoundedOracle,
   TokenRedeemer,
   TokenRedeemer__factory,
   VAI,
@@ -177,6 +178,9 @@ const setupFork = async (): Promise<TokenRedeemerFixture> => {
   const treasury = await initMainnetUser(treasuryAddress, SUPPLIED_AMOUNT.mul(2).add(parseEther("3")));
 
   const timelock = await initMainnetUser(addresses.bscmainnet.TIMELOCK, parseEther("1"));
+  const deviationBoundedOracle = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  deviationBoundedOracle.getBoundedPricesView.returns([parseUnits("1", 18), parseUnits("1", 18)]);
+  await comptroller.connect(timelock).setDeviationBoundedOracle(deviationBoundedOracle.address);
   const redeemer = await deployTokenRedeemer(timelock, vBNB);
   await comptroller.connect(timelock)._setMarketSupplyCaps([vToken.address], [ethers.constants.MaxUint256]);
   const actions = { MINT: 0, ENTER_MARKET: 7 };

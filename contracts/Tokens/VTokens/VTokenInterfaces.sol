@@ -173,11 +173,17 @@ contract VTokenStorage is VTokenStorageBase {
     uint256 public flashLoanAmount;
 
     /**
+     * @notice Tracked internal cash balance, immune to direct token transfers (donation attacks)
+     * @dev Updated only via doTransferIn/doTransferOut. Must be initialized via sweepTokenAndSync() after upgrade.
+     */
+    uint256 public internalCash;
+
+    /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 }
 
 abstract contract VTokenInterface is VTokenStorage {
@@ -319,6 +325,16 @@ abstract contract VTokenInterface is VTokenStorage {
         uint256 totalFee,
         uint256 protocolFee
     );
+
+    /**
+     * @notice Event emitted when internalCash is synced with actual token balance
+     */
+    event CashSynced(uint256 oldInternalCash, uint256 newInternalCash);
+
+    /**
+     * @notice Event emitted when excess tokens are swept by admin
+     */
+    event TokenSwept(address indexed recipient, uint256 amount);
 
     /**
      * @notice Event emitted when flashLoan fee mantissa is updated

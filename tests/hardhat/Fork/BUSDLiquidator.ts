@@ -11,6 +11,7 @@ import {
   ComptrollerMock,
   FaucetToken,
   IAccessControlManagerV8__factory,
+  IDeviationBoundedOracle,
   VBep20,
 } from "../../../typechain";
 import {
@@ -153,6 +154,9 @@ const setupFork = async (): Promise<BUSDLiquidatorFixture> => {
   });
 
   const timelock = await initMainnetUser(addresses.bscmainnet.TIMELOCK, parseEther("1"));
+  const deviationBoundedOracle = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  deviationBoundedOracle.getBoundedPricesView.returns([parseUnits("1", 18), parseUnits("1", 18)]);
+  await comptroller.connect(timelock).setDeviationBoundedOracle(deviationBoundedOracle.address);
   await acm
     .connect(timelock)
     .giveCallPermission(comptroller.address, "_setActionsPaused(address[],uint8[],bool)", busdLiquidator.address);
@@ -201,6 +205,10 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
     beforeEach(async () => {
       ({ comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress } = await loadFixture(setup));
       [, , borrower, someone] = await ethers.getSigners();
+    });
+
+    it("configures a deviation bounded oracle", async () => {
+      expect(await comptroller.deviationBoundedOracle()).to.not.equal(ethers.constants.AddressZero);
     });
 
     describe("setLiquidatorShare", () => {

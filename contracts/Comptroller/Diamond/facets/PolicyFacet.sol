@@ -130,7 +130,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             }
         }
 
-        if (oracle.getUnderlyingPrice(vToken) == 0) {
+        (uint256 collateralPrice, uint256 debtPrice) = deviationBoundedOracle.getBoundedPricesView(vToken);
+        if (collateralPrice == 0 || debtPrice == 0) {
             return uint256(Error.PRICE_ERROR);
         }
 
@@ -258,7 +259,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
             borrower,
             VToken(address(0)),
             0,
@@ -426,7 +427,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below collateral requirements)
      */
     function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, WeightFunction.USE_COLLATERAL_FACTOR);
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
+            account,
+            VToken(address(0)),
+            0,
+            0,
+            WeightFunction.USE_COLLATERAL_FACTOR
+        );
+        return (uint256(err), liquidity, shortfall);
     }
 
     /**
@@ -437,7 +445,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *          account shortfall below liquidation threshold requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        return _getAccountLiquidity(account, WeightFunction.USE_LIQUIDATION_THRESHOLD);
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
+            account,
+            VToken(address(0)),
+            0,
+            0,
+            WeightFunction.USE_LIQUIDATION_THRESHOLD
+        );
+        return (uint256(err), liquidity, shortfall);
     }
 
     /**
@@ -456,7 +471,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 redeemTokens,
         uint256 borrowAmount
     ) external view returns (uint256, uint256, uint256) {
-        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternalView(
             account,
             VToken(vTokenModify),
             redeemTokens,

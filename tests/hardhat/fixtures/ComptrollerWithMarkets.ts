@@ -11,6 +11,7 @@ import {
   ComptrollerMock__factory,
   FaucetToken,
   IAccessControlManagerV5,
+  IDeviationBoundedOracle,
   IERC20,
   InterestRateModel,
   InterestRateModelHarness,
@@ -28,6 +29,7 @@ type MaybeFake<T extends BaseContract> = T | FakeContract<T>;
 
 interface ComptrollerFixture {
   accessControlManager: FakeContract<IAccessControlManagerV5>;
+  deviationBoundedOracle: FakeContract<IDeviationBoundedOracle>;
   oracle: FakeContract<PriceOracle>;
   vaiController: FakeContract<VAIController>;
   comptroller: ComptrollerMock;
@@ -45,9 +47,10 @@ export const deployComptrollerWithMarkets = async ({
   interestRateModel?: InterestRateModel;
 }): Promise<ComptrollerFixture> => {
   const accessControlManager = await deployFakeAccessControlManager();
+  const deviationBoundedOracle = await deployFakeDeviationBoundedOracle();
   const oracle = await deployFakeOracle();
   const comptrollerLens = await deployComptrollerLens();
-  const comptroller = await deployComptroller({ accessControlManager, comptrollerLens });
+  const comptroller = await deployComptroller({ accessControlManager, comptrollerLens, deviationBoundedOracle });
   const protocolShareReserve = await deployProtocolShareReserve(comptroller.address);
 
   const vTokens: VBep20[] = [];
@@ -68,6 +71,7 @@ export const deployComptrollerWithMarkets = async ({
   await comptroller._setVAIController(vaiController.address);
   return {
     accessControlManager,
+    deviationBoundedOracle,
     oracle,
     comptroller,
     comptrollerLens,
@@ -131,9 +135,16 @@ export const deployFakeOracle = async (): Promise<FakeContract<PriceOracle>> => 
   return oracle;
 };
 
+export const deployFakeDeviationBoundedOracle = async (): Promise<FakeContract<IDeviationBoundedOracle>> => {
+  const deviationBoundedOracle = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  deviationBoundedOracle.getBoundedPricesView.returns([parseUnits("1", 18), parseUnits("1", 18)]);
+  return deviationBoundedOracle;
+};
+
 export const deployComptroller = async (
   opts: Partial<{
     accessControlManager: MaybeFake<IAccessControlManagerV5>;
+    deviationBoundedOracle: MaybeFake<IDeviationBoundedOracle>;
     oracle: MaybeFake<PriceOracle>;
     liquidationIncentiveMantissa: BigNumberish;
     closeFactorMantissa: BigNumberish;
@@ -141,6 +152,7 @@ export const deployComptroller = async (
   }> = {},
 ): Promise<ComptrollerMock> => {
   const acm = opts.accessControlManager ?? (await deployFakeAccessControlManager());
+  const deviationBoundedOracle = opts.deviationBoundedOracle ?? (await deployFakeDeviationBoundedOracle());
   const oracle = opts.oracle ?? (await deployFakeOracle());
   const closeFactorMantissa = opts.closeFactorMantissa ?? parseUnits("0.5", 18);
   const comptrollerLens = opts.comptrollerLens ?? (await deployComptrollerLens());
@@ -151,6 +163,7 @@ export const deployComptroller = async (
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setAccessControl(acm.address);
   await comptroller._setPriceOracle(oracle.address);
+  await comptroller.setDeviationBoundedOracle(deviationBoundedOracle.address);
   await comptroller._setCloseFactor(closeFactorMantissa);
   return comptroller;
 };

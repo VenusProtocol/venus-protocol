@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
 import { VBep20Interface, VTokenInterface } from "./VTokenInterfaces.sol";
@@ -214,6 +213,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @dev Similar to ERC-20 transfer, but handles tokens that have transfer fees.
      *      This function returns the actual amount received,
      *      which may be less than `amount` if there is a fee attached to the transfer.
+     *      Increments `internalCash` by the actual amount received.
      * @param from Sender of the underlying tokens
      * @param amount Amount of underlying to transfer
      * @return Actual amount received
@@ -223,26 +223,49 @@ contract VBep20 is VToken, VBep20Interface {
         uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransferFrom(from, address(this), amount);
         uint256 balanceAfter = token.balanceOf(address(this));
+        uint256 actualAmount = balanceAfter - balanceBefore;
+        internalCash += actualAmount;
         // Return the amount that was *actually* transferred
-        return balanceAfter - balanceBefore;
+        return actualAmount;
     }
 
     /**
-     * @dev Just a regular ERC-20 transfer, reverts on failure
+     * @dev Just a regular ERC-20 transfer, reverts on failure.
+     *      Decrements `internalCash` by `amount` before transferring.
      * @param to Receiver of the underlying tokens
      * @param amount Amount of underlying to transfer
      */
     function doTransferOut(address payable to, uint256 amount) internal virtual override {
+        internalCash -= amount;
         IERC20 token = IERC20(underlying);
         token.safeTransfer(to, amount);
     }
 
     /**
-     * @notice Gets balance of this contract in terms of the underlying
-     * @dev This excludes the value of the current message, if any
-     * @return The quantity of underlying tokens owned by this contract
+     * @notice Gets the tracked internal cash balance of this contract
+     * @dev Returns `internalCash` rather than the actual token balance, making it immune to donation attacks.
+     * @return The internally tracked cash balance of underlying tokens
      */
     function getCashPrior() internal view override returns (uint) {
-        return IERC20(underlying).balanceOf(address(this));
+        return internalCash;
+    }
+
+    /**
+     * @notice Transfer excess tokens to caller and sync internalCash with actual balance
+     * @dev Admin-only. For migration: pass 0 (just syncs). For sweep: pass the excess amount.
+     *      Transfers `transferAmount` of underlying to msg.sender, then sets internalCash = balanceOf(address(this)).
+     * @param transferAmount Amount of underlying to transfer to msg.sender before syncing
+     */
+    function sweepTokenAndSync(uint256 transferAmount) external {
+        require(msg.sender == admin);
+
+        if (transferAmount > 0) {
+            IERC20(underlying).safeTransfer(msg.sender, transferAmount);
+            emit TokenSwept(msg.sender, transferAmount);
+        }
+
+        uint256 oldInternalCash = internalCash;
+        internalCash = IERC20(underlying).balanceOf(address(this));
+        emit CashSynced(oldInternalCash, internalCash);
     }
 }

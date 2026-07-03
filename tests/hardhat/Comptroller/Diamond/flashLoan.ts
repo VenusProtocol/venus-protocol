@@ -13,6 +13,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   IAccessControlManagerV5,
+  IDeviationBoundedOracle,
   IProtocolShareReserve,
   InterestRateModel,
   MockFlashLoanReceiver,
@@ -67,6 +68,10 @@ const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   await comptroller._setAccessControl(accessControlManager.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
+
+  const dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+  dbo.getBoundedPricesView.returns([convertToUnit(1, 18), convertToUnit(1, 18)]);
+  await comptroller.setDeviationBoundedOracle(dbo.address);
 
   return {
     admin,
@@ -315,6 +320,8 @@ describe("FlashLoan", async () => {
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+      await vTokenA.harnessSetInternalCash(parseUnits("50", 18));
+      await vTokenB.harnessSetInternalCash(parseUnits("50", 18));
 
       // Execute the flashLoan from the mockReceiverContract
       await expect(
@@ -349,6 +356,8 @@ describe("FlashLoan", async () => {
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+      await vTokenA.harnessSetInternalCash(parseUnits("50", 18));
+      await vTokenB.harnessSetInternalCash(parseUnits("50", 18));
 
       await expect(
         badReceiver
@@ -415,6 +424,8 @@ describe("FlashLoan", async () => {
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+      await vTokenA.harnessSetInternalCash(parseUnits("60", 18));
+      await vTokenB.harnessSetInternalCash(parseUnits("60", 18));
 
       await expect(
         mockReceiverContract
@@ -446,6 +457,8 @@ describe("FlashLoan", async () => {
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("50", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("50", 18));
+      await vTokenA.harnessSetInternalCash(parseUnits("50", 18));
+      await vTokenB.harnessSetInternalCash(parseUnits("50", 18));
 
       await comptroller.connect(alice).updateDelegate(mockReceiverContract.address, true);
 
@@ -489,6 +502,8 @@ describe("FlashLoan", async () => {
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+      await vTokenA.harnessSetInternalCash(parseUnits("60", 18));
+      await vTokenB.harnessSetInternalCash(parseUnits("60", 18));
 
       await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
       await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
@@ -574,6 +589,8 @@ describe("FlashLoan", async () => {
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+      await vTokenA.harnessSetInternalCash(parseUnits("60", 18));
+      await vTokenB.harnessSetInternalCash(parseUnits("60", 18));
 
       // Calculate expected protocol fees
       const expectedProtocolFeeA = flashLoanAmount1
@@ -708,6 +725,8 @@ describe("FlashLoan", async () => {
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
       await underlyingB.harnessSetBalance(vTokenB.address, parseUnits("60", 18));
+      await vTokenA.harnessSetInternalCash(parseUnits("60", 18));
+      await vTokenB.harnessSetInternalCash(parseUnits("60", 18));
 
       // Calculate expected fees
       const expectedFeeA = flashLoanAmount1.mul(totalFeeMantissaTokenA).div(parseUnits("1", 18));

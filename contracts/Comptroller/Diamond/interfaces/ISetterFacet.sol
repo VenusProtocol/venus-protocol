@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { Action } from "../../ComptrollerInterface.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
@@ -105,4 +106,6 @@ interface ISetterFacet {
     function setAllowCorePoolFallback(uint96 poolId, bool allowFallback) external;
 
     function setFlashLoanPaused(bool paused) external;
+
+    function setDeviationBoundedOracle(IDeviationBoundedOracle newDeviationBoundedOracle) external returns (uint256);
 }

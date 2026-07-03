@@ -246,8 +246,38 @@ const tokens = [
   },
   {
     isMock: true,
+    name: "PT Lista collateral BNB 25JUN2026",
+    symbol: "PT-clisBNB-25JUN2026",
+    decimals: 18,
+  },
+  {
+    isMock: true,
     name: "United Stables",
     symbol: "U",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "Matrixdock Gold",
+    symbol: "XAUM",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "TSLAB",
+    symbol: "TSLAB",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "NVDAB",
+    symbol: "NVDAB",
+    decimals: 18,
+  },
+  {
+    isMock: true,
+    name: "SpaceX",
+    symbol: "SPCXB",
     decimals: 18,
   },
 ] as const satisfies readonly TokenConfig[];

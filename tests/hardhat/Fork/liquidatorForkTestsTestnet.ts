@@ -71,7 +71,7 @@ if (FORK_TESTNET) {
       await oracle.setDirectPrice(USDC, convertToUnit("1", 10));
       await liquidator.setMinLiquidatableVAI(convertToUnit("100", 18));
     });
-    it("Liquidate Normaly if VAI debt is lower than minLiquidatableVAI", async () => {
+    it("Liquidate Normally if VAI debt is lower than minLiquidatableVAI", async () => {
       const liquidateUserBalanceBefore = await vUsdc.balanceOf(liquidatorUser);
       const protocolBalanceBefore = await usdc.balanceOf(PROTOCOL_SHARE_RESERVE);
       await expect(

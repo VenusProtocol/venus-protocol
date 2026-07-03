@@ -10,6 +10,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   IAccessControlManagerV5,
+  IDeviationBoundedOracle,
   PriceOracle,
   Unitroller,
   VBep20Immutable,
@@ -70,6 +71,9 @@ describe("Comptroller: assetListTest", () => {
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
+    const dbo = await smock.fake<IDeviationBoundedOracle>("IDeviationBoundedOracle");
+    dbo.getBoundedPricesView.returns([convertToUnit("1", 18), convertToUnit("1", 18)]);
+    await comptroller.setDeviationBoundedOracle(dbo.address);
     const names = ["OMG", "ZRX", "BAT", "sketch"];
     const [OMG, ZRX, BAT, SKT] = await Promise.all(
       names.map(async name => {

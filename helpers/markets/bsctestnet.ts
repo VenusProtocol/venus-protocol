@@ -704,6 +704,28 @@ export default [
     },
   },
   {
+    name: "Venus PT Lista collateral BNB 25JUN2026",
+    symbol: "vPT-clisBNB-25JUN2026",
+    asset: "PT-clisBNB-25JUN2026",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0",
+      reserveFactor: "0",
+      supplyCap: "25000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.14",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
     name: "Venus United Stables",
     symbol: "vU",
     asset: "U",
@@ -725,6 +747,94 @@ export default [
     },
     initialSupply: {
       amount: "100",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus Matrixdock Gold",
+    symbol: "vXAUM",
+    asset: "XAUM",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.02",
+      jumpMultiplierPerYear: "0.04",
+      kink: "0.8",
+    },
+    riskParameters: {
+      collateralFactor: "0.65",
+      reserveFactor: "0.2",
+      supplyCap: "200",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.025",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus TSLAB",
+    symbol: "vTSLAB",
+    asset: "TSLAB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.6",
+      reserveFactor: "0.1",
+      supplyCap: "236",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.26",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus NVDAB",
+    symbol: "vNVDAB",
+    asset: "NVDAB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.6",
+      reserveFactor: "0.1",
+      supplyCap: "450",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.5",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus SpaceX",
+    symbol: "vSPCXB",
+    asset: "SPCXB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.5",
+      reserveFactor: "0.1",
+      supplyCap: "500",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.51",
       vTokenReceiver: "VTreasury",
     },
   },

@@ -13,6 +13,7 @@ import { IVAI } from "./IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
 import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
 import { VAIControllerStorageG4 } from "./VAIControllerStorage.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 
 /**
  * @title VAI Comptroller
@@ -122,6 +123,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
 
         uint256 vaiNewTotalSupply = add_(vaiTotalSupply, mintVAIAmount);
         require(vaiNewTotalSupply <= mintCap, "mint cap reached");
+
+        _updateProtectionStateForEnteredMarkets(minter);
 
         uint256 accountMintableVAI;
         (err, accountMintableVAI) = getMintableVAI(minter);
@@ -438,9 +441,11 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         uint256 vTokenBalance;
         uint256 borrowBalance;
         uint256 exchangeRateMantissa;
-        uint256 oraclePriceMantissa;
+        uint256 collateralPriceMantissa;
+        uint256 debtPriceMantissa;
         Exp exchangeRate;
-        Exp oraclePrice;
+        Exp collateralPrice;
+        Exp debtPrice;
         Exp tokensToDenom;
     }
 
@@ -457,8 +462,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             return (uint256(Error.REJECTION), 0);
         }
 
-        ResilientOracleInterface oracle = comptroller.oracle();
         VToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
+        IDeviationBoundedOracle boundedOracle = comptroller.deviationBoundedOracle();
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
 
@@ -479,14 +484,17 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             }
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-            // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(enteredMarkets[i]));
-            if (vars.oraclePriceMantissa == 0) {
+            // Get bounded prices: collateral price for supply valuation, debt price for borrow valuation
+            (vars.collateralPriceMantissa, vars.debtPriceMantissa) = boundedOracle.getBoundedPricesView(
+                address(enteredMarkets[i])
+            );
+            if (vars.collateralPriceMantissa == 0 || vars.debtPriceMantissa == 0) {
                 return (uint256(Error.PRICE_ERROR), 0);
             }
-            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
+            vars.collateralPrice = Exp({ mantissa: vars.collateralPriceMantissa });
+            vars.debtPrice = Exp({ mantissa: vars.debtPriceMantissa });
 
-            (vars.mErr, vars.tokensToDenom) = mulExp(vars.exchangeRate, vars.oraclePrice);
+            (vars.mErr, vars.tokensToDenom) = mulExp(vars.exchangeRate, vars.collateralPrice);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint256(Error.MATH_ERROR), 0);
             }
@@ -513,9 +521,9 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
                 return (uint256(Error.MATH_ERROR), 0);
             }
 
-            // sumBorrowPlusEffects += oraclePrice * borrowBalance
+            // sumBorrowPlusEffects += debtPrice * borrowBalance
             (vars.mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(
-                vars.oraclePrice,
+                vars.debtPrice,
                 vars.borrowBalance,
                 vars.sumBorrowPlusEffects
             );
@@ -877,5 +885,17 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     /// @dev Reverts if the passed amount is zero
     function _ensureNonzeroAmount(uint256 amount) private pure {
         require(amount > 0, "amount can't be zero");
+    }
+
+    /// @dev Persists the DBO protection window for every market the minter has entered, so VAI minting
+    ///      records the same on-chain price history as the borrow path. Extracted from `mintVAI` to avoid
+    ///      stack-too-deep in that function.
+    function _updateProtectionStateForEnteredMarkets(address minter) private {
+        IDeviationBoundedOracle dbo = comptroller.deviationBoundedOracle();
+        VToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
+        uint256 enteredLength = enteredMarkets.length;
+        for (uint256 i; i < enteredLength; ++i) {
+            dbo.updateProtectionState(address(enteredMarkets[i]));
+        }
     }
 }

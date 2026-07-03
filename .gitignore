@@ -33,6 +33,9 @@ junit.xml
 .saddle_history
 contracts/generated
 
+# Claude-generated summaries
+.claude-docs/
+
 # yarn
 .yarn/*
 !.yarn/patches

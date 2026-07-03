@@ -195,5 +195,3 @@ MNEMONIC="<>" BSC_API_KEY="<>" npx hardhat run ./script/hardhat/deploy.ts --netw
 For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/venusprotocol) to discuss.
 
 For security concerns, please contact the administrators of our telegram chat.
-
-© Copyright 2023, Venus Protocol

@@ -259,7 +259,7 @@ const config: HardhatUserConfig = {
     },
   },
   sourcify: {
-    enabled: true,
+    enabled: false,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
@@ -360,6 +360,12 @@ function isFork() {
             hardforkHistory: {
               berlin: 0,
               london: 13000000,
+            },
+          },
+          97: {
+            hardforkHistory: {
+              berlin: 0,
+              london: 0,
             },
           },
         },

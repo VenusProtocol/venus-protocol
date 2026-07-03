@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { IDeviationBoundedOracle } from "@venusprotocol/oracle/contracts/interfaces/IDeviationBoundedOracle.sol";
 import { PoolMarketId } from "./Types/PoolMarketId.sol";
 
 import { VToken } from "../Tokens/VTokens/VToken.sol";
@@ -327,4 +328,9 @@ contract ComptrollerV18Storage is ComptrollerV17Storage {
 
     /// @notice Whether flash loans are paused system-wide
     bool public flashLoanPaused;
+}
+
+contract ComptrollerV19Storage is ComptrollerV18Storage {
+    /// @notice DeviationBoundedOracle for conservative pricing in CF path
+    IDeviationBoundedOracle public deviationBoundedOracle;
 }
