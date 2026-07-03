@@ -8,7 +8,7 @@
  *
  * Schema ref: https://github.com/safe-global/safe-react-apps (tx-builder batch).
  */
-import { utils } from "ethers";
+import { BigNumber, BigNumberish, utils } from "ethers";
 
 export interface SafeTx {
   to: string;
@@ -31,13 +31,13 @@ export interface SafeBatch {
   transactions: SafeTx[];
 }
 
-/** Encode a single call: `tx(to, encode(signature, args))`. */
-export function call(to: string, signature: string, args: unknown[]): SafeTx {
+/** Encode a single call: `tx(to, encode(signature, args))`, optionally carrying native `value` (wei). */
+export function call(to: string, signature: string, args: unknown[], value: BigNumberish = 0): SafeTx {
   const iface = new utils.Interface([`function ${signature}`]);
   const fn = signature.slice(0, signature.indexOf("("));
   return {
     to: utils.getAddress(to),
-    value: "0",
+    value: BigNumber.from(value).toString(),
     data: iface.encodeFunctionData(fn, args),
     contractMethod: null,
     contractInputsValues: null,

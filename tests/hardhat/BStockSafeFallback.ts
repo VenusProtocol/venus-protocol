@@ -16,6 +16,10 @@ const SEIZE = REPAY.mul(INCENTIVE).div(ONE); // 5500 vBStock at the mock's 1.1x 
 // liquidateBorrow selector: the 4-arg ILiquidator (gate) form the script always routes through.
 const SEL_ROUTED = ethers.utils.id("liquidateBorrow(address,address,uint256,address)").slice(0, 10);
 
+// Sentinel native BNB market (vBNB); no code, so underlying() reverts and the script treats the debt
+// as native BNB — mirrors the atomic suite.
+const VBNB = ethers.utils.getAddress("0x0000000000000000000000000000000000000b0b");
+
 describe("BStock safe-fallback batch generator", () => {
   let owner: any, borrower: any, target: any;
   let usdt: Contract, bStock: Contract;
@@ -119,5 +123,30 @@ describe("BStock safe-fallback batch generator", () => {
     // seizedRaw = seize · rate(1:1) · (1 - treasuryPercent)
     const expected = SEIZE.mul(ONE.sub(U("0.2"))).div(ONE);
     expect(seizedRaw).to.equal(expected);
+  });
+
+  // Native BNB debt: VDEBT is vBNB (no underlying()), so the script auto-detects it, drops the approve
+  // (nothing to approve), and sends repay as msg.value on the routed liquidateBorrow — the Liquidator
+  // forwards it to vBNB and requires msg.value == repay.
+  it("bnb debt: auto-detects vBNB, drops the approve, sends repay as msg.value", async () => {
+    setEnv({ VDEBT: VBNB });
+    const { txs, seizedRaw } = await buildSafeFallbackBatch(ethers.provider);
+
+    // three txs: no ERC20 approve on the native path
+    expect(txs).to.have.length(3);
+
+    // 1. liquidateBorrow → the gate, 4-arg selector, repay carried as native value
+    expect(ethers.utils.getAddress(txs[0].to)).to.equal(venusLiq.address);
+    expect(txs[0].data.slice(0, 10)).to.equal(SEL_ROUTED);
+    expect(txs[0].value).to.equal(REPAY.toString());
+
+    // 2. redeem → the credited amount (cut 0 here, so == full seize)
+    expect(ethers.utils.getAddress(txs[1].to)).to.equal(vBStock.address);
+
+    // 3. transfer raw bStock to the target
+    expect(ethers.utils.getAddress(txs[2].to)).to.equal(bStock.address);
+    const xfer = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], "0x" + txs[2].data.slice(10));
+    expect(xfer[0]).to.equal(target.address);
+    expect(xfer[1]).to.equal(seizedRaw);
   });
 });

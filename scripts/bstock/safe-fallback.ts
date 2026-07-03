@@ -9,13 +9,15 @@
  * This script does NOT send anything. It READS chain state and EMITS a Safe Transaction Builder
  * batch JSON for the signers to review and execute.
  *
- * Two logical actions, four transactions in one atomic batch. The repay is routed through the pool-wide
- * Venus Liquidator gate (a direct vDebt.liquidateBorrow would revert UNAUTHORIZED). The on-chain
+ * Two logical actions, three or four transactions in one atomic batch. The repay is routed through the
+ * pool-wide Venus Liquidator gate (a direct vDebt.liquidateBorrow would revert UNAUTHORIZED). The on-chain
  * BStockLiquidator routes every repay through this gate and reverts when it is unset, so this script
  * aborts if the gate is unset rather than emit a batch that would revert on execution:
  *   Action 1 — fund + repay + seize:
  *     1. debtUnderlying.approve(gate, repay)                        // let the gate's liquidateBorrow pull Safe funds
+ *                                                                   // (ERC20 debt only; skipped for native BNB)
  *     2. gate.liquidateBorrow(vDebt, borrower, repay, vBStock)      // routed through the Venus Liquidator
+ *                                                                   // native BNB debt (vBNB): repay is sent as msg.value
  *     3. vBStock.redeem(received)                                   // the vBStock the Safe was credited -> raw bStock
  *   Action 2 — hand off:
  *     4. bStock.transfer(TARGET, seizedRaw)                         // raw bStock -> Binance top-up
@@ -88,15 +90,21 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const vBStock = new Contract(env("VBSTOCK"), VTOKEN_ABI, provider);
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, provider);
   const comptroller = new Contract(await vBStock.comptroller(), COMPTROLLER_ABI, provider);
-  const debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
+
+  // vBNB has no underlying(): a native-BNB debt market is repaid in native BNB, so there is no ERC20
+  // debt token to approve or read. Detect it the way the atomic script does — try underlying(), treat
+  // a revert as native BNB (18 decimals, "BNB"). `debt` stays undefined on the native path.
+  let isBnb = false;
+  let debt: Contract | undefined;
+  try {
+    debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
+  } catch {
+    isBnb = true;
+  }
   const bStock = new Contract(await vBStock.underlying(), ERC20_ABI, provider);
 
-  const [debtDec, debtSym, bStockDec, bStockSym] = await Promise.all([
-    debt.decimals(),
-    debt.symbol(),
-    bStock.decimals(),
-    bStock.symbol(),
-  ]);
+  const [bStockDec, bStockSym] = await Promise.all([bStock.decimals(), bStock.symbol()]);
+  const [debtDec, debtSym] = isBnb ? [18, "BNB"] : await Promise.all([debt!.decimals(), debt!.symbol()]);
   const repay = utils.parseUnits(env("REPAY_AMOUNT"), debtDec);
 
   // --- read-only sanity checks (warn, do not block) ---
@@ -120,7 +128,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const repaySpender = utils.getAddress(gate);
   console.log(`routing repay through Venus Liquidator ${gate}`);
 
-  const safeDebtBal: BigNumber = await debt.balanceOf(safe);
+  const safeDebtBal: BigNumber = isBnb ? await provider.getBalance(safe) : await debt!.balanceOf(safe);
   if (safeDebtBal.lt(repay)) {
     console.warn(
       `WARN: Safe ${safe} holds ${utils.formatUnits(safeDebtBal, debtDec)} ${debtSym} < repay ` +
@@ -171,19 +179,24 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   }
 
   // --- build batch ---
-  const liquidateTx = call(gate, "liquidateBorrow(address,address,uint256,address)", [
-    vDebt.address,
-    borrower,
-    repay,
-    vBStock.address,
-  ]);
+  // Native BNB debt (vBNB): the Liquidator forwards msg.value to vBNB.liquidateBorrow and requires
+  // msg.value == repay (see Liquidator.liquidateBorrow), so the Safe sends repay as native value and
+  // there is no ERC20 to approve. ERC20 debt: approve the gate first, then a zero-value liquidateBorrow.
+  const liquidateTx = call(
+    gate,
+    "liquidateBorrow(address,address,uint256,address)",
+    [vDebt.address, borrower, repay, vBStock.address],
+    isBnb ? repay : 0,
+  );
 
-  const txs = [
-    call(debt.address, "approve(address,uint256)", [repaySpender, repay]),
-    liquidateTx,
+  const seizeTxs = [
     call(vBStock.address, "redeem(uint256)", [vReceived]),
     call(bStock.address, "transfer(address,uint256)", [target, seizedRaw]),
   ];
+
+  const txs = isBnb
+    ? [liquidateTx, ...seizeTxs]
+    : [call(debt!.address, "approve(address,uint256)", [repaySpender, repay]), liquidateTx, ...seizeTxs];
 
   const batch = buildBatch({
     chainId: CHAIN_ID,
