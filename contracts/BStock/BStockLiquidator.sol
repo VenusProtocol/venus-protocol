@@ -193,8 +193,7 @@ contract BStockLiquidator is
     function liquidate(
         LiquidationParams calldata params
     ) external override onlyOperator nonReentrant returns (uint256 debtOut) {
-        _validateRouter(params.router);
-        if (params.router2 != address(0)) _validateRouter(params.router2);
+        _validateRouters(params.router, params.router2);
 
         if (params.minOut == 0) revert ZeroMinOut();
         if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
@@ -217,8 +216,7 @@ contract BStockLiquidator is
 
     /// @inheritdoc IBStockLiquidator
     function flashLiquidate(LiquidationParams calldata params) external override onlyOperator nonReentrant {
-        _validateRouter(params.router);
-        if (params.router2 != address(0)) _validateRouter(params.router2);
+        _validateRouters(params.router, params.router2);
 
         if (params.minOut == 0) revert ZeroMinOut();
         if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
@@ -294,11 +292,13 @@ contract BStockLiquidator is
     //                              Core                                     //
     // --------------------------------------------------------------------- //
 
-    /// @dev Pre-flight: the swap router must be allowlisted. Liquidatability itself is not
-    ///      pre-checked here — Core's `liquidateBorrowAllowed` already enforces it, and pre-checking
-    ///      shortfall would wrongly block forced liquidations (which liquidate healthy accounts).
-    function _validateRouter(address router) private view {
+    /// @dev Pre-flight: every swap router must be allowlisted. `router2` is optional (single-hop when
+    ///      zero) so it is only checked when set. Liquidatability itself is not pre-checked here — Core's
+    ///      `liquidateBorrowAllowed` already enforces it, and pre-checking shortfall would wrongly block
+    ///      forced liquidations (which liquidate healthy accounts).
+    function _validateRouters(address router, address router2) private view {
         if (!isRouter[router]) revert RouterNotAllowed(router);
+        if (router2 != address(0) && !isRouter[router2]) revert RouterNotAllowed(router2);
     }
 
     /// @dev One swap hop: approve the exact `amount` to the allowlisted `router`, forward the opaque
