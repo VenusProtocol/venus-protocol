@@ -30,6 +30,10 @@
  *   MODE            "inventory" (default) | "flash"
  *   SLIPPAGE        Native slippage %, default 0.5
  *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%)
+ *   SEIZE_BUFFER    haircut on the QUOTED seize so a small oracle uptick can't make the router pull more
+ *                   bStock than was seized (which reverts). Default 0.1 (%); unsold remainder is sweepable.
+ *                   Keep it small: in MODE=flash the quoted proceeds must still cover principal + premium,
+ *                   so an oversized buffer trips the on-chain InsufficientOut (run DRY_RUN first).
  *   AMM_PROVIDER    hop-2 route source for non-USDT debt: kyberswap (default) | openocean | pcsv2
  *   DRY_RUN         "1" -> callStatic only, send nothing
  *   MOCK_NATIVE     hop-1 "router:calldata" for fork/local tests (see below)
@@ -81,6 +85,13 @@ export async function atomicLiquidate(signer: Signer) {
   const mode = (process.env.MODE || "inventory").toLowerCase();
   const slippage = Number(process.env.SLIPPAGE || "0.5");
   const minOutBufferPct = Number(process.env.MIN_OUT_BUFFER || "0.5");
+  const seizeBufferPct = Number(process.env.SEIZE_BUFFER || "0.1");
+  // Bound the haircut: a garbage or oversized value would silently under-quote (and in flash mode
+  // starve the principal + premium repay). The on-chain InsufficientOut still backstops it, but fail
+  // loudly here instead of after burning a Native quote.
+  if (!Number.isFinite(seizeBufferPct) || seizeBufferPct < 0 || seizeBufferPct >= 100) {
+    throw new Error(`SEIZE_BUFFER must be a percent in [0, 100), got "${process.env.SEIZE_BUFFER}"`);
+  }
 
   const liquidator = new Contract(env("LIQUIDATOR"), LIQUIDATOR_ABI, signer);
   const borrower = ethers.utils.getAddress(env("BORROWER"));
@@ -153,6 +164,15 @@ export async function atomicLiquidate(signer: Signer) {
   const seizedHuman = ethers.utils.formatUnits(seizedRaw, bStockDec);
   console.log(`seize ${ethers.utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${seizedHuman} ${bStockSym}`);
 
+  // `seizedRaw` is derived from oracle prices at quote time. If the bStock price ticks UP before the
+  // settle tx lands, Comptroller seizes FEWER bStock than this — but the Native firm quote bakes in a
+  // FIXED amountIn and the contract approves only the actual seized amount to the router, so an amountIn
+  // above the real seize makes the router pull more than approved and revert SwapFailed(). Quote for
+  // `seizeBufferPct` LESS so amountIn stays at/below the real seize across small upward drift; the tiny
+  // unsold remainder just accrues as bStock inventory (recoverable via sweep).
+  const seizedForQuote = seizedRaw.mul(Math.round((100 - seizeBufferPct) * 100)).div(10000);
+  const seizedHumanQuote = ethers.utils.formatUnits(seizedForQuote, bStockDec);
+
   // 3. Build the swap, taker = the LIQUIDATOR CONTRACT (so it can submit + receive the debt asset).
   // The contract measures proceeds in the DEBT asset and enforces `minOut` in it. Native only quotes
   // bStock->USDT on BSC (every bStock pair in the live orderbook is *<->USDT), so:
@@ -191,7 +211,7 @@ export async function atomicLiquidate(signer: Signer) {
       fromAddress: liquidator.address,
       tokenIn: bStock.address,
       tokenOut: nativeOut,
-      amount: seizedHuman,
+      amount: seizedHumanQuote,
       slippage,
     });
     const ttl = quoteDeadline(q) - Math.floor(Date.now() / 1000);
@@ -218,13 +238,13 @@ export async function atomicLiquidate(signer: Signer) {
       intermediateToken = nativeOut;
       amountOut = BigNumber.from(amm.expectedOut);
       console.log(
-        `Native: ${seizedHuman} ${bStockSym} -> ${ethers.utils.formatUnits(midOut, 18)} USDT (TTL ${ttl}s, ${router}); ` +
+        `Native: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(midOut, 18)} USDT (TTL ${ttl}s, ${router}); ` +
           `AMM: -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (${router2})`,
       );
     } else {
       amountOut = midOut;
       console.log(
-        `Native quote: ${seizedHuman} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (TTL ${ttl}s, router ${router})`,
+        `Native quote: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (TTL ${ttl}s, router ${router})`,
       );
     }
   }

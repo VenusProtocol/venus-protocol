@@ -36,6 +36,8 @@ const SCRIPT_ENV = [
   "DRY_RUN",
   "SLIPPAGE",
   "MIN_OUT_BUFFER",
+  "SEIZE_BUFFER",
+  "NATIVE_API_KEY",
 ] as const;
 
 describe("bStock atomic liquidation script", () => {
@@ -123,6 +125,44 @@ describe("bStock atomic liquidation script", () => {
     // Started with REPAY, repaid REPAY, received OUT -> ends at OUT (profit = OUT - REPAY = 500).
     expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
     expect(await bStock.balanceOf(liq.address)).to.equal(0);
+  });
+
+  it("buffers the quoted seize below the on-chain seize (SEIZE_BUFFER)", async () => {
+    await usdt.mint(liq.address, REPAY); // inventory float
+    // Exercise the REAL Native quote path (no MOCK_NATIVE) by stubbing fetch, so the buffer applied to
+    // the quote `amount` is observable. The mock router's swapAll pulls the whole balance regardless of
+    // the quoted amountIn, so this asserts the quote is scaled down; it can't reproduce the on-chain
+    // over-pull the buffer guards against.
+    let quotedAmount: string | null = null;
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: unknown) => {
+      quotedAmount = new URL(String(url)).searchParams.get("amount");
+      return {
+        json: async () => ({
+          success: true,
+          recipient: liq.address,
+          amountIn: "0",
+          amountOut: OUT.toString(),
+          orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+          txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+        }),
+      };
+    }) as unknown as typeof fetch;
+
+    try {
+      setEnv({ MOCK_NATIVE: "", MOCK_OUT: "", NATIVE_API_KEY: "test-key", SEIZE_BUFFER: "10" });
+      await atomicLiquidate(owner);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+
+    // Seize is 5500 bStock (1:1 redeem, 0 cut, 0 treasuryPercent); a 10% buffer quotes for 4950.
+    expect(quotedAmount).to.equal("4950.0");
+  });
+
+  it("rejects an out-of-range SEIZE_BUFFER before quoting", async () => {
+    setEnv({ SEIZE_BUFFER: "150" });
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SEIZE_BUFFER/);
   });
 
   it("flash mode: routes through flashLiquidate, repays principal + premium, keeps the rest", async () => {
