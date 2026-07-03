@@ -31,12 +31,12 @@
  *   SLIPPAGE        Native slippage %, default 0.5
  *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%)
  *   AMM_PROVIDER    hop-2 route source for non-USDT debt: kyberswap (default) | openocean | pcsv2
- *   WBNB_ADDR       WBNB token, used only for a vBNB (native BNB) debt market (default: BSC WBNB).
- *                   Native BNB debt is auto-detected (vBNB has no underlying()) and accounted in WBNB;
- *                   the contract unwraps the repay, so pre-fund inventory in WBNB (MODE=inventory).
  *   DRY_RUN         "1" -> callStatic only, send nothing
  *   MOCK_NATIVE     hop-1 "router:calldata" for fork/local tests (see below)
  *   MOCK_AMM        hop-2 "router:calldata" for fork/local tests (two-hop); MOCK_OUT = final debt out
+ *
+ * Native BNB debt (vBNB) is auto-detected — vBNB has no underlying() — and accounted in WBNB at its
+ * canonical BSC address; the contract unwraps the repay, so pre-fund inventory in WBNB (MODE=inventory).
  */
 import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
@@ -91,6 +91,8 @@ export async function atomicLiquidate(signer: Signer) {
 
   // vBNB has no underlying(): a native-BNB debt is accounted in WBNB (1:1 with BNB). The contract
   // unwraps the repay internally, so off-chain the debt asset for the swap chain + minOut is WBNB.
+  // WBNB is immutable on BSC, so it is the canonical constant; WBNB_ADDR only overrides it so a
+  // non-fork test can point at a freshly-deployed mock (mirrors USDT_ADDR below).
   let debtAddr: string;
   let isBnb = false;
   try {
