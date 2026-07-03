@@ -47,7 +47,6 @@ import {
   buildSingleHopMock,
   buildTwoHopMockThenPcs,
   deployFundedMockNative,
-  deployLiq,
   findBalanceSlot,
   listBStockMarket,
   makeUnderwaterBorrower,
@@ -57,7 +56,10 @@ import {
 } from "./helpers/bstock";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
-const FORK_BLOCK = Number(process.env.FORK_BSTOCK_BLOCK || "107565173");
+const FORK_BLOCK = Number(process.env.FORK_BSTOCK_BLOCK || "107820000");
+
+// Live BStockLiquidator proxy on bscmainnet (deployments/bscmainnet/BStockLiquidator.json, deployed at block 107817335).
+const DEPLOYED_LIQ = "0xF03C90e6BF66b43411189Ad848F17723f8B4A3c1";
 
 const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
 const VCAKE = "0x86aC3974e2BD0d60825230fa6F355fF11409df5c";
@@ -110,7 +112,12 @@ const test = () => {
       ({ mock, usdtSlot } = await deployFundedMockNative(owner, P_HEALTHY));
       slotCache[TOK.USDT] = usdtSlot;
 
-      liq = await deployLiq(owner);
+      // Attach to the deployed bscmainnet proxy and take ownership on the fork (Ownable2Step)
+      // so the suite exercises the real on-chain instance instead of a fresh deployment.
+      liq = await ethers.getContractAt("BStockLiquidator", DEPLOYED_LIQ);
+      const liqOwner = await initMainnetUser(await liq.owner(), parseEther("10"));
+      await liq.connect(liqOwner).transferOwnership(owner.address);
+      await liq.connect(owner).acceptOwnership();
       await liq.connect(owner).setRouter(mock.address, true); // hop-1 (Native RFQ mock)
       await liq.connect(owner).setRouter(A.PCS_ROUTER, true); // hop-2 (real PancakeSwap)
 
