@@ -20,14 +20,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const constructorArguments = [TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, acmAddress];
 
   const ceffuCustodyBTC = await deploy("CeffuCustodyBTC", {
-    contract: "AccessControlledERC20",
+    contract: "VenusERC20",
     from: deployer,
     args: constructorArguments,
     log: true,
     autoMine: true,
   });
 
-  const token = await ethers.getContractAt("AccessControlledERC20", ceffuCustodyBTC.address);
+  const token = await ethers.getContractAt("VenusERC20", ceffuCustodyBTC.address);
   await token.transferOwnership(normalTimelockAddress);
   console.log(`CeffuCustodyBTC (${ceffuCustodyBTC.address}) ownership transfer initiated to ${normalTimelockAddress}`);
 

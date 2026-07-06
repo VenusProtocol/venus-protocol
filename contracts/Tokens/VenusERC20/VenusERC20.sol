@@ -7,7 +7,7 @@ import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/con
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 
 /**
- * @title AccessControlledERC20
+ * @title VenusERC20
  * @author Venus
  * @notice A generic, non-upgradeable mintable / burnable ERC-20 whose supply is controlled by the Venus
  * AccessControlManager.
@@ -16,7 +16,7 @@ import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contract
  * the addresses that governance grants the `mint(address,uint256)` / `burn(address,uint256)` permissions to
  * (e.g. the Timelocks and the Guardians) can change the supply.
  */
-contract AccessControlledERC20 is ERC20, Ownable2Step {
+contract VenusERC20 is ERC20, Ownable2Step {
     /// @notice Number of decimals the token uses, set at construction.
     uint8 private immutable _decimals;
 
@@ -81,6 +81,13 @@ contract AccessControlledERC20 is ERC20, Ownable2Step {
         emit NewAccessControlManager(accessControlManager, newAccessControlManager_);
         accessControlManager = newAccessControlManager_;
     }
+
+    /**
+     * @notice Disabled to prevent the owner from being renounced, which would permanently
+     * lock `setAccessControlManager`.
+     * @dev Overridden with an empty body so renouncing ownership is a no-op.
+     */
+    function renounceOwnership() public override {}
 
     /**
      * @notice Returns the number of decimals used to get its user representation.
