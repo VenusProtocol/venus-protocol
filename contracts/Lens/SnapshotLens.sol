@@ -54,6 +54,9 @@ contract SnapshotLens is ExponentialNoError {
         bool isACollateral;
     }
 
+    /**
+     * @dev State-mutating function.
+     */
     function getAccountSnapshot(
         address payable account,
         address comptrollerAddress
@@ -78,6 +81,9 @@ contract SnapshotLens is ExponentialNoError {
         return false;
     }
 
+    /**
+     * @dev State-mutating function.
+     */
     function getAccountSnapshot(
         address payable account,
         address comptrollerAddress,

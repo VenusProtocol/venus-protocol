@@ -296,7 +296,7 @@ contract FacetBase is IFacetBase, ComptrollerV19Storage, ExponentialNoError, Com
      * @return market The Market struct corresponding to the (corePoolId, vToken) pair
      */
     function getCorePoolMarket(address vToken) internal view returns (Market storage) {
-        return _poolMarkets[getPoolMarketIndex(corePoolId, address(vToken))];
+        return _poolMarkets[getPoolMarketIndex(corePoolId, vToken)];
     }
 
     /**

@@ -50,12 +50,12 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     uint256 private _oldLiquidationIncentiveMantissa;
 
     /**
-     * @notice Max number of assets a single account can participate in (borrow or use as collateral)
+     * @notice No longer used. Kept in place so the storage layout stays consistent across upgrades.
      */
-    uint256 public maxAssets;
+    uint256 private maxAssets;
 
     /**
-     * @notice Per-account mapping of "assets you are in", capped by maxAssets
+     * @notice Per-account mapping of "assets you are in".
      */
     mapping(address => VToken[]) public accountAssets;
 

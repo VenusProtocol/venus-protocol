@@ -83,6 +83,8 @@ interface IComptroller {
 
     function isForcedLiquidationEnabled(address) external view returns (bool);
 
+    function isForcedLiquidationEnabledForUser(address borrower, address vToken) external view returns (bool);
+
     function getEffectiveLiquidationIncentive(address account, address vToken) external view returns (uint256);
 }
 

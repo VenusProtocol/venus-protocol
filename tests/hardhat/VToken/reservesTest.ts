@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
+import { VBep20Harness } from "../../../typechain";
 import { deployComptrollerWithMarkets, deployInterestRateModelHarness } from "../fixtures/ComptrollerWithMarkets";
 import { TokenErrorReporter } from "../util/Errors";
 
@@ -284,6 +285,63 @@ describe("VToken", function () {
       expect(await vToken.totalReserves()).to.equal(reserves);
       await vToken.harnessFastForward(5);
       await vToken._reduceReserves(reduction);
+    });
+  });
+
+  describe("_addReservesFresh", () => {
+    const addAmount = parseUnits("1", 12);
+    let vToken: VBep20Harness;
+    let underlying;
+
+    beforeEach(async () => {
+      const { vTokens } = await deployComptrollerWithMarkets({ numBep20Tokens: 2 });
+      vToken = vTokens[0] as unknown as VBep20Harness;
+      underlying = await ethers.getContractAt("FaucetToken", await vToken.underlying());
+      await underlying.allocateTo(_root.address, addAmount);
+      await underlying.approve(vToken.address, addAmount);
+    });
+
+    // Helper: set accrualBlockNumber so the immediately following tx is "fresh"
+    // Pattern: setAccrualBlockNumber mines at block N+1, so the next call mines at N+2.
+    // Setting accrualBlockNumber = currentBlock + 2 makes block.number == accrualBlockNumber
+    // when that next call executes.
+    async function makeFresh() {
+      const current = await ethers.provider.getBlockNumber();
+      await vToken.harnessSetAccrualBlockNumber(current + 2);
+    }
+
+    it("reverts with arithmetic overflow when totalReserves would overflow", async () => {
+      await vToken.harnessSetTotalReserves(ethers.constants.MaxUint256);
+      await makeFresh();
+      await expect(vToken.harnessAddReservesFresh(addAmount)).to.be.revertedWithPanic(0x11);
+    });
+
+    it("fails if market is not fresh", async () => {
+      await vToken.harnessSetAccrualBlockNumber(0);
+      await expect(vToken.harnessAddReservesFresh(addAmount))
+        .to.emit(vToken, "Failure")
+        .withArgs(
+          TokenErrorReporter.Error.MARKET_NOT_FRESH,
+          TokenErrorReporter.FailureInfo.ADD_RESERVES_FRESH_CHECK,
+          0,
+        );
+      expect(await vToken.totalReserves()).to.equal(0);
+    });
+
+    it("transfers tokens and increases totalReserves on success", async () => {
+      await makeFresh();
+      await expect(vToken.harnessAddReservesFresh(addAmount))
+        .to.emit(vToken, "ReservesAdded")
+        .withArgs(_root.address, addAmount, addAmount);
+      expect(await vToken.totalReserves()).to.equal(addAmount);
+    });
+
+    it("returns NO_ERROR (0) on success", async () => {
+      const currentBlock = await ethers.provider.getBlockNumber();
+      await vToken.harnessSetAccrualBlockNumber(currentBlock + 1);
+      // callStatic simulates at the latest block (currentBlock + 1), so block.number == accrualBlockNumber
+      const result = await vToken.callStatic.harnessAddReservesFresh(addAmount);
+      expect(result).to.equal(0);
     });
   });
 });

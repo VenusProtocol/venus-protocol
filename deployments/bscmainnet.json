@@ -8902,7 +8902,7 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0x75A71Ad878f6f24616A2AE21d046C0C8E72f67F8",
+      "address": "0xd5DEb631cB6c6a667e926a482aadc95a471b120c",
       "abi": [
         {
           "inputs": [],
@@ -9117,6 +9117,22 @@
             }
           ],
           "name": "TooManyAssetsRequested",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "UnsafeLiquidationParams",
           "type": "error"
         },
         {
@@ -11976,7 +11992,7 @@
       ]
     },
     "FlashLoanFacet": {
-      "address": "0x7F00af2f30a55e79311392C98fBBfA629D19b3A5",
+      "address": "0xAC54A4D148690b7FDA22B1D29c4439aCBF668fb2",
       "abi": [
         {
           "inputs": [],
@@ -12196,6 +12212,22 @@
             }
           ],
           "name": "TooManyAssetsRequested",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "UnsafeLiquidationParams",
           "type": "error"
         },
         {
@@ -12697,19 +12729,6 @@
               "internalType": "address",
               "name": "",
               "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "maxAssets",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -34417,7 +34436,7 @@
       ]
     },
     "Liquidator_Implementation": {
-      "address": "0xD65297007411694aA18c2941a5EB2b6ed4E0b819",
+      "address": "0xC8c6f55DEBb47f724761920B79DC3ab5399DBC62",
       "abi": [
         {
           "inputs": [
@@ -36076,7 +36095,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x7397B6bcFA9332Cc8791c886F339B4D114651719",
+      "address": "0x21f8E1471b153f49BE1d645A008E4a57434eEd23",
       "abi": [
         {
           "inputs": [],
@@ -36291,6 +36310,22 @@
             }
           ],
           "name": "TooManyAssetsRequested",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "UnsafeLiquidationParams",
           "type": "error"
         },
         {
@@ -37359,19 +37394,6 @@
               "internalType": "bool",
               "name": "isBorrowAllowed",
               "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "maxAssets",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -41065,7 +41087,7 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0x1CcDaf39085bae4e27c3Ba100561b1AD1B5A6b80",
+      "address": "0x8930B02c69EDd37464B50991680D306Bb9B8FDBD",
       "abi": [
         {
           "inputs": [],
@@ -41280,6 +41302,22 @@
             }
           ],
           "name": "TooManyAssetsRequested",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "UnsafeLiquidationParams",
           "type": "error"
         },
         {
@@ -42027,19 +42065,6 @@
               "internalType": "address",
               "name": "",
               "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "maxAssets",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -54611,7 +54636,7 @@
       ]
     },
     "RewardFacet": {
-      "address": "0xFaC00Dc856F454BB674c8588d4CC16Edef9dc28b",
+      "address": "0x9e0CCD70b5E0030472D5013bbBd37B6E868d416f",
       "abi": [
         {
           "inputs": [],
@@ -54827,6 +54852,41 @@
           ],
           "name": "TooManyAssetsRequested",
           "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "UnsafeLiquidationParams",
+          "type": "error"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "holder",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            }
+          ],
+          "name": "ClaimSkipped",
+          "type": "event"
         },
         {
           "anonymous": false,
@@ -55264,6 +55324,24 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "holder",
+              "type": "address"
+            },
+            {
+              "internalType": "contract VToken[]",
+              "name": "vTokens",
+              "type": "address[]"
+            }
+          ],
+          "name": "claimVenusAsCollateral",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "closeFactorMantissa",
           "outputs": [
@@ -55462,19 +55540,6 @@
         },
         {
           "inputs": [],
-          "name": "maxAssets",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
           "name": "minReleaseAmount",
           "outputs": [
             {
@@ -55662,6 +55727,35 @@
               "internalType": "address",
               "name": "recipient",
               "type": "address"
+            }
+          ],
+          "name": "seizeVenus",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address[]",
+              "name": "holders",
+              "type": "address[]"
+            },
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "contract VToken[]",
+              "name": "vTokens",
+              "type": "address[]"
             }
           ],
           "name": "seizeVenus",
@@ -56786,7 +56880,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0x4a45FBAf2A736bdF025DEd1D0Af3dF80070EDac0",
+      "address": "0xbc4885e5A27050E321d094503597aC6734AB1871",
       "abi": [
         {
           "inputs": [],
@@ -57001,6 +57095,22 @@
             }
           ],
           "name": "TooManyAssetsRequested",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "liquidationThresholdMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "liquidationIncentiveMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "UnsafeLiquidationParams",
           "type": "error"
         },
         {
@@ -58462,19 +58572,6 @@
         },
         {
           "inputs": [],
-          "name": "maxAssets",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
           "name": "minReleaseAmount",
           "outputs": [
             {
@@ -59350,7 +59447,7 @@
       ]
     },
     "SnapshotLens": {
-      "address": "0xDE876091531c92BFED078af29CAaD3dbd4157f7a",
+      "address": "0x4556a5eDf9AbA75669EB23842BC4318b5ED5e1E0",
       "abi": [
         {
           "inputs": [
@@ -59416,7 +59513,17 @@
                 },
                 {
                   "internalType": "uint256",
-                  "name": "assetPrice",
+                  "name": "spotPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedCollateralPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedDebtPrice",
                   "type": "uint256"
                 },
                 {
@@ -59522,7 +59629,17 @@
                 },
                 {
                   "internalType": "uint256",
-                  "name": "assetPrice",
+                  "name": "spotPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedCollateralPrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boundedDebtPrice",
                   "type": "uint256"
                 },
                 {
@@ -72558,7 +72675,7 @@
       ]
     },
     "Unitroller_Implementation": {
-      "address": "0x82cA18785BBbacBeD1C4f482921E2B2E989D8C08",
+      "address": "0xA66B2b5D50ce68A125bBad6B2265b637868c6E66",
       "abi": [
         {
           "anonymous": false,
@@ -73004,19 +73121,6 @@
               "internalType": "address",
               "name": "",
               "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "maxAssets",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -77020,12 +77124,23 @@
       ]
     },
     "VBep20Delegate": {
-      "address": "0xb25b57599BA969c4829699F7E4Fc4076D14745E1",
+      "address": "0xCDfea50f7CECCB24Fe804657DB8E6c93b689941e",
       "abi": [
         {
           "inputs": [],
           "stateMutability": "nonpayable",
           "type": "constructor"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "errorCode",
+              "type": "uint256"
+            }
+          ],
+          "name": "AccrueInterestFailed",
+          "type": "error"
         },
         {
           "inputs": [],
@@ -86361,7 +86476,7 @@
       ]
     },
     "VenusLens": {
-      "address": "0x344cD779C5aAF3436795B49f7C375E716A20f527",
+      "address": "0xe797804c5d4410777c70EF8769c4eB9C39BEF662",
       "abi": [
         {
           "inputs": [],
