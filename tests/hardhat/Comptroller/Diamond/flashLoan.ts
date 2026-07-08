@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
@@ -93,6 +93,7 @@ describe("FlashLoan", async () => {
   let underlyingB: MockContract<BEP20Harness>;
   let unitroller: Unitroller;
   let comptroller: ComptrollerMock;
+  let interestRateModel: FakeContract<InterestRateModel>;
   let mockReceiverContract: MockFlashLoanReceiver;
   let protocolShareReserveMock: FakeContract<IProtocolShareReserve>;
 
@@ -169,7 +170,8 @@ describe("FlashLoan", async () => {
 
   beforeEach(async () => {
     [alice] = await ethers.getSigners();
-    ({ unitroller, comptroller, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB } = await loadFixture(deploy));
+    ({ unitroller, comptroller, interestRateModel, vTokenA, vTokenB, vTokenC, underlyingA, underlyingB } =
+      await loadFixture(deploy));
   });
 
   describe("FlashLoan Multi-Assets", async () => {
@@ -414,12 +416,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
@@ -492,12 +494,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("60", 18));
@@ -549,12 +551,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       // Set borrow caps to allow borrowing
@@ -650,6 +652,92 @@ describe("FlashLoan", async () => {
       );
     });
 
+    it("Accrues interest at flash-loan start on the full pre-loan cash (partial repayment does not over-charge)", async () => {
+      // Regression test for the flash-loan accrual ordering fix.
+      //
+      // transferOutUnderlyingFlashLoan() accrues interest BEFORE any underlying leaves the
+      // market and before flashLoanAmount is set, so getBorrowRate() sees the full pre-loan cash.
+      // This is the only accrual in the flow: flashLoanDebtPosition() no longer re-accrues, it relies
+      // on the market already being fresh for the block. Without the fix, in the partial repayment
+      // path the only accrual would happen inside flashLoanDebtPosition() with cash that is missing
+      // the unpaid amount (and the protocol fee), inflating utilization and over-charging existing
+      // borrowers.
+      await vTokenA.setFlashLoanEnabled(true);
+      await vTokenB.setFlashLoanEnabled(true);
+
+      const BorrowDebtFlashLoanReceiver = await ethers.getContractFactory("BorrowDebtFlashLoanReceiver");
+      const borrowDebtReceiver = await BorrowDebtFlashLoanReceiver.deploy(unitroller.address);
+      await borrowDebtReceiver.deployed();
+
+      await comptroller.setWhiteListFlashLoanAccount(borrowDebtReceiver.address, true);
+      await comptroller.connect(alice).updateDelegate(borrowDebtReceiver.address, true);
+
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenA.address,
+        parseUnits("0.9", 18),
+        parseUnits("0.9", 18),
+      );
+      await comptroller["setCollateralFactor(address,uint256,uint256)"](
+        vTokenB.address,
+        parseUnits("0.9", 18),
+        parseUnits("0.9", 18),
+      );
+
+      await comptroller._setMarketBorrowCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
+      await comptroller._setMarketSupplyCaps(
+        [vTokenA.address, vTokenB.address],
+        [parseUnits("100000", 18), parseUnits("100000", 18)],
+      );
+      await comptroller.setIsBorrowAllowed(0, vTokenA.address, true);
+      await comptroller.setIsBorrowAllowed(0, vTokenB.address, true);
+
+      // Alice supplies collateral so a debt position can be opened on her behalf.
+      await underlyingA.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingB.harnessSetBalance(alice.address, parseUnits("1000", 18));
+      await underlyingA.connect(alice).approve(vTokenA.address, parseUnits("1000", 18));
+      await underlyingB.connect(alice).approve(vTokenB.address, parseUnits("1000", 18));
+      await vTokenA.connect(alice).mint(parseUnits("500", 18));
+      await vTokenB.connect(alice).mint(parseUnits("500", 18));
+      await comptroller.connect(alice).enterMarkets([vTokenA.address, vTokenB.address]);
+
+      // Receiver only repays the principal (no fee) -> partial repayment -> debt position created.
+      await underlyingA.harnessSetBalance(borrowDebtReceiver.address, flashLoanAmount1);
+      await underlyingB.harnessSetBalance(borrowDebtReceiver.address, flashLoanAmount2);
+
+      // Pin the market cash to a known full pre-loan value.
+      const preLoanCash = parseUnits("60", 18);
+      await underlyingA.harnessSetBalance(vTokenA.address, preLoanCash);
+      await underlyingB.harnessSetBalance(vTokenB.address, preLoanCash);
+      await vTokenA.harnessSetInternalCash(preLoanCash);
+      await vTokenB.harnessSetInternalCash(preLoanCash);
+
+      // Forget setup-time accruals and ensure a non-zero block delta so the start-of-loan accrual
+      // actually recomputes the rate (rather than short-circuiting on the same block).
+      interestRateModel.getBorrowRate.reset();
+      await mine(1);
+
+      await borrowDebtReceiver
+        .connect(alice)
+        .requestFlashLoan(
+          [vTokenA.address, vTokenB.address],
+          [flashLoanAmount1, flashLoanAmount2],
+          borrowDebtReceiver.address,
+          "0x",
+        );
+
+      // Precondition guard: this must be the partial-repayment path, i.e. a debt position was
+      // actually opened. Otherwise flashLoanDebtPosition() is never reached and the scenario is moot.
+      expect(await vTokenA.borrowBalanceStored(alice.address)).to.be.gt(0);
+      expect(await vTokenB.borrowBalanceStored(alice.address)).to.be.gt(0);
+
+      // The proof: interest accrued on the full pre-loan cash, not the reduced post-transfer cash.
+      // Without the fix this would be called with the understated cash and the assertion fails.
+      expect(interestRateModel.getBorrowRate).to.have.been.calledWith(preLoanCash, 0, 0);
+    });
+
     it("User has not enough supply in Venus and repays lesser amount (should revert)", async () => {
       await vTokenA.setFlashLoanEnabled(true);
       await vTokenB.setFlashLoanEnabled(true);
@@ -706,12 +794,12 @@ describe("FlashLoan", async () => {
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenA.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
       await comptroller["setCollateralFactor(address,uint256,uint256)"](
         vTokenB.address,
         parseUnits("0.9", 18),
-        parseUnits("1", 18),
+        parseUnits("0.9", 18),
       );
 
       // Set borrow caps to allow borrowing

@@ -891,6 +891,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
                 );
         }
 
+        ensureSafeLiquidationParams(newLiquidationThresholdMantissa, market.liquidationIncentiveMantissa);
+
         // Set market's collateral factor to new collateral factor, remember old value
         uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
         if (newCollateralFactorMantissa != oldCollateralFactorMantissa) {
@@ -943,6 +945,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         require(newLiquidationIncentiveMantissa >= mantissaOne, "incentive < 1e18");
 
+        ensureSafeLiquidationParams(market.liquidationThresholdMantissa, newLiquidationIncentiveMantissa);
+
         emit NewLiquidationIncentive(
             poolId,
             vToken,
@@ -954,6 +958,23 @@ contract SetterFacet is ISetterFacet, FacetBase {
         market.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
 
         return uint256(Error.NO_ERROR);
+    }
+
+    /**
+     * @dev Ensures liquidationThreshold * liquidationIncentive < 1. When the product reaches or exceeds 1,
+     *      liquidations stop reducing the account shortfall (ΔS = r·(LT·LI − 1) >= 0) and can drain collateral
+     *      while leaving residual debt. Reverts unsafe combinations for all pools.
+     * @param liquidationThresholdMantissa The liquidation threshold, scaled by 1e18
+     * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
+     */
+    function ensureSafeLiquidationParams(
+        uint256 liquidationThresholdMantissa,
+        uint256 liquidationIncentiveMantissa
+    ) internal pure {
+        // LT and LI are both 1e18-scaled, so the real product LT·LI >= 1 iff LT * LI >= 1e36
+        if (liquidationThresholdMantissa * liquidationIncentiveMantissa >= mantissaOne * mantissaOne) {
+            revert UnsafeLiquidationParams(liquidationThresholdMantissa, liquidationIncentiveMantissa);
+        }
     }
 
     /**

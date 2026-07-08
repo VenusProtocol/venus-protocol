@@ -364,6 +364,9 @@ abstract contract VTokenInterface is VTokenStorage {
     /// @notice Thrown when the repayment amount is insufficient to cover the total fee
     error InsufficientRepayment(uint256 actualAmount, uint256 requiredTotalFee);
 
+    /// @notice Thrown when interest accrual fails; errorCode is the underlying Error code
+    error AccrueInterestFailed(uint256 errorCode);
+
     /*** User Interface ***/
 
     function transfer(address dst, uint amount) external virtual returns (bool);

@@ -252,7 +252,8 @@ contract VBep20 is VToken, VBep20Interface {
 
     /**
      * @notice Transfer excess tokens to caller and sync internalCash with actual balance
-     * @dev Admin-only. For migration: pass 0 (just syncs). For sweep: pass the excess amount.
+     * @dev Admin-only. `sweepTokenAndSync(0)` is the general admin resync entry for internalCash —
+     *      use it for migration, donation-attack protection, and intentional donation incorporation.
      *      Transfers `transferAmount` of underlying to msg.sender, then sets internalCash = balanceOf(address(this)).
      * @param transferAmount Amount of underlying to transfer to msg.sender before syncing
      */

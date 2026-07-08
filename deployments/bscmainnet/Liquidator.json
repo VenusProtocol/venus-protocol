@@ -1074,7 +1074,7 @@
       "type": "constructor"
     }
   ],
-  "numDeployments": 2,
+  "numDeployments": 3,
   "execute": {
     "methodName": "initialize",
     "args": [
@@ -1086,5 +1086,5 @@
       "0xF322942f644A996A617BD29c16bd7d231d9F35E9"
     ]
   },
-  "implementation": "0xE26cE9b5FDd602225cCcC4cef7FAE596Dcf2A965"
+  "implementation": "0xC8c6f55DEBb47f724761920B79DC3ab5399DBC62"
 }

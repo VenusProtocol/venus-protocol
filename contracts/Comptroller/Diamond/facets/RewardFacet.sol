@@ -21,8 +21,11 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address indexed recipient, uint256 amount);
 
-    /// @notice Emitted when XVS are seized for the holder
+    /// @notice Emitted when XVS rewards are seized from the holder
     event VenusSeized(address indexed holder, uint256 amount);
+
+    /// @notice Emitted when a holder's claim is skipped because the liquidity probe returned an error
+    event ClaimSkipped(address indexed holder, uint256 errorCode);
 
     using SafeERC20 for IERC20;
 
@@ -36,6 +39,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
     /**
      * @notice Claim all the xvs accrued by holder in the specified markets
+     * @dev Can be used when some `allMarkets` entries are unlisted to avoid unintended reverts.
      * @param holder The address to claim XVS for
      * @param vTokens The list of markets to claim XVS in
      */
@@ -46,7 +50,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Claim all xvs accrued by the holders
+     * @notice Claim XVS accrued by the holders across the specified markets, optionally filtering to borrower or supplier rewards
      * @param holders The addresses to claim XVS for
      * @param vTokens The list of markets to claim XVS in
      * @param borrowers Whether or not to claim XVS earned by borrowing
@@ -57,7 +61,9 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Claim all the xvs accrued by holder in all markets, a shorthand for `claimVenus` with collateral set to `true`
+     * @notice Claim all the xvs accrued by holder in all markets. If the holder has a shortfall, the reward is
+     *         deposited into the vXVS market on their behalf as collateral; otherwise XVS is transferred directly.
+     *         Reverts if the holder has a shortfall and has not entered the vXVS market.
      * @param holder The address to claim XVS for
      */
     function claimVenusAsCollateral(address holder) external {
@@ -67,8 +73,21 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     }
 
     /**
+     * @notice Claim all the xvs accrued by holder in the supplied markets. Behaves identically to
+     *         `claimVenusAsCollateral(address)` but accepts a caller-supplied market list,
+     *          which can be used when some `allMarkets` entries are unlisted.
+     * @param holder The address to claim XVS for
+     * @param vTokens The list of markets to claim XVS in
+     */
+    function claimVenusAsCollateral(address holder, VToken[] calldata vTokens) external {
+        address[] memory holders = new address[](1);
+        holders[0] = holder;
+        claimVenus(holders, vTokens, true, true, true);
+    }
+
+    /**
      * @notice Transfer XVS to the user with user's shortfall considered
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all
+     * @dev Note: If there is not enough XVS, we do not perform the transfer at all
      * @param user The address of the user to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      * @param shortfall The shortfall of the user
@@ -109,6 +128,8 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
         address xvsVToken_ = xvsVToken;
 
+        require(getCorePoolMarket(xvsVToken_).accountMembership[user], "vXVS market not entered");
+
         xvs_.safeApprove(xvsVToken_, 0);
         xvs_.safeApprove(xvsVToken_, amount);
         require(VBep20Interface(xvsVToken_).mintBehalf(user, amount) == uint256(Error.NO_ERROR), "mint behalf error");
@@ -117,12 +138,14 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         return 0;
     }
 
-    /*** Venus Distribution Admin ***/
+    // ============================================================
+    //                  Venus Distribution Admin
+    // ============================================================
 
     /**
      * @notice Transfer XVS to the recipient
-     * @dev Allows the contract admin to transfer XVS to any recipient based on the recipient's shortfall
-     *      Note: If there is not enough XVS, we do not perform the transfer all
+     * @dev Allows the contract admin to transfer XVS to any recipient, regardless of shortfall
+     *      Note: If there is not enough XVS, we do not perform the transfer at all
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */
@@ -142,11 +165,44 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
      */
     function seizeVenus(address[] calldata holders, address recipient) external returns (uint256) {
         ensureAllowed("seizeVenus(address[],address)");
+        return _seizeVenus(holders, recipient, allMarkets);
+    }
 
+    /**
+     * @notice Seize XVS rewards allocated to holders, filtered to the supplied markets
+     * @dev Behaves identically to `seizeVenus(address[],address)` but accepts a caller-supplied market list;
+     *      can be used when some `allMarkets` entries are unlisted to avoid unintended reverts.
+     * @param holders Addresses of the XVS holders
+     * @param recipient Address of the XVS token recipient
+     * @param vTokens The list of markets to seize XVS from
+     * @return The total amount of XVS tokens seized and transferred to recipient
+     */
+    function seizeVenus(
+        address[] calldata holders,
+        address recipient,
+        VToken[] calldata vTokens
+    ) external returns (uint256) {
+        ensureAllowed("seizeVenus(address[],address,address[])");
+        return _seizeVenus(holders, recipient, vTokens);
+    }
+
+    /**
+     * @notice Shared implementation for both `seizeVenus` overloads
+     * @dev ACM gating must be enforced by the caller.
+     * @param holders Addresses of the XVS holders
+     * @param recipient Address of the XVS token recipient
+     * @param vTokens The list of markets to seize XVS from
+     * @return The total amount of XVS tokens seized and transferred to recipient
+     */
+    function _seizeVenus(
+        address[] calldata holders,
+        address recipient,
+        VToken[] memory vTokens
+    ) internal returns (uint256) {
         uint256 holdersLength = holders.length;
         uint256 totalHoldings;
 
-        updateAndDistributeRewardsInternal(holders, allMarkets, true, true);
+        updateAndDistributeRewardsInternal(holders, vTokens, true, true);
         for (uint256 j; j < holdersLength; ++j) {
             address holder = holders[j];
             uint256 userHolding = venusAccrued[holder];
@@ -194,13 +250,20 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
                 holder,
                 VToken(address(0)),
                 0,
                 0,
                 WeightFunction.USE_COLLATERAL_FACTOR
             );
+
+            // Fail closed if liquidity can't be determined (err != NO_ERROR): skip the holder,
+            // leaving their accrual intact to claim later, and emit ClaimSkipped to mark the deferral.
+            if (err != Error.NO_ERROR) {
+                emit ClaimSkipped(holder, uint256(err));
+                continue;
+            }
 
             uint256 value = venusAccrued[holder];
             delete venusAccrued[holder];

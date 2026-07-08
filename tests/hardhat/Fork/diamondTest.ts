@@ -24,7 +24,6 @@ let owner,
   diamondProxy,
   // layout variables
   oracle,
-  maxAssets,
   closeFactorMantissa,
   liquidationIncentiveMantissa,
   allMarkets,
@@ -154,10 +153,6 @@ forking(31873700, () => {
           oracle = await unitroller.oracle();
           const oracelUpgrade = await diamondUnitroller.oracle();
           expect(oracle).to.equal(oracelUpgrade);
-
-          maxAssets = await unitroller.maxAssets();
-          const maxAssetsAfterUpgrade = await diamondUnitroller.maxAssets();
-          expect(maxAssets).to.equal(maxAssetsAfterUpgrade);
 
           closeFactorMantissa = await unitroller.closeFactorMantissa();
           const closeFactorMantissaAfterUpgrade = await diamondUnitroller.closeFactorMantissa();
