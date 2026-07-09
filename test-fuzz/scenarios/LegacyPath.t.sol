@@ -5,17 +5,15 @@ import { XVSVaultTestBase } from "../XVSVaultTestBase.sol";
 
 /// @notice Deterministic probes of the legacy (pre-upgrade, afterUpgrade=0)
 /// withdrawal path — the branch of `executeWithdrawal` that pays reward on the
-/// full `user.amount` and does not call `_moveDelegates`, reached via the
-/// scenario-only `requestOldWithdrawal`. Goal: find a vote-inflation, reward, or
-/// lock-bypass gap in a path no production test exercises.
+/// full `user.amount` and does not call `_moveDelegates`. This branch is live
+/// mainnet bytecode: any user still holding a genuine pre-upgrade request hits
+/// it on execute. `requestOldWithdrawal` (scenario-only) is just the setup tool
+/// used to reach that real state, the way `deal`/`prank` set up other tests.
 ///
-/// Finding (documented, NOT exploitable on mainnet): a position holding BOTH a
-/// legacy and a new request can never be executed ("inconsistent state") — a
-/// permanent freeze. It is unreachable on mainnet because production
-/// `requestWithdrawal` reverts while a beforeUpgrade request exists, and
-/// `requestOldWithdrawal` does not exist on the deployed contract. LG_GUARD
-/// below proves that guard is load-bearing; LG_FREEZE documents what removing it
-/// would cost.
+/// LG1/LG2 assert the branch keeps votes == live stake and reward bounded.
+/// LG_GUARD tests a real production guard: `requestWithdrawal`/`deposit` revert
+/// while a beforeUpgrade request is pending, so a user can only ever hold one
+/// request type at a time (which is what keeps the branch's accounting sound).
 contract LegacyPathTest is XVSVaultTestBase {
     address internal A;
     address internal B;
@@ -99,23 +97,5 @@ contract LegacyPathTest is XVSVaultTestBase {
         vm.prank(A);
         vm.expectRevert(bytes("execute pending withdrawal"));
         vault.deposit(address(xvs), 0, 100e18);
-    }
-
-    // ---- LG_FREEZE: without that guard, mixed requests freeze the position ----
-    // Only reachable via the scenario-only requestOldWithdrawal AFTER a new
-    // request (order that production forbids). Documents the cost of the guard.
-    function test_LG_FREEZE_mixedRequestsCannotExecute() public {
-        _dep(A, 1_000e18);
-        // New request first (afterUpgrade=1), then a legacy one (afterUpgrade=0).
-        vm.prank(A);
-        vault.requestWithdrawal(address(xvs), 0, 300e18);
-        vm.prank(A);
-        vault.requestOldWithdrawal(address(xvs), 0, 300e18);
-
-        _warpPastLock();
-        // Both slices are eligible -> the not-both guard reverts -> funds frozen.
-        vm.prank(A);
-        vm.expectRevert(bytes("inconsistent state"));
-        vault.executeWithdrawal(address(xvs), 0);
     }
 }

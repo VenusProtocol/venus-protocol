@@ -24,6 +24,8 @@ test-fuzz/
   invariants/XVSVaultInvariants.t.sol
   invariants/CrossUserIntegrity.t.sol   # X1/X2: victim untouched, no principal inflation
   invariants/RewardSolvency.t.sol       # reward emission cap + no reward-debt underflow
+  invariants/LegacyPathInvariants.t.sol # legacy (beforeUpgrade) path: solvency + vote conservation
+  handlers/LegacyVaultHandler.sol       # driver mixing legacy + new requests
   scenarios/VoteInflation.t.sol
   scenarios/DelegateBySig.t.sol         # I11/X4/X5: relayed-once, replay, expiry, chainId, malleability, victim-forge
   scenarios/RewardIntegrity.t.sol       # X3/X6/X9: claim + vault-debt integrity
@@ -31,6 +33,7 @@ test-fuzz/
   scenarios/MultiPool.t.sol             # second pool: vote + reward isolation
   scenarios/VoteOverflow.t.sol          # X7: uint96 vote-cap guards
   scenarios/Solc0516Hacks.t.sol         # H1-H5: PoC attempts of the canonical pre-0.8 hack classes (all blocked)
+  scenarios/LegacyPath.t.sol            # LG1/LG2/LG_GUARD: legacy beforeUpgrade branch + its guard
   fork/ForkLiveHacks.t.sol              # H1-H5 replayed against the LIVE bscmainnet vault bytecode
   Smoke.t.sol
 ```
