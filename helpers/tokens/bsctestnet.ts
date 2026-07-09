@@ -280,6 +280,12 @@ const tokens = [
     symbol: "SPCXB",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "UXRP",
+    symbol: "UXRP",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

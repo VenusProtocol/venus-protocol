@@ -838,4 +838,26 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus UXRP",
+    symbol: "vUXRP",
+    asset: "UXRP",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.6",
+      reserveFactor: "0.25",
+      supplyCap: "236",
+      borrowCap: "236",
+    },
+    initialSupply: {
+      amount: "100",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
