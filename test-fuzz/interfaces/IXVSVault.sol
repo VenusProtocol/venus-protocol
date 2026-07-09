@@ -43,6 +43,8 @@ interface IXVSVault {
     function nonces(address account) external view returns (uint256);
     function poolLength(address rewardToken) external view returns (uint256);
     function isTimeBased() external view returns (bool);
+    function vaultPaused() external view returns (bool);
+    function primeToken() external view returns (address);
 }
 
 interface IXVSStore {

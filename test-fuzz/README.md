@@ -32,6 +32,7 @@ test-fuzz/
   scenarios/MultiPool.t.sol             # second pool: vote + reward isolation
   scenarios/VoteOverflow.t.sol          # X7: uint96 vote-cap guards
   scenarios/Solc0516Hacks.t.sol         # H1-H5: PoC attempts of the canonical pre-0.8 hack classes (all blocked)
+  fork/ForkLiveHacks.t.sol              # H1-H5 replayed against the LIVE bscmainnet vault bytecode
   Smoke.t.sol
 ```
 
@@ -50,7 +51,16 @@ forge test --offline -vv                              # everything
 forge test --offline --match-path "test-fuzz/invariants/*"
 forge test --offline --match-path "test-fuzz/scenarios/*"
 FOUNDRY_PROFILE=deep forge test --offline --match-path "test-fuzz/invariants/*"  # 3000×200
+forge test --offline --match-contract ForkLiveHacksTest  # fork; needs ARCHIVE_NODE_bscmainnet in .env
 ```
+
+The fork suite (`fork/ForkLiveHacks.t.sol`) runs the H1-H5 hack PoCs against the
+**live** bscmainnet vault (proxy `0x0511…9204`, impl `0x74c8…B378`, real XVS +
+store) instead of a local copy. It funds attacker wallets via `deal` and skips
+automatically when `ARCHIVE_NODE_bscmainnet` is unset. Note: live pool 0 is the
+Prime pool, so `deposit`/`requestWithdrawal` call `primeToken.xvsUpdated()`,
+which reverts on a fork — the suite `vm.mockCall`s that hook to a no-op to
+isolate the vault's own logic (Prime's safety is out of scope here).
 
 ## What it checks
 
