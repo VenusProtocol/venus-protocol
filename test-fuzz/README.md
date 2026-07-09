@@ -31,6 +31,7 @@ test-fuzz/
   scenarios/StoreShortfall.t.sol        # under-funded store -> pendingRewardTransfers debt path
   scenarios/MultiPool.t.sol             # second pool: vote + reward isolation
   scenarios/VoteOverflow.t.sol          # X7: uint96 vote-cap guards
+  scenarios/Solc0516Hacks.t.sol         # H1-H5: PoC attempts of the canonical pre-0.8 hack classes (all blocked)
   Smoke.t.sol
 ```
 
@@ -131,6 +132,18 @@ hold balances near the uint96 vote cap:
 | --- | ------------------------------------------------------------------ |
 | X7a | a deposit `>= 2^96` reverts on the vote-move overflow guard        |
 | X7b | accumulating sub-cap deposits to `>= 2^96` then delegating reverts |
+
+Solidity-0.5.x hack PoCs (`scenarios/Solc0516Hacks.t.sol`) — each _performs_ a
+canonical pre-0.8 attack and asserts it is blocked (a failed exploit is the
+proof the mitigation holds). All blocked; no valid hack found.
+
+| Id  | Pre-0.8 hack class         | Attack performed                                                 | Guard                                                             |
+| --- | -------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------- |
+| H1  | integer underflow          | withdraw `stake + 1` (pre-0.8 wraps `amount` to ~2^256)          | amount guard reverts; stake intact                                |
+| H2  | reward-debt wrap → mint    | churn deposit/request/execute to wrap `.sub` and drain the store | SafeMath reverts; store never over-drained                        |
+| H3  | signature malleability     | replay the malleable twin `(v'=28, s'=n−s)` of a used delegation | OZ ECDSA rejects high-s                                           |
+| H4  | `ecrecover(0)` forge       | fabricated low-s sig to empower a chosen delegatee               | recovers an uncontrollable stakeless phantom; target gets 0 votes |
+| H5  | Compound/Venus double-vote | withdraw + move XVS to a 2nd wallet to vote the same coins twice | votes burned at request; total == staked, not 2×                  |
 
 ## Status
 
