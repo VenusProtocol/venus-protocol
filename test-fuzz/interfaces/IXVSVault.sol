@@ -26,6 +26,7 @@ interface IXVSVault {
     function executeWithdrawal(address _rewardToken, uint256 _pid) external;
     function claim(address _account, address _rewardToken, uint256 _pid) external;
     function delegate(address delegatee) external;
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external;
 
     // --- views ---
     function getUserInfo(
@@ -40,6 +41,8 @@ interface IXVSVault {
     function delegates(address account) external view returns (address);
     function poolLength(address rewardToken) external view returns (uint256);
     function isTimeBased() external view returns (bool);
+    function nonces(address account) external view returns (uint256);
+    function pendingRewardTransfers(address rewardToken, address user) external view returns (uint256);
 }
 
 interface IXVSStore {
