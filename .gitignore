@@ -1,5 +1,9 @@
 tests/Scenarios
 allFiredEvents
+# Foundry (XVSVault fuzz layer) — build artifacts + vendored forge-std
+out-forge/
+cache-forge/
+lib/forge-std/
 .build-temp
 build
 build_

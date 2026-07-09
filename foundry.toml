@@ -1,0 +1,45 @@
+# Foundry layer for XVSVault invariant/fuzz testing.
+# Isolated from the Hardhat setup: separate out/cache dirs, sources scoped to
+# test-fuzz/ only (the 0.5.16 anchor pulls in just the XVSVault graph, not the
+# whole protocol). Hardhat's artifacts/ and cache/ are untouched.
+[profile.default]
+src = "test-fuzz"
+test = "test-fuzz"
+libs = ["lib"]
+out = "out-forge"
+cache_path = "cache-forge"
+auto_detect_solc = true          # per-file pragma: 0.5.16 anchor + 0.8 tests
+evm_version = "istanbul"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+# deployCode reads compiled artifacts from out-forge/ at runtime.
+fs_permissions = [{ access = "read", path = "out-forge" }]
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "@venusprotocol/governance-contracts/=node_modules/@venusprotocol/governance-contracts/",
+  "@venusprotocol/solidity-utilities/=node_modules/@venusprotocol/solidity-utilities/",
+  "@openzeppelin/=node_modules/@openzeppelin/",
+]
+
+[profile.default.fuzz]
+runs = 256
+
+[profile.default.invariant]
+runs = 256
+depth = 50
+fail_on_revert = false           # handlers guard inputs; reverts are skipped calls
+
+[profile.ci.fuzz]
+runs = 5000
+
+[profile.ci.invariant]
+runs = 1000
+depth = 100
+
+[profile.deep.invariant]
+runs = 3000
+depth = 200
+
+[rpc_endpoints]
+bscmainnet = "${ARCHIVE_NODE_bscmainnet}"
