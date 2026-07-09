@@ -45,8 +45,9 @@ abstract contract XVSVaultTestBase is Test {
         // pool 0: rewardToken = xvs, token = xvs.
         vault.add(address(xvs), 100, address(xvs), REWARD_PER_BLOCK, LOCK_PERIOD);
 
-        // Fund the reward store.
-        xvs.mint(address(store), STORE_FUNDING);
+        // Fund the reward store. Overridable so shortfall scenarios can
+        // deliberately under-fund and exercise the pendingRewardTransfers path.
+        xvs.mint(address(store), _storeFunding());
 
         // Seed actors and pre-approve the vault (deposits pull via transferFrom).
         for (uint256 i = 0; i < NUM_ACTORS; i++) {
@@ -60,6 +61,12 @@ abstract contract XVSVaultTestBase is Test {
         // Advance one block so the pool has a non-zero history before actions.
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 3);
+    }
+
+    /// @notice Reward-store funding at wiring time. Override to under-fund and
+    /// force _transferReward down the shortfall (pendingRewardTransfers) branch.
+    function _storeFunding() internal view virtual returns (uint256) {
+        return STORE_FUNDING;
     }
 
     // --- aggregate accessors (used by invariants) ---

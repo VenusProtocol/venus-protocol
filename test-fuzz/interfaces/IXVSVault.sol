@@ -38,11 +38,11 @@ interface IXVSVault {
     function getPriorVotes(address account, uint256 blockNumberOrSecond) external view returns (uint96);
     function pendingReward(address _rewardToken, uint256 _pid, address _user) external view returns (uint256);
     function totalPendingWithdrawals(address _rewardToken, uint256 _pid) external view returns (uint256);
+    function pendingRewardTransfers(address _rewardToken, address _user) external view returns (uint256);
     function delegates(address account) external view returns (address);
+    function nonces(address account) external view returns (uint256);
     function poolLength(address rewardToken) external view returns (uint256);
     function isTimeBased() external view returns (bool);
-    function nonces(address account) external view returns (uint256);
-    function pendingRewardTransfers(address rewardToken, address user) external view returns (uint256);
 }
 
 interface IXVSStore {

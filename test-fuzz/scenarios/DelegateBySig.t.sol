@@ -10,10 +10,12 @@ import { XVSVaultTestBase } from "../XVSVaultTestBase.sol";
 /// forged/stale signature that recovers to the wrong address must never move the
 /// victim's votes.
 ///
-///   X4  a used signature cannot be replayed (nonce is consumed)
-///   X5a an expired signature is rejected
-///   X5b a wrong-chainId signature cannot move the signer's votes
-///   X5c a malleable (high-s) signature is rejected by ECDSA
+///   I11a a valid signature can be relayed by a third party, exactly once
+///   X4   a used signature cannot be replayed (nonce is consumed)
+///   X5a  an expired signature is rejected
+///   X5b  a wrong-chainId signature cannot move the signer's votes
+///   X5c  a malleable (high-s) signature is rejected by ECDSA
+///   I11d a forged payload only ever affects the signer, never a victim
 contract DelegateBySigTest is XVSVaultTestBase {
     bytes32 internal constant DOMAIN_TYPEHASH =
         keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -47,6 +49,23 @@ contract DelegateBySigTest is XVSVaultTestBase {
         );
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+    }
+
+    // ---- I11a: a valid signature can be relayed by a third party, once ----
+    function test_I11a_validRelayedOnce() public {
+        uint256 pk = 0xF00D;
+        address signer = _seedSigner(pk, 40_000e18);
+        address B = actors[0];
+        address relayer = actors[1];
+        uint256 expiry = block.timestamp + 1 hours;
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, _digest(B, 0, expiry, block.chainid));
+        vm.prank(relayer); // relayed by a third party, not the signer
+        vault.delegateBySig(B, 0, expiry, v, r, s);
+
+        assertEq(vault.delegates(signer), B, "I11a: delegate not set");
+        assertEq(uint256(vault.getCurrentVotes(B)), 40_000e18, "I11a: votes != signer stake");
+        assertEq(vault.nonces(signer), 1, "I11a: nonce not consumed");
     }
 
     // ---- X4: signature replay must be rejected ----
@@ -111,5 +130,27 @@ contract DelegateBySigTest is XVSVaultTestBase {
 
         vm.expectRevert(bytes("ECDSA: invalid signature 's' value"));
         vault.delegateBySig(B, 0, expiry, vMal, r, sMal);
+    }
+
+    // ---- I11d: a relayer cannot forge a victim's delegation ----
+    function test_I11d_noVictimForge() public {
+        // Victim stakes and self-delegates through the normal path.
+        address victim = _seedSigner(0x71C7, 50_000e18);
+        vm.prank(victim);
+        vault.delegate(victim);
+        assertEq(uint256(vault.getCurrentVotes(victim)), 50_000e18, "I11d: setup");
+
+        // Attacker signs with ITS OWN key, trying to redirect votes to itself.
+        uint256 attackerPk = 0xBADBAD;
+        address attacker = vm.addr(attackerPk);
+        uint256 expiry = block.timestamp + 1 hours;
+        uint256 n = vault.nonces(attacker);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(attackerPk, _digest(attacker, n, expiry, block.chainid));
+        vault.delegateBySig(attacker, n, expiry, v, r, s);
+
+        // The signature only affected the attacker (zero stake). Victim untouched.
+        assertEq(vault.delegates(victim), victim, "I11d: victim delegate changed");
+        assertEq(uint256(vault.getCurrentVotes(victim)), 50_000e18, "I11d: victim votes moved");
+        assertEq(uint256(vault.getCurrentVotes(attacker)), 0, "I11d: forged votes for attacker");
     }
 }

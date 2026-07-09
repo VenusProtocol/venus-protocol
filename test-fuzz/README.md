@@ -23,9 +23,13 @@ test-fuzz/
   handlers/VaultHandler.sol  # invariant driver (bounded random actions + adversarial ones)
   invariants/XVSVaultInvariants.t.sol
   invariants/CrossUserIntegrity.t.sol   # X1/X2: victim untouched, no principal inflation
+  invariants/RewardSolvency.t.sol       # reward emission cap + no reward-debt underflow
   scenarios/VoteInflation.t.sol
-  scenarios/DelegateBySig.t.sol         # X4/X5: sig replay / expiry / chainId / malleability
+  scenarios/DelegateBySig.t.sol         # I11/X4/X5: relayed-once, replay, expiry, chainId, malleability, victim-forge
   scenarios/RewardIntegrity.t.sol       # X3/X6/X9: claim + vault-debt integrity
+  scenarios/RewardDebt.t.sol            # reward-debt integrity across withdrawal lifecycle
+  scenarios/StoreShortfall.t.sol        # under-funded store -> pendingRewardTransfers debt path
+  scenarios/MultiPool.t.sol             # second pool: vote + reward isolation
   scenarios/VoteOverflow.t.sol          # X7: uint96 vote-cap guards
   Smoke.t.sol
 ```
@@ -58,6 +62,8 @@ Invariants (stateful, `XVSVaultInvariants.t.sol`) — hold after every handler c
 | I3  | `user.pendingWithdrawals <= user.amount`                                    |
 | V1  | vote conservation: `Σ currentVotes == Σ (amount − pending)` over delegators |
 | V4  | vote solvency: `Σ currentVotes <= balanceOf(vault) − totalPending`          |
+| R2  | emission cap: store payout `<= rewardPerBlock * elapsedBlocks`              |
+| R1b | `pendingReward` never reverts (no reward-debt underflow -> no user DoS)     |
 
 Vote-inflation scenarios (`VoteInflation.t.sol`) — the delta/absolute seam:
 
@@ -69,6 +75,15 @@ Vote-inflation scenarios (`VoteInflation.t.sol`) — the delta/absolute seam:
 | S4  | same-block op storm (checkpoint overwrite must not sum)                         |
 | S5  | historical `getPriorVotes` snapshot ≤ stake at that block (governance-relevant) |
 | S6  | `executeWithdrawal` is vote-neutral (no re-burn / no re-add)                    |
+
+Reward + config scenarios:
+
+| Id    | File                   | Property                                                                      |
+| ----- | ---------------------- | ----------------------------------------------------------------------------- |
+| R1a–c | `RewardDebt.t.sol`     | reward-debt stays consistent through request/execute/claim (no underflow DoS) |
+| P1    | `StoreShortfall.t.sol` | under-funded store books debt == owed−paid, repaid once in full on refill     |
+| M1    | `MultiPool.t.sol`      | rewards isolated per pool (no cross-pool drain)                               |
+| M2    | `MultiPool.t.sol`      | only the XVS-staked pool grants votes; a second pool is not a vote backdoor   |
 
 The handler also includes adversarial actions: `donate` (raw transfer bypassing
 `deposit`, probing the balance-based reward-supply path) and `warpRoll`
@@ -90,12 +105,14 @@ victim stakes+self-delegates, then an attackers-only handler drives the vault:
 delegateBySig attacks (`scenarios/DelegateBySig.t.sol`) — a holder cannot move
 another account's votes with a forged/stale signature:
 
-| Id  | Attack                                                                       |
-| --- | ---------------------------------------------------------------------------- |
-| X4  | a used signature cannot be replayed (nonce consumed)                         |
-| X5a | expired signature rejected (`signature expired`)                             |
-| X5b | wrong-chainId signature cannot move the signer's votes                       |
-| X5c | malleable high-s signature rejected by ECDSA (`invalid signature 's' value`) |
+| Id   | Attack                                                                       |
+| ---- | ---------------------------------------------------------------------------- |
+| I11a | a valid signature can be relayed by a third party, exactly once              |
+| X4   | a used signature cannot be replayed (nonce consumed)                         |
+| X5a  | expired signature rejected (`signature expired`)                             |
+| X5b  | wrong-chainId signature cannot move the signer's votes                       |
+| X5c  | malleable high-s signature rejected by ECDSA (`invalid signature 's' value`) |
+| I11d | a forged payload only ever affects the signer, never a victim                |
 
 Reward-path attacks (`scenarios/RewardIntegrity.t.sol`) — rewards paid from the
 separate store; a holder cannot mint, redirect, or double-collect:
@@ -117,18 +134,18 @@ hold balances near the uint96 vote cap:
 
 ## Status
 
-All 28 tests pass (15 core + 13 adversarial-holder). No insolvency, vote
-inflation, lock bypass, cross-user theft, reward mint/double-collect, signature
-replay, or accounting drift found. Consistent with the manual audits: the
-current 0.5.16 vault has no exploitable path for an XVS holder to manipulate XVS
-or steal another user's funds.
+All tests pass. No insolvency, vote inflation, lock bypass, cross-user theft,
+reward-debt underflow, reward mint/double-collect, store-debt double-pay,
+cross-pool leak, signature replay, or accounting drift found. Consistent with
+the manual audits: the current 0.5.16 vault has no exploitable path for an XVS
+holder to manipulate XVS or steal another user's funds.
 
 ## Extending
 
-- **Multi-pool isolation (I7/V5):** add a second reward token + pool and assert
-  reward accounting and votes stay pool-scoped (non-XVS pool grants 0 votes).
 - **donate reward-share dilution (X8):** assert a raw donation only dilutes the
   reward rate and is never claimable as principal.
+- **Reward-drain ghost (I8):** add a running `accrued` tally in the handler and
+  assert `Σ claimed <= accrued` (R2 already bounds store payout by the schedule).
 - **Planned withdraw-to-target upgrade:** when that impl exists, add a scenario
   asserting I1/I2/V1 still hold post-seizure (a blanket `transfer(target, balanceOf)`
   will break I1), and that only the Timelock can call it.
