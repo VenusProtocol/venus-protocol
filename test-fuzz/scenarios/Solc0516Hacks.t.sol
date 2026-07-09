@@ -13,33 +13,19 @@ import { XVSVaultTestBase } from "../XVSVaultTestBase.sol";
 ///   H2  reward-debt wrap    — the money version of H1: if reward math could
 ///                            underflow, pending reward wraps to ~2^256 and
 ///                            drains the store. SafeMath `.sub` reverts.
-///   H3  sig malleability    — replay a delegation with the malleable (v',n-s)
-///                            counterpart. OZ ECDSA lib rejects high-s.
+///   (H3 sig-malleability replay lives in DelegateBySig.t.sol::X5c and the live
+///    ForkLiveHacks suite; not duplicated here.)
 ///   H4  ecrecover(0) forge  — a garbage signature must not recover to a usable
 ///                            signatory (never address(0) with a live nonce).
 ///   H5  checkpoint double-vote — the historical Compound/Venus bug (the
 ///                            `__old*Slot` DEPRECATED storage): keep votes after
 ///                            moving the underlying XVS to a second wallet.
 contract Solc0516HacksTest is XVSVaultTestBase {
-    bytes32 internal constant DOMAIN_TYPEHASH =
-        keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-    bytes32 internal constant DELEGATION_TYPEHASH =
-        keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
-    uint256 internal constant SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
-
     address internal attacker;
 
     function setUp() public {
         _deployAndWire();
         attacker = actors[0];
-    }
-
-    function _digest(address delegatee, uint256 nonce, uint256 expiry) internal view returns (bytes32) {
-        bytes32 ds = keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("XVSVault")), block.chainid, address(vault))
-        );
-        bytes32 sh = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
-        return keccak256(abi.encodePacked("\x19\x01", ds, sh));
     }
 
     // ---- H1: withdraw more than staked must revert, not underflow ----
@@ -92,36 +78,9 @@ contract Solc0516HacksTest is XVSVaultTestBase {
         assertLe(storeBefore - xvs.balanceOf(address(store)), storeBefore, "H2: store over-drained");
     }
 
-    // ---- H3: signature-malleability replay on delegateBySig ----
-    // Given a used (v,r,s), the malleable twin (v'=27<->28, s'=n-s) is a second
-    // "valid" ecrecover signature for the same message. The classic attack replays
-    // it to re-trigger the action. OZ ECDSA rejects the high-s twin outright.
-    function test_H3_malleabilityReplayBlocked() public {
-        uint256 pk = 0xA11CE;
-        address signer = vm.addr(pk);
-        xvs.mint(signer, 10_000e18);
-        vm.prank(signer);
-        xvs.approve(address(vault), type(uint256).max);
-        vm.prank(signer);
-        vault.deposit(address(xvs), 0, 10_000e18);
-
-        address B = actors[1];
-        uint256 expiry = block.timestamp + 1 hours;
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, _digest(B, 0, expiry));
-
-        // Original delegation succeeds and consumes nonce 0.
-        vault.delegateBySig(B, 0, expiry, v, r, s);
-        assertEq(uint256(vault.getCurrentVotes(B)), 10_000e18, "H3: setup");
-
-        // Malleable twin of the SAME signature.
-        bytes32 sMal = bytes32(SECP256K1_N - uint256(s));
-        uint8 vMal = v == 27 ? 28 : 27;
-
-        // Attempted replay with the twin: rejected by the s-value check (would
-        // otherwise still fail the nonce, but the lib stops it first).
-        vm.expectRevert(bytes("ECDSA: invalid signature 's' value"));
-        vault.delegateBySig(B, 0, expiry, vMal, r, sMal);
-    }
+    // NOTE: H3 (signature-malleability replay) lived here but is an exact
+    // duplicate of DelegateBySig.t.sol::test_X5_malleableSigRejected (local) and
+    // ForkLiveHacks::test_fork_H3 (live). Removed to avoid redundant coverage.
 
     // ---- H4: forged signature cannot move real votes to a chosen address ----
     // A well-formed but attacker-fabricated sig (low-s, v=27) does NOT revert and

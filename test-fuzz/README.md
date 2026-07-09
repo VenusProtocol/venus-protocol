@@ -28,7 +28,6 @@ test-fuzz/
   scenarios/DelegateBySig.t.sol         # I11/X4/X5: relayed-once, replay, expiry, chainId, malleability, victim-forge
   scenarios/RewardIntegrity.t.sol       # X3/X6/X9: claim + vault-debt integrity
   scenarios/RewardDebt.t.sol            # reward-debt integrity across withdrawal lifecycle
-  scenarios/StoreShortfall.t.sol        # under-funded store -> pendingRewardTransfers debt path
   scenarios/MultiPool.t.sol             # second pool: vote + reward isolation
   scenarios/VoteOverflow.t.sol          # X7: uint96 vote-cap guards
   scenarios/Solc0516Hacks.t.sol         # H1-H5: PoC attempts of the canonical pre-0.8 hack classes (all blocked)
@@ -89,12 +88,11 @@ Vote-inflation scenarios (`VoteInflation.t.sol`) — the delta/absolute seam:
 
 Reward + config scenarios:
 
-| Id    | File                   | Property                                                                      |
-| ----- | ---------------------- | ----------------------------------------------------------------------------- |
-| R1a–c | `RewardDebt.t.sol`     | reward-debt stays consistent through request/execute/claim (no underflow DoS) |
-| P1    | `StoreShortfall.t.sol` | under-funded store books debt == owed−paid, repaid once in full on refill     |
-| M1    | `MultiPool.t.sol`      | rewards isolated per pool (no cross-pool drain)                               |
-| M2    | `MultiPool.t.sol`      | only the XVS-staked pool grants votes; a second pool is not a vote backdoor   |
+| Id    | File               | Property                                                                      |
+| ----- | ------------------ | ----------------------------------------------------------------------------- |
+| R1a–c | `RewardDebt.t.sol` | reward-debt stays consistent through request/execute/claim (no underflow DoS) |
+| M1    | `MultiPool.t.sol`  | rewards isolated per pool (no cross-pool drain)                               |
+| M2    | `MultiPool.t.sol`  | only the XVS-staked pool grants votes; a second pool is not a vote backdoor   |
 
 The handler also includes adversarial actions: `donate` (raw transfer bypassing
 `deposit`, probing the balance-based reward-supply path) and `warpRoll`
@@ -118,8 +116,7 @@ another account's votes with a forged/stale signature:
 
 | Id   | Attack                                                                       |
 | ---- | ---------------------------------------------------------------------------- |
-| I11a | a valid signature can be relayed by a third party, exactly once              |
-| X4   | a used signature cannot be replayed (nonce consumed)                         |
+| X4   | a relayed signature delegates once; replay rejected (nonce consumed)         |
 | X5a  | expired signature rejected (`signature expired`)                             |
 | X5b  | wrong-chainId signature cannot move the signer's votes                       |
 | X5c  | malleable high-s signature rejected by ECDSA (`invalid signature 's' value`) |
@@ -143,15 +140,16 @@ hold balances near the uint96 vote cap:
 | X7a | a deposit `>= 2^96` reverts on the vote-move overflow guard        |
 | X7b | accumulating sub-cap deposits to `>= 2^96` then delegating reverts |
 
-Solidity-0.5.x hack PoCs (`scenarios/Solc0516Hacks.t.sol`) — each _performs_ a
-canonical pre-0.8 attack and asserts it is blocked (a failed exploit is the
-proof the mitigation holds). All blocked; no valid hack found.
+Solidity-0.5.x hack PoCs (`scenarios/Solc0516Hacks.t.sol`, replayed on live
+bytecode in `fork/ForkLiveHacks.t.sol`) — each _performs_ a canonical pre-0.8
+attack and asserts it is blocked (a failed exploit is the proof the mitigation
+holds). All blocked; no valid hack found. (H3 signature-malleability is covered
+by `DelegateBySig.t.sol::X5c` and the fork suite, not duplicated locally.)
 
 | Id  | Pre-0.8 hack class         | Attack performed                                                 | Guard                                                             |
 | --- | -------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------- |
 | H1  | integer underflow          | withdraw `stake + 1` (pre-0.8 wraps `amount` to ~2^256)          | amount guard reverts; stake intact                                |
 | H2  | reward-debt wrap → mint    | churn deposit/request/execute to wrap `.sub` and drain the store | SafeMath reverts; store never over-drained                        |
-| H3  | signature malleability     | replay the malleable twin `(v'=28, s'=n−s)` of a used delegation | OZ ECDSA rejects high-s                                           |
 | H4  | `ecrecover(0)` forge       | fabricated low-s sig to empower a chosen delegatee               | recovers an uncontrollable stakeless phantom; target gets 0 votes |
 | H5  | Compound/Venus double-vote | withdraw + move XVS to a 2nd wallet to vote the same coins twice | votes burned at request; total == staked, not 2×                  |
 

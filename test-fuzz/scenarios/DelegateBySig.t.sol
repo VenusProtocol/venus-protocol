@@ -10,8 +10,8 @@ import { XVSVaultTestBase } from "../XVSVaultTestBase.sol";
 /// forged/stale signature that recovers to the wrong address must never move the
 /// victim's votes.
 ///
-///   I11a a valid signature can be relayed by a third party, exactly once
-///   X4   a used signature cannot be replayed (nonce is consumed)
+///   X4   a relayed signature delegates once; the used signature cannot replay
+///        (nonce is consumed)
 ///   X5a  an expired signature is rejected
 ///   X5b  a wrong-chainId signature cannot move the signer's votes
 ///   X5c  a malleable (high-s) signature is rejected by ECDSA
@@ -51,25 +51,10 @@ contract DelegateBySigTest is XVSVaultTestBase {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
     }
 
-    // ---- I11a: a valid signature can be relayed by a third party, once ----
-    function test_I11a_validRelayedOnce() public {
-        uint256 pk = 0xF00D;
-        address signer = _seedSigner(pk, 40_000e18);
-        address B = actors[0];
-        address relayer = actors[1];
-        uint256 expiry = block.timestamp + 1 hours;
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, _digest(B, 0, expiry, block.chainid));
-        vm.prank(relayer); // relayed by a third party, not the signer
-        vault.delegateBySig(B, 0, expiry, v, r, s);
-
-        assertEq(vault.delegates(signer), B, "I11a: delegate not set");
-        assertEq(uint256(vault.getCurrentVotes(B)), 40_000e18, "I11a: votes != signer stake");
-        assertEq(vault.nonces(signer), 1, "I11a: nonce not consumed");
-    }
-
-    // ---- X4: signature replay must be rejected ----
-    function test_X4_sigReplayRejected() public {
+    // ---- X4: a relayed signature delegates once, and replay is rejected ----
+    // The call is made by the test contract, not the signer, so this also covers
+    // the "valid signature relayed by a third party" case.
+    function test_X4_relayedOnceThenReplayRejected() public {
         uint256 pk = 0xA11CE;
         address signer = _seedSigner(pk, 50_000e18);
         address B = actors[0];
@@ -80,6 +65,7 @@ contract DelegateBySigTest is XVSVaultTestBase {
         vault.delegateBySig(B, 0, expiry, v, r, s);
         assertEq(uint256(vault.getCurrentVotes(B)), 50_000e18, "X4: first delegate failed");
         assertEq(vault.delegates(signer), B, "X4: delegation not recorded");
+        assertEq(vault.nonces(signer), 1, "X4: nonce not consumed");
 
         // Same signature again: the nonce is now 1, so it must revert.
         vm.expectRevert(bytes("XVSVault::delegateBySig: invalid nonce"));
