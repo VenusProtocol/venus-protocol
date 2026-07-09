@@ -23,6 +23,9 @@ interface IXVSVault {
     // --- user actions ---
     function deposit(address _rewardToken, uint256 _pid, uint256 _amount) external;
     function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) external;
+    // XVSVaultScenario-only: fabricates a pre-upgrade (afterUpgrade=0) request to
+    // exercise the legacy executeWithdrawal branch that current tests never hit.
+    function requestOldWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) external;
     function executeWithdrawal(address _rewardToken, uint256 _pid) external;
     function claim(address _account, address _rewardToken, uint256 _pid) external;
     function delegate(address delegatee) external;
