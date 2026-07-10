@@ -44,6 +44,7 @@
     "@venusprotocol/token-bridge": "^2.7.0",
     "bignumber.js": "^9.1.2",
     "dotenv": "^16.0.1",
+    "foundry-gas-utils": "github:saifyoussuf/foundry-gas-utils",
     "module-alias": "^2.2.2",
     "patch-package": "^8.0.0"
   },
