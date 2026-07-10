@@ -17,6 +17,7 @@ interface IXVSVault {
         uint256 _lockPeriod
     ) external;
     function setWithdrawalLockingPeriod(address _rewardToken, uint256 _pid, uint256 _newPeriod) external;
+    function setPrimeToken(address _primeToken, address _primeRewardToken, uint256 _primePoolId) external;
     function pause() external;
     function resume() external;
 
@@ -53,4 +54,8 @@ interface IXVSVault {
 interface IXVSStore {
     function setNewOwner(address _owner) external;
     function setRewardToken(address _tokenAddress, bool status) external;
+    function emergencyRewardWithdraw(address _tokenAddress, uint256 _amount) external;
+    function owner() external view returns (address);
+    function admin() external view returns (address);
+    function rewardTokens(address) external view returns (bool);
 }
