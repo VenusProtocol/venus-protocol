@@ -24,12 +24,14 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *
  * In ONE transaction it repays an undercollateralized borrow, seizes the bStock vToken,
  * redeems it to the raw bStock, and sells that bStock to the debt asset in one or two hops. Hop 1
- * always sells bStock through the Native RFQ router using a pre-fetched, MM-signed firm-quote
- * `txRequest`. For USDT debt that single hop lands the debt asset directly. For non-USDT debt an
- * OPTIONAL hop 2 (Native quotes bStock->USDT only) converts the USDT to the debt asset through a
- * second allowlisted router (an AMM/aggregator). Because seize and sell happen in the same tx there
- * is no price-drift window, and the realized debt-asset amount must clear `minOut` or the whole call
- * reverts — the protocol never ends up holding the RFQ-only asset or the intermediate.
+ * sells bStock (to USDT) through an allowlisted RFQ router using a pre-fetched, off-chain-signed
+ * `swapCalldata` — Native firm-quote or Liquid Mesh (see `routerSpender`) or any future allowlisted
+ * source; the contract is router-agnostic and just forwards the opaque blob. For USDT debt that single
+ * hop lands the debt asset directly. For non-USDT debt an OPTIONAL hop 2 (RFQ sources quote bStock->USDT
+ * only) converts the USDT to the debt asset through a second allowlisted router (an AMM/aggregator).
+ * Because seize and sell happen in the same tx there is no price-drift window, and the realized
+ * debt-asset amount must clear `minOut` or the whole call reverts — the protocol never ends up holding
+ * the RFQ-only asset or the intermediate.
  *
  * Two funding modes share the same core (`_liquidate`):
  *   - INVENTORY: the contract is pre-funded with the debt asset and repays from its own balance.
@@ -55,9 +57,9 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *   - `liquidate` / `flashLiquidate` are `onlyOperator` (owner or allowlisted operator).
  *   - BOTH swap targets (`router` and, when set, `router2`) must be allowlisted (`isRouter`) — defends
  *     the low-level `router.call(swapCalldata)` on each hop.
- *   - the approval to each router is the exact amount being sold on that hop, reset to 0 afterwards
- *     (bStock on hop 1; the measured intermediate balance delta on hop 2, so pre-existing inventory
- *     is never exposed).
+ *   - the approval for each hop is the exact amount being sold, granted to the router's configured spender
+ *     (the router itself when unset — see `routerSpender`) and reset to 0 afterwards (bStock on hop 1; the
+ *     measured intermediate balance delta on hop 2, so pre-existing inventory is never exposed).
  *   - `executeOperation` accepts calls only from the Comptroller with `initiator == this` (i.e. a flash we started).
  *   - the realized debt-asset amount must clear `minOut` or the tx reverts.
  *
@@ -103,8 +105,15 @@ contract BStockLiquidator is
     /// @notice Routers allowed as the swap target (defends the low-level call).
     mapping(address => bool) public isRouter;
 
+    /// @notice Optional token-approval target (spender) per router, for aggregators whose settlement
+    ///         contract that pulls the input token differs from the call target (e.g. Liquid Mesh, where
+    ///         the router is the call target but a separate spender pulls the token). When unset
+    ///         (address(0)), the approval defaults to the router itself — the Native behaviour, where the
+    ///         call target IS the puller — so existing routers need no spender entry.
+    mapping(address => address) public routerSpender;
+
     /// @dev Reserved storage to allow new state variables in future upgrades without layout clashes.
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     modifier onlyOperator() {
         if (msg.sender != owner() && !isOperator[msg.sender]) revert NotOperator();
@@ -161,6 +170,15 @@ contract BStockLiquidator is
         ensureNonzeroAddress(router);
         isRouter[router] = allowed;
         emit RouterSet(router, allowed);
+    }
+
+    /// @inheritdoc IBStockLiquidator
+    function setRouterSpender(address router, address spender) external override onlyOwner {
+        ensureNonzeroAddress(router);
+        // `spender == address(0)` is allowed and clears the entry, reverting the router to
+        // approve-the-call-target (Native) behaviour.
+        routerSpender[router] = spender;
+        emit RouterSpenderSet(router, spender);
     }
 
     /// @inheritdoc IBStockLiquidator
@@ -301,14 +319,19 @@ contract BStockLiquidator is
         if (router2 != address(0) && !isRouter[router2]) revert RouterNotAllowed(router2);
     }
 
-    /// @dev One swap hop: approve the exact `amount` to the allowlisted `router`, forward the opaque
-    ///      calldata via a low-level call, then reset the approval to 0. The approval caps what the
-    ///      router can pull; if the calldata sells less, the remainder stays as inventory.
+    /// @dev One swap hop: approve the exact `amount` to the router's configured spender, forward the
+    ///      opaque calldata via a low-level call to the allowlisted `router`, then reset the approval to
+    ///      0. The spender defaults to the router itself when unset (Native, where the call target is the
+    ///      puller); aggregators with a separate settlement/pull contract (e.g. Liquid Mesh) set it via
+    ///      `setRouterSpender`. The approval caps what the spender can pull; if the calldata sells less,
+    ///      the remainder stays as inventory.
     function _swap(IERC20Upgradeable token, address router, bytes memory data, uint256 amount) private {
-        token.forceApprove(router, amount);
+        address spender = routerSpender[router];
+        if (spender == address(0)) spender = router;
+        token.forceApprove(spender, amount);
         (bool ok, ) = router.call(data);
         if (!ok) revert SwapFailed();
-        token.forceApprove(router, 0); // never leave a standing approval
+        token.forceApprove(spender, 0); // never leave a standing approval
     }
 
     /**

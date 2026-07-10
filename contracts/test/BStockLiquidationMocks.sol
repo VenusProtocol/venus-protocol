@@ -252,6 +252,50 @@ contract MockReentrantRouter {
     }
 }
 
+/// @dev Stand-in for an aggregator (e.g. Liquid Mesh) whose settlement pulls the input token through a
+///      SEPARATE spender contract, distinct from the call target. On Liquid Mesh you approve the spender
+///      `0x8157…` but call the router `0x3d90…`. `MockSpender.pull` does the `transferFrom`, so the input
+///      allowance must sit on the SPENDER, not the router — exactly the case `routerSpender` handles.
+contract MockSpender {
+    /// @dev Pull `amountIn` of `tokenIn` from `from` to `to`. `from` must have approved THIS contract.
+    function pull(address tokenIn, address from, address to, uint256 amountIn) external {
+        require(ERC20(tokenIn).transferFrom(from, to, amountIn), "spender pull failed");
+    }
+}
+
+/// @dev The call target that pairs with `MockSpender`: it pulls the caller's input token VIA the spender
+///      (so the caller must approve the spender, NOT this router) and pays the output at `rate`. Mirrors a
+///      Liquid Mesh swap: `router.call(swapCalldata)` where settlement pulls via a separate spender.
+///      Pre-fund it with `tokenOut`.
+contract MockSplitRouter {
+    address public immutable spender;
+    uint256 public rate = 1e18; // tokenOut per tokenIn, 18-dec fixed point
+
+    constructor(address spender_) {
+        spender = spender_;
+    }
+
+    function setRate(uint256 r) external {
+        rate = r;
+    }
+
+    function swap(address tokenIn, uint256 amountIn, address tokenOut, address to) external {
+        // Pull via the spender — reverts with "spender pull failed" if the caller approved this router
+        // instead of the spender (the SafeTransferFromFailed analog of Liquid Mesh's build-time sim).
+        MockSpender(spender).pull(tokenIn, msg.sender, address(this), amountIn);
+        require(ERC20(tokenOut).transfer(to, (amountIn * rate) / 1e18), "out transfer failed");
+    }
+
+    /// @dev Pulls the caller's ENTIRE tokenIn balance VIA THE SPENDER (what the liquidator holds after
+    ///      redeem) and pays tokenOut at `rate`. Mirrors MockNativeRouter.swapAll but through the split
+    ///      spender, so tests need not match the exact seized amount.
+    function swapAll(address tokenIn, address tokenOut, address to) external {
+        uint256 amountIn = ERC20(tokenIn).balanceOf(msg.sender);
+        MockSpender(spender).pull(tokenIn, msg.sender, address(this), amountIn);
+        require(ERC20(tokenOut).transfer(to, (amountIn * rate) / 1e18), "out transfer failed");
+    }
+}
+
 /// @dev Stand-in for the pool-wide Venus Liquidator (`liquidatorContract`). Pulls the repay from the
 ///      caller and credits the seized collateral (repay * incentive) to the caller, minus a treasury cut.
 contract MockVenusLiquidator {

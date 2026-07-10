@@ -23,8 +23,8 @@ interface IBStockLiquidator {
         IVBep20 vDebt; // borrowed market to repay (e.g. vUSDT)
         IVBep20 vBStock; // bStock collateral market to seize (e.g. vTSLAB)
         uint256 repayAmount; // debt underlying to repay (its own decimals)
-        address router; // hop-1 router = Native firm-quote txRequest.target (must be allowlisted)
-        bytes swapCalldata; // hop-1 calldata (MM-signed Native order): bStock -> intermediate (or -> debt if single-hop)
+        address router; // hop-1 RFQ router (Native firm-quote target, Liquid Mesh router, …) — must be allowlisted
+        bytes swapCalldata; // hop-1 calldata (off-chain-signed RFQ order): bStock -> intermediate (or -> debt if single-hop)
         uint256 minOut; // minimum FINAL debt-asset amount the swap chain must yield, else revert
         address router2; // hop-2 router (AMM/aggregator): intermediate -> debt; address(0) = single-hop
         bytes swapCalldata2; // hop-2 calldata; the swap recipient inside it MUST be this contract
@@ -37,6 +37,9 @@ interface IBStockLiquidator {
 
     /// @notice Emitted when a swap router is allowlisted or removed.
     event RouterSet(address indexed router, bool allowed);
+
+    /// @notice Emitted when a router's token-approval target (spender) is set or cleared.
+    event RouterSpenderSet(address indexed router, address indexed spender);
 
     /// @notice Emitted on a successful liquidation.
     /// @param borrower The liquidated account.
@@ -108,6 +111,13 @@ interface IBStockLiquidator {
     /// @param router Address to allowlist or remove.
     /// @param allowed True to allow, false to remove.
     function setRouter(address router, bool allowed) external;
+
+    /// @notice Set the token-approval target (spender) for a router whose settlement contract that pulls
+    ///         the input token differs from the call target (e.g. Liquid Mesh). When unset, the approval
+    ///         defaults to the router itself (Native behaviour). Setting `spender = address(0)` clears it.
+    /// @param router The allowlisted swap target (call target).
+    /// @param spender The contract that pulls the input token via `transferFrom` during settlement.
+    function setRouterSpender(address router, address spender) external;
 
     /// @notice Withdraw any token (profit, leftover inventory, stuck dust) to `to`.
     /// @param token Token to withdraw.
