@@ -1,6 +1,6 @@
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { Contract } from "ethers";
+import { BigNumberish, Contract } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
 import { atomicLiquidate } from "../../scripts/bstock/atomic-liquidate";
@@ -38,6 +38,9 @@ const SCRIPT_ENV = [
   "MIN_OUT_BUFFER",
   "SEIZE_BUFFER",
   "NATIVE_API_KEY",
+  "SOURCE",
+  "LM_API_KEY",
+  "LM_PRIVATE_KEY_SEED",
 ] as const;
 
 describe("bStock atomic liquidation script", () => {
@@ -272,5 +275,152 @@ describe("bStock atomic liquidation script", () => {
     expect(await wbnb.balanceOf(liq.address)).to.equal(OUT); // float consumed, proceeds retained as WBNB
     expect(await ethers.provider.getBalance(liq.address)).to.equal(0); // no native BNB retained
     expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate consumed
+  });
+
+  // ------------------------------------------------------------------------ //
+  //   Liquidity-source registry (lib/sources.ts): Native vs Liquid Mesh      //
+  // ------------------------------------------------------------------------ //
+  // These exercise the REAL hop-1 source path (no MOCK_NATIVE): `fetch` is stubbed to answer the Native
+  // firm-quote, the Liquid Mesh `/quote`, and the Liquid Mesh `/swap` (disableSimulate) so the winner
+  // selection, the LM JWT/build round-trip, and the split-spender settle all run for real on-chain.
+  describe("liquidity-source registry", () => {
+    // Any 32-byte Ed25519 seed signs a valid JWT locally (the LM server is never hit — fetch is stubbed).
+    const LM_SEED = Buffer.alloc(32, 7).toString("base64url");
+    let spender: Contract, lmRouter: Contract;
+
+    // A response object exposing both `.json()` (Native lib) and `.text()` (Liquid Mesh lib).
+    const resp = (obj: any) => ({ status: 200, json: async () => obj, text: async () => JSON.stringify(obj) });
+
+    // Stub Native firm-quote + LM /quote + LM /swap. `lmCalldata` is executed on-chain against `lmRouter`.
+    function stubFetch(opts: { nativeOut: BigNumberish; lmOut: BigNumberish; lmCalldata: string }) {
+      const real = globalThis.fetch;
+      globalThis.fetch = (async (url: unknown, init?: any) => {
+        const u = String(url);
+        const method = (init?.method || "GET").toUpperCase();
+        if (u.includes("native.org")) {
+          return resp({
+            success: true,
+            recipient: liq.address,
+            amountIn: "0",
+            amountOut: opts.nativeOut.toString(),
+            orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+            txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+          });
+        }
+        if (u.includes("liquidmesh.io") && u.includes("/quote")) {
+          return resp({
+            code: 0,
+            msg: "OK",
+            data: {
+              inputAmount: "0",
+              outputAmount: opts.lmOut.toString(),
+              routePlans: [{ subRouters: [{ dexes: [{ dex: "rfq_native", weight: 10000 }] }] }],
+            },
+          });
+        }
+        if (u.includes("liquidmesh.io") && method === "POST") {
+          // /swap (disableSimulate): calldata blob + expiry, target = the LM split router.
+          return resp({
+            code: 0,
+            msg: "OK",
+            data: {
+              chainId: "56",
+              callMsg: { from: liq.address, to: lmRouter.address, value: "0x0", data: opts.lmCalldata },
+              orderId: "1",
+              // Generous expiry: the hardhat chain clock can run ahead of wall-clock after prior tests, so a
+              // short TTL would trip DeadlineExpired. (Real LM orders are short-lived; the contract enforces it.)
+              expiryTimestamp: Math.floor(Date.now() / 1000) + 3600,
+            },
+          });
+        }
+        throw new Error(`unexpected fetch: ${method} ${u}`);
+      }) as unknown as typeof fetch;
+      return real;
+    }
+
+    // Deploy the Liquid-Mesh-style split router (call target 0x…/spender 0x… differ), allowlist it, wire
+    // the spender, and pre-fund it with USDT so its swap can pay out.
+    beforeEach(async () => {
+      spender = await (await ethers.getContractFactory("MockSpender")).deploy();
+      lmRouter = await (await ethers.getContractFactory("MockSplitRouter")).deploy(spender.address);
+      await liq.connect(owner).setRouter(lmRouter.address, true);
+      await liq.connect(owner).setRouterSpender(lmRouter.address, spender.address);
+      await usdt.mint(lmRouter.address, OUT); // LM router pays USDT
+    });
+
+    function lmSwapAll() {
+      return lmRouter.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, liq.address]);
+    }
+
+    function lmEnv(over: Record<string, string> = {}) {
+      setEnv({
+        MOCK_NATIVE: "", // force the real source path
+        MOCK_OUT: "",
+        NATIVE_API_KEY: "test-native",
+        LM_API_KEY: "test-lm",
+        LM_PRIVATE_KEY_SEED: LM_SEED,
+        ...over,
+      });
+    }
+
+    it("SOURCE=auto: picks Liquid Mesh when it out-quotes Native, settles via the split spender", async () => {
+      await usdt.mint(liq.address, REPAY); // inventory
+      const real = stubFetch({ nativeOut: U("5400"), lmOut: OUT, lmCalldata: lmSwapAll() }); // LM (5500) > Native (5400)
+      try {
+        lmEnv({ SOURCE: "auto" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      // Sold through the LM split router (its spender pulled the bStock), proceeds retained.
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(SEIZED);
+      expect(await bStock.balanceOf(router.address)).to.equal(0); // Native router untouched
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+      expect(await bStock.allowance(liq.address, spender.address)).to.equal(0); // no standing approval
+    });
+
+    it("SOURCE=auto: picks Native when it out-quotes Liquid Mesh", async () => {
+      await usdt.mint(liq.address, REPAY);
+      const real = stubFetch({ nativeOut: OUT, lmOut: U("5400"), lmCalldata: lmSwapAll() }); // Native (5500) > LM (5400)
+      try {
+        lmEnv({ SOURCE: "auto" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      expect(await bStock.balanceOf(router.address)).to.equal(SEIZED); // Native router sold it
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("SOURCE=liquidmesh: forces Liquid Mesh even when Native quotes higher", async () => {
+      await usdt.mint(liq.address, REPAY);
+      const real = stubFetch({ nativeOut: U("9000"), lmOut: OUT, lmCalldata: lmSwapAll() }); // Native higher, but forced LM
+      try {
+        lmEnv({ SOURCE: "liquidmesh" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(SEIZED); // LM used despite lower quote
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("rejects an unknown SOURCE name", async () => {
+      await usdt.mint(liq.address, REPAY);
+      lmEnv({ SOURCE: "nope" });
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/unknown SOURCE/i);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    it("rejects SOURCE=liquidmesh when the LM creds are absent", async () => {
+      await usdt.mint(liq.address, REPAY);
+      lmEnv({ SOURCE: "liquidmesh", LM_API_KEY: "", LM_PRIVATE_KEY_SEED: "" });
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/missing required creds/i);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
   });
 });

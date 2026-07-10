@@ -2,16 +2,24 @@
  * bStock ATOMIC liquidation — drives the on-chain `BStockLiquidator` contract.
  *
  * One tx: the contract repays the borrow, seizes + redeems the bStock, and sells it to the debt
- * asset in one or two hops. Hop 1 is always a pre-fetched Native firm-quote (bStock -> USDT). For a
- * USDT debt market that single hop is the debt asset; for a non-USDT debt market a second hop
- * (USDT -> debt via an allowlisted AMM/aggregator, see lib/amm.ts) is appended. This script does the
- * OFF-CHAIN half (precompute the seize, fetch the quotes with `from_address = the contract`) and then
- * calls `liquidate` (inventory mode) or `flashLiquidate` (Venus flash-loan mode).
+ * asset in one or two hops. Hop 1 is a pre-fetched best-of quote (bStock -> USDT) from the source
+ * registry (Native RFQ / Liquid Mesh / future sources — see lib/sources.ts). For a USDT debt market that
+ * single hop is the debt asset; for a non-USDT debt market a second hop (USDT -> debt via an allowlisted
+ * AMM/aggregator, see lib/amm.ts) is appended. This script does the OFF-CHAIN half (precompute the seize,
+ * fetch the quotes with the taker = the contract) and then calls `liquidate` (inventory mode) or
+ * `flashLiquidate` (Venus flash-loan mode).
  *
  *   1. Comptroller.liquidateCalculateSeizeTokens(vDebt, vBStock, repay)  -> seize vTokens
  *   2. seizeTokens * vBStock.exchangeRateStored() / 1e18                  -> raw bStock (floor)
- *   3. Native firm-quote (bStock -> USDT) [+ AMM quote USDT -> debt]      -> router(s) + calldata + out
+ *   3. hop-1 quote (bStock -> USDT) from Native and/or Liquid Mesh, best -> router + calldata + out
+ *      [+ AMM quote USDT -> debt for non-USDT debt]                       -> hop-2 router + calldata
  *   4. BStockLiquidator.liquidate / flashLiquidate(params)               -> atomic settle
+ *
+ * Hop-1 sources come from a registry (lib/sources.ts); `SOURCE` selects them (auto = every available
+ * source, or a comma-separated subset). auto prices all and takes the higher out. Liquid Mesh returns ONE
+ * router calldata blob (multi-source split baked in) and requires `disableSimulate:true` at build time
+ * (the contract holds no bStock until mid-tx) plus a one-time `setRouterSpender(LM_ROUTER, LM_SPENDER)` on
+ * the liquidator (LM pulls via a separate spender). Adding a source = one adapter in lib/sources.ts.
  *
  * IMPORTANT: for a two-hop run the settle tx MUST be submitted through Venus's PRIVATE RPC, never a
  * public one — hop 2 is a public-mempool AMM swap and `minOut` only bounds loss, not sandwich-induced
@@ -28,7 +36,12 @@
  *   VDEBT           (req) borrowed market to repay (e.g. vUSDT)
  *   REPAY_AMOUNT    (req) repay in DEBT underlying, human units
  *   MODE            "inventory" (default) | "flash"
- *   SLIPPAGE        Native slippage %, default 0.5
+ *   SOURCE          hop-1 liquidity source(s) from the registry (lib/sources.ts): "auto" (default, price
+ *                   every AVAILABLE source and take the higher out) or a comma-separated subset by name
+ *                   (e.g. "native", "liquidmesh", "native,liquidmesh"). Liquid Mesh needs LM_API_KEY +
+ *                   LM_PRIVATE_KEY_SEED, and the liquidator must have `setRouterSpender(LM_ROUTER,
+ *                   LM_SPENDER)` set (separate puller). New sources = one adapter in lib/sources.ts.
+ *   SLIPPAGE        Native/LM slippage %, default 0.5
  *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%)
  *   SEIZE_BUFFER    haircut on the QUOTED seize so a small oracle uptick can't make the router pull more
  *                   bStock than was seized (which reverts). Default 0.1 (%); unsold remainder is sweepable.
@@ -46,7 +59,8 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import { BSC_WBNB, getAmmSwap } from "./lib/amm";
-import { BSC_USDT, getFirmQuote, quoteDeadline } from "./lib/native";
+import { BSC_USDT } from "./lib/native";
+import { QuoteArgs, selectedSources } from "./lib/sources";
 
 const PARAMS_TUPLE =
   "(address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut,address router2,bytes swapCalldata2,address intermediateToken,uint256 deadline)";
@@ -80,18 +94,67 @@ function env(name: string, required = true): string {
   return v || "";
 }
 
+interface Hop1 {
+  source: string;
+  router: string;
+  calldata: string;
+  out: BigNumber; // USDT out of hop 1 (base units)
+  deadline: BigNumber; // unix seconds — the quote's on-chain expiry
+}
+
+/**
+ * Fetch the hop-1 (bStock -> USDT) swap from the configured source(s) and return the executable route.
+ * Generic over the `SOURCES` registry (lib/sources.ts): `SOURCE=auto` (default) prices EVERY available
+ * source and takes the higher out; `SOURCE=native,liquidmesh,…` restricts to a subset. A source that
+ * errors at quote time drops out; only the WINNER's `build()` runs, so a losing source that needs a
+ * second round-trip to build (e.g. Liquid Mesh `/swap`) never pays it. Adding a source = one adapter in
+ * lib/sources.ts; this function is unchanged.
+ */
+async function pickHop1Source(args: QuoteArgs): Promise<Hop1> {
+  const sources = selectedSources();
+  if (sources.length === 0) {
+    throw new Error(
+      "no hop-1 source available — provide NATIVE_API_KEY and/or LM_API_KEY+LM_PRIVATE_KEY_SEED, or set SOURCE",
+    );
+  }
+
+  // Price every selected source in parallel; a source that errors (API down / no route) drops out.
+  const settled = await Promise.allSettled(sources.map(async s => ({ name: s.name, quote: await s.getQuote(args) })));
+  const ok = settled.flatMap(r => (r.status === "fulfilled" ? [r.value] : []));
+  const failed = settled.flatMap((r, i) => (r.status === "rejected" ? [`${sources[i].name}=[${r.reason}]`] : []));
+  if (ok.length === 0) throw new Error(`all hop-1 sources failed: ${failed.join(" ")}`);
+  if (sources.length > 1) {
+    const line = ok.map(o => `${o.name}=${ethers.utils.formatUnits(o.quote.out, 18)}`).join(" ");
+    console.log(`hop-1 compare: ${line} USDT${failed.length ? ` (failed: ${failed.join(" ")})` : ""}`);
+  }
+
+  // Winner = highest USDT out. Only its build() runs.
+  const winner = ok.reduce((best, cur) => (cur.quote.out.gt(best.quote.out) ? cur : best));
+  const built = await winner.quote.build();
+  return {
+    source: winner.name,
+    router: built.router,
+    calldata: built.calldata,
+    out: winner.quote.out,
+    deadline: built.deadline,
+  };
+}
+
 export async function atomicLiquidate(signer: Signer) {
   const dryRun = process.env.DRY_RUN === "1";
   const mode = (process.env.MODE || "inventory").toLowerCase();
-  const slippage = Number(process.env.SLIPPAGE || "0.5");
-  const minOutBufferPct = Number(process.env.MIN_OUT_BUFFER || "0.5");
-  const seizeBufferPct = Number(process.env.SEIZE_BUFFER || "0.1");
-  // Bound the haircut: a garbage or oversized value would silently under-quote (and in flash mode
-  // starve the principal + premium repay). The on-chain InsufficientOut still backstops it, but fail
-  // loudly here instead of after burning a Native quote.
-  if (!Number.isFinite(seizeBufferPct) || seizeBufferPct < 0 || seizeBufferPct >= 100) {
-    throw new Error(`SEIZE_BUFFER must be a percent in [0, 100), got "${process.env.SEIZE_BUFFER}"`);
-  }
+  // Percent knobs must all be in [0, 100): a value >= 100 makes the `(100 - pct)` factor below negative,
+  // producing a negative BigNumber that fails opaquely at ABI-encode time instead of with a legible error.
+  const pct = (name: string, dflt: string): number => {
+    const v = Number(process.env[name] || dflt);
+    if (!Number.isFinite(v) || v < 0 || v >= 100) {
+      throw new Error(`${name} must be a percent in [0, 100), got "${process.env[name]}"`);
+    }
+    return v;
+  };
+  const slippage = pct("SLIPPAGE", "0.5");
+  const minOutBufferPct = pct("MIN_OUT_BUFFER", "0.5");
+  const seizeBufferPct = pct("SEIZE_BUFFER", "0.1");
 
   const liquidator = new Contract(env("LIQUIDATOR"), LIQUIDATOR_ABI, signer);
   const borrower = ethers.utils.getAddress(env("BORROWER"));
@@ -174,12 +237,12 @@ export async function atomicLiquidate(signer: Signer) {
   const seizedHumanQuote = ethers.utils.formatUnits(seizedForQuote, bStockDec);
 
   // 3. Build the swap, taker = the LIQUIDATOR CONTRACT (so it can submit + receive the debt asset).
-  // The contract measures proceeds in the DEBT asset and enforces `minOut` in it. Native only quotes
-  // bStock->USDT on BSC (every bStock pair in the live orderbook is *<->USDT), so:
-  //   - USDT debt  -> single hop: Native bStock->USDT is already the debt asset.
-  //   - other debt -> two hops:   Native bStock->USDT (hop 1), then USDT->debt via an allowlisted
-  //                               AMM/aggregator (hop 2, see lib/amm.ts). `minOut` is in the debt asset
-  //                               across the whole chain; `amountOut` below is the FINAL debt out.
+  // The contract measures proceeds in the DEBT asset and enforces `minOut` in it. The RFQ sources only
+  // quote bStock->USDT on BSC (every bStock pair in the live orderbooks is *<->USDT), so:
+  //   - USDT debt  -> single hop: the hop-1 bStock->USDT is already the debt asset.
+  //   - other debt -> two hops:   bStock->USDT (hop 1, from the source registry), then USDT->debt via an
+  //                               allowlisted AMM/aggregator (hop 2, see lib/amm.ts). `minOut` is in the
+  //                               debt asset across the whole chain; `amountOut` below is the FINAL debt out.
   const nativeOut = ethers.utils.getAddress(process.env.USDT_ADDR || BSC_USDT);
   const twoHop = debt.address.toLowerCase() !== nativeOut.toLowerCase();
 
@@ -206,20 +269,26 @@ export async function atomicLiquidate(signer: Signer) {
       intermediateToken = nativeOut;
     }
   } else {
-    // Hop 1: Native RFQ always outputs USDT (bStock pairs only with USDT on BSC).
-    const q = await getFirmQuote({
-      fromAddress: liquidator.address,
+    // Hop 1: bStock -> USDT (bStock pairs only with USDT on BSC). Sources come from the registry
+    // (lib/sources.ts); `SOURCE` selects them — "auto" (default) prices every available source and takes
+    // the higher out, or a comma-separated subset (e.g. "native,liquidmesh"). Liquid Mesh re-serves the
+    // same `rfq_native` book plus extra makers, matching or marginally beating Native and going deeper on
+    // some tails.
+    const hop1 = await pickHop1Source({
+      taker: liquidator.address,
       tokenIn: bStock.address,
-      tokenOut: nativeOut,
-      amount: seizedHumanQuote,
+      usdtOut: nativeOut,
+      humanAmount: seizedHumanQuote,
+      weiAmount: seizedForQuote,
       slippage,
     });
-    const ttl = quoteDeadline(q) - Math.floor(Date.now() / 1000);
-    if (ttl <= 0) throw new Error("quote already expired — refetch");
-    deadline = BigNumber.from(quoteDeadline(q)); // settle tx reverts on-chain past the quote's expiry
-    router = q.txRequest.target;
-    swapCalldata = q.txRequest.calldata;
-    const midOut = BigNumber.from(q.amountOut); // USDT out of hop 1
+    const ttl = hop1.deadline.toNumber() - Math.floor(Date.now() / 1000);
+    if (ttl <= 0) throw new Error(`${hop1.source} quote already expired — refetch`);
+    deadline = hop1.deadline; // settle tx reverts on-chain past the quote's expiry
+    router = hop1.router;
+    swapCalldata = hop1.calldata;
+    const midOut = hop1.out; // USDT out of hop 1
+    console.log(`hop-1 source: ${hop1.source} (out=${ethers.utils.formatUnits(midOut, 18)} USDT)`);
 
     if (twoHop) {
       // Hop 2: convert the hop-1 USDT to the (non-USDT) debt asset via an allowlisted AMM/aggregator.
@@ -238,13 +307,13 @@ export async function atomicLiquidate(signer: Signer) {
       intermediateToken = nativeOut;
       amountOut = BigNumber.from(amm.expectedOut);
       console.log(
-        `Native: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(midOut, 18)} USDT (TTL ${ttl}s, ${router}); ` +
+        `${hop1.source}: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(midOut, 18)} USDT (TTL ${ttl}s, ${router}); ` +
           `AMM: -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (${router2})`,
       );
     } else {
       amountOut = midOut;
       console.log(
-        `Native quote: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (TTL ${ttl}s, router ${router})`,
+        `${hop1.source} quote: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (TTL ${ttl}s, router ${router})`,
       );
     }
   }

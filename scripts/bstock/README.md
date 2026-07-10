@@ -5,7 +5,7 @@ one shared goal: repay a borrower's debt, seize their bStock, and offload it.
 
 | Script            | Path                  | What it does                                                                                                                                                                 | Chain writes?    |
 | ----------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| **Atomic**        | `atomic-liquidate.ts` | Primary path. Drives the on-chain `BStockLiquidator` — repay, seize, redeem, and sell bStock in ONE tx via a Native RFQ quote (+ optional AMM hop).                          | Yes              |
+| **Atomic**        | `atomic-liquidate.ts` | Primary path. Drives the on-chain `BStockLiquidator` — repay, seize, redeem, and sell bStock in ONE tx via a Native or Liquid Mesh RFQ quote (+ optional AMM hop).           | Yes              |
 | **Safe fallback** | `safe-fallback.ts`    | Backstop when Native is unavailable (API down / halt / weekend / thin depth). Emits a Safe{Wallet} batch JSON; signers repay from Safe funds and ship raw bStock to Binance. | No — writes JSON |
 | **Native smoke**  | `native-smoke.ts`     | Pre-flight check. Prints the Native orderbook + a live firm-quote (price, spread, TTL). No chain interaction.                                                                | No               |
 
@@ -15,13 +15,43 @@ Pick **Atomic** first. Fall back to **Safe** only if the Native quote path fails
 
 ## Prerequisites
 
-- **Native API key** (`NATIVE_API_KEY`) for anything that fetches a quote. Never commit it.
+- **Native API key** (`NATIVE_API_KEY`) for anything that fetches a Native quote. Never commit it.
+- **Liquid Mesh credentials** (only if `SOURCE=liquidmesh` or `SOURCE=auto`): `LM_API_KEY` and the
+  Ed25519 private-key seed `LM_PRIVATE_KEY_SEED` (base64url). Never commit them.
 - **Deployed `BStockLiquidator`** (see `deploy/019-deploy-bstock-liquidator.ts`). Its owner must have run:
-  - `setRouter(router, true)` for every router the swap will touch (Native RFQ router, and the AMM
-    router for non-USDT debt). The scripts **abort** if a router isn't allowlisted.
+  - `setRouter(router, true)` for every router the swap will touch (the Native RFQ router and/or the
+    Liquid Mesh router, plus the AMM router for non-USDT debt). The scripts **abort** if a router isn't
+    allowlisted.
+  - `setRouterSpender(LM_ROUTER, LM_SPENDER)` **if using Liquid Mesh** — it pulls the input token through a
+    separate spender contract, distinct from the call target. Without it the swap reverts `SwapFailed`.
+    (Native needs no spender entry — its call target is the puller.)
   - `setOperator(caller, true)` for the account that submits `liquidate` / `flashLiquidate`.
 - **Funding** for `MODE=inventory`: the liquidator must hold ≥ `REPAY_AMOUNT` of the debt asset.
   `MODE=flash` borrows instead (no pre-funding).
+
+### Hop-1 source registry (Native, Liquid Mesh, …)
+
+Hop-1 sources live in a registry — `scripts/bstock/lib/sources.ts` — that the script is generic over: it
+prices every selected source and takes the higher out. `SOURCE=auto` (default) uses every source whose
+creds are present; `SOURCE=native,liquidmesh` (or a single name) restricts to a subset.
+
+Both current sources quote bStock→USDT. Liquid Mesh re-serves the same `rfq_native` book plus `rfq_neptune`
+(and AMM pools for thin names), so at common sizes it matches or marginally beats Native and reaches deeper
+on some tails — but neither is uniformly deeper.
+
+**Adding a source** (no redeploy): implement the small `QuoteSource` interface in `lib/sources.ts`
+(`available()` + `getQuote()` returning a price and a lazy `build()`), push it into the `SOURCES` array,
+and on-chain run `setRouter(newRouter, true)` (+ `setRouterSpender` if it pulls via a separate contract).
+The selection/comparison logic and the contract are unchanged — the contract is already source-agnostic.
+
+Two Liquid-Mesh mechanics, both handled automatically:
+
+- **Separate spender** — approve `LM_SPENDER` (`0x8157…`), call `LM_ROUTER` (`0x3d90…`). Handled on-chain
+  by `routerSpender` (run `setRouterSpender` once, above).
+- **Build-time simulation** — `POST /swap` normally simulates `transferFrom` and refuses calldata unless
+  the caller already holds the input. The liquidator holds zero bStock until mid-tx, so the client passes
+  `disableSimulate:true` to get executable calldata pre-seize. On-chain safety is unchanged (the order
+  carries an expiry deadline; the contract enforces `minOut`).
 
 ---
 
@@ -43,8 +73,9 @@ NATIVE_API_KEY=... LIQUIDATOR=0x.. BORROWER=0x.. VBSTOCK=0x.. VDEBT=0x.. REPAY_A
   npx hardhat run scripts/bstock/atomic-liquidate.ts --network bscmainnet
 ```
 
-Flow: precompute the exact seize → fetch a Native firm-quote (bStock→USDT) with `from_address = the
-contract` → for non-USDT debt, append an AMM hop (USDT→debt) → call `liquidate`/`flashLiquidate`.
+Flow: precompute the exact seize → fetch the hop-1 quote (bStock→USDT) from the best of Native / Liquid
+Mesh with the taker = the contract → for non-USDT debt, append an AMM hop (USDT→debt) →
+call `liquidate`/`flashLiquidate`.
 
 **Always dry-run first** (`DRY_RUN=1`) — it `callStatic`s the settle with no send.
 
@@ -53,19 +84,22 @@ contract` → for non-USDT debt, append an AMM hop (USDT→debt) → call `liqui
 
 ### Env
 
-| Var              | Req | Default     | Notes                                                                    |
-| ---------------- | --- | ----------- | ------------------------------------------------------------------------ |
-| `LIQUIDATOR`     | ✓   |             | Deployed `BStockLiquidator` address                                      |
-| `BORROWER`       | ✓   |             | Account to liquidate (must have shortfall)                               |
-| `VBSTOCK`        | ✓   |             | bStock collateral market (e.g. vTSLAB)                                   |
-| `VDEBT`          | ✓   |             | Borrowed market to repay (e.g. vUSDT)                                    |
-| `REPAY_AMOUNT`   | ✓   |             | Repay in debt underlying, human units                                    |
-| `MODE`           |     | `inventory` | `inventory` (own funds) or `flash` (Venus flash-loan)                    |
-| `DRY_RUN`        |     |             | `1` → callStatic only, sends nothing                                     |
-| `SLIPPAGE`       |     | `0.5`       | Native slippage %                                                        |
-| `MIN_OUT_BUFFER` |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%)                            |
-| `AMM_PROVIDER`   |     | `kyberswap` | Hop-2 route for non-USDT debt: `kyberswap` / `openocean` / `pcsv2`       |
-| `WBNB_ADDR`      |     | BSC WBNB    | Only for a vBNB debt market (native BNB auto-detected; contract unwraps) |
+| Var                   | Req | Default     | Notes                                                                    |
+| --------------------- | --- | ----------- | ------------------------------------------------------------------------ |
+| `LIQUIDATOR`          | ✓   |             | Deployed `BStockLiquidator` address                                      |
+| `BORROWER`            | ✓   |             | Account to liquidate (must have shortfall)                               |
+| `VBSTOCK`             | ✓   |             | bStock collateral market (e.g. vTSLAB)                                   |
+| `VDEBT`               | ✓   |             | Borrowed market to repay (e.g. vUSDT)                                    |
+| `REPAY_AMOUNT`        | ✓   |             | Repay in debt underlying, human units                                    |
+| `MODE`                |     | `inventory` | `inventory` (own funds) or `flash` (Venus flash-loan)                    |
+| `SOURCE`              |     | `auto`      | Hop-1 source: `auto` (price both, take higher) / `native` / `liquidmesh` |
+| `LM_API_KEY`          |     |             | Liquid Mesh API key (required for `liquidmesh`/`auto`)                   |
+| `LM_PRIVATE_KEY_SEED` |     |             | Liquid Mesh Ed25519 seed, base64url (required for `liquidmesh`/`auto`)   |
+| `DRY_RUN`             |     |             | `1` → callStatic only, sends nothing                                     |
+| `SLIPPAGE`            |     | `0.5`       | Native/LM slippage %                                                     |
+| `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%)                            |
+| `AMM_PROVIDER`        |     | `kyberswap` | Hop-2 route for non-USDT debt: `kyberswap` / `openocean` / `pcsv2`       |
+| `WBNB_ADDR`           |     | BSC WBNB    | Only for a vBNB debt market (native BNB auto-detected; contract unwraps) |
 
 _Fork/local testing:_ `MOCK_NATIVE="router:calldata"` (hop 1), `MOCK_AMM` (hop 2), `MOCK_OUT` (final
 debt out), `IMPERSONATE=0x..` to run as an operator.

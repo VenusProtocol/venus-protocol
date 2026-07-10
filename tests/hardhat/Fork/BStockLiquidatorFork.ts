@@ -30,7 +30,7 @@ import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { parseEther, parseUnits } from "ethers/lib/utils";
 import fc from "fast-check";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 import {
   A,
@@ -170,6 +170,66 @@ const test = () => {
         await liq.connect(owner).liquidate(params);
         await assertSettledFor(liq, mkt, VUSDT, B.USDT, borrowBefore);
         expect(await new ethers.Contract(TOK.USDT, ERC20_ABI, owner).balanceOf(liq.address)).to.be.gte(params.minOut);
+      });
+
+      it("single-hop USDT debt via a Liquid-Mesh-style split router (separate spender): settles atomically", async () => {
+        // Liquid Mesh pulls the input token through a SEPARATE spender, distinct from the call target, so
+        // the contract must approve the spender (not the router) via `setRouterSpender`. The DEPLOYED proxy
+        // (`DEPLOYED_LIQ`) predates `routerSpender`, so this scenario deploys a FRESH proxy on the current
+        // implementation and drives it against the SAME real gate + bStock market to prove the split path
+        // settles a real underwater position and leaves no standing approval.
+        const Factory = await ethers.getContractFactory("BStockLiquidator");
+        const liqLm = await upgrades.deployProxy(Factory, [owner.address], {
+          constructorArgs: [A.COMPTROLLER, A.VBNB, A.VWBNB, TOK.WBNB],
+          unsafeAllow: ["constructor", "state-variable-immutable"],
+        });
+
+        const spender = await (await ethers.getContractFactory("MockSpender")).deploy();
+        const lmRouter = await (await ethers.getContractFactory("MockSplitRouter")).deploy(spender.address);
+        await lmRouter.setRate(P_CRASH); // models the crashed-price bStock->USDT quote
+        await fund(TOK.USDT, lmRouter.address, parseUnits("1000000", 18)); // the LM router pays USDT
+        await liqLm.connect(owner).setRouter(lmRouter.address, true);
+        await liqLm.connect(owner).setRouterSpender(lmRouter.address, spender.address);
+
+        const borrower = ethers.utils.getAddress("0x00000000000000000000000000000000ca110009");
+        await makeUnderwaterBorrower({
+          mkt,
+          vDebt: VUSDT,
+          borrower,
+          collateralBStock: parseUnits("100", 18),
+          borrowAmount: parseUnits("5000", 18),
+          crashPriceTo: P_CRASH,
+        });
+
+        const REPAY = parseUnits("2000", 18);
+        await fund(TOK.USDT, liqLm.address, REPAY); // inventory
+        const params = {
+          borrower,
+          vDebt: VUSDT,
+          vBStock: mkt.vBStock.address,
+          repayAmount: REPAY,
+          router: lmRouter.address,
+          swapCalldata: lmRouter.interface.encodeFunctionData("swapAll", [mkt.bStock.address, TOK.USDT, liqLm.address]),
+          minOut: parseUnits("1900", 18),
+          router2: ZERO,
+          swapCalldata2: "0x",
+          intermediateToken: ZERO,
+          deadline: ethers.constants.MaxUint256,
+        };
+
+        const borrowBefore = await new ethers.Contract(VUSDT, VTOKEN_ABI, owner).borrowBalanceStored(borrower);
+        const out = await liqLm.connect(owner).callStatic.liquidate(params);
+        expect(out).to.be.gte(params.minOut);
+        await liqLm.connect(owner).liquidate(params);
+        await assertSettledFor(liqLm, mkt, VUSDT, borrower, borrowBefore);
+        // The split router pulled the bStock via its spender, and no standing allowance is left behind.
+        const bStock = new ethers.Contract(
+          mkt.bStock.address,
+          [...ERC20_ABI, "function allowance(address,address) view returns (uint256)"],
+          owner,
+        );
+        expect(await bStock.balanceOf(lmRouter.address)).to.be.gt(0);
+        expect(await bStock.allowance(liqLm.address, spender.address)).to.equal(0);
       });
 
       it("two-hop CAKE debt, inventory mode: bStock->USDT (mock) -> CAKE (real PCS) at live slippage", async () => {
