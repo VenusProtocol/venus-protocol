@@ -194,6 +194,7 @@ const test = () => {
           [TOK.USDT, TOK.CAKE],
           liq.address,
           P_CRASH,
+          B.CAKE,
         );
         const params = {
           borrower: B.CAKE,
@@ -238,6 +239,7 @@ const test = () => {
           [TOK.USDT, TOK.WBNB],
           liq.address,
           P_CRASH,
+          B.BNB,
         );
         const params = {
           borrower: B.BNB,
@@ -813,6 +815,7 @@ async function sweepOne(
       path,
       liq.address,
       P_CRASH,
+      borrower,
     );
     params = {
       borrower,

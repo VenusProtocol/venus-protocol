@@ -62,7 +62,7 @@ const COMPTROLLER_ABI = [
   "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
   "function liquidatorContract() view returns (address)",
   "function closeFactorMantissa() view returns (uint256)",
-  "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
+  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
   "function _supportMarket(address) returns (uint256)",
   "function setCollateralFactor(address,uint256,uint256) returns (uint256)",
   "function _setMarketSupplyCaps(address[],uint256[])",
@@ -360,9 +360,12 @@ export async function buildTwoHopMockThenPcs(
   pathUsdtToDebt: string[],
   liqAddr: string,
   rate: BigNumber,
+  borrower: string,
 ): Promise<{ swapCalldata: string; swapCalldata2: string; expectedOut: BigNumber }> {
   const comptroller = new ethers.Contract(A.COMPTROLLER, COMPTROLLER_ABI, owner);
-  const [, seizeTokens] = await comptroller.liquidateCalculateSeizeTokens(vDebt, mkt.vBStock.address, repay);
+  // Borrower-aware 4-arg overload (reads the borrower's actual pool), matching
+  // vToken.liquidateBorrowFresh on-chain; the 3-arg overload always reads Core Pool params.
+  const [, seizeTokens] = await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt, mkt.vBStock.address, repay);
   const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
   const grossBStock = seizeTokens.mul(xr).div(ONE); // bStock the seized vTokens redeem to (pre treasury cut)
   const usdtFromHop1 = grossBStock.mul(rate).div(ONE); // mock output at the quoted rate

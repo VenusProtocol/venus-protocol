@@ -8,7 +8,7 @@
  * OFF-CHAIN half (precompute the seize, fetch the quotes with `from_address = the contract`) and then
  * calls `liquidate` (inventory mode) or `flashLiquidate` (Venus flash-loan mode).
  *
- *   1. Comptroller.liquidateCalculateSeizeTokens(vDebt, vBStock, repay)  -> seize vTokens
+ *   1. Comptroller.liquidateCalculateSeizeTokens(borrower, vDebt, vBStock, repay) -> seize vTokens
  *   2. seizeTokens * vBStock.exchangeRateStored() / 1e18                  -> raw bStock (floor)
  *   3. Native firm-quote (bStock -> USDT) [+ AMM quote USDT -> debt]      -> router(s) + calldata + out
  *   4. BStockLiquidator.liquidate / flashLiquidate(params)               -> atomic settle
@@ -67,7 +67,7 @@ const ERC20_ABI = [
 ];
 const COMPTROLLER_ABI = [
   "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
-  "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
+  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
   "function treasuryPercent() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
@@ -124,13 +124,20 @@ export async function atomicLiquidate(signer: Signer) {
   if (shortfall.eq(0)) throw new Error(`${borrower} has no shortfall — not liquidatable`);
   console.log(`borrower ${borrower} shortfall=${ethers.utils.formatEther(shortfall)} (USD-scaled)`);
 
-  // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields.
+  // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields. Use the
+  // borrower-aware 4-arg overload (reads the pool the borrower is actually in via
+  // getEffectiveLiquidationIncentive) — the same version vToken.liquidateBorrowFresh calls on-chain.
+  // The 3-arg overload always reads Core Pool params and diverges if the borrower has switched pools.
   const [seizeErr, seizeTokens]: BigNumber[] = await comptroller.liquidateCalculateSeizeTokens(
+    borrower,
     vDebt.address,
     vBStock.address,
     repay,
   );
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error ${seizeErr}`);
+  // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
+  // surface it here rather than building a degenerate quote that reverts on-chain.
+  if (seizeTokens.eq(0)) throw new Error(`liquidateCalculateSeizeTokens returned 0 seize for ${borrower}`);
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const ONE = BigNumber.from(10).pow(18);
 
