@@ -395,6 +395,24 @@ describe("bStock atomic liquidation script", () => {
       expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
     });
 
+    it("SOURCE=auto: falls back to the firm Native quote when the LM built floor undercuts it", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // LM's INDICATIVE quote (5500) beats Native's FIRM 5490, so LM wins the comparison — but its built
+      // order only guarantees out*(1-slippage) = 5472.5 (< 5490 firm). The post-build reconcile must
+      // detect the regression and execute the Native quote instead.
+      const real = stubFetch({ nativeOut: U("5490"), lmOut: OUT, lmCalldata: lmSwapAll() });
+      try {
+        lmEnv({ SOURCE: "auto" }); // default SLIPPAGE 0.5%
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      expect(await bStock.balanceOf(router.address)).to.equal(SEIZED); // Native sold it, not LM
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
     it("SOURCE=liquidmesh: forces Liquid Mesh even when Native quotes higher", async () => {
       await usdt.mint(liq.address, REPAY);
       const real = stubFetch({ nativeOut: U("9000"), lmOut: OUT, lmCalldata: lmSwapAll() }); // Native higher, but forced LM

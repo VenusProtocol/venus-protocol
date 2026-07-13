@@ -129,8 +129,28 @@ async function pickHop1Source(args: QuoteArgs): Promise<Hop1> {
   }
 
   // Winner = highest USDT out. Only its build() runs.
-  const winner = ok.reduce((best, cur) => (cur.quote.out.gt(best.quote.out) ? cur : best));
-  const built = await winner.quote.build();
+  let winner = ok.reduce((best, cur) => (cur.quote.out.gt(best.quote.out) ? cur : best));
+  let built = await winner.quote.build();
+
+  // Reconcile an INDICATIVE winner against the best FIRM loser. An indicative `out` (LM `/quote`) is
+  // not binding — the built order only guarantees `builtFloor` — while a firm quote (Native) executes
+  // at exactly its `out`. If the winner's real floor undercuts what the firm loser guaranteed, the
+  // comparison was won on optimism: execute the firm quote instead.
+  if (!winner.quote.firm) {
+    const firmLosers = ok.filter(o => o !== winner && o.quote.firm);
+    if (firmLosers.length > 0) {
+      const bestFirm = firmLosers.reduce((best, cur) => (cur.quote.out.gt(best.quote.out) ? cur : best));
+      if (built.builtFloor.lt(bestFirm.quote.out)) {
+        console.log(
+          `hop-1 reconcile: ${winner.name} built floor ${ethers.utils.formatUnits(built.builtFloor, 18)} < ` +
+            `${bestFirm.name} firm ${ethers.utils.formatUnits(bestFirm.quote.out, 18)} USDT — using ${bestFirm.name}`,
+        );
+        winner = bestFirm;
+        built = await bestFirm.quote.build();
+      }
+    }
+  }
+
   return {
     source: winner.name,
     router: built.router,

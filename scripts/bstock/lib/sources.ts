@@ -33,6 +33,7 @@ export interface BuiltRoute {
   router: string; // swap call target (allowlist this on the contract)
   calldata: string; // opaque blob forwarded by `_swap`
   deadline: BigNumber; // unix seconds — the quote's on-chain expiry
+  builtFloor: BigNumber; // the built order's own worst-case out — what the fill is actually bound by
 }
 
 /**
@@ -40,9 +41,16 @@ export interface BuiltRoute {
  * only called for the winner — so a source that needs a second round-trip to build (e.g. Liquid Mesh's
  * `/swap`) does not pay it when it loses. Native already holds the calldata from its quote, so its
  * `build()` just returns it (no extra network call).
+ *
+ * `firm` says whether `out` is BINDING for the executed fill (Native firm-quote: yes) or merely
+ * indicative (Liquid Mesh `/quote`: the separately built `/swap` order may fill lower, down to the
+ * built order's own floor). The winner selection compares `out`s, so an indicative winner is
+ * re-checked after build against the best firm loser (see pickHop1Source) — otherwise an optimistic
+ * indicative quote could beat a firm one and then fill worse than the firm one guaranteed.
  */
 export interface SourceQuote {
   out: BigNumber;
+  firm: boolean;
   build: () => Promise<BuiltRoute>;
 }
 
@@ -69,13 +77,16 @@ const nativeSource: QuoteSource = {
       amount: a.humanAmount,
       slippage: a.slippage,
     });
+    const out = BigNumber.from(q.amountOut);
     return {
-      out: BigNumber.from(q.amountOut),
+      out,
+      firm: true, // MM-signed firm quote: `amountOut` is the executed fill, not an estimate
       // Firm-quote already carries the executable txRequest — build is immediate, no re-fetch.
       build: async () => ({
         router: q.txRequest.target,
         calldata: q.txRequest.calldata,
         deadline: BigNumber.from(quoteDeadline(q)),
+        builtFloor: out, // firm: the quote IS the floor
       }),
     };
   },
@@ -98,6 +109,7 @@ const liquidMeshSource: QuoteSource = {
     const out = BigNumber.from(quote.outputAmount);
     return {
       out,
+      firm: false, // `/quote` is indicative; the built `/swap` order may fill lower, down to `builtFloor`
       // `/swap` (disableSimulate:true) is only fetched if Liquid Mesh wins — avoids a wasted order build.
       build: async () => {
         // The order's own floor (`outputAmount`); LM also applies `slippageBps`, so the effective on-chain
@@ -119,6 +131,7 @@ const liquidMeshSource: QuoteSource = {
           router: ethers.utils.getAddress(swap.callMsg.to),
           calldata: swap.callMsg.data,
           deadline: BigNumber.from(swap.expiryTimestamp),
+          builtFloor: minFloor, // the built order fills no lower than the floor we asked of it
         };
       },
     };
