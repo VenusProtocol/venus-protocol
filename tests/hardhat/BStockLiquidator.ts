@@ -187,6 +187,38 @@ describe("BStockLiquidator (atomic)", () => {
     });
   });
 
+  // A hop's router pulls the FIXED amountIn baked into the signed calldata, while the contract approves
+  // the actual measured seize. The off-chain SEIZE_BUFFER haircut signs for slightly LESS than the seize
+  // (so an upward price tick can't make the pull exceed the approval and revert), which means a small
+  // residual of the input token routinely stays in the contract. `PartialSwapLeftover` surfaces it.
+  describe("partial swap fill (PartialSwapLeftover)", () => {
+    const LEFTOVER = U("50"); // seize 5500, sign for 5450 -> 50 bStock left behind
+
+    it("emits PartialSwapLeftover and strands the residual, which is then sweepable", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // Contract approves the full measured seize (SEIZED); the signed calldata pulls SEIZED - LEFTOVER.
+      const pulled = SEIZED.sub(LEFTOVER); // 5450 -> proceeds 5450 USDT, clears the 5400 minOut
+      const p = params({ swapCalldata: swapCalldata(pulled, liq.address) });
+
+      await expect(liq.connect(owner).liquidate(p))
+        .to.emit(liq, "PartialSwapLeftover")
+        .withArgs(bStock.address, LEFTOVER);
+
+      // Residual bStock is retained (not silently lost) and recoverable via sweep.
+      expect(await bStock.balanceOf(liq.address)).to.equal(LEFTOVER);
+      await expect(liq.connect(owner).sweep(bStock.address, owner.address, LEFTOVER))
+        .to.emit(liq, "Swept")
+        .withArgs(bStock.address, owner.address, LEFTOVER);
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+    });
+
+    it("does not emit PartialSwapLeftover when the router consumes the full approval", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await expect(liq.connect(owner).liquidate(params())).to.not.emit(liq, "PartialSwapLeftover");
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+    });
+  });
+
   describe("flash mode", () => {
     it("flash-borrows the repay, settles atomically, repays principal + premium", async () => {
       await usdt.mint(vDebt.address, REPAY); // the vToken lends the principal
@@ -339,6 +371,21 @@ describe("BStockLiquidator (atomic)", () => {
       const p = twoHopParams({ swapCalldata2: ammSwapAllCalldata(liq.address) });
       await expect(liq.connect(owner).liquidate(p)).to.be.revertedWithCustomError(liq, "SwapFailed");
       expect(await usdt.balanceOf(liq.address)).to.equal(U("2000")); // reverted, inventory intact
+    });
+
+    it("emits PartialSwapLeftover for the intermediate when hop 2 pulls less than the hop-1 delta", async () => {
+      await btcb.mint(liq.address, REPAY);
+      const leftover = U("50");
+      // Hop 1 fills fully (midDelta = SEIZED USDT); hop 2 pulls SEIZED - leftover, stranding intermediate USDT.
+      const p = twoHopParams({ swapCalldata2: ammSwapCalldata(SEIZED.sub(leftover), liq.address) });
+
+      await expect(liq.connect(owner).liquidate(p))
+        .to.emit(liq, "PartialSwapLeftover")
+        .withArgs(usdt.address, leftover);
+
+      expect(await usdt.balanceOf(liq.address)).to.equal(leftover); // intermediate residual retained
+      // Inventory nets to proceeds: start REPAY, repay REPAY, + (SEIZED - leftover) BTCB proceeds.
+      expect(await btcb.balanceOf(liq.address)).to.equal(OUT.sub(leftover)); // proceeds landed
     });
   });
 

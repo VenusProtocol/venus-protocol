@@ -29,7 +29,9 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  * OPTIONAL hop 2 (Native quotes bStock->USDT only) converts the USDT to the debt asset through a
  * second allowlisted router (an AMM/aggregator). Because seize and sell happen in the same tx there
  * is no price-drift window, and the realized debt-asset amount must clear `minOut` or the whole call
- * reverts — the protocol never ends up holding the RFQ-only asset or the intermediate.
+ * reverts. On a full fill the protocol ends up holding only the debt asset; if a hop's router fills
+ * less than approved (e.g. a partial RFQ fill) any residual input token stays in the contract, is
+ * surfaced via `PartialSwapLeftover`, and is recoverable via `sweep`.
  *
  * Two funding modes share the same core (`_liquidate`):
  *   - INVENTORY: the contract is pre-funded with the debt asset and repays from its own balance.
@@ -303,12 +305,20 @@ contract BStockLiquidator is
 
     /// @dev One swap hop: approve the exact `amount` to the allowlisted `router`, forward the opaque
     ///      calldata via a low-level call, then reset the approval to 0. The approval caps what the
-    ///      router can pull; if the calldata sells less, the remainder stays as inventory.
+    ///      router can pull; if the calldata sells less (e.g. a partially-filled RFQ quote), the
+    ///      unconsumed remainder stays in the contract and is surfaced via `PartialSwapLeftover` so
+    ///      operations can recover it with `sweep` — `minOut` still bounds the realized debt-asset
+    ///      proceeds regardless.
     function _swap(IERC20Upgradeable token, address router, bytes memory data, uint256 amount) private {
+        uint256 balBefore = token.balanceOf(address(this));
         token.forceApprove(router, amount);
         (bool ok, ) = router.call(data);
         if (!ok) revert SwapFailed();
         token.forceApprove(router, 0); // never leave a standing approval
+        // `token` is the hop's INPUT (sold, never received), so its balance can only fall by what the
+        // router pulled. A shortfall means the router filled less than approved; emit the residual.
+        uint256 spent = balBefore - token.balanceOf(address(this));
+        if (spent < amount) emit PartialSwapLeftover(address(token), amount - spent);
     }
 
     /**

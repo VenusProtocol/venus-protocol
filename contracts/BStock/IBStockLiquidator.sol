@@ -62,6 +62,13 @@ interface IBStockLiquidator {
     /// @notice Emitted when the owner withdraws stuck native BNB.
     event SweptNative(address indexed to, uint256 amount);
 
+    /// @notice Emitted when a swap hop pulls less than the amount approved to the router, leaving a
+    ///         residual of the input token in the contract (e.g. a partially-filled RFQ quote). The
+    ///         residual is recoverable via `sweep`.
+    /// @param token The input token left over (bStock on hop 1, the intermediate on hop 2).
+    /// @param amount The residual amount not consumed by the swap.
+    event PartialSwapLeftover(address indexed token, uint256 amount);
+
     /// @notice Thrown when the caller is neither the owner nor an allowlisted operator.
     error NotOperator();
 
