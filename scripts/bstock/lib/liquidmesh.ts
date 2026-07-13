@@ -81,6 +81,21 @@ export interface LmSwapParams extends LmQuoteParams {
   disableSimulate?: boolean; // default true — skip LM's off-chain transferFrom pre-check (see header)
 }
 
+/** Common LM response envelope: `{code, msg, data}` with `code === 0` on success. */
+interface LmResponse<T> {
+  code: number;
+  msg?: string;
+  data?: T;
+}
+
+/** Raw `/swap` payload before normalization (`expiryTimestamp` arrives as number or string). */
+interface LmSwapData {
+  chainId: string;
+  callMsg: LmCallMsg;
+  orderId: string;
+  expiryTimestamp: number | string;
+}
+
 function host(): string {
   return process.env.LM_API_HOST || DEFAULT_HOST;
 }
@@ -100,6 +115,11 @@ function signingKey() {
     );
   }
   const seed = Buffer.from(seedB64url.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+  // Fail with a legible message instead of the cryptic createPrivateKey DER error a wrong-length
+  // seed would otherwise produce mid-incident.
+  if (seed.length !== 32) {
+    throw new Error(`LM_PRIVATE_KEY_SEED must decode to exactly 32 bytes (Ed25519 seed), got ${seed.length}`);
+  }
   // PKCS#8 DER prefix for an Ed25519 raw 32-byte seed.
   const der = Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), seed]);
   return createPrivateKey({ key: der, format: "der", type: "pkcs8" });
@@ -140,9 +160,9 @@ export async function getQuote(p: LmQuoteParams): Promise<LmQuote> {
     `&amount=${p.amountWei}&userAddress=${p.userAddress}`;
   const res = await fetch(`${host()}${path}`, { headers: headers("GET", path) });
   const text = await res.text();
-  let body: any;
+  let body: LmResponse<LmQuote>;
   try {
-    body = JSON.parse(text);
+    body = JSON.parse(text) as LmResponse<LmQuote>;
   } catch {
     throw new Error(`Liquid Mesh /quote non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`);
   }
@@ -151,7 +171,7 @@ export async function getQuote(p: LmQuoteParams): Promise<LmQuote> {
       `Liquid Mesh /quote error (HTTP ${res.status}) ${body.code}: ${body.msg} (${p.tokenIn}->${p.tokenOut})`,
     );
   }
-  return body.data as LmQuote;
+  return body.data;
 }
 
 /**
@@ -179,9 +199,9 @@ export async function buildSwap(p: LmSwapParams): Promise<LmSwap> {
   });
   const res = await fetch(`${host()}${path}`, { method: "POST", headers: headers("POST", path, body), body });
   const text = await res.text();
-  let j: any;
+  let j: LmResponse<LmSwapData>;
   try {
-    j = JSON.parse(text);
+    j = JSON.parse(text) as LmResponse<LmSwapData>;
   } catch {
     throw new Error(`Liquid Mesh /swap non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`);
   }
