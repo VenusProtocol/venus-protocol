@@ -41,6 +41,8 @@
  *                   (e.g. "native", "liquidmesh", "native,liquidmesh"). Liquid Mesh needs LM_API_KEY +
  *                   LM_PRIVATE_KEY_SEED, and the liquidator must have `setRouterSpender(LM_ROUTER,
  *                   LM_SPENDER)` set (separate puller). New sources = one adapter in lib/sources.ts.
+ *   LM_MIN_TTL      min seconds left on a built Liquid Mesh order, else abort pre-submit (default 15);
+ *                   LM RFQ orders are short-lived and an already-tight order would revert on-chain
  *   SLIPPAGE        Native/LM slippage %, default 0.5
  *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%)
  *   SEIZE_BUFFER    haircut on the QUOTED seize so a small oracle uptick can't make the router pull more

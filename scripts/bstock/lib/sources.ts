@@ -125,6 +125,20 @@ const liquidMeshSource: QuoteSource = {
           routePlans: quote.routePlans,
           slippageBps: Math.round(a.slippage * 100),
         });
+        // LM RFQ orders are short-lived. The contract enforces the expiry on-chain (DeadlineExpired),
+        // but an order that is ALREADY too tight to survive signing + submission + inclusion should be
+        // rejected here, before the settle tx is even built — a mid-incident on-chain revert is the
+        // worst place to discover it. `LM_MIN_TTL` (seconds, default 15) is the required margin.
+        const minTtl = Number(process.env.LM_MIN_TTL || "15");
+        if (!Number.isFinite(minTtl) || minTtl < 0) {
+          throw new Error(`LM_MIN_TTL must be a non-negative number of seconds, got "${process.env.LM_MIN_TTL}"`);
+        }
+        const ttl = swap.expiryTimestamp - Math.floor(Date.now() / 1000);
+        if (ttl < minTtl) {
+          throw new Error(
+            `Liquid Mesh order TTL ${ttl}s < LM_MIN_TTL ${minTtl}s — too tight to submit; refetch immediately before sending`,
+          );
+        }
         return {
           // Use the router LM actually wants called (`callMsg.to`); it is `LM_ROUTER` today, but relying on
           // the response keeps us correct if LM rotates it. The on-chain `isRouter` allowlist still gates it.

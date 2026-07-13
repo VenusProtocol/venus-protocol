@@ -95,6 +95,7 @@ call `liquidate`/`flashLiquidate`.
 | `SOURCE`              |     | `auto`      | Hop-1 source: `auto` (price both, take higher) / `native` / `liquidmesh` |
 | `LM_API_KEY`          |     |             | Liquid Mesh API key (required for `liquidmesh`/`auto`)                   |
 | `LM_PRIVATE_KEY_SEED` |     |             | Liquid Mesh Ed25519 seed, base64url (required for `liquidmesh`/`auto`)   |
+| `LM_MIN_TTL`          |     | `15`        | Min seconds left on the LM order at build time, else abort (LM RFQ orders are short-lived; the on-chain deadline still enforces the real expiry) |
 | `DRY_RUN`             |     |             | `1` → callStatic only, sends nothing                                     |
 | `SLIPPAGE`            |     | `0.5`       | Native/LM slippage %                                                     |
 | `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%)                            |

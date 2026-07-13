@@ -291,8 +291,9 @@ describe("bStock atomic liquidation script", () => {
     // A response object exposing both `.json()` (Native lib) and `.text()` (Liquid Mesh lib).
     const resp = (obj: any) => ({ status: 200, json: async () => obj, text: async () => JSON.stringify(obj) });
 
-    // Stub Native firm-quote + LM /quote + LM /swap. `lmCalldata` is executed on-chain against `lmRouter`.
-    function stubFetch(opts: { nativeOut: BigNumberish; lmOut: BigNumberish; lmCalldata: string }) {
+    // Stub Native firm-quote + LM /quote + LM /swap. `lmCalldata` is executed on-chain against `lmRouter`;
+    // `lmExpiry` overrides the /swap order expiry (default: generous, see below).
+    function stubFetch(opts: { nativeOut: BigNumberish; lmOut: BigNumberish; lmCalldata: string; lmExpiry?: number }) {
       const real = globalThis.fetch;
       globalThis.fetch = (async (url: unknown, init?: any) => {
         const u = String(url);
@@ -329,7 +330,7 @@ describe("bStock atomic liquidation script", () => {
               orderId: "1",
               // Generous expiry: the hardhat chain clock can run ahead of wall-clock after prior tests, so a
               // short TTL would trip DeadlineExpired. (Real LM orders are short-lived; the contract enforces it.)
-              expiryTimestamp: Math.floor(Date.now() / 1000) + 3600,
+              expiryTimestamp: opts.lmExpiry ?? Math.floor(Date.now() / 1000) + 3600,
             },
           });
         }
@@ -425,6 +426,25 @@ describe("bStock atomic liquidation script", () => {
 
       expect(await bStock.balanceOf(lmRouter.address)).to.equal(SEIZED); // LM used despite lower quote
       expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("rejects a built Liquid Mesh order whose TTL is below LM_MIN_TTL", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // The built order expires 5s from now — under the 15s default margin. The guard must abort
+      // BEFORE the settle tx (an already-tight order would otherwise revert DeadlineExpired on-chain).
+      const real = stubFetch({
+        nativeOut: U("5400"),
+        lmOut: OUT,
+        lmCalldata: lmSwapAll(),
+        lmExpiry: Math.floor(Date.now() / 1000) + 5,
+      });
+      try {
+        lmEnv({ SOURCE: "liquidmesh" });
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/TTL .*LM_MIN_TTL/);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0); // nothing settled
     });
 
     it("rejects an unknown SOURCE name", async () => {
