@@ -174,7 +174,9 @@ contract BStockLiquidator is
     }
 
     /// @inheritdoc IBStockLiquidator
-    function sweepNative(address to, uint256 amount) external override onlyOwner {
+    /// @dev `nonReentrant` is defense-in-depth only (the function is `onlyOwner`, snapshots no state, and
+    ///      reads no balance after the native `.call`), added for consistency with the liquidation entrypoints.
+    function sweepNative(address to, uint256 amount) external override onlyOwner nonReentrant {
         ensureNonzeroAddress(to);
         (bool ok, ) = to.call{ value: amount }("");
         if (!ok) revert NativeTransferFailed();
