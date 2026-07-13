@@ -71,6 +71,10 @@ interface IBStockLiquidator {
     /// @notice Thrown when the supplied swap router is not allowlisted.
     error RouterNotAllowed(address router);
 
+    /// @notice Thrown when a router spender being set is not a deployed contract. The spender receives
+    ///         a live token approval during the swap, so an EOA spender is always a misconfiguration.
+    error SpenderNotContract(address spender);
+
     /// @notice Thrown when `vBStock.redeem` returns a non-zero error code.
     error RedeemFailed(uint256 errCode);
 
@@ -108,6 +112,8 @@ interface IBStockLiquidator {
     function setOperator(address operator, bool allowed) external;
 
     /// @notice Allow or disallow a router as the swap target (e.g. the Native router).
+    /// @dev Removing a router also clears its `routerSpender` entry (emitting {RouterSpenderSet} with
+    ///      `address(0)`), so a stale spender cannot silently reactivate on a later re-allowlist.
     /// @param router Address to allowlist or remove.
     /// @param allowed True to allow, false to remove.
     function setRouter(address router, bool allowed) external;
@@ -115,6 +121,9 @@ interface IBStockLiquidator {
     /// @notice Set the token-approval target (spender) for a router whose settlement contract that pulls
     ///         the input token differs from the call target (e.g. Liquid Mesh). When unset, the approval
     ///         defaults to the router itself (Native behaviour). Setting `spender = address(0)` clears it.
+    /// @dev Reverts with {RouterNotAllowed} unless `router` is currently allowlisted, and with
+    ///      {SpenderNotContract} when a non-zero `spender` has no code. The spender is an approval
+    ///      target only — it is never called; the low-level call always targets the allowlisted router.
     /// @param router The allowlisted swap target (call target).
     /// @param spender The contract that pulls the input token via `transferFrom` during settlement.
     function setRouterSpender(address router, address spender) external;

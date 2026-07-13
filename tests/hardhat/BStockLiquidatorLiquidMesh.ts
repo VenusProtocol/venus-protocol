@@ -180,4 +180,34 @@ describe("BStockLiquidator + Liquid Mesh (separate spender)", () => {
   it("setRouterSpender is owner-only", async () => {
     await expect(liq.connect(stranger).setRouterSpender(lmRouter.address, spender.address)).to.be.reverted;
   });
+
+  it("setRouterSpender reverts for a router that is not allowlisted", async () => {
+    // `spender.address` is a deployed contract but was never `setRouter`'d — the spender lifecycle is
+    // coupled to the allowlist, so pointing it at a non-allowlisted router is rejected up front.
+    await expect(liq.connect(owner).setRouterSpender(spender.address, spender.address))
+      .to.be.revertedWithCustomError(liq, "RouterNotAllowed")
+      .withArgs(spender.address);
+  });
+
+  it("setRouterSpender reverts when the spender is an EOA", async () => {
+    // The spender receives a live token approval during `_swap`; an address with no code can never be
+    // the settlement contract, so it is rejected as a misconfiguration.
+    await expect(liq.connect(owner).setRouterSpender(lmRouter.address, stranger.address))
+      .to.be.revertedWithCustomError(liq, "SpenderNotContract")
+      .withArgs(stranger.address);
+  });
+
+  it("de-allowlisting a router clears its spender entry so it cannot silently reactivate", async () => {
+    await liq.connect(owner).setRouterSpender(lmRouter.address, spender.address);
+
+    await expect(liq.connect(owner).setRouter(lmRouter.address, false))
+      .to.emit(liq, "RouterSpenderSet")
+      .withArgs(lmRouter.address, ZERO);
+    expect(await liq.routerSpender(lmRouter.address)).to.equal(ZERO);
+
+    // Re-allowlisting does NOT bring the old spender back — it must be set again explicitly.
+    await liq.connect(owner).setRouter(lmRouter.address, true);
+    expect(await liq.routerSpender(lmRouter.address)).to.equal(ZERO);
+    await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "SwapFailed");
+  });
 });

@@ -169,14 +169,26 @@ contract BStockLiquidator is
     function setRouter(address router, bool allowed) external override onlyOwner {
         ensureNonzeroAddress(router);
         isRouter[router] = allowed;
+        // De-allowlisting also clears any configured spender: a stale entry must not silently
+        // reactivate (with a possibly rotated-away spender) if the router is ever re-allowlisted.
+        if (!allowed && routerSpender[router] != address(0)) {
+            delete routerSpender[router];
+            emit RouterSpenderSet(router, address(0));
+        }
         emit RouterSet(router, allowed);
     }
 
     /// @inheritdoc IBStockLiquidator
     function setRouterSpender(address router, address spender) external override onlyOwner {
-        ensureNonzeroAddress(router);
+        // Couple the spender lifecycle to the allowlist: a spender only ever matters for an
+        // allowlisted router (`_swap` approves it right before the router call), so requiring
+        // `isRouter` here catches a fat-fingered router address instead of storing it silently.
+        if (!isRouter[router]) revert RouterNotAllowed(router);
         // `spender == address(0)` is allowed and clears the entry, reverting the router to
-        // approve-the-call-target (Native) behaviour.
+        // approve-the-call-target (Native) behaviour. A non-zero spender receives a live (exact-amount,
+        // same-tx) approval during `_swap`, so require it to be a deployed contract — an EOA spender is
+        // always a misconfiguration.
+        if (spender != address(0) && spender.code.length == 0) revert SpenderNotContract(spender);
         routerSpender[router] = spender;
         emit RouterSpenderSet(router, spender);
     }
