@@ -112,10 +112,12 @@ const liquidMeshSource: QuoteSource = {
       firm: false, // `/quote` is indicative; the built `/swap` order may fill lower, down to `builtFloor`
       // `/swap` (disableSimulate:true) is only fetched if Liquid Mesh wins — avoids a wasted order build.
       build: async () => {
-        // The order's own floor (`outputAmount`); LM also applies `slippageBps`, so the effective on-chain
-        // floor may be slightly looser than this. That is fine — the CONTRACT's `minOut` is the real guard;
-        // this floor only bounds how far LM itself will let the fill slip.
-        const minFloor = out.mul(Math.round((100 - a.slippage) * 100)).div(10000);
+        // Derive the floor and the request's `slippageBps` from ONE integer bps value, so the two can't
+        // diverge on rounding (e.g. a fractional-bps slippage). The order's own floor (`outputAmount`) is
+        // `out` haircut by that bps; LM also applies `slippageBps`, so the effective on-chain floor may be
+        // slightly looser — fine, the CONTRACT's `minOut` is the real guard; this only bounds LM's own slip.
+        const slippageBps = Math.round(a.slippage * 100);
+        const minFloor = out.mul(10000 - slippageBps).div(10000);
         const swap = await lmBuildSwap({
           userAddress: a.taker,
           tokenIn: a.tokenIn,
@@ -123,7 +125,7 @@ const liquidMeshSource: QuoteSource = {
           amountWei: a.weiAmount.toString(),
           minOutWei: minFloor.toString(),
           routePlans: quote.routePlans,
-          slippageBps: Math.round(a.slippage * 100),
+          slippageBps,
         });
         // LM RFQ orders are short-lived. The contract enforces the expiry on-chain (DeadlineExpired),
         // but an order that is ALREADY too tight to survive signing + submission + inclusion should be
@@ -163,7 +165,12 @@ export const SOURCES: QuoteSource[] = [nativeSource, liquidMeshSource];
 export function selectedSources(): QuoteSource[] {
   const raw = (process.env.SOURCE || "auto").toLowerCase().trim();
   if (raw === "auto") return SOURCES.filter(s => s.available());
-  const names = raw.split(",").map(s => s.trim());
+  // Drop empty segments so a trailing comma / stray whitespace (e.g. `SOURCE=native,`) doesn't surface as
+  // a confusing `unknown SOURCE(s): ` error.
+  const names = raw
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
   const picked = SOURCES.filter(s => names.includes(s.name));
   const unknown = names.filter(n => !SOURCES.some(s => s.name === n));
   if (unknown.length)

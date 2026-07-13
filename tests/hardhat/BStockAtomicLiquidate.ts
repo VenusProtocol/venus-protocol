@@ -428,6 +428,18 @@ describe("bStock atomic liquidation script", () => {
       expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
     });
 
+    it("tolerates a trailing comma / empty segment in SOURCE", async () => {
+      await usdt.mint(liq.address, REPAY);
+      const real = stubFetch({ nativeOut: U("5400"), lmOut: OUT, lmCalldata: lmSwapAll() });
+      try {
+        lmEnv({ SOURCE: "liquidmesh," }); // empty tail segment must be dropped, not read as an unknown source
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(SEIZED);
+    });
+
     it("rejects a built Liquid Mesh order whose TTL is below LM_MIN_TTL", async () => {
       await usdt.mint(liq.address, REPAY);
       // The built order expires 5s from now — under the 15s default margin. The guard must abort
