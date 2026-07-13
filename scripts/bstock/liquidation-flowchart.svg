@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="720" viewBox="0 0 820 720" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .box { stroke-width: 1.6; rx: 8; }
+      .lbl { fill: #0f172a; font-size: 13px; }
+      .lbl b { font-weight: 600; }
+      .edge { stroke: #475569; stroke-width: 1.6; fill: none; }
+      .elbl { fill: #334155; font-size: 12px; font-style: italic; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="820" height="720" fill="#ffffff"/>
+
+  <!-- edges (drawn first, under boxes) -->
+  <path class="edge" d="M410,70 L410,104" marker-end="url(#arrow)"/>
+  <path class="edge" d="M410,162 L410,196" marker-end="url(#arrow)"/>
+  <path class="edge" d="M410,242 L410,300" marker-end="url(#arrow)"/>
+  <text class="elbl" x="418" y="274">RFQ alive</text>
+  <path class="edge" d="M410,366 L410,404" marker-end="url(#arrow)"/>
+  <!-- dry-run yes -> send -->
+  <path class="edge" d="M345,448 C300,478 270,492 250,516" marker-end="url(#arrow)"/>
+  <text class="elbl" x="262" y="486">yes</text>
+  <!-- dry-run no -> safe -->
+  <path class="edge" d="M475,448 C540,478 580,492 605,516" marker-end="url(#arrow)"/>
+  <text class="elbl" x="520" y="486">no · can't fix fast</text>
+  <!-- quote: both RFQ dead -> safe (long right route) -->
+  <path class="edge" d="M520,224 L735,224 L735,500 L700,516" marker-end="url(#arrow)"/>
+  <text class="elbl" x="560" y="214">both RFQ dead</text>
+  <!-- safe -> execute -->
+  <path class="edge" d="M620,578 L610,610" marker-end="url(#arrow)"/>
+
+  <!-- start -->
+  <rect class="box" x="290" y="24" width="240" height="46" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <text class="lbl" x="410" y="52" text-anchor="middle" font-weight="600">bStock borrower in shortfall</text>
+
+  <!-- native-smoke -->
+  <rect class="box" x="250" y="104" width="320" height="58" rx="8" fill="#f1f5f9" stroke="#64748b"/>
+  <text class="lbl mono" x="410" y="128" text-anchor="middle">1 · native-smoke.ts</text>
+  <text class="lbl" x="410" y="146" text-anchor="middle" font-size="12">read-only, ~10s — is the quote path alive?</text>
+
+  <!-- quote? decision -->
+  <rect class="box" x="300" y="196" width="220" height="46" rx="8" fill="#fef3c7" stroke="#d97706"/>
+  <text class="lbl" x="410" y="224" text-anchor="middle" font-weight="600">Quote path?</text>
+
+  <!-- atomic -->
+  <rect class="box" x="250" y="300" width="320" height="66" rx="8" fill="#f1f5f9" stroke="#64748b"/>
+  <text class="lbl mono" x="410" y="324" text-anchor="middle">2 · atomic-liquidate.ts  (DRY_RUN=1)</text>
+  <text class="lbl" x="410" y="344" text-anchor="middle" font-size="12">prices Native + Liquid Mesh, settles the winner</text>
+  <text class="lbl" x="410" y="360" text-anchor="middle" font-size="12">SOURCE=liquidmesh if Native is down</text>
+
+  <!-- dry-run? decision -->
+  <rect class="box" x="295" y="404" width="230" height="46" rx="8" fill="#fef3c7" stroke="#d97706"/>
+  <text class="lbl" x="410" y="432" text-anchor="middle" font-weight="600">Dry-run passes?</text>
+
+  <!-- send (terminal, success) -->
+  <rect class="box" x="90" y="516" width="300" height="60" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <text class="lbl" x="240" y="540" text-anchor="middle" font-size="12">re-run WITHOUT <tspan class="mono">DRY_RUN=1</tspan></text>
+  <text class="lbl" x="240" y="560" text-anchor="middle" font-weight="600">→ liquidation sent ✓</text>
+
+  <!-- safe fallback -->
+  <rect class="box" x="470" y="516" width="300" height="62" rx="8" fill="#fee2e2" stroke="#dc2626"/>
+  <text class="lbl mono" x="620" y="540" text-anchor="middle">3 · safe-fallback.ts</text>
+  <text class="lbl" x="620" y="560" text-anchor="middle" font-size="12">writes Safe batch JSON (no send)</text>
+
+  <!-- execute -->
+  <rect class="box" x="440" y="610" width="340" height="84" rx="8" fill="#fee2e2" stroke="#dc2626"/>
+  <text class="lbl" x="610" y="634" text-anchor="middle" font-size="12">Safe → Transaction Builder</text>
+  <text class="lbl" x="610" y="654" text-anchor="middle" font-size="12">load JSON, review, sign, execute</text>
+  <text class="lbl" x="610" y="674" text-anchor="middle" font-size="12">raw bStock ships to CEX for offload</text>
+</svg>
