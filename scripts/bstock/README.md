@@ -11,6 +11,32 @@ one shared goal: repay a borrower's debt, seize their bStock, and offload it.
 
 Pick **Atomic** first. Fall back to **Safe** only if the Native quote path fails.
 
+## Which script? — start here
+
+```mermaid
+flowchart TD
+    A([bStock borrower in shortfall]) --> B["1: native-smoke.ts<br/>read-only, ~10s — is the quote path alive?"]
+    B --> C{Quote path?}
+    C -- "Native live" --> D["2: atomic-liquidate.ts<br/>with DRY_RUN=1"]
+    C -- "Native down,<br/>LM creds present" --> E["2: atomic-liquidate.ts<br/>SOURCE=liquidmesh DRY_RUN=1"]
+    C -- "both RFQ sources dead<br/>(halt / weekend / thin depth)" --> F["3: safe-fallback.ts<br/>writes Safe batch JSON"]
+    D --> G{Dry-run passes?}
+    E --> G
+    G -- yes --> H["re-run WITHOUT DRY_RUN=1<br/>→ liquidation sent, done"]
+    G -- "no, and can't fix fast" --> F
+    F --> I["Safe → Transaction Builder →<br/>load JSON, sign, execute;<br/>raw bStock ships to CEX"]
+```
+
+Rules of thumb:
+
+- **Always start with the smoke test** — it is read-only and tells you which branch you are on.
+- **Never send without a passing dry-run** (`DRY_RUN=1` `callStatic`s the exact settle).
+- **Atomic beats Safe whenever any RFQ source answers**: atomic is one tx at a firm price now; the
+  Safe path needs signer quorum and holds raw bStock (price risk) until finance offloads it on the CEX.
+- **Don't debug mid-incident.** If the atomic dry-run keeps reverting and the cause isn't obvious in
+  minutes, switch to the Safe fallback instead of burning the liquidation window.
+- `verify-lm-fork.ts` is a **dev-time** fork check (proves LM calldata executes) — never part of an incident.
+
 ---
 
 ## Prerequisites
