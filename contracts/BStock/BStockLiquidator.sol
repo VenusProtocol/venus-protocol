@@ -186,8 +186,8 @@ contract BStockLiquidator is
     /// @notice Disabled. This backstop custodies protocol capital (debt-asset inventory, native BNB) and
     ///         every admin function (`sweep`, `sweepNative`, `setOperator`, `setRouter`) is `onlyOwner`,
     ///         so renouncing ownership would permanently strand those funds and brick the contract. The
-    ///         override is a no-op (matching the sibling {Liquidator}) so an accidental call cannot zero
-    ///         the owner. Ownership is still transferable via the two-step `transferOwnership` flow.
+    ///         override is an `onlyOwner` no-op: an accidental owner call cannot zero the owner, and a
+    ///         non-owner call reverts. Ownership is still transferable via the two-step `transferOwnership` flow.
     function renounceOwnership() public override onlyOwner {}
 
     // --------------------------------------------------------------------- //
@@ -324,8 +324,10 @@ contract BStockLiquidator is
         (bool ok, ) = router.call(data);
         if (!ok) revert SwapFailed();
         token.forceApprove(router, 0); // never leave a standing approval
-        // `token` is the hop's INPUT (sold, never received), so its balance can only fall by what the
-        // router pulled. A shortfall means the router filled less than approved; emit the residual.
+        // `token` is the hop's INPUT: the router can pull at most `amount` (the approval, just reset),
+        // and any refund is a subset of what it pulled, so the balance can only fall (balAfter <=
+        // balBefore) — the subtraction cannot underflow. A shortfall (spent < amount) means the router
+        // filled less than approved; emit the residual so it can be swept.
         uint256 spent = balBefore - token.balanceOf(address(this));
         if (spent < amount) emit PartialSwapLeftover(address(token), amount - spent);
     }
