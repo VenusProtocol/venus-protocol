@@ -658,6 +658,15 @@ describe("BStockLiquidator (atomic)", () => {
       expect(await usdt.balanceOf(owner.address)).to.equal(U("123"));
       expect(await usdt.balanceOf(liq.address)).to.equal(0);
     });
+
+    it("renounceOwnership is disabled (owner cannot brick the fund-custodying contract)", async () => {
+      await expect(liq.connect(stranger).renounceOwnership()).to.be.revertedWith("Ownable: caller is not the owner");
+      // Owner call is a no-op: ownership is retained, admin surface stays live.
+      await liq.connect(owner).renounceOwnership();
+      expect(await liq.owner()).to.equal(owner.address);
+      await usdt.mint(liq.address, U("1"));
+      await expect(liq.connect(owner).sweep(usdt.address, owner.address, U("1"))).to.emit(liq, "Swept");
+    });
   });
 
   describe("deadline boundary", () => {

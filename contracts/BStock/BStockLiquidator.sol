@@ -181,6 +181,13 @@ contract BStockLiquidator is
         emit SweptNative(to, amount);
     }
 
+    /// @notice Disabled. This backstop custodies protocol capital (debt-asset inventory, native BNB) and
+    ///         every admin function (`sweep`, `sweepNative`, `setOperator`, `setRouter`) is `onlyOwner`,
+    ///         so renouncing ownership would permanently strand those funds and brick the contract. The
+    ///         override is a no-op (matching the sibling {Liquidator}) so an accidental call cannot zero
+    ///         the owner. Ownership is still transferable via the two-step `transferOwnership` flow.
+    function renounceOwnership() public override onlyOwner {}
+
     // --------------------------------------------------------------------- //
     //                          INVENTORY mode                               //
     // --------------------------------------------------------------------- //
