@@ -25,6 +25,10 @@ Pick **Atomic** first. Fall back to **Safe** only if the Native quote path fails
   - `setRouterSpender(LM_ROUTER, LM_SPENDER)` **if using Liquid Mesh** — it pulls the input token through a
     separate spender contract, distinct from the call target. Without it the swap reverts `SwapFailed`.
     (Native needs no spender entry — its call target is the puller.)
+    **Order is enforced on-chain**: the router must already be allowlisted (`setRouter` first) or the call
+    reverts `RouterNotAllowed`, and a non-zero spender must be a deployed contract (`SpenderNotContract`).
+    Note `setRouter(router, false)` also clears the router's spender — re-allowlisting later means running
+    `setRouterSpender` again.
   - `setOperator(caller, true)` for the account that submits `liquidate` / `flashLiquidate`.
 - **Funding** for `MODE=inventory`: the liquidator must hold ≥ `REPAY_AMOUNT` of the debt asset.
   `MODE=flash` borrows instead (no pre-funding).
@@ -34,6 +38,12 @@ Pick **Atomic** first. Fall back to **Safe** only if the Native quote path fails
 Hop-1 sources live in a registry — `scripts/bstock/lib/sources.ts` — that the script is generic over: it
 prices every selected source and takes the higher out. `SOURCE=auto` (default) uses every source whose
 creds are present; `SOURCE=native,liquidmesh` (or a single name) restricts to a subset.
+
+Winner selection has one guard: a Liquid Mesh quote is **indicative** (`/quote`), while Native's is
+**firm** (MM-signed — executes at exactly the quoted amount). If Liquid Mesh wins the comparison, the
+script builds its order and re-checks the order's own worst-case fill (its floor) against the best firm
+quote it beat. If the floor is below what the firm quote guaranteed, the script logs
+`hop-1 reconcile: ...` and executes the firm quote instead — an expected source switch, not an error.
 
 Both current sources quote bStock→USDT. Liquid Mesh re-serves the same `rfq_native` book plus `rfq_neptune`
 (and AMM pools for thin names), so at common sizes it matches or marginally beats Native and reaches deeper
@@ -84,23 +94,23 @@ call `liquidate`/`flashLiquidate`.
 
 ### Env
 
-| Var                   | Req | Default     | Notes                                                                    |
-| --------------------- | --- | ----------- | ------------------------------------------------------------------------ |
-| `LIQUIDATOR`          | ✓   |             | Deployed `BStockLiquidator` address                                      |
-| `BORROWER`            | ✓   |             | Account to liquidate (must have shortfall)                               |
-| `VBSTOCK`             | ✓   |             | bStock collateral market (e.g. vTSLAB)                                   |
-| `VDEBT`               | ✓   |             | Borrowed market to repay (e.g. vUSDT)                                    |
-| `REPAY_AMOUNT`        | ✓   |             | Repay in debt underlying, human units                                    |
-| `MODE`                |     | `inventory` | `inventory` (own funds) or `flash` (Venus flash-loan)                    |
-| `SOURCE`              |     | `auto`      | Hop-1 source: `auto` (price both, take higher) / `native` / `liquidmesh` |
-| `LM_API_KEY`          |     |             | Liquid Mesh API key (required for `liquidmesh`/`auto`)                   |
-| `LM_PRIVATE_KEY_SEED` |     |             | Liquid Mesh Ed25519 seed, base64url (required for `liquidmesh`/`auto`)   |
+| Var                   | Req | Default     | Notes                                                                                                                                            |
+| --------------------- | --- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `LIQUIDATOR`          | ✓   |             | Deployed `BStockLiquidator` address                                                                                                              |
+| `BORROWER`            | ✓   |             | Account to liquidate (must have shortfall)                                                                                                       |
+| `VBSTOCK`             | ✓   |             | bStock collateral market (e.g. vTSLAB)                                                                                                           |
+| `VDEBT`               | ✓   |             | Borrowed market to repay (e.g. vUSDT)                                                                                                            |
+| `REPAY_AMOUNT`        | ✓   |             | Repay in debt underlying, human units                                                                                                            |
+| `MODE`                |     | `inventory` | `inventory` (own funds) or `flash` (Venus flash-loan)                                                                                            |
+| `SOURCE`              |     | `auto`      | Hop-1 source: `auto` (price both, take higher) / `native` / `liquidmesh`                                                                         |
+| `LM_API_KEY`          |     |             | Liquid Mesh API key (required for `liquidmesh`/`auto`)                                                                                           |
+| `LM_PRIVATE_KEY_SEED` |     |             | Liquid Mesh Ed25519 seed, base64url (required for `liquidmesh`/`auto`)                                                                           |
 | `LM_MIN_TTL`          |     | `15`        | Min seconds left on the LM order at build time, else abort (LM RFQ orders are short-lived; the on-chain deadline still enforces the real expiry) |
-| `DRY_RUN`             |     |             | `1` → callStatic only, sends nothing                                     |
-| `SLIPPAGE`            |     | `0.5`       | Native/LM slippage %                                                     |
-| `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%)                            |
-| `AMM_PROVIDER`        |     | `kyberswap` | Hop-2 route for non-USDT debt: `kyberswap` / `openocean` / `pcsv2`       |
-| `WBNB_ADDR`           |     | BSC WBNB    | Only for a vBNB debt market (native BNB auto-detected; contract unwraps) |
+| `DRY_RUN`             |     |             | `1` → callStatic only, sends nothing                                                                                                             |
+| `SLIPPAGE`            |     | `0.5`       | Native/LM slippage %                                                                                                                             |
+| `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%)                                                                                                    |
+| `AMM_PROVIDER`        |     | `kyberswap` | Hop-2 route for non-USDT debt: `kyberswap` / `openocean` / `pcsv2`                                                                               |
+| `WBNB_ADDR`           |     | BSC WBNB    | Only for a vBNB debt market (native BNB auto-detected; contract unwraps)                                                                         |
 
 _Fork/local testing:_ `MOCK_NATIVE="router:calldata"` (hop 1), `MOCK_AMM` (hop 2), `MOCK_OUT` (final
 debt out), `IMPERSONATE=0x..` to run as an operator.
