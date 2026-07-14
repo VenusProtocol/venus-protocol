@@ -321,8 +321,17 @@ contract BStockLiquidator is
     function _swap(IERC20Upgradeable token, address router, bytes memory data, uint256 amount) private {
         uint256 balBefore = token.balanceOf(address(this));
         token.forceApprove(router, amount);
-        (bool ok, ) = router.call(data);
-        if (!ok) revert SwapFailed();
+        (bool ok, bytes memory returndata) = router.call(data);
+        if (!ok) {
+            // Bubble up the router's own revert reason for easier debugging; fall back to SwapFailed()
+            // only when the call reverted without returndata.
+            if (returndata.length != 0) {
+                assembly {
+                    revert(add(returndata, 0x20), mload(returndata))
+                }
+            }
+            revert SwapFailed();
+        }
         token.forceApprove(router, 0); // never leave a standing approval
         // `token` is the hop's INPUT: the router can pull at most `amount` (the approval, just reset),
         // and any refund is a subset of what it pulled, so the balance can only fall (balAfter <=
