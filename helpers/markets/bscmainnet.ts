@@ -958,4 +958,26 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus SK Hynix",
+    symbol: "vSKHYB",
+    asset: "SKHYB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.5",
+      reserveFactor: "0.1",
+      supplyCap: "140",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.51",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bscmainnet">>[];
