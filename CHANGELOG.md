@@ -1,3 +1,12 @@
+## 10.3.0-dev.2 (2026-07-14)
+
+* Merge pull request #697 from VenusProtocol/bot/VDB-23-list-skhyb-on-platform ([004d3b3](https://github.com/VenusProtocol/venus-protocol/commit/004d3b3)), closes [#697](https://github.com/VenusProtocol/venus-protocol/issues/697)
+* feat: register SKHYB underlying + vSKHYB market config (bsctestnet + bscmainnet) ([e248358](https://github.com/VenusProtocol/venus-protocol/commit/e248358))
+* feat: updating deployment files ([932d14d](https://github.com/VenusProtocol/venus-protocol/commit/932d14d))
+* chore: deploy artifacts (bscmainnet) ([9ca1961](https://github.com/VenusProtocol/venus-protocol/commit/9ca1961))
+* chore: deploy artifacts (bsctestnet) ([721ec17](https://github.com/VenusProtocol/venus-protocol/commit/721ec17))
+* chore: deploy artifacts (bsctestnet) ([e01e2bd](https://github.com/VenusProtocol/venus-protocol/commit/e01e2bd))
+
 ## 10.3.0-dev.1 (2026-07-08)
 
 * Merge branch 'fix/vpd-1241-certik-audit' into feat/vpd-1241-deployments ([062cbf7](https://github.com/VenusProtocol/venus-protocol/commit/062cbf7))
