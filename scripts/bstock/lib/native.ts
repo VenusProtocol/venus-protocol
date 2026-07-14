@@ -16,6 +16,7 @@
  *
  * Note: the `/bridge/*` variants are cross-chain and use a different auth scope.
  */
+import { fetchWithTimeout } from "./http";
 
 const DEFAULT_BASE = "https://v2.api.native.org/swap-api-v2/v1";
 
@@ -79,7 +80,7 @@ function apiKey(): string {
 async function get(path: string, params: Record<string, string>): Promise<any> {
   const qs = new URLSearchParams(params).toString();
   const url = `${baseUrl()}${path}?${qs}`;
-  const res = await fetch(url, { headers: { api_key: apiKey() } });
+  const res = await fetchWithTimeout(url, { headers: { api_key: apiKey() } }, `Native ${path}`);
   const body = await res.json();
   // Native returns 200 with an error envelope on failure; surface both forms.
   if (body && body.code !== undefined && body.message !== undefined && body.success === undefined) {

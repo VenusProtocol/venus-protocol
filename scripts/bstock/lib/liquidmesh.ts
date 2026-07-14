@@ -28,6 +28,8 @@
  */
 import { createHash, createPrivateKey, sign as edSign } from "crypto";
 
+import { fetchWithTimeout } from "./http";
+
 // The JWT is signed over the FULL request path, so the network prefix must be part of `path` (not folded
 // into the host) — otherwise the signed path omits `/v1/bsc` and the server rejects the token (401).
 const DEFAULT_HOST = "https://api.liquidmesh.io";
@@ -158,7 +160,7 @@ export async function getQuote(p: LmQuoteParams): Promise<LmQuote> {
   const path =
     `${NETWORK_PREFIX}/quote?chainId=${chainId}&inputToken=${p.tokenIn}&outputToken=${p.tokenOut}` +
     `&amount=${p.amountWei}&userAddress=${p.userAddress}`;
-  const res = await fetch(`${host()}${path}`, { headers: headers("GET", path) });
+  const res = await fetchWithTimeout(`${host()}${path}`, { headers: headers("GET", path) }, "Liquid Mesh /quote");
   const text = await res.text();
   let body: LmResponse<LmQuote>;
   try {
@@ -197,7 +199,11 @@ export async function buildSwap(p: LmSwapParams): Promise<LmSwap> {
       routePlans: p.routePlans,
     },
   });
-  const res = await fetch(`${host()}${path}`, { method: "POST", headers: headers("POST", path, body), body });
+  const res = await fetchWithTimeout(
+    `${host()}${path}`,
+    { method: "POST", headers: headers("POST", path, body), body },
+    "Liquid Mesh /swap",
+  );
   const text = await res.text();
   let j: LmResponse<LmSwapData>;
   try {
