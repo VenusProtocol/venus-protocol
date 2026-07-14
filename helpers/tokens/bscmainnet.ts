@@ -338,6 +338,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xbe9D156892E55e7154BcD3cB0FEA677F9D3103E1",
   },
+  {
+    isMock: false,
+    name: "SK Hynix",
+    symbol: "SKHYB",
+    decimals: 18,
+    tokenAddress: "0xCA750eF65f295BBECd685Abf54e82CAf297BDB61",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
