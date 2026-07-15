@@ -122,9 +122,10 @@ describe("BStockLiquidator + Liquid Mesh (separate spender)", () => {
 
   it("REVERTS without a configured spender — approving the call target leaves the puller unapproved", async () => {
     // No setRouterSpender: `_swap` approves the router itself, but MockSpender.pull does the transferFrom
-    // and has no allowance -> "spender pull failed" -> the low-level call fails -> SwapFailed.
+    // and has no allowance -> the pull reverts and `_swap` bubbles the ERC20's own reason up (SwapFailed()
+    // remains only the empty-returndata fallback).
     expect(await liq.routerSpender(lmRouter.address)).to.equal(ZERO);
-    await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "SwapFailed");
+    await expect(liq.connect(owner).liquidate(params())).to.be.revertedWith("ERC20: insufficient allowance");
   });
 
   it("SUCCEEDS atomically once the spender is set — seizes, redeems, and sells a token it never pre-held", async () => {
@@ -173,8 +174,8 @@ describe("BStockLiquidator + Liquid Mesh (separate spender)", () => {
     await liq.connect(owner).setRouterSpender(lmRouter.address, spender.address);
     await liq.connect(owner).setRouterSpender(lmRouter.address, ZERO);
     expect(await liq.routerSpender(lmRouter.address)).to.equal(ZERO);
-    // Back to old behaviour -> the split router reverts again.
-    await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "SwapFailed");
+    // Back to old behaviour -> the unapproved spender's pull reverts, bubbled up by `_swap`.
+    await expect(liq.connect(owner).liquidate(params())).to.be.revertedWith("ERC20: insufficient allowance");
   });
 
   it("setRouterSpender is owner-only", async () => {
@@ -208,6 +209,6 @@ describe("BStockLiquidator + Liquid Mesh (separate spender)", () => {
     // Re-allowlisting does NOT bring the old spender back — it must be set again explicitly.
     await liq.connect(owner).setRouter(lmRouter.address, true);
     expect(await liq.routerSpender(lmRouter.address)).to.equal(ZERO);
-    await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "SwapFailed");
+    await expect(liq.connect(owner).liquidate(params())).to.be.revertedWith("ERC20: insufficient allowance");
   });
 });

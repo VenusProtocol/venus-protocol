@@ -100,7 +100,8 @@ interface Hop1 {
   source: string;
   router: string;
   calldata: string;
-  out: BigNumber; // USDT out of hop 1 (base units)
+  out: BigNumber; // USDT out of hop 1 (base units) — INDICATIVE for a non-firm source; display only
+  floor: BigNumber; // the built order's GUARANTEED worst-case USDT out — what downstream legs must assume
   deadline: BigNumber; // unix seconds — the quote's on-chain expiry
 }
 
@@ -158,6 +159,7 @@ async function pickHop1Source(args: QuoteArgs): Promise<Hop1> {
     router: built.router,
     calldata: built.calldata,
     out: winner.quote.out,
+    floor: built.builtFloor,
     deadline: built.deadline,
   };
 }
@@ -323,16 +325,28 @@ export async function atomicLiquidate(signer: Signer) {
     deadline = hop1.deadline; // settle tx reverts on-chain past the quote's expiry
     router = hop1.router;
     swapCalldata = hop1.calldata;
-    const midOut = hop1.out; // USDT out of hop 1
-    console.log(`hop-1 source: ${hop1.source} (out=${ethers.utils.formatUnits(midOut, 18)} USDT)`);
+    const midOut = hop1.out; // USDT out of hop 1 — indicative for a non-firm source (LM); display only
+    // What hop 1 is GUARANTEED to deliver. For a firm source (Native) this equals `out`; for an indicative
+    // one (Liquid Mesh `/quote`) it is the built order's own floor, which is all the fill is bound by.
+    const midFloor = hop1.floor;
+    console.log(
+      `hop-1 source: ${hop1.source} (out=${ethers.utils.formatUnits(midOut, 18)} USDT, ` +
+        `floor=${ethers.utils.formatUnits(midFloor, 18)} USDT)`,
+    );
 
     if (twoHop) {
       // Hop 2: convert the hop-1 USDT to the (non-USDT) debt asset via an allowlisted AMM/aggregator.
+      // Size this leg off the hop-1 FLOOR, not the indicative `out`: on-chain the contract approves router2
+      // for the ACTUAL hop-1 delta (`midDelta`), while this calldata bakes in a fixed `amountIn`. Quote it
+      // at `out` and an indicative source that fills even slightly under would leave the router pulling
+      // more than the approval — hop 2 reverts on allowance. `floor <= midDelta` always holds, so the pull
+      // always fits. Any surplus (`midDelta - floor`, bounded by slippage) stays as USDT inventory and the
+      // contract emits `PartialSwapLeftover` for it — sweepable, not lost.
       const amm = await getAmmSwap(
         {
           tokenIn: nativeOut,
           tokenOut: debt.address,
-          amountIn: midOut.toString(),
+          amountIn: midFloor.toString(),
           recipient: liquidator.address,
           slippage,
         },
