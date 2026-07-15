@@ -1,3 +1,10 @@
+## 10.3.0-dev.3 (2026-07-15)
+
+* Merge pull request #698 from VenusProtocol/fix/slim-publish-npm-engine ([0d21b55](https://github.com/VenusProtocol/venus-protocol/commit/0d21b55)), closes [#698](https://github.com/VenusProtocol/venus-protocol/issues/698)
+* Merge pull request #699 from VenusProtocol/feat/slim-tokens ([b9366bb](https://github.com/VenusProtocol/venus-protocol/commit/b9366bb)), closes [#699](https://github.com/VenusProtocol/venus-protocol/issues/699)
+* feat: generate tokens.json in the slim package ([b46d51a](https://github.com/VenusProtocol/venus-protocol/commit/b46d51a))
+* ci: pin slim-publish npm to v11 to fix EBADENGINE ([2fe54b8](https://github.com/VenusProtocol/venus-protocol/commit/2fe54b8))
+
 ## 10.3.0-dev.2 (2026-07-14)
 
 * Merge pull request #697 from VenusProtocol/bot/VDB-23-list-skhyb-on-platform ([004d3b3](https://github.com/VenusProtocol/venus-protocol/commit/004d3b3)), closes [#697](https://github.com/VenusProtocol/venus-protocol/issues/697)
