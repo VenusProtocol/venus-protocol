@@ -503,5 +503,82 @@ describe("bStock atomic liquidation script", () => {
       await expect(atomicLiquidate(owner)).to.be.rejectedWith(/missing required creds/i);
       expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
     });
+
+    // A Liquid Mesh `/quote` is INDICATIVE: the built order may fill below it, down to its own floor. The
+    // hop-2 calldata bakes in a fixed `amountIn` off-chain, while on-chain the contract approves router2 for
+    // the ACTUAL hop-1 delta. Size hop 2 off the indicative `out` and an underfilling LM leaves the AMM
+    // pulling more than the approval — hop 2 reverts on allowance. Sizing it off the GUARANTEED floor keeps
+    // the pull within the approval. Here LM quotes 1:1 (5500 USDT) but its order fills at 0.998 (5489),
+    // between the floor (5472.5) and the quote — the exact gap the floor exists to absorb.
+    it("two-hop: sizes the AMM hop off the LM floor, so an LM order that underfills its quote still settles", async () => {
+      const { btcb, vBtcb, amm } = await deployTwoHop();
+      await liq.connect(owner).setRouter(amm.address, true);
+      await btcb.mint(liq.address, REPAY); // debt inventory for the repay
+
+      await lmRouter.setRate(U("0.998")); // LM fills 0.2% under its own indicative quote
+      const lmFilled = SEIZED.mul(U("0.998")).div(U("1")); // 5489 USDT actually delivered by hop 1
+      const floor = OUT.mul(9950).div(10000); // quote 5500 haircut by SLIPPAGE=0.5% -> 5472.5
+
+      // Stub LM (/quote + /swap) and the hop-2 KyberSwap round-trip. The AMM calldata is built from the
+      // `amountIn` the script ASKS for (captured off the /routes query), so the on-chain pull is exactly
+      // what the script sized the leg at — that is what this test is asserting on.
+      let ammAmountIn = "";
+      const real = globalThis.fetch;
+      globalThis.fetch = (async (url: unknown, init?: any) => {
+        const u = String(url);
+        const method = (init?.method || "GET").toUpperCase();
+        if (u.includes("liquidmesh.io") && u.includes("/quote")) {
+          return resp({
+            code: 0,
+            data: {
+              inputAmount: "0",
+              outputAmount: OUT.toString(), // indicative 1:1 — optimistic vs the 0.998 the order fills at
+              routePlans: [{ subRouters: [{ dexes: [{ dex: "rfq_native", weight: 10000 }] }] }],
+            },
+          });
+        }
+        if (u.includes("liquidmesh.io") && method === "POST") {
+          return resp({
+            code: 0,
+            data: {
+              chainId: "56",
+              callMsg: { from: liq.address, to: lmRouter.address, value: "0x0", data: lmSwapAll() },
+              orderId: "1",
+              expiryTimestamp: Math.floor(Date.now() / 1000) + 3600,
+            },
+          });
+        }
+        if (u.includes("kyberswap") && u.includes("/routes")) {
+          ammAmountIn = new URL(u).searchParams.get("amountIn") || "";
+          return resp({ code: 0, data: { routeSummary: { amountOut: ammAmountIn } } });
+        }
+        if (u.includes("kyberswap") && u.includes("/route/build")) {
+          // Pull EXACTLY what the script sized this leg at.
+          return resp({
+            code: 0,
+            data: {
+              routerAddress: amm.address,
+              data: amm.interface.encodeFunctionData("swap", [usdt.address, ammAmountIn, btcb.address, liq.address]),
+              amountOut: ammAmountIn,
+            },
+          });
+        }
+        throw new Error(`unexpected fetch: ${method} ${u}`);
+      }) as unknown as typeof fetch;
+
+      try {
+        lmEnv({ SOURCE: "liquidmesh", VDEBT: vBtcb.address });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      // Sized off the floor, not the indicative quote — the whole point.
+      expect(ammAmountIn).to.equal(floor.toString());
+      // Hop 2 pulled the floor out of the larger real delta, so the surplus stays behind as sweepable
+      // USDT inventory rather than reverting the settle.
+      expect(await usdt.balanceOf(liq.address)).to.equal(lmFilled.sub(floor));
+      expect(await btcb.balanceOf(liq.address)).to.equal(floor); // AMM pays 1:1 on what it pulled
+    });
   });
 });
