@@ -9,7 +9,7 @@
  * fetch the quotes with the taker = the contract) and then calls `liquidate` (inventory mode) or
  * `flashLiquidate` (Venus flash-loan mode).
  *
- *   1. Comptroller.liquidateCalculateSeizeTokens(vDebt, vBStock, repay)  -> seize vTokens
+ *   1. Comptroller.liquidateCalculateSeizeTokens(borrower, vDebt, vBStock, repay) -> seize vTokens
  *   2. seizeTokens * vBStock.exchangeRateStored() / 1e18                  -> raw bStock (floor)
  *   3. hop-1 quote (bStock -> USDT) from Native and/or Liquid Mesh, best -> router + calldata + out
  *      [+ AMM quote USDT -> debt for non-USDT debt]                       -> hop-2 router + calldata
@@ -83,7 +83,7 @@ const ERC20_ABI = [
 ];
 const COMPTROLLER_ABI = [
   "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
-  "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
+  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
   "function treasuryPercent() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
@@ -165,18 +165,25 @@ async function pickHop1Source(args: QuoteArgs): Promise<Hop1> {
 export async function atomicLiquidate(signer: Signer) {
   const dryRun = process.env.DRY_RUN === "1";
   const mode = (process.env.MODE || "inventory").toLowerCase();
-  // Percent knobs must all be in [0, 100): a value >= 100 makes the `(100 - pct)` factor below negative,
-  // producing a negative BigNumber that fails opaquely at ABI-encode time instead of with a legible error.
-  const pct = (name: string, dflt: string): number => {
-    const v = Number(process.env[name] || dflt);
-    if (!Number.isFinite(v) || v < 0 || v >= 100) {
-      throw new Error(`${name} must be a percent in [0, 100), got "${process.env[name]}"`);
-    }
-    return v;
-  };
-  const slippage = pct("SLIPPAGE", "0.5");
-  const minOutBufferPct = pct("MIN_OUT_BUFFER", "0.5");
-  const seizeBufferPct = pct("SEIZE_BUFFER", "0.1");
+  const slippage = Number(process.env.SLIPPAGE || "0.5");
+  const minOutBufferPct = Number(process.env.MIN_OUT_BUFFER || "0.5");
+  const seizeBufferPct = Number(process.env.SEIZE_BUFFER || "0.1");
+  // Bound the haircut: a garbage or oversized value would silently under-quote (and in flash mode
+  // starve the principal + premium repay). The on-chain InsufficientOut still backstops it, but fail
+  // loudly here instead of after burning a Native quote.
+  if (!Number.isFinite(seizeBufferPct) || seizeBufferPct < 0 || seizeBufferPct >= 100) {
+    throw new Error(`SEIZE_BUFFER must be a percent in [0, 100), got "${process.env.SEIZE_BUFFER}"`);
+  }
+  // Minimum remaining Native-quote TTL (seconds) required just before submitting the settle tx. The
+  // two-hop AMM round-trip and on-chain reads after the initial TTL check consume wall-clock, so the
+  // quote is re-verified against this margin to abort + refetch rather than burn gas on an on-chain
+  // DeadlineExpired revert.
+  const settleTtlMarginSec = Number(process.env.SETTLE_TTL_MARGIN || "10");
+  if (!Number.isFinite(settleTtlMarginSec) || settleTtlMarginSec < 0) {
+    throw new Error(
+      `SETTLE_TTL_MARGIN must be a non-negative number of seconds, got "${process.env.SETTLE_TTL_MARGIN}"`,
+    );
+  }
 
   const liquidator = new Contract(env("LIQUIDATOR"), LIQUIDATOR_ABI, signer);
   const borrower = ethers.utils.getAddress(env("BORROWER"));
@@ -209,13 +216,20 @@ export async function atomicLiquidate(signer: Signer) {
   if (shortfall.eq(0)) throw new Error(`${borrower} has no shortfall — not liquidatable`);
   console.log(`borrower ${borrower} shortfall=${ethers.utils.formatEther(shortfall)} (USD-scaled)`);
 
-  // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields.
+  // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields. Use the
+  // borrower-aware 4-arg overload (reads the pool the borrower is actually in via
+  // getEffectiveLiquidationIncentive) — the same version vToken.liquidateBorrowFresh calls on-chain.
+  // The 3-arg overload always reads Core Pool params and diverges if the borrower has switched pools.
   const [seizeErr, seizeTokens]: BigNumber[] = await comptroller.liquidateCalculateSeizeTokens(
+    borrower,
     vDebt.address,
     vBStock.address,
     repay,
   );
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error ${seizeErr}`);
+  // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
+  // surface it here rather than building a degenerate quote that reverts on-chain.
+  if (seizeTokens.eq(0)) throw new Error(`liquidateCalculateSeizeTokens returned 0 seize for ${borrower}`);
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const ONE = BigNumber.from(10).pow(18);
 
@@ -373,6 +387,20 @@ export async function atomicLiquidate(signer: Signer) {
       console.warn(
         `WARN: liquidator holds ${ethers.utils.formatUnits(inventory, debtDec)} ${debtSym} < repay ` +
           `${env("REPAY_AMOUNT")} ${debtSym} — fund it or use MODE=flash, else liquidate() will revert.`,
+      );
+    }
+  }
+
+  // Re-verify the Native quote's remaining TTL immediately before submission. Everything since the
+  // initial TTL check — the two-hop AMM round-trip, the isRouter reads, the inventory check — consumes
+  // real wall-clock, so the quote may have drifted close to (or past) expiry. Abort + refetch here
+  // rather than relying solely on the on-chain DeadlineExpired backstop and wasting gas. Skipped when
+  // `deadline` is the sentinel (mock/fork path, which never expires).
+  if (!deadline.eq(ethers.constants.MaxUint256)) {
+    const remainingTtl = deadline.toNumber() - Math.floor(Date.now() / 1000);
+    if (remainingTtl < settleTtlMarginSec) {
+      throw new Error(
+        `Native quote TTL ${remainingTtl}s is below the ${settleTtlMarginSec}s safety margin before submit — refetch`,
       );
     }
   }

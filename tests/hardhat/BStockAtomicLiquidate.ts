@@ -37,6 +37,7 @@ const SCRIPT_ENV = [
   "SLIPPAGE",
   "MIN_OUT_BUFFER",
   "SEIZE_BUFFER",
+  "SETTLE_TTL_MARGIN",
   "NATIVE_API_KEY",
   "SOURCE",
   "LM_API_KEY",
@@ -166,6 +167,36 @@ describe("bStock atomic liquidation script", () => {
   it("rejects an out-of-range SEIZE_BUFFER before quoting", async () => {
     setEnv({ SEIZE_BUFFER: "150" });
     await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SEIZE_BUFFER/);
+  });
+
+  it("rejects an out-of-range SETTLE_TTL_MARGIN before quoting", async () => {
+    setEnv({ SETTLE_TTL_MARGIN: "-5" });
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SETTLE_TTL_MARGIN/);
+  });
+
+  it("aborts before submit when the Native quote TTL is below the safety margin", async () => {
+    await usdt.mint(liq.address, REPAY); // inventory so the guard, not a funding error, is what trips
+    // Real Native quote path (no MOCK_NATIVE): stub fetch to return a quote that expires in ~2s, below
+    // the default 10s margin, so the pre-submit TTL re-check aborts instead of relying on the on-chain
+    // DeadlineExpired backstop.
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () => ({
+      json: async () => ({
+        success: true,
+        recipient: liq.address,
+        amountIn: "0",
+        amountOut: OUT.toString(),
+        orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 2 }],
+        txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+      }),
+    })) as unknown as typeof fetch;
+
+    try {
+      setEnv({ MOCK_NATIVE: "", MOCK_OUT: "", NATIVE_API_KEY: "test-key" });
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/safety margin/);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
   });
 
   it("flash mode: routes through flashLiquidate, repays principal + premium, keeps the rest", async () => {

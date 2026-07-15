@@ -74,6 +74,17 @@ contract MockComptrollerLite {
         return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
     }
 
+    /// @dev Borrower-aware 4-arg overload (the version vToken.liquidateBorrowFresh and the off-chain
+    ///      scripts call). Same math here — the mock has a single pool — so both overloads agree.
+    function liquidateCalculateSeizeTokens(
+        address,
+        address,
+        address,
+        uint256 repayAmount
+    ) external view returns (uint256, uint256) {
+        return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
+    }
+
     /// @dev Read by the off-chain script to size the Venus Liquidator's bonus cut.
     function getEffectiveLiquidationIncentive(address, address) external view returns (uint256) {
         return liquidationIncentiveMantissa;

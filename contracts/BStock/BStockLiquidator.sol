@@ -202,12 +202,21 @@ contract BStockLiquidator is
     }
 
     /// @inheritdoc IBStockLiquidator
-    function sweepNative(address to, uint256 amount) external override onlyOwner {
+    /// @dev `nonReentrant` is defense-in-depth only (the function is `onlyOwner`, snapshots no state, and
+    ///      reads no balance after the native `.call`), added for consistency with the liquidation entrypoints.
+    function sweepNative(address to, uint256 amount) external override onlyOwner nonReentrant {
         ensureNonzeroAddress(to);
         (bool ok, ) = to.call{ value: amount }("");
         if (!ok) revert NativeTransferFailed();
         emit SweptNative(to, amount);
     }
+
+    /// @notice Disabled. This backstop custodies protocol capital (debt-asset inventory, native BNB) and
+    ///         every admin function (`sweep`, `sweepNative`, `setOperator`, `setRouter`) is `onlyOwner`,
+    ///         so renouncing ownership would permanently strand those funds and brick the contract. The
+    ///         override is an `onlyOwner` no-op: an accidental owner call cannot zero the owner, and a
+    ///         non-owner call reverts. Ownership is still transferable via the two-step `transferOwnership` flow.
+    function renounceOwnership() public override onlyOwner {}
 
     // --------------------------------------------------------------------- //
     //                          INVENTORY mode                               //
@@ -331,19 +340,33 @@ contract BStockLiquidator is
         if (router2 != address(0) && !isRouter[router2]) revert RouterNotAllowed(router2);
     }
 
-    /// @dev One swap hop: approve the exact `amount` to the router's configured spender, forward the
-    ///      opaque calldata via a low-level call to the allowlisted `router`, then reset the approval to
-    ///      0. The spender defaults to the router itself when unset (Native, where the call target is the
-    ///      puller); aggregators with a separate settlement/pull contract (e.g. Liquid Mesh) set it via
-    ///      `setRouterSpender`. The approval caps what the spender can pull; if the calldata sells less,
-    ///      the remainder stays as inventory.
+    /// @dev One swap hop: approve the exact `amount` to the allowlisted `router`, forward the opaque
+    ///      calldata via a low-level call, then reset the approval to 0. The approval caps what the
+    ///      router can pull; if the calldata sells less (e.g. a partially-filled RFQ quote), the
+    ///      unconsumed remainder stays in the contract and is surfaced via `PartialSwapLeftover` so
+    ///      operations can recover it with `sweep` — `minOut` still bounds the realized debt-asset
+    ///      proceeds regardless.
     function _swap(IERC20Upgradeable token, address router, bytes memory data, uint256 amount) private {
-        address spender = routerSpender[router];
-        if (spender == address(0)) spender = router;
-        token.forceApprove(spender, amount);
-        (bool ok, ) = router.call(data);
-        if (!ok) revert SwapFailed();
-        token.forceApprove(spender, 0); // never leave a standing approval
+        uint256 balBefore = token.balanceOf(address(this));
+        token.forceApprove(router, amount);
+        (bool ok, bytes memory returndata) = router.call(data);
+        if (!ok) {
+            // Bubble up the router's own revert reason for easier debugging; fall back to SwapFailed()
+            // only when the call reverted without returndata.
+            if (returndata.length != 0) {
+                assembly {
+                    revert(add(returndata, 0x20), mload(returndata))
+                }
+            }
+            revert SwapFailed();
+        }
+        token.forceApprove(router, 0); // never leave a standing approval
+        // `token` is the hop's INPUT: the router can pull at most `amount` (the approval, just reset),
+        // and any refund is a subset of what it pulled, so the balance can only fall (balAfter <=
+        // balBefore) — the subtraction cannot underflow. A shortfall (spent < amount) means the router
+        // filled less than approved; emit the residual so it can be swept.
+        uint256 spent = balBefore - token.balanceOf(address(this));
+        if (spent < amount) emit PartialSwapLeftover(address(token), amount - spent);
     }
 
     /**

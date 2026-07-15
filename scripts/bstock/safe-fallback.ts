@@ -69,7 +69,7 @@ const COMPTROLLER_ABI = [
   "function closeFactorMantissa() view returns (uint256)",
   "function liquidationIncentiveMantissa() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
-  "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
+  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
   "function treasuryPercent() view returns (uint256)",
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
 ];
@@ -138,12 +138,19 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
 
   // --- seize math from on-chain truth ---
   const ONE = BigNumber.from(10).pow(18);
+  // Borrower-aware 4-arg overload (reads the borrower's actual pool via getEffectiveLiquidationIncentive),
+  // matching vToken.liquidateBorrowFresh on-chain. The 3-arg overload always reads Core Pool params and
+  // diverges if the borrower has switched pools, producing a stale redeem amount in the batch.
   const [seizeErr, seizeTokens]: BigNumber[] = await comptroller.liquidateCalculateSeizeTokens(
+    borrower,
     vDebt.address,
     vBStock.address,
     repay,
   );
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error code ${seizeErr}`);
+  // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
+  // surface it here rather than baking a degenerate redeem amount into the batch.
+  if (seizeTokens.eq(0)) throw new Error(`liquidateCalculateSeizeTokens returned 0 seize for ${borrower}`);
 
   // The Venus Liquidator keeps a treasury cut of the liquidation BONUS (see
   // Liquidator._splitLiquidationIncentive), so the Safe is credited fewer vTokens than seizeTokens.
