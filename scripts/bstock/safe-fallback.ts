@@ -22,7 +22,14 @@
  *   Action 2 — hand off:
  *     4. bStock.transfer(TARGET, seizedRaw)                         // raw bStock -> Binance top-up
  *
- * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens`. The Venus
+ * VAI debt (VAIController): supported. VAI is not a vToken and has no `underlying()`, so the debt token
+ * is resolved via `getVAIAddress()`; the batch is the normal ERC20 shape (approve VAI to the gate, then a
+ * zero-value liquidateBorrow), which the gate settles through its `_liquidateVAI` branch. Because this
+ * script ships the seized bStock to Binance rather than swapping it, no PSM/USDT->VAI leg is involved —
+ * making it the manual fallback when the atomic path's PSM hop is paused or capped.
+ *
+ * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens` (or
+ * `liquidateVAICalculateSeizeTokens` for VAI). The Venus
  * Liquidator keeps a treasury cut of the liquidation bonus, so the Safe is credited fewer vTokens than
  * `seizeTokens`; we redeem only that credited amount (`received`). Snapshotted at the current block — if
  * the borrower's position changes before the Safe executes, REGENERATE, else a stale redeem/transfer
@@ -70,9 +77,15 @@ const COMPTROLLER_ABI = [
   "function liquidationIncentiveMantissa() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
   "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
+  // VAI's seize math is a separate function: VAI is priced at $1 and the incentive is the
+  // borrower-agnostic getLiquidationIncentive (see ComptrollerLens.liquidateVAICalculateSeizeTokens).
+  "function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)",
   "function treasuryPercent() view returns (uint256)",
+  "function vaiController() view returns (address)",
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
+  "function getLiquidationIncentive(address) view returns (uint256)",
 ];
+const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
 const LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -91,15 +104,27 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, provider);
   const comptroller = new Contract(await vBStock.comptroller(), COMPTROLLER_ABI, provider);
 
+  // VAI is not a vToken: its "market" is the VAIController, which has no underlying() EITHER. It must be
+  // detected BEFORE the vBNB fallback below — otherwise the catch would misread a VAI debt as native BNB
+  // and build a `{value: repay}` batch that the gate rejects (its VAI branch requires msg.value == 0).
+  // The VAI token itself is a plain ERC20, so it takes the normal approve-then-liquidate batch below.
+  const vaiControllerAddr: string = await comptroller.vaiController();
+  const isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+
   // vBNB has no underlying(): a native-BNB debt market is repaid in native BNB, so there is no ERC20
   // debt token to approve or read. Detect it the way the atomic script does — try underlying(), treat
   // a revert as native BNB (18 decimals, "BNB"). `debt` stays undefined on the native path.
   let isBnb = false;
   let debt: Contract | undefined;
-  try {
-    debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
-  } catch {
-    isBnb = true;
+  if (isVai) {
+    const vaiAddr: string = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, provider).getVAIAddress();
+    debt = new Contract(vaiAddr, ERC20_ABI, provider);
+  } else {
+    try {
+      debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
+    } catch {
+      isBnb = true;
+    }
   }
   const bStock = new Contract(await vBStock.underlying(), ERC20_ABI, provider);
 
@@ -138,15 +163,16 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
 
   // --- seize math from on-chain truth ---
   const ONE = BigNumber.from(10).pow(18);
-  // Borrower-aware 4-arg overload (reads the borrower's actual pool via getEffectiveLiquidationIncentive),
-  // matching vToken.liquidateBorrowFresh on-chain. The 3-arg overload always reads Core Pool params and
-  // diverges if the borrower has switched pools, producing a stale redeem amount in the batch.
-  const [seizeErr, seizeTokens]: BigNumber[] = await comptroller.liquidateCalculateSeizeTokens(
-    borrower,
-    vDebt.address,
-    vBStock.address,
-    repay,
-  );
+  // Mirror the function the on-chain path actually calls for this debt:
+  //   - VAI  -> VAIController.liquidateVAIFresh calls liquidateVAICalculateSeizeTokens(vCollateral,
+  //             repay): VAI is priced at $1 and the incentive is the borrower-agnostic
+  //             getLiquidationIncentive, so the 4-arg overload does NOT apply.
+  //   - else -> vToken.liquidateBorrowFresh calls the borrower-aware 4-arg overload (reads the
+  //             borrower's actual pool). The 3-arg overload always reads Core Pool params and diverges
+  //             if the borrower has switched pools, producing a stale redeem amount in the batch.
+  const [seizeErr, seizeTokens]: BigNumber[] = isVai
+    ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
+    : await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay);
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error code ${seizeErr}`);
   // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
   // surface it here rather than baking a degenerate redeem amount into the batch.
@@ -158,7 +184,11 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   let vReceived = seizeTokens;
   const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
   if (!liqTreasuryPct.eq(0)) {
-    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+    // Use the SAME incentive the seize above was computed with, else the bonus (and so the cut) is
+    // sized against the wrong number: VAI's seize math uses the borrower-agnostic getLiquidationIncentive.
+    const totalIncentive: BigNumber = isVai
+      ? await comptroller.getLiquidationIncentive(vBStock.address)
+      : await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
     const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
     const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
     vReceived = seizeTokens.sub(treasuryCut);

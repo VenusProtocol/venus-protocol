@@ -2,7 +2,7 @@
 // BStock mocks and asserts the emitted Transaction Builder batch. Covers the gate routing (T1), the
 // Venus Liquidator bonus-cut deduction, and the redeem treasuryPercent fee (T2).
 import { expect } from "chai";
-import { Contract } from "ethers";
+import { BigNumber, Contract } from "ethers";
 import { ethers } from "hardhat";
 
 import { buildSafeFallbackBatch } from "../../scripts/bstock/safe-fallback";
@@ -92,6 +92,33 @@ describe("BStock safe-fallback batch generator", () => {
     expect(xfer[0]).to.equal(target.address);
     expect(xfer[1]).to.equal(seizedRaw);
     expect(seizedRaw).to.equal(SEIZE); // cut 0, treasuryPercent 0 → full seize at 1:1 rate
+  });
+
+  it("VAI debt: approves the VAI token and emits a zero-value batch (not misread as native BNB)", async () => {
+    // VAI has no underlying(), same as vBNB — the script must detect it explicitly, else the vBNB
+    // fallback would build a `{value: repay}` batch the gate rejects. No PSM leg here: this path ships
+    // the seized bStock rather than swapping it, so it works even when the atomic path's PSM hop is down.
+    const vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    const vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
+
+    setEnv({ VDEBT: vaiController.address });
+    const { txs, vReceived } = await buildSafeFallbackBatch(ethers.provider);
+
+    // ERC20 shape (4 txs incl. the approve) — a BNB misread would drop the approve and use value.
+    expect(txs).to.have.length(4);
+    expect(ethers.utils.getAddress(txs[0].to)).to.equal(vai.address); // approve the VAI token itself
+    const approve = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], "0x" + txs[0].data.slice(10));
+    expect(approve[0]).to.equal(venusLiq.address); // the gate is the repay spender
+    expect(approve[1]).to.equal(REPAY);
+
+    // liquidateBorrow routes through the gate with ZERO value (the gate's VAI branch requires msg.value == 0).
+    expect(ethers.utils.getAddress(txs[1].to)).to.equal(venusLiq.address);
+    expect(txs[1].data.slice(0, 10)).to.equal(SEL_ROUTED);
+    expect(BigNumber.from(txs[1].value)).to.equal(0);
+
+    expect(vReceived).to.equal(SEIZE); // seize via the VAI 2-arg math, cut 0
   });
 
   it("throws when the gate is unset, aligning with the on-chain liquidator", async () => {
