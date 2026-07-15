@@ -36,6 +36,20 @@ interface IFlashReceiverLike {
     ) external returns (bool, uint256[] memory);
 }
 
+/// @dev Minimal VAIController stand-in. VAI is not a vToken and has no `underlying()`; the debt token
+///      is resolved through `getVAIAddress()`, exactly as the real VAIController exposes it.
+contract MockVAIController {
+    address public immutable vai;
+
+    constructor(address vai_) {
+        vai = vai_;
+    }
+
+    function getVAIAddress() external view returns (address) {
+        return vai;
+    }
+}
+
 /// @dev Minimal Comptroller surface the script + BStockLiquidator read, plus a flash lender.
 contract MockComptrollerLite {
     uint256 public shortfall;
@@ -44,6 +58,11 @@ contract MockComptrollerLite {
     uint256 public flashPremiumMantissa; // fee on flash principal, 1e18-scaled (default 0)
     address public liquidatorContract; // pool-wide gate; 0 = permissionless (direct liquidateBorrow)
     uint256 public treasuryPercent; // redeem fee, 1e18-scaled (default 0)
+    address public vaiController; // a debt equal to this is VAI (no underlying(); see MockVAIController)
+
+    function setVaiController(address v) external {
+        vaiController = v;
+    }
 
     function setShortfall(uint256 s) external {
         shortfall = s;
@@ -85,8 +104,19 @@ contract MockComptrollerLite {
         return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
     }
 
+    /// @dev VAI's seize math (VAIController.liquidateVAIFresh calls this): VAI is priced at $1 and the
+    ///      incentive is the borrower-agnostic getLiquidationIncentive — hence the 2-arg shape.
+    function liquidateVAICalculateSeizeTokens(address, uint256 repayAmount) external view returns (uint256, uint256) {
+        return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
+    }
+
     /// @dev Read by the off-chain script to size the Venus Liquidator's bonus cut.
     function getEffectiveLiquidationIncentive(address, address) external view returns (uint256) {
+        return liquidationIncentiveMantissa;
+    }
+
+    /// @dev Borrower-agnostic incentive — the one VAI's seize math uses.
+    function getLiquidationIncentive(address) external view returns (uint256) {
         return liquidationIncentiveMantissa;
     }
 
@@ -314,6 +344,7 @@ contract MockVenusLiquidator {
     uint256 public treasuryCutMantissa; // cut of the seized collateral kept by the liquidator (default 0)
     uint256 public pullMantissa = 1e18; // fraction of repayAmount actually pulled (default 100%)
     address public vBnb; // native BNB market; a repay for this vToken must arrive as msg.value
+    address public vaiController; // VAI "market"; the repay is the VAI ERC20, resolved via getVAIAddress()
 
     function setTreasuryCut(uint256 m) external {
         treasuryCutMantissa = m;
@@ -328,6 +359,13 @@ contract MockVenusLiquidator {
     /// @dev Mirrors the real gate: a vBNB repay is native BNB (msg.value), not an ERC20 transferFrom.
     function setVBnb(address v) external {
         vBnb = v;
+    }
+
+    /// @dev Mirrors `Liquidator._liquidateVAI`: a VAI repay is pulled as the VAI ERC20 (resolved via
+    ///      `getVAIAddress()`, since the VAIController has no `underlying()`), then burned by the real
+    ///      VAIController. Here we just keep it — only the pull is observable to the liquidator.
+    function setVaiController(address v) external {
+        vaiController = v;
     }
 
     /// @dev Mirrors the real Venus Liquidator getter the off-chain script reads to precompute the cut.
@@ -345,7 +383,10 @@ contract MockVenusLiquidator {
             // Native BNB repay: require exact msg.value (mirrors Liquidator.sol) and keep the BNB.
             require(msg.value == repayAmount, "bad value");
         } else {
-            address underlying = MockVTokenDebt(vToken).underlying();
+            // VAI has no `underlying()` — resolve it via `getVAIAddress()`, like `Liquidator._liquidateVAI`.
+            address underlying = vToken == vaiController
+                ? MockVAIController(vToken).getVAIAddress()
+                : MockVTokenDebt(vToken).underlying();
             uint256 pulled = (repayAmount * pullMantissa) / 1e18;
             require(ERC20(underlying).transferFrom(msg.sender, address(this), pulled), "repay pull failed");
         }
@@ -367,6 +408,7 @@ contract MockMaliciousFlashComptroller {
 
     Mode public mode;
     address public liquidatorContract; // unset: the receiver would liquidate directly
+    address public vaiController; // unset: `flashLiquidate`'s VAI check reads this and never matches vDebt
 
     function setMode(Mode mode_) external {
         mode = mode_;

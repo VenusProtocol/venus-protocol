@@ -22,6 +22,7 @@ describe("BStockLiquidator (atomic)", () => {
   let usdt: Contract, bStock: Contract;
   let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, venusLiq: Contract;
   let wbnb: Contract, vWBNB: Contract;
+  let vai: Contract, vaiController: Contract;
   let liq: Contract;
 
   const REPAY = U("5000");
@@ -53,6 +54,12 @@ describe("BStockLiquidator (atomic)", () => {
     venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
     await comptroller.setLiquidatorContract(venusLiq.address);
     await venusLiq.setVBnb(VBNB);
+
+    // VAI: not a vToken, so the debt token is resolved via the VAIController's getVAIAddress().
+    vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
 
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
@@ -387,6 +394,73 @@ describe("BStockLiquidator (atomic)", () => {
       expect(await usdt.balanceOf(liq.address)).to.equal(leftover); // intermediate residual retained
       // Inventory nets to proceeds: start REPAY, repay REPAY, + (SEIZED - leftover) BTCB proceeds.
       expect(await btcb.balanceOf(liq.address)).to.equal(OUT.sub(leftover)); // proceeds landed
+    });
+  });
+
+  // VAI debt. VAI is not a vToken: the "market" is the VAIController, which has no underlying(), so the
+  // debt token is resolved via getVAIAddress(). The gate takes its _liquidateVAI branch, pulling the VAI
+  // ERC20 from us. RFQ quotes bStock->USDT only, so VAI is inherently two-hop (bStock -> USDT -> VAI),
+  // with the Peg Stability Module standing in as hop 2 (mocked here as a plain USDT->VAI router).
+  describe("VAI debt (VAIController-routed, PSM hop 2)", () => {
+    let psm: Contract;
+
+    function psmSwapCalldata(amountIn: BigNumber, to: string) {
+      return psm.interface.encodeFunctionData("swap", [usdt.address, amountIn, vai.address, to]);
+    }
+    function vaiParams(over: Partial<any> = {}) {
+      return params({
+        vDebt: vaiController.address, // VAI is repaid through the VAIController, not a vToken
+        router2: psm.address,
+        swapCalldata2: psmSwapCalldata(SEIZED, liq.address),
+        intermediateToken: usdt.address,
+        ...over,
+      });
+    }
+
+    beforeEach(async () => {
+      psm = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+      await liq.connect(owner).setRouter(psm.address, true);
+      await vai.mint(psm.address, OUT); // the PSM mints VAI for the USDT it pulls
+    });
+
+    it("inventory: repays VAI, sells bStock -> USDT -> VAI, keeps the incentive", async () => {
+      await vai.mint(liq.address, REPAY); // pre-funded VAI inventory
+
+      expect(await liq.connect(owner).callStatic.liquidate(vaiParams())).to.equal(OUT);
+
+      await expect(liq.connect(owner).liquidate(vaiParams()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, vaiController.address, REPAY, SEIZED, OUT, false);
+
+      expect(await vai.balanceOf(liq.address)).to.equal(OUT); // profit = OUT - REPAY
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+      // The repay reached the gate as the VAI ERC20 (its _liquidateVAI branch).
+      expect(await vai.balanceOf(venusLiq.address)).to.equal(REPAY);
+      // No standing approvals: to the gate (VAI) nor on either hop.
+      expect(await vai.allowance(liq.address, venusLiq.address)).to.equal(0);
+      expect(await usdt.allowance(liq.address, psm.address)).to.equal(0);
+    });
+
+    it("rejects a single-hop VAI config (router2 == 0)", async () => {
+      await vai.mint(liq.address, REPAY);
+      await expect(
+        liq.connect(owner).liquidate(vaiParams({ router2: ZERO, swapCalldata2: "0x", intermediateToken: ZERO })),
+      ).to.be.revertedWithCustomError(liq, "InvalidIntermediate");
+    });
+
+    it("rejects flashLiquidate for a VAI debt (VAI is burned; there is no vVAI to flash from)", async () => {
+      await expect(liq.connect(owner).flashLiquidate(vaiParams())).to.be.revertedWithCustomError(
+        liq,
+        "FlashNotSupportedForVai",
+      );
+    });
+
+    it("enforces minOut in VAI when the PSM hop underdelivers", async () => {
+      await vai.mint(liq.address, REPAY);
+      await psm.setRate(U("0.9")); // 5500 USDT -> 4950 VAI, below the 5400 minOut
+      await expect(liq.connect(owner).liquidate(vaiParams())).to.be.revertedWithCustomError(liq, "InsufficientOut");
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // reverted, inventory intact
     });
   });
 

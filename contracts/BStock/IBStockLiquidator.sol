@@ -107,6 +107,11 @@ interface IBStockLiquidator {
     /// @notice Thrown when the flashed asset does not match `params.vDebt`.
     error WrongFlashAsset();
 
+    /// @notice Thrown when `flashLiquidate` is called with a VAI debt. VAI is minted/burned by the
+    ///         VAIController and has no vToken market to flash from — use `liquidate` (INVENTORY mode)
+    ///         with pre-funded VAI instead.
+    error FlashNotSupportedForVai();
+
     /// @notice Thrown when the call is submitted after `params.deadline`.
     error DeadlineExpired(uint256 deadline, uint256 nowTs);
 

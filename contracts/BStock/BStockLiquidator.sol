@@ -14,7 +14,7 @@ import { IWBNB } from "../external/IWBNB.sol";
 // Shared Venus interfaces: IComptroller (Core diamond — liquidator gate + flash loan), IVToken
 // (flash-loan asset array element), and ILiquidator (the pool-wide Venus Liquidator gate that pulls
 // the repay and returns our share of the seized collateral).
-import { IComptroller, IVToken, ILiquidator } from "../InterfacesV8.sol";
+import { IComptroller, IVToken, ILiquidator, IVAIController } from "../InterfacesV8.sol";
 import { IBStockLiquidator } from "./IBStockLiquidator.sol";
 
 /**
@@ -43,6 +43,15 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  * payable path; the two-hop swap lands WBNB (bStock->USDT->WBNB) and `minOut` is measured in WBNB
  * (1:1 with BNB). FLASH mode borrows from vWBNB, NOT vBNB: vBNB cannot be flash-repaid (its
  * `doTransferIn` requires `msg.value`), whereas vWBNB's underlying is a plain ERC20.
+ *
+ * VAI debt (VAIController): supported in INVENTORY mode only. VAI is not a vToken — a `vDebt` equal to
+ * `comptroller.vaiController()` is VAI, and like vBNB it has no `underlying()`, so the debt token is
+ * resolved via `getVAIAddress()`. The repay is a plain ERC20 approval to the gate, which takes its
+ * `_liquidateVAI` branch (pulls the VAI from us, then burns it via `VAIController.liquidateVAI`).
+ * Because RFQ sources quote bStock->USDT only, a VAI debt is inherently two-hop (bStock->USDT->VAI);
+ * hop 2 is expected to be the Peg Stability Module (`swapStableForVAI`, allowlisted as `router2`),
+ * which mints VAI from USDT at the oracle rate. FLASH mode is rejected (`FlashNotSupportedForVai`):
+ * `executeFlashLoan` lends a vToken's underlying, and VAI is minted/burned with no vVAI market.
  *
  * Ownership / scope: this is Venus's OWN backstop tool, NOT a public utility — `liquidate` and
  * `flashLiquidate` are operator-only (owner + allowlisted operators). It does not make bStock
@@ -260,6 +269,12 @@ contract BStockLiquidator is
         if (params.minOut == 0) revert ZeroMinOut();
         if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
 
+        // VAI has no market to flash from: `executeFlashLoan` lends a vToken's underlying, whereas VAI is
+        // MINTED/BURNED by the VAIController (`repayVAIFresh` burns it) and has no vVAI. Reject up front
+        // instead of passing the VAIController into `executeFlashLoan` and failing opaquely. Use
+        // `liquidate` (INVENTORY) with pre-funded VAI for a VAI debt.
+        if (address(params.vDebt) == address(comptroller.vaiController())) revert FlashNotSupportedForVai();
+
         // BNB debt is flash-funded from vWBNB (an ERC20 market), not vBNB: vBNB cannot be flash-repaid.
         // The flashed WBNB is unwrapped to native BNB for the repay inside `_liquidate` (see `executeOperation`).
         IVToken[] memory vTokens = new IVToken[](1);
@@ -392,12 +407,26 @@ contract BStockLiquidator is
         // debt-accounting token throughout (1:1 with BNB), so the whole swap/minOut path below is reused.
         // KEEP THIS ORDER — hoisting `underlying()` above the check reverts every BNB liquidation.
         bool isBnb = address(params.vDebt) == vBNB;
-        // Native RFQ only quotes bStock->USDT, so a BNB debt is inherently two-hop (...->WBNB). Reject a
-        // single-hop BNB config up front instead of failing opaquely later on a zero WBNB delta.
-        if (isBnb && params.router2 == address(0)) revert InvalidIntermediate();
-        IERC20Upgradeable debt = isBnb
-            ? IERC20Upgradeable(address(wbnb))
-            : IERC20Upgradeable(params.vDebt.underlying());
+        IERC20Upgradeable debt;
+        // Scoped so `vaiCtrl`/`isVai` don't hold stack slots for the rest of the frame.
+        {
+            // A debt equal to the VAIController is VAI: it is not a vToken and has no `underlying()`
+            // either, so — like vBNB — the check MUST come before any `underlying()` evaluation. The gate
+            // takes its VAI branch (`Liquidator._liquidateVAI`), which pulls VAI from us and burns it via
+            // `VAIController.liquidateVAI`; the repay is a plain ERC20 approval, so the non-BNB path below
+            // is reused as-is.
+            IVAIController vaiCtrl = comptroller.vaiController();
+            bool isVai = address(params.vDebt) == address(vaiCtrl);
+            // RFQ sources only quote bStock->USDT, so BNB and VAI debts are inherently two-hop
+            // (...->WBNB / ...->VAI). Reject a single-hop config up front instead of failing opaquely
+            // later on a zero debt-asset delta.
+            if ((isBnb || isVai) && params.router2 == address(0)) revert InvalidIntermediate();
+            debt = isBnb
+                ? IERC20Upgradeable(address(wbnb))
+                : isVai
+                    ? IERC20Upgradeable(vaiCtrl.getVAIAddress())
+                    : IERC20Upgradeable(params.vDebt.underlying());
+        }
         IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
         // 1. Repay the borrow, seizing the bStock vToken to this contract.

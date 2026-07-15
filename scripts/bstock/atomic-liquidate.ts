@@ -84,10 +84,16 @@ const ERC20_ABI = [
 const COMPTROLLER_ABI = [
   "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
   "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
+  // VAI's seize math is a separate function: VAI is priced at $1 and the incentive is the
+  // borrower-agnostic getLiquidationIncentive (see ComptrollerLens.liquidateVAICalculateSeizeTokens).
+  "function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)",
   "function treasuryPercent() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
+  "function vaiController() view returns (address)",
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
+  "function getLiquidationIncentive(address) view returns (uint256)",
 ];
+const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
 const VENUS_LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
 function env(name: string, required = true): string {
@@ -198,13 +204,23 @@ export async function atomicLiquidate(signer: Signer) {
   // unwraps the repay internally, so off-chain the debt asset for the swap chain + minOut is WBNB.
   // WBNB is immutable on BSC, so it is the canonical constant; WBNB_ADDR only overrides it so a
   // non-fork test can point at a freshly-deployed mock (mirrors USDT_ADDR below).
+  // VAI is not a vToken: its "market" is the VAIController, which has no underlying() EITHER. It must
+  // therefore be detected BEFORE the vBNB fallback below — otherwise the catch would misread a VAI debt
+  // as native BNB and account it in WBNB. The VAI token itself is a plain ERC20 (decimals/symbol work).
+  const vaiControllerAddr: string = await comptroller.vaiController();
+  const isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+
   let debtAddr: string;
   let isBnb = false;
-  try {
-    debtAddr = await vDebt.underlying();
-  } catch {
-    isBnb = true;
-    debtAddr = ethers.utils.getAddress(process.env.WBNB_ADDR || BSC_WBNB);
+  if (isVai) {
+    debtAddr = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, signer).getVAIAddress();
+  } else {
+    try {
+      debtAddr = await vDebt.underlying();
+    } catch {
+      isBnb = true;
+      debtAddr = ethers.utils.getAddress(process.env.WBNB_ADDR || BSC_WBNB);
+    }
   }
   const debt = new Contract(debtAddr, ERC20_ABI, signer);
   const bStock = new Contract(await vBStock.underlying(), ERC20_ABI, signer);
@@ -218,16 +234,17 @@ export async function atomicLiquidate(signer: Signer) {
   if (shortfall.eq(0)) throw new Error(`${borrower} has no shortfall — not liquidatable`);
   console.log(`borrower ${borrower} shortfall=${ethers.utils.formatEther(shortfall)} (USD-scaled)`);
 
-  // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields. Use the
-  // borrower-aware 4-arg overload (reads the pool the borrower is actually in via
-  // getEffectiveLiquidationIncentive) — the same version vToken.liquidateBorrowFresh calls on-chain.
-  // The 3-arg overload always reads Core Pool params and diverges if the borrower has switched pools.
-  const [seizeErr, seizeTokens]: BigNumber[] = await comptroller.liquidateCalculateSeizeTokens(
-    borrower,
-    vDebt.address,
-    vBStock.address,
-    repay,
-  );
+  // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields. Mirror the
+  // function the on-chain path actually calls for this debt:
+  //   - VAI  -> VAIController.liquidateVAIFresh calls liquidateVAICalculateSeizeTokens(vCollateral,
+  //             repay): VAI is priced at $1 and the incentive is the borrower-agnostic
+  //             getLiquidationIncentive, so the 4-arg overload does NOT apply.
+  //   - else -> vToken.liquidateBorrowFresh calls the borrower-aware 4-arg overload (reads the pool the
+  //             borrower is actually in). The 3-arg overload always reads Core Pool params and diverges
+  //             if the borrower has switched pools.
+  const [seizeErr, seizeTokens]: BigNumber[] = isVai
+    ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
+    : await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay);
   if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error ${seizeErr}`);
   // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
   // surface it here rather than building a degenerate quote that reverts on-chain.
@@ -251,7 +268,11 @@ export async function atomicLiquidate(signer: Signer) {
   const venusLiquidator = new Contract(gate, VENUS_LIQUIDATOR_ABI, signer);
   const liqTreasuryPct: BigNumber = await venusLiquidator.treasuryPercentMantissa();
   if (!liqTreasuryPct.eq(0)) {
-    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+    // Use the SAME incentive the seize above was computed with, else the bonus (and so the cut) is
+    // sized against the wrong number: VAI's seize math uses the borrower-agnostic getLiquidationIncentive.
+    const totalIncentive: BigNumber = isVai
+      ? await comptroller.getLiquidationIncentive(vBStock.address)
+      : await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
     const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
     const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
     vReceived = seizeTokens.sub(treasuryCut);
