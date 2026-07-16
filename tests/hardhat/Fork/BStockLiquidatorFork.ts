@@ -32,6 +32,7 @@ import { parseEther, parseUnits } from "ethers/lib/utils";
 import fc from "fast-check";
 import { ethers, upgrades } from "hardhat";
 
+import { atomicLiquidate } from "../../../scripts/bstock/atomic-liquidate";
 import { getPsmSwap } from "../../../scripts/bstock/lib/psm";
 import {
   A,
@@ -92,6 +93,7 @@ const B = {
   CAKE: ethers.utils.getAddress("0x00000000000000000000000000000000ca110002"),
   BNB: ethers.utils.getAddress("0x00000000000000000000000000000000ca110003"),
   VAI: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000a"),
+  VAI_SCRIPT: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000b"),
   FLASH: ethers.utils.getAddress("0x00000000000000000000000000000000ca110004"),
   FORCED: ethers.utils.getAddress("0x00000000000000000000000000000000ca110005"),
   DEADLINE: ethers.utils.getAddress("0x00000000000000000000000000000000ca110006"),
@@ -345,9 +347,12 @@ const test = () => {
         expect(await ethers.provider.getBalance(liq.address)).to.equal(0);
       });
 
-      it("two-hop VAI debt, inventory mode: bStock->USDT (mock) -> VAI through the REAL PSM, script-built calldata", async () => {
-        // VAI minting is prime-holder-gated at the fork block; flip the flag through the real ACM +
-        // timelock so a plain borrower can take on VAI debt (a governance-reachable state).
+      // Shared VAI scaffolding. VAI minting is prime-holder-gated at the fork block, so the flag is
+      // flipped through the real ACM + timelock (a governance-reachable state, not a hack); the
+      // borrower is then constructed for real — supply bStock, enter the market, mint VAI on the real
+      // VAIController, and gap the stock down into shortfall. (makeUnderwaterBorrower borrows from a
+      // vToken; VAI debt is minted on the VAIController instead, hence the dedicated builder.)
+      async function makeUnderwaterVaiBorrower(borrowerAddr: string, vaiDebt: BigNumber): Promise<Contract> {
         const timelock = await initMainnetUser(A.TIMELOCK, parseEther("5"));
         await new ethers.Contract(A.ACM, ACM_GIVE_ABI, timelock).giveCallPermission(
           VAI_CONTROLLER,
@@ -357,11 +362,9 @@ const test = () => {
         const vaiCtrl = new ethers.Contract(VAI_CONTROLLER, VAI_CONTROLLER_ABI, owner);
         await vaiCtrl.toggleOnlyPrimeHolderMint();
 
-        // Underwater VAI borrower: supply bStock, enter the market, mint VAI against it, stock gaps down.
-        // (makeUnderwaterBorrower borrows from a vToken; VAI debt is minted on the VAIController instead.)
-        const borrower = await initMainnetUser(B.VAI, parseUnits("10", 18));
+        const borrower = await initMainnetUser(borrowerAddr, parseUnits("10", 18));
         const COLLATERAL = parseUnits("100", 18);
-        await mkt.bStock.mint(B.VAI, COLLATERAL);
+        await mkt.bStock.mint(borrowerAddr, COLLATERAL);
         await mkt.bStock.connect(borrower).approve(mkt.vBStock.address, COLLATERAL);
         await new ethers.Contract(mkt.vBStock.address, VTOKEN_ABI, borrower).mint(COLLATERAL);
         await new ethers.Contract(
@@ -370,41 +373,53 @@ const test = () => {
           borrower,
         ).enterMarkets([mkt.vBStock.address]);
         // mintVAI returns an error CODE (legacy style) — probe first so a cap/pause surfaces loudly.
-        const MINTED = parseUnits("4000", 18);
-        const mintCode: BigNumber = await vaiCtrl.connect(borrower).callStatic.mintVAI(MINTED);
+        const mintCode: BigNumber = await vaiCtrl.connect(borrower).callStatic.mintVAI(vaiDebt);
         if (!mintCode.eq(0)) throw new Error(`mintVAI returned code ${mintCode.toString()}`);
-        await vaiCtrl.connect(borrower).mintVAI(MINTED);
-        expect(await vaiCtrl.getVAIRepayAmount(B.VAI)).to.be.gte(MINTED);
+        await vaiCtrl.connect(borrower).mintVAI(vaiDebt);
+        expect(await vaiCtrl.getVAIRepayAmount(borrowerAddr)).to.be.gte(vaiDebt);
         await mkt.setPrice(P_CRASH);
         await mock.setRate(P_CRASH);
+        return vaiCtrl;
+      }
 
-        // The DEPLOYED proxy predates VAI support (it reads `underlying()` on every vDebt, which the
-        // VAIController lacks), so this scenario deploys a FRESH proxy on the current implementation and
-        // drives it against the same real gate, real VAIController, and real PSM.
+      // The DEPLOYED proxy predates VAI support (it reads `underlying()` on every vDebt, which the
+      // VAIController lacks), so the VAI scenarios deploy a FRESH proxy on the current implementation
+      // and drive it against the same real gate, real VAIController, and real PSM.
+      async function deployVaiLiquidator(): Promise<Contract> {
         const Factory = await ethers.getContractFactory("BStockLiquidator");
         const liqVai = await upgrades.deployProxy(Factory, [owner.address], {
           constructorArgs: [A.COMPTROLLER, A.VBNB, A.VWBNB, TOK.WBNB],
           unsafeAllow: ["constructor", "state-variable-immutable"],
         });
         await liqVai.connect(owner).setRouter(mock.address, true); // hop-1 (Native RFQ mock)
-
-        const REPAY = parseUnits("1500", 18); // VAI (< closeFactor * debt = 2000)
-        await fund(VAI, liqVai.address, REPAY); // pre-funded VAI inventory (flash is not supported for VAI)
         await liqVai.connect(owner).setRouter(PSM_USDT, true); // hop-2 router: the real PSM
+        return liqVai;
+      }
 
-        // Size hop 2 exactly as the script does — off the hop-1 output, undershot 10% like the PCS leg,
-        // so the fixed pull always fits under the on-chain approval — then let the SCRIPT's builder
-        // (lib/psm.ts) produce the calldata: what settles on the fork is the blob it constructs against
-        // the real PSM, expected out from the real previewSwapStableForVAI.
+      // Hop-1 USDT output at the crashed price for a given VAI repay, undershot 10% like the PCS leg,
+      // so a fixed hop-2 amountIn always fits under the contract's approval of the actual hop-1 delta.
+      async function vaiHop1Floor(repay: BigNumber): Promise<BigNumber> {
         const comptroller = new ethers.Contract(
           A.COMPTROLLER,
           ["function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)"],
           owner,
         );
-        const [, seizeTokens] = await comptroller.liquidateVAICalculateSeizeTokens(mkt.vBStock.address, REPAY);
+        const [, seizeTokens] = await comptroller.liquidateVAICalculateSeizeTokens(mkt.vBStock.address, repay);
         const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
-        const usdtFromHop1 = seizeTokens.mul(xr).div(ONE).mul(P_CRASH).div(ONE);
-        const floor = usdtFromHop1.mul(90).div(100);
+        return seizeTokens.mul(xr).div(ONE).mul(P_CRASH).div(ONE).mul(90).div(100);
+      }
+
+      it("two-hop VAI debt, inventory mode: bStock->USDT (mock) -> VAI through the REAL PSM, script-built calldata", async () => {
+        const vaiCtrl = await makeUnderwaterVaiBorrower(B.VAI, parseUnits("4000", 18));
+        const liqVai = await deployVaiLiquidator();
+
+        const REPAY = parseUnits("1500", 18); // VAI (< closeFactor * debt = 2000)
+        await fund(VAI, liqVai.address, REPAY); // pre-funded VAI inventory (flash is not supported for VAI)
+
+        // Size hop 2 exactly as the script does, then let the SCRIPT's builder (lib/psm.ts) produce the
+        // calldata: what settles on the fork is the blob it constructs against the real PSM, expected
+        // out from the real previewSwapStableForVAI.
+        const floor = await vaiHop1Floor(REPAY);
         const psmSwap = await getPsmSwap({ amountIn: floor, recipient: liqVai.address }, ethers.provider);
         expect(psmSwap.router).to.equal(PSM_USDT);
         const expectedOut = BigNumber.from(psmSwap.expectedOut);
@@ -438,6 +453,86 @@ const test = () => {
         expect((await psm.vaiMinted()).sub(mintedBefore)).to.equal(expectedOut);
         expect(await mkt.bStock.balanceOf(liqVai.address)).to.equal(0);
         expect(await ethers.provider.getBalance(liqVai.address)).to.equal(0);
+      });
+
+      // The SCRIPT end-to-end for a VAI debt: atomicLiquidate() itself must detect the VAIController
+      // debt, size the seize with the VAI-specific overload, build the PSM hop-2 calldata via lib/psm.ts
+      // against its REAL default PSM address (PSM_ADDR deliberately unset), derive minOut from the real
+      // preview, and submit the settle. Hop-1 is a fetch-stubbed firm Native quote against the funded
+      // mock router — NOT the MOCK_NATIVE env path, which would bypass the hop-2 build under test.
+      it("script-driven VAI liquidation: atomicLiquidate() builds and settles the real PSM hop 2", async () => {
+        const vaiCtrl = await makeUnderwaterVaiBorrower(B.VAI_SCRIPT, parseUnits("4000", 18));
+        const liqVai = await deployVaiLiquidator();
+
+        const REPAY = parseUnits("1500", 18);
+        await fund(VAI, liqVai.address, REPAY); // inventory (the script rejects flash for VAI)
+
+        // The firm quote the stub serves; for a firm source the script's floor == this out, so the PSM
+        // pull is exactly `quoteOut` and the delivered VAI is exactly its preview.
+        const quoteOut = await vaiHop1Floor(REPAY);
+        const psm = new ethers.Contract(
+          PSM_USDT,
+          [...PSM_FORK_ABI, "function previewSwapStableForVAI(uint256) view returns (uint256)"],
+          owner,
+        );
+        const expectedOut: BigNumber = await psm.previewSwapStableForVAI(quoteOut);
+
+        const SCRIPT_ENV = [
+          "LIQUIDATOR",
+          "BORROWER",
+          "VBSTOCK",
+          "VDEBT",
+          "REPAY_AMOUNT",
+          "MODE",
+          "SOURCE",
+          "NATIVE_API_KEY",
+          "MOCK_NATIVE",
+          "MOCK_OUT",
+          "PSM_ADDR",
+        ];
+        const realFetch = globalThis.fetch;
+        globalThis.fetch = (async () => ({
+          json: async () => ({
+            success: true,
+            recipient: liqVai.address,
+            amountIn: "0",
+            amountOut: quoteOut.toString(),
+            orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+            txRequest: { target: mock.address, calldata: buildSingleHopMock(mkt, mock, liqVai.address), value: "0" },
+          }),
+        })) as unknown as typeof fetch;
+
+        const debtBefore = await vaiCtrl.getVAIRepayAmount(B.VAI_SCRIPT);
+        const mintedBefore: BigNumber = await psm.vaiMinted();
+        try {
+          Object.assign(process.env, {
+            LIQUIDATOR: liqVai.address,
+            BORROWER: B.VAI_SCRIPT,
+            VBSTOCK: mkt.vBStock.address,
+            VDEBT: VAI_CONTROLLER, // the real VAIController — the script must key its VAI path off it
+            REPAY_AMOUNT: "1500",
+            MODE: "inventory",
+            SOURCE: "native",
+            NATIVE_API_KEY: "test-key",
+          });
+          await atomicLiquidate(owner);
+
+          // And the script refuses flash for VAI before any quote (mirrors FlashNotSupportedForVai).
+          process.env.MODE = "flash";
+          await expect(atomicLiquidate(owner)).to.be.rejectedWith(/flash.*VAI/i);
+        } finally {
+          globalThis.fetch = realFetch;
+          for (const k of SCRIPT_ENV) delete process.env[k];
+        }
+
+        // Debt shrank through the real gate; the real PSM minted exactly the preview of the script's
+        // floor; the hop-1 surplus over the undershot floor stayed behind as sweepable USDT inventory.
+        expect(await vaiCtrl.getVAIRepayAmount(B.VAI_SCRIPT)).to.be.lt(debtBefore);
+        const vai = new ethers.Contract(VAI, ERC20_ABI, owner);
+        expect(await vai.balanceOf(liqVai.address)).to.equal(expectedOut);
+        expect((await psm.vaiMinted()).sub(mintedBefore)).to.equal(expectedOut);
+        expect(await new ethers.Contract(TOK.USDT, ERC20_ABI, owner).balanceOf(liqVai.address)).to.be.gt(0);
+        expect(await mkt.bStock.balanceOf(liqVai.address)).to.equal(0);
       });
 
       it("getPsmSwap aborts legibly when the real PSM is paused on the fork", async () => {
