@@ -122,9 +122,11 @@ call `liquidate`/`flashLiquidate`.
 | `LM_PRIVATE_KEY_SEED` |     |             | Liquid Mesh Ed25519 seed, base64url (required for `liquidmesh`/`auto`)                                                                                                                                   |
 | `LM_MIN_TTL`          |     | `15`        | Min seconds left on the LM order at build time, else abort (LM RFQ orders are short-lived; the on-chain deadline still enforces the real expiry)                                                         |
 | `SOURCE_TIMEOUT_MS`   |     | `8000`      | Per-request timeout (ms) on each hop-1 source API call, so a hung source aborts and drops out of the `auto` race instead of blocking the live one                                                        |
+| `SETTLE_TTL_MARGIN`   |     | `10`        | Min seconds of quote TTL required immediately before submit; below it the script aborts + refetches instead of burning gas on an on-chain `DeadlineExpired`                                              |
+| `ALLOW_NO_SHORTFALL`  |     |             | `1` → proceed even when the borrower has no shortfall (FORCED liquidation of a healthy account); default aborts as a fat-finger guard                                                                    |
 | `DRY_RUN`             |     |             | `1` → callStatic only, sends nothing                                                                                                                                                                     |
-| `SLIPPAGE`            |     | `0.5`       | Native/LM slippage %                                                                                                                                                                                     |
-| `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%)                                                                                                                                                            |
+| `SLIPPAGE`            |     | `0.5`       | Native/LM slippage % (validated to `[0,100)`)                                                                                                                                                            |
+| `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%) (validated to `[0,100)`). For a single-hop indicative (Liquid Mesh) quote, `minOut` is derived from the built order's guaranteed floor, not the indicative out |
 | `SEIZE_BUFFER`        |     | `0.1`       | Haircut on the QUOTED seize (%) so an oracle uptick before inclusion can't make the router pull more bStock than was seized (→ `SwapFailed`); the unsold remainder stays as bStock inventory (sweepable) |
 | `AMM_PROVIDER`        |     | `kyberswap` | Hop-2 route for non-USDT debt: `kyberswap` / `openocean` / `pcsv2`                                                                                                                                       |
 | `PSM_ADDR`            |     | BSC PSM     | Peg Stability Module used as hop 2 for a VAI debt (`swapStableForVAI` calldata encoded locally, expected out from `previewSwapStableForVAI`); must be allowlisted via `setRouter`. `MODE=flash` rejected |
@@ -132,6 +134,11 @@ call `liquidate`/`flashLiquidate`.
 
 _Fork/local testing:_ `MOCK_NATIVE="router:calldata"` (hop 1), `MOCK_AMM` (hop 2), `MOCK_OUT` (final
 debt out), `IMPERSONATE=0x..` to run as an operator.
+
+_Advanced / override env (defaults are correct for BSC mainnet; only touch these for tests or an
+endpoint migration):_ `USDT_ADDR`, `WBNB_ADDR` (asset overrides); `KYBER_CLIENT_ID`, `KYBER_API_BASE`,
+`OPENOCEAN_API_BASE`, `OPENOCEAN_GAS_GWEI`, `AMM_ROUTER`, `AMM_PATH`, `AMM_DEADLINE_SECS` (hop-2 AMM
+tuning); `NATIVE_API_BASE`, `LM_API_HOST` (RFQ endpoints).
 
 ---
 
@@ -147,9 +154,9 @@ BORROWER=0x.. VBSTOCK=0x.. VDEBT=0x.. REPAY_AMOUNT=5000 TARGET=0x.. \
 
 Then: **Safe → Apps → Transaction Builder → Load** the JSON, review, sign, execute.
 
-The batch is 4 txs (approve → liquidateBorrow → redeem → transfer): the Safe repays from its own
-funds, seizes the bStock, and ships raw bStock to `TARGET` (Binance top-up / custody) for finance to
-offload on the CEX.
+The batch is 3–4 txs (approve → liquidateBorrow → redeem → transfer; the approve is dropped for a
+native BNB debt, so 3): the Safe repays from its own funds, seizes the bStock, and ships raw bStock to
+`TARGET` (Binance top-up / custody) for finance to offload on the CEX.
 
 | Var            | Req | Default                         | Notes                                                                                  |
 | -------------- | --- | ------------------------------- | -------------------------------------------------------------------------------------- |
@@ -160,7 +167,10 @@ offload on the CEX.
 | `TARGET`       | ✓   |                                 | Binance top-up / custody address for the bStock (or `ALLOW_PLACEHOLDER=1` for a draft) |
 | `SAFE`         |     | `0xdc6E…2029`                   | Executing Safe                                                                         |
 | `RPC_URL`      |     | public dataseed                 | BSC RPC                                                                                |
+| `SEIZE_BUFFER` |     | `0.1`                           | Haircut % on the redeem/transfer amounts, absorbing oracle price drift before the Safe executes; the unredeemed dust is sweepable |
 | `OUT`          |     | `out/bstock-safe-fallback.json` | Output path                                                                            |
 
-> The batch is a **snapshot** at the current block. If the borrower's position changes before the Safe
-> executes, **regenerate** — a stale redeem/transfer that exceeds the seized balance reverts the batch.
+> The batch is a **snapshot** at the current block. `SEIZE_BUFFER` absorbs small oracle price drift, but
+> **price drift alone** (not just a position change) can still invalidate the exact amounts — a stale
+> redeem/transfer that exceeds the seized balance reverts the batch. **Regenerate immediately before
+> signing** for anything but a tiny move.

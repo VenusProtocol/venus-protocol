@@ -30,9 +30,12 @@ export interface AmmSwapParams {
   tokenIn: string; // intermediate (USDT)
   tokenOut: string; // debt asset
   // Wei of tokenIn to sell. Providers bake this into the swap calldata as a FIXED input amount, while
-  // the contract approves router2 only the ACTUAL on-chain hop-1 output (`midDelta`). Pass the exact
-  // hop-1 output: if `midDelta` ends up below this value the router pulls more than approved and the
-  // hop reverts `SwapFailed()`. Native RFQ (hop 1) fills firm quotes exactly, so the two match.
+  // the contract approves router2 only the ACTUAL on-chain hop-1 output (`midDelta`). Pass the hop-1
+  // FLOOR (the built order's guaranteed worst-case out), NOT its indicative quote: the invariant
+  // `floor <= midDelta` then always holds, so the fixed pull fits inside the approval and any surplus
+  // (`midDelta - floor`) stays as sweepable intermediate inventory. Sizing this off the indicative
+  // `out` instead would let an under-filling hop-1 leave the router pulling more than approved
+  // (`SwapFailed()`). See atomic-liquidate.ts (hop-2 sizing) — do NOT change this back to `out`.
   amountIn: string;
   recipient: string; // where the debt asset must land (the liquidator contract)
   slippage: number; // percent, e.g. 0.5
@@ -130,8 +133,8 @@ async function openocean(p: AmmSwapParams): Promise<AmmSwap> {
  * Caveat: `amountIn` is encoded verbatim as the V2 `amountIn`, so the router pulls exactly that many
  * tokens. The contract approves router2 only the actual hop-1 output (`midDelta`), so if `midDelta`
  * is even 1 wei below the `amountIn` passed here the pull exceeds the approval and the hop reverts
- * `SwapFailed()` with no further detail. Hop 1 is a Native RFQ firm quote (exact fill), so in the
- * normal flow `midDelta == amountIn`; keep hop 1 on Native and do not hand this a stale/rounded value.
+ * `SwapFailed()` with no further detail. The caller passes the hop-1 FLOOR, and `floor <= midDelta`
+ * always holds, so the pull fits; do not hand this the indicative quote or a stale/rounded value.
  */
 async function pcsv2(p: AmmSwapParams, rpc?: providers.Provider): Promise<AmmSwap> {
   if (!rpc) throw new Error("pcsv2 AMM provider needs an RPC provider (pass one to getAmmSwap)");
