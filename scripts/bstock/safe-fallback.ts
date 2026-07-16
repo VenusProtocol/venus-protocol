@@ -189,13 +189,17 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
   if (!liqTreasuryPct.eq(0)) {
     // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
-    // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included. The
-    // borrower-agnostic getLiquidationIncentive is only correct for VAI's SEIZE math above; using it for
-    // the cut would diverge whenever the borrower sits in a non-core pool with a different vBStock incentive.
-    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(
-      borrower,
-      vBStock.address,
-    );
+    // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included — so
+    // use it here regardless of `isVai`. Two distinct incentives are in play and must not be conflated:
+    // the borrower-agnostic getLiquidationIncentive drives VAI's SEIZE math above (that is what
+    // liquidateVAICalculateSeizeTokens reads), while the CUT is always the effective (pool-resolved) one.
+    //   - Non-VAI: the borrower may have switched to a non-core pool whose vBStock incentive differs from
+    //     core, so effective != core is REACHABLE — using core here would missize the cut and the redeem.
+    //   - VAI: effective == core ALWAYS. A VAI borrower is core-pool-locked (VAIController.mintVAI requires
+    //     the core pool, and MarketFacet.hasValidPoolBorrows bars leaving it while mintedVAIs>0), so
+    //     userPoolId==0 and the two getters return the same value. Calling effective is a safe no-op that
+    //     keeps one code path and stays correct if that VAI-core invariant is ever relaxed.
+    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
     const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
     const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
     vReceived = seizeTokens.sub(treasuryCut);

@@ -311,13 +311,16 @@ export async function atomicLiquidate(signer: Signer) {
   if (!liqTreasuryPct.eq(0)) {
     // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
     // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included — so
-    // use it here regardless of `isVai`. (The borrower-agnostic getLiquidationIncentive is only correct
-    // for VAI's SEIZE math, above; it is the wrong basis for the cut and would diverge whenever the
-    // borrower sits in a non-core pool whose vBStock incentive differs from core.)
-    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(
-      borrower,
-      vBStock.address,
-    );
+    // use it here regardless of `isVai`. The borrower-agnostic getLiquidationIncentive is only correct
+    // for VAI's SEIZE math above (what liquidateVAICalculateSeizeTokens reads); the CUT is always the
+    // effective, pool-resolved incentive.
+    //   - Non-VAI: the borrower can be in a non-core pool whose vBStock incentive differs from core, so
+    //     effective != core is REACHABLE — core here would missize the cut and the fixed router pull.
+    //   - VAI: effective == core ALWAYS (a VAI borrower is core-pool-locked — VAIController.mintVAI
+    //     requires the core pool and hasValidPoolBorrows bars leaving it while mintedVAIs>0 — so
+    //     userPoolId==0). Calling effective is a safe no-op there, keeping one path and staying correct
+    //     if that invariant is ever relaxed.
+    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
     const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
     const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
     vReceived = seizeTokens.sub(treasuryCut);
