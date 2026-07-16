@@ -337,6 +337,52 @@ contract MockSplitRouter {
     }
 }
 
+/// @dev Peg Stability Module stand-in exposing the REAL PSM surface the off-chain script encodes
+///      against (`swapStableForVAI` / `previewSwapStableForVAI` / `isPaused` / `vaiMintCap` /
+///      `vaiMinted`) — unlike the generic router mocks, so the script's locally-built calldata is what
+///      executes here. `rateMantissa` mirrors the PSM's IN-direction pricing (min($1, oracle), minus
+///      feeIn): out = amountIn * rateMantissa / 1e18. Pays VAI by minting, like the real PSM.
+contract MockPSM {
+    address public immutable stableToken;
+    MockMintableERC20 public immutable vai;
+
+    uint256 public rateMantissa = 1e18;
+    bool public isPaused;
+    uint256 public vaiMintCap = type(uint256).max;
+    uint256 public vaiMinted;
+
+    constructor(address stableToken_, MockMintableERC20 vai_) {
+        stableToken = stableToken_;
+        vai = vai_;
+    }
+
+    function setRate(uint256 r) external {
+        rateMantissa = r;
+    }
+
+    function setPaused(bool p) external {
+        isPaused = p;
+    }
+
+    function setVaiMintCap(uint256 c) external {
+        vaiMintCap = c;
+    }
+
+    function previewSwapStableForVAI(uint256 stableTknAmount) public view returns (uint256) {
+        return (stableTknAmount * rateMantissa) / 1e18;
+    }
+
+    function swapStableForVAI(address receiver, uint256 stableTknAmount) external returns (uint256) {
+        require(!isPaused, "psm paused");
+        uint256 vaiToMint = previewSwapStableForVAI(stableTknAmount);
+        require(vaiMinted + vaiToMint <= vaiMintCap, "mint cap reached");
+        vaiMinted += vaiToMint;
+        require(ERC20(stableToken).transferFrom(msg.sender, address(this), stableTknAmount), "stable pull failed");
+        vai.mint(receiver, vaiToMint);
+        return vaiToMint;
+    }
+}
+
 /// @dev Stand-in for the pool-wide Venus Liquidator (`liquidatorContract`). Pulls the repay from the
 ///      caller and credits the seized collateral (repay * incentive) to the caller, minus a treasury cut.
 contract MockVenusLiquidator {

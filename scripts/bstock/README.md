@@ -127,6 +127,7 @@ call `liquidate`/`flashLiquidate`.
 | `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%)                                                                                                                                                            |
 | `SEIZE_BUFFER`        |     | `0.1`       | Haircut on the QUOTED seize (%) so an oracle uptick before inclusion can't make the router pull more bStock than was seized (→ `SwapFailed`); the unsold remainder stays as bStock inventory (sweepable) |
 | `AMM_PROVIDER`        |     | `kyberswap` | Hop-2 route for non-USDT debt: `kyberswap` / `openocean` / `pcsv2`                                                                                                                                       |
+| `PSM_ADDR`            |     | BSC PSM     | Peg Stability Module used as hop 2 for a VAI debt (`swapStableForVAI` calldata encoded locally, expected out from `previewSwapStableForVAI`); must be allowlisted via `setRouter`. `MODE=flash` rejected |
 | `WBNB_ADDR`           |     | BSC WBNB    | Only for a vBNB debt market (native BNB auto-detected; contract unwraps)                                                                                                                                 |
 
 _Fork/local testing:_ `MOCK_NATIVE="router:calldata"` (hop 1), `MOCK_AMM` (hop 2), `MOCK_OUT` (final

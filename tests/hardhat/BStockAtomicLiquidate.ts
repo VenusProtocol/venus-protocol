@@ -42,6 +42,7 @@ const SCRIPT_ENV = [
   "SOURCE",
   "LM_API_KEY",
   "LM_PRIVATE_KEY_SEED",
+  "PSM_ADDR",
 ] as const;
 
 describe("bStock atomic liquidation script", () => {
@@ -306,6 +307,126 @@ describe("bStock atomic liquidation script", () => {
     expect(await wbnb.balanceOf(liq.address)).to.equal(OUT); // float consumed, proceeds retained as WBNB
     expect(await ethers.provider.getBalance(liq.address)).to.equal(0); // no native BNB retained
     expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate consumed
+  });
+
+  // VAI debt: VDEBT is the VAIController (no underlying(); resolved via getVAIAddress()). RFQ sources
+  // quote bStock->USDT only, so VAI is inherently two-hop — and hop 2 is the Peg Stability Module, whose
+  // `swapStableForVAI` calldata the script must construct ITSELF (lib/psm.ts: encoded locally, expected
+  // out from previewSwapStableForVAI — no aggregator API). MockPSM exposes the real PSM surface, so what
+  // executes on-chain is exactly the blob the script built.
+  describe("VAI debt (PSM hop 2 built by the script)", () => {
+    let vai: Contract, vaiController: Contract, psm: Contract;
+
+    beforeEach(async () => {
+      const ERC20 = await ethers.getContractFactory("MockMintableERC20");
+      vai = await ERC20.deploy("Vai Stablecoin", "VAI", 18);
+      vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+      await comptroller.setVaiController(vaiController.address);
+      const venusLiq = await ethers.getContractAt("MockVenusLiquidator", await comptroller.liquidatorContract());
+      await venusLiq.setVaiController(vaiController.address);
+
+      psm = await (await ethers.getContractFactory("MockPSM")).deploy(usdt.address, vai.address);
+      await liq.connect(owner).setRouter(psm.address, true);
+    });
+
+    // Real hop-1 source path (fetch stubbed with a firm Native quote), so the script reaches the REAL
+    // hop-2 build — the PSM branch under test. MOCK_NATIVE would bypass it.
+    function stubNativeFetch() {
+      const real = globalThis.fetch;
+      globalThis.fetch = (async () => ({
+        json: async () => ({
+          success: true,
+          recipient: liq.address,
+          amountIn: "0",
+          amountOut: OUT.toString(),
+          orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+          txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+        }),
+      })) as unknown as typeof fetch;
+      return real;
+    }
+
+    function vaiEnv(over: Record<string, string> = {}) {
+      setEnv({
+        VDEBT: vaiController.address,
+        MOCK_NATIVE: "",
+        MOCK_OUT: "",
+        NATIVE_API_KEY: "test-key",
+        PSM_ADDR: psm.address,
+        ...over,
+      });
+    }
+
+    it("builds the swapStableForVAI calldata itself and settles through the PSM", async () => {
+      await vai.mint(liq.address, REPAY); // pre-funded VAI inventory
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      // Hop 1 is firm, so its floor == OUT: the PSM pulled exactly OUT USDT and minted OUT VAI (rate 1:1)
+      // to the contract. Started with REPAY VAI, repaid REPAY, received OUT -> profit retained as VAI.
+      expect(await usdt.balanceOf(psm.address)).to.equal(OUT);
+      expect(await psm.vaiMinted()).to.equal(OUT);
+      expect(await vai.balanceOf(liq.address)).to.equal(OUT);
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+    });
+
+    it("derives minOut from previewSwapStableForVAI, not a 1:1 assumption", async () => {
+      await vai.mint(liq.address, REPAY);
+      // Oracle prices USDT under $1: the PSM mints 0.999 VAI per USDT. A 1:1 expectedOut would put
+      // minOut (0.5% buffer) above the 5494.5 delivered and revert InsufficientOut; the preview-derived
+      // minOut clears it.
+      await psm.setRate(U("0.999"));
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      const delivered = OUT.mul(U("0.999")).div(U("1"));
+      expect(await vai.balanceOf(liq.address)).to.equal(delivered); // repay spent, preview-out received
+    });
+
+    it("fails legibly before settling when the PSM is paused", async () => {
+      await vai.mint(liq.address, REPAY);
+      await psm.setPaused(true);
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/paused/i);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    it("fails legibly when the PSM mint-cap headroom cannot cover the hop-1 floor", async () => {
+      await vai.mint(liq.address, REPAY);
+      await psm.setVaiMintCap(U("100")); // headroom 100 < floor 5500
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/mint-cap/i);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    it("rejects MODE=flash for a VAI debt before quoting (mirrors FlashNotSupportedForVai)", async () => {
+      await vai.mint(liq.address, REPAY);
+      vaiEnv({ MODE: "flash" });
+      // No fetch stub: the guard must fire before any hop-1 quote is requested.
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/flash.*VAI/i);
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
   });
 
   // ------------------------------------------------------------------------ //

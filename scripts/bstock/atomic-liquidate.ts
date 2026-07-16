@@ -50,6 +50,9 @@
  *                   Keep it small: in MODE=flash the quoted proceeds must still cover principal + premium,
  *                   so an oversized buffer trips the on-chain InsufficientOut (run DRY_RUN first).
  *   AMM_PROVIDER    hop-2 route source for non-USDT debt: kyberswap (default) | openocean | pcsv2
+ *   PSM_ADDR        Peg Stability Module used as hop 2 for a VAI debt (default: BSC mainnet
+ *                   PegStability_USDT). Must be allowlisted via setRouter; calldata is encoded
+ *                   locally (lib/psm.ts). MODE=flash is rejected for VAI (no vVAI to flash from).
  *   DRY_RUN         "1" -> callStatic only, send nothing
  *   MOCK_NATIVE     hop-1 "router:calldata" for fork/local tests (see below)
  *   MOCK_AMM        hop-2 "router:calldata" for fork/local tests (two-hop); MOCK_OUT = final debt out
@@ -62,6 +65,7 @@ import { ethers } from "hardhat";
 
 import { BSC_WBNB, getAmmSwap } from "./lib/amm";
 import { BSC_USDT } from "./lib/native";
+import { getPsmSwap } from "./lib/psm";
 import { QuoteArgs, selectedSources } from "./lib/sources";
 
 const PARAMS_TUPLE =
@@ -229,6 +233,12 @@ export async function atomicLiquidate(signer: Signer) {
   const repay = ethers.utils.parseUnits(env("REPAY_AMOUNT"), debtDec);
   if (isBnb) console.log(`native BNB debt: accounting in WBNB ${debt.address} (contract unwraps the repay)`);
 
+  // Mirrors the contract's FlashNotSupportedForVai: VAI is minted/burned by the VAIController and has
+  // no vVAI market to flash from. Fail here, before burning a hop-1 quote on a call that must revert.
+  if (isVai && mode === "flash") {
+    throw new Error("MODE=flash is not supported for a VAI debt (no vVAI to flash from) — use MODE=inventory");
+  }
+
   // 0. liquidatable?
   const [, , shortfall]: BigNumber[] = await comptroller.getAccountLiquidity(borrower);
   if (shortfall.eq(0)) throw new Error(`${borrower} has no shortfall — not liquidatable`);
@@ -356,23 +366,27 @@ export async function atomicLiquidate(signer: Signer) {
     );
 
     if (twoHop) {
-      // Hop 2: convert the hop-1 USDT to the (non-USDT) debt asset via an allowlisted AMM/aggregator.
+      // Hop 2: convert the hop-1 USDT to the (non-USDT) debt asset. For VAI the leg is the Peg Stability
+      // Module (`swapStableForVAI` mints VAI from USDT at the oracle rate; calldata encoded locally in
+      // lib/psm.ts — no aggregator involved); every other debt goes through an allowlisted AMM/aggregator.
       // Size this leg off the hop-1 FLOOR, not the indicative `out`: on-chain the contract approves router2
       // for the ACTUAL hop-1 delta (`midDelta`), while this calldata bakes in a fixed `amountIn`. Quote it
       // at `out` and an indicative source that fills even slightly under would leave the router pulling
       // more than the approval — hop 2 reverts on allowance. `floor <= midDelta` always holds, so the pull
       // always fits. Any surplus (`midDelta - floor`, bounded by slippage) stays as USDT inventory and the
       // contract emits `PartialSwapLeftover` for it — sweepable, not lost.
-      const amm = await getAmmSwap(
-        {
-          tokenIn: nativeOut,
-          tokenOut: debt.address,
-          amountIn: midFloor.toString(),
-          recipient: liquidator.address,
-          slippage,
-        },
-        ethers.provider,
-      );
+      const amm = isVai
+        ? await getPsmSwap({ amountIn: midFloor, recipient: liquidator.address }, ethers.provider)
+        : await getAmmSwap(
+            {
+              tokenIn: nativeOut,
+              tokenOut: debt.address,
+              amountIn: midFloor.toString(),
+              recipient: liquidator.address,
+              slippage,
+            },
+            ethers.provider,
+          );
       router2 = ethers.utils.getAddress(amm.router);
       swapCalldata2 = amm.calldata;
       intermediateToken = nativeOut;
