@@ -32,6 +32,7 @@ import { parseEther, parseUnits } from "ethers/lib/utils";
 import fc from "fast-check";
 import { ethers, upgrades } from "hardhat";
 
+import { getPsmSwap } from "../../../scripts/bstock/lib/psm";
 import {
   A,
   Action,
@@ -64,6 +65,23 @@ const DEPLOYED_LIQ = "0xF03C90e6BF66b43411189Ad848F17723f8B4A3c1";
 const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
 const VCAKE = "0x86aC3974e2BD0d60825230fa6F355fF11409df5c";
 
+// VAI debt leg: the real VAIController (the "market" a VAI debt is keyed on), the VAI ERC20, and the
+// real Peg Stability Module that lib/psm.ts targets as hop 2.
+const VAI_CONTROLLER = "0x004065D34C6b18cE4370ced1CeBDE94865DbFAFE";
+const VAI = "0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7";
+const PSM_USDT = "0xC138aa4E424D1A8539e8F38Af5a754a2B7c3Cc36";
+const VAI_CONTROLLER_ABI = [
+  "function mintVAI(uint256) returns (uint256)",
+  "function getVAIRepayAmount(address) view returns (uint256)",
+  "function toggleOnlyPrimeHolderMint() returns (uint256)",
+];
+const ACM_GIVE_ABI = ["function giveCallPermission(address,string,address)"];
+const PSM_FORK_ABI = [
+  "function vaiMinted() view returns (uint256)",
+  "function isPaused() view returns (bool)",
+  "function pause()",
+];
+
 // bStock USD prices: healthy vs post-crash (the stock gapped down ~80%).
 const P_HEALTHY = parseUnits("250", 18);
 const P_CRASH = parseUnits("50", 18);
@@ -73,6 +91,7 @@ const B = {
   USDT: ethers.utils.getAddress("0x00000000000000000000000000000000ca110001"),
   CAKE: ethers.utils.getAddress("0x00000000000000000000000000000000ca110002"),
   BNB: ethers.utils.getAddress("0x00000000000000000000000000000000ca110003"),
+  VAI: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000a"),
   FLASH: ethers.utils.getAddress("0x00000000000000000000000000000000ca110004"),
   FORCED: ethers.utils.getAddress("0x00000000000000000000000000000000ca110005"),
   DEADLINE: ethers.utils.getAddress("0x00000000000000000000000000000000ca110006"),
@@ -324,6 +343,115 @@ const test = () => {
         // Proceeds retained as WBNB, no native BNB stranded on the proxy.
         expect(await new ethers.Contract(TOK.WBNB, ERC20_ABI, owner).balanceOf(liq.address)).to.be.gte(params.minOut);
         expect(await ethers.provider.getBalance(liq.address)).to.equal(0);
+      });
+
+      it("two-hop VAI debt, inventory mode: bStock->USDT (mock) -> VAI through the REAL PSM, script-built calldata", async () => {
+        // VAI minting is prime-holder-gated at the fork block; flip the flag through the real ACM +
+        // timelock so a plain borrower can take on VAI debt (a governance-reachable state).
+        const timelock = await initMainnetUser(A.TIMELOCK, parseEther("5"));
+        await new ethers.Contract(A.ACM, ACM_GIVE_ABI, timelock).giveCallPermission(
+          VAI_CONTROLLER,
+          "toggleOnlyPrimeHolderMint()",
+          owner.address,
+        );
+        const vaiCtrl = new ethers.Contract(VAI_CONTROLLER, VAI_CONTROLLER_ABI, owner);
+        await vaiCtrl.toggleOnlyPrimeHolderMint();
+
+        // Underwater VAI borrower: supply bStock, enter the market, mint VAI against it, stock gaps down.
+        // (makeUnderwaterBorrower borrows from a vToken; VAI debt is minted on the VAIController instead.)
+        const borrower = await initMainnetUser(B.VAI, parseUnits("10", 18));
+        const COLLATERAL = parseUnits("100", 18);
+        await mkt.bStock.mint(B.VAI, COLLATERAL);
+        await mkt.bStock.connect(borrower).approve(mkt.vBStock.address, COLLATERAL);
+        await new ethers.Contract(mkt.vBStock.address, VTOKEN_ABI, borrower).mint(COLLATERAL);
+        await new ethers.Contract(
+          A.COMPTROLLER,
+          ["function enterMarkets(address[]) returns (uint256[])"],
+          borrower,
+        ).enterMarkets([mkt.vBStock.address]);
+        // mintVAI returns an error CODE (legacy style) — probe first so a cap/pause surfaces loudly.
+        const MINTED = parseUnits("4000", 18);
+        const mintCode: BigNumber = await vaiCtrl.connect(borrower).callStatic.mintVAI(MINTED);
+        if (!mintCode.eq(0)) throw new Error(`mintVAI returned code ${mintCode.toString()}`);
+        await vaiCtrl.connect(borrower).mintVAI(MINTED);
+        expect(await vaiCtrl.getVAIRepayAmount(B.VAI)).to.be.gte(MINTED);
+        await mkt.setPrice(P_CRASH);
+        await mock.setRate(P_CRASH);
+
+        // The DEPLOYED proxy predates VAI support (it reads `underlying()` on every vDebt, which the
+        // VAIController lacks), so this scenario deploys a FRESH proxy on the current implementation and
+        // drives it against the same real gate, real VAIController, and real PSM.
+        const Factory = await ethers.getContractFactory("BStockLiquidator");
+        const liqVai = await upgrades.deployProxy(Factory, [owner.address], {
+          constructorArgs: [A.COMPTROLLER, A.VBNB, A.VWBNB, TOK.WBNB],
+          unsafeAllow: ["constructor", "state-variable-immutable"],
+        });
+        await liqVai.connect(owner).setRouter(mock.address, true); // hop-1 (Native RFQ mock)
+
+        const REPAY = parseUnits("1500", 18); // VAI (< closeFactor * debt = 2000)
+        await fund(VAI, liqVai.address, REPAY); // pre-funded VAI inventory (flash is not supported for VAI)
+        await liqVai.connect(owner).setRouter(PSM_USDT, true); // hop-2 router: the real PSM
+
+        // Size hop 2 exactly as the script does — off the hop-1 output, undershot 10% like the PCS leg,
+        // so the fixed pull always fits under the on-chain approval — then let the SCRIPT's builder
+        // (lib/psm.ts) produce the calldata: what settles on the fork is the blob it constructs against
+        // the real PSM, expected out from the real previewSwapStableForVAI.
+        const comptroller = new ethers.Contract(
+          A.COMPTROLLER,
+          ["function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)"],
+          owner,
+        );
+        const [, seizeTokens] = await comptroller.liquidateVAICalculateSeizeTokens(mkt.vBStock.address, REPAY);
+        const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
+        const usdtFromHop1 = seizeTokens.mul(xr).div(ONE).mul(P_CRASH).div(ONE);
+        const floor = usdtFromHop1.mul(90).div(100);
+        const psmSwap = await getPsmSwap({ amountIn: floor, recipient: liqVai.address }, ethers.provider);
+        expect(psmSwap.router).to.equal(PSM_USDT);
+        const expectedOut = BigNumber.from(psmSwap.expectedOut);
+
+        const params = {
+          borrower: B.VAI,
+          vDebt: VAI_CONTROLLER,
+          vBStock: mkt.vBStock.address,
+          repayAmount: REPAY,
+          router: mock.address,
+          swapCalldata: buildSingleHopMock(mkt, mock, liqVai.address),
+          minOut: expectedOut.mul(999).div(1000),
+          router2: psmSwap.router,
+          swapCalldata2: psmSwap.calldata,
+          intermediateToken: TOK.USDT,
+          deadline: ethers.constants.MaxUint256,
+        };
+
+        const psm = new ethers.Contract(PSM_USDT, PSM_FORK_ABI, owner);
+        const debtBefore = await vaiCtrl.getVAIRepayAmount(B.VAI);
+        const mintedBefore: BigNumber = await psm.vaiMinted();
+        const out = await liqVai.connect(owner).callStatic.liquidate(params);
+        expect(out).to.be.gte(params.minOut);
+        await liqVai.connect(owner).liquidate(params);
+
+        // Debt shrank through the real gate's VAI branch; the real PSM minted exactly its preview to the
+        // contract; the inventory repay was consumed; no bStock or native BNB stranded.
+        expect(await vaiCtrl.getVAIRepayAmount(B.VAI)).to.be.lt(debtBefore);
+        const vai = new ethers.Contract(VAI, ERC20_ABI, owner);
+        expect(await vai.balanceOf(liqVai.address)).to.equal(expectedOut);
+        expect((await psm.vaiMinted()).sub(mintedBefore)).to.equal(expectedOut);
+        expect(await mkt.bStock.balanceOf(liqVai.address)).to.equal(0);
+        expect(await ethers.provider.getBalance(liqVai.address)).to.equal(0);
+      });
+
+      it("getPsmSwap aborts legibly when the real PSM is paused on the fork", async () => {
+        // Pause the real PSM through the real ACM + timelock, then the script's pre-flight must refuse
+        // to build the VAI hop instead of producing calldata that reverts on-chain.
+        const timelock = await initMainnetUser(A.TIMELOCK, parseEther("5"));
+        await new ethers.Contract(A.ACM, ACM_GIVE_ABI, timelock).giveCallPermission(PSM_USDT, "pause()", owner.address);
+        const psm = new ethers.Contract(PSM_USDT, PSM_FORK_ABI, owner);
+        await psm.pause();
+        expect(await psm.isPaused()).to.equal(true);
+
+        await expect(getPsmSwap({ amountIn: ONE, recipient: liq.address }, ethers.provider)).to.be.rejectedWith(
+          /paused/i,
+        );
       });
 
       it("minOut breach -> InsufficientOut, FULL rollback: borrow + inventory intact, nothing stranded", async () => {
