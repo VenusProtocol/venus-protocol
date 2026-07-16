@@ -96,6 +96,7 @@ const B = {
   VAI_SCRIPT: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000b"),
   FLASH: ethers.utils.getAddress("0x00000000000000000000000000000000ca110004"),
   FORCED: ethers.utils.getAddress("0x00000000000000000000000000000000ca110005"),
+  FORCED_SCRIPT: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000c"),
   DEADLINE: ethers.utils.getAddress("0x00000000000000000000000000000000ca110006"),
   REENTRANCY: ethers.utils.getAddress("0x00000000000000000000000000000000ca110007"),
   ROLLBACK: ethers.utils.getAddress("0x00000000000000000000000000000000ca110008"),
@@ -626,6 +627,79 @@ const test = () => {
         const borrowBefore = await new ethers.Contract(VUSDT, VTOKEN_ABI, owner).borrowBalanceStored(B.FORCED);
         await liq.connect(owner).liquidate({ ...params, minOut: out.mul(95).div(100) });
         await assertSettledFor(liq, mkt, VUSDT, B.FORCED, borrowBefore);
+      });
+
+      it("script-driven forced liquidation: atomicLiquidate under ALLOW_NO_SHORTFALL settles a healthy account", async () => {
+        // The SCRIPT counterpart of the contract-level forced test above: a HEALTHY (no-shortfall)
+        // account with forced-liquidation enabled. atomicLiquidate aborts such an account by default (a
+        // fat-finger guard), and ALLOW_NO_SHORTFALL=1 lets the forced path through. It must then settle
+        // end-to-end against the real gate — proving the guard downgrade did not break the forced flow.
+        await makeUnderwaterBorrower({
+          mkt,
+          vDebt: VUSDT,
+          borrower: B.FORCED_SCRIPT,
+          collateralBStock: parseUnits("100", 18),
+          borrowAmount: parseUnits("5000", 18),
+        });
+        await mock.setRate(P_HEALTHY); // MM quotes the uncrashed price
+
+        const acm = new ethers.Contract(A.ACM, ACM_GIVE_ABI, await initMainnetUser(A.TIMELOCK, parseEther("10")));
+        await acm.giveCallPermission(A.COMPTROLLER, "_setForcedLiquidation(address,bool)", A.TIMELOCK);
+        const cAsTl = new ethers.Contract(
+          A.COMPTROLLER,
+          ["function _setForcedLiquidation(address,bool)"],
+          await initMainnetUser(A.TIMELOCK, parseEther("10")),
+        );
+        await cAsTl._setForcedLiquidation(VUSDT, true);
+
+        await fund(TOK.USDT, liq.address, parseUnits("2000", 18)); // inventory for the repay
+        // Firm Native quote stubbed LOW so minOut (derived from its floor) is trivially cleared by the
+        // real hop-1 delivery — the assertion under test is the ALLOW_NO_SHORTFALL gate, not quote size.
+        const SCRIPT_ENV = [
+          "LIQUIDATOR",
+          "BORROWER",
+          "VBSTOCK",
+          "VDEBT",
+          "REPAY_AMOUNT",
+          "MODE",
+          "SOURCE",
+          "NATIVE_API_KEY",
+          "ALLOW_NO_SHORTFALL",
+        ];
+        const realFetch = globalThis.fetch;
+        globalThis.fetch = (async () => ({
+          json: async () => ({
+            success: true,
+            recipient: liq.address,
+            amountIn: "0",
+            amountOut: parseUnits("500", 18).toString(),
+            orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+            txRequest: { target: mock.address, calldata: buildSingleHopMock(mkt, mock, liq.address), value: "0" },
+          }),
+        })) as unknown as typeof fetch;
+
+        const borrowBefore = await new ethers.Contract(VUSDT, VTOKEN_ABI, owner).borrowBalanceStored(B.FORCED_SCRIPT);
+        try {
+          Object.assign(process.env, {
+            LIQUIDATOR: liq.address,
+            BORROWER: B.FORCED_SCRIPT,
+            VBSTOCK: mkt.vBStock.address,
+            VDEBT: VUSDT,
+            REPAY_AMOUNT: "2000",
+            MODE: "inventory",
+            SOURCE: "native",
+            NATIVE_API_KEY: "test-key",
+          });
+          // Default (no override) must refuse the healthy account before any settle.
+          await expect(atomicLiquidate(owner)).to.be.rejectedWith(/no shortfall/i);
+          // With the forced-liquidation override it proceeds and settles.
+          process.env.ALLOW_NO_SHORTFALL = "1";
+          await atomicLiquidate(owner);
+        } finally {
+          globalThis.fetch = realFetch;
+          for (const k of SCRIPT_ENV) delete process.env[k];
+        }
+        await assertSettledFor(liq, mkt, VUSDT, B.FORCED_SCRIPT, borrowBefore);
       });
 
       it("expired deadline -> DeadlineExpired, no state change", async () => {

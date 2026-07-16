@@ -51,6 +51,9 @@ describe("BStock safe-fallback batch generator", () => {
       VDEBT: vDebt.address,
       REPAY_AMOUNT: "5000",
       TARGET: target.address,
+      // Isolate the price-drift buffer from the cut/fee assertions: default it off here so those tests
+      // assert exact seize-based amounts. The dedicated buffer tests below override it.
+      SEIZE_BUFFER: "0",
       ...over,
     });
   }
@@ -58,7 +61,16 @@ describe("BStock safe-fallback batch generator", () => {
   beforeEach(async () => {
     await deploy();
     // wipe any env leakage between tests
-    for (const k of ["SAFE", "BORROWER", "VBSTOCK", "VDEBT", "REPAY_AMOUNT", "TARGET", "ALLOW_PLACEHOLDER"]) {
+    for (const k of [
+      "SAFE",
+      "BORROWER",
+      "VBSTOCK",
+      "VDEBT",
+      "REPAY_AMOUNT",
+      "TARGET",
+      "ALLOW_PLACEHOLDER",
+      "SEIZE_BUFFER",
+    ]) {
       delete process.env[k];
     }
   });
@@ -175,5 +187,46 @@ describe("BStock safe-fallback batch generator", () => {
     const xfer = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], "0x" + txs[2].data.slice(10));
     expect(xfer[0]).to.equal(target.address);
     expect(xfer[1]).to.equal(seizedRaw);
+  });
+
+  it("haircuts the redeem/transfer by SEIZE_BUFFER so oracle drift leaves dust, not a revert (M4)", async () => {
+    setEnv({ SEIZE_BUFFER: "10" }); // 10% haircut for a clean, observable number
+    const { vReceived, vRedeem, seizedRaw, txs } = await buildSafeFallbackBatch(ethers.provider);
+
+    // Credited (vReceived) is still the full seize (cut 0); only the REDEEMED amount is haircut, so a
+    // small upward price move before quorum leaves the batch redeeming less than credited (dust remains).
+    expect(vReceived).to.equal(SEIZE);
+    expect(vRedeem).to.equal(SEIZE.mul(9000).div(10000)); // 90% of 5500 = 4950
+    expect(seizedRaw).to.equal(SEIZE.mul(9000).div(10000)); // 1:1 rate, treasuryPercent 0
+
+    // The redeem tx uses the haircut amount, not the full credit.
+    const redeem = ethers.utils.defaultAbiCoder.decode(["uint256"], txs[2].data.slice(0, 2) + txs[2].data.slice(10));
+    expect(redeem[0]).to.equal(vRedeem);
+  });
+
+  it("rejects an out-of-range SEIZE_BUFFER", async () => {
+    setEnv({ SEIZE_BUFFER: "150" });
+    await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/SEIZE_BUFFER/);
+  });
+
+  it("sizes the Liquidator treasury cut off the effective incentive, not core (VAI)", async () => {
+    // VAI borrower in a non-core pool: effective vBStock incentive (1.25x) differs from core (1.1x). The
+    // gate sizes the bonus cut with the effective incentive for every debt type, so the batch must too —
+    // the borrower-agnostic core incentive is only correct for VAI's SEIZE math, not the cut.
+    const vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    const vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
+    await comptroller.setEffectiveIncentive(U("1.25"));
+    await venusLiq.setTreasuryCut(U("0.5")); // 50% of the bonus
+
+    setEnv({ VDEBT: vaiController.address });
+    const { vReceived } = await buildSafeFallbackBatch(ethers.provider);
+
+    // seize = repay*core = 5500; bonus = 5500*(0.25/1.25) = 1100; cut = 550 -> credited 4950.
+    // Core-based sizing (the pre-fix path) would give bonus 500, cut 250, credited 5250.
+    const bonusAmount = SEIZE.mul(U("1.25").sub(ONE)).div(U("1.25"));
+    const cut = bonusAmount.mul(U("0.5")).div(ONE);
+    expect(vReceived).to.equal(SEIZE.sub(cut)); // 4950, not 5250
   });
 });

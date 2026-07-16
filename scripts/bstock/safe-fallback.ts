@@ -31,9 +31,10 @@
  * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens` (or
  * `liquidateVAICalculateSeizeTokens` for VAI). The Venus
  * Liquidator keeps a treasury cut of the liquidation bonus, so the Safe is credited fewer vTokens than
- * `seizeTokens`; we redeem only that credited amount (`received`). Snapshotted at the current block — if
- * the borrower's position changes before the Safe executes, REGENERATE, else a stale redeem/transfer
- * that exceeds the seized balance reverts the batch.
+ * `seizeTokens`; we redeem only that credited amount, further haircut by `SEIZE_BUFFER` (default 0.1%)
+ * so ordinary oracle price drift between generation and signer quorum leaves dust rather than reverting
+ * the redeem. Snapshotted at the current block — PRICE DRIFT ALONE (not just a position change) can
+ * invalidate the exact amounts, so regenerate immediately before signing for anything but a tiny move.
  *
  * Usage:
  *   RPC_URL=https://bsc-dataseed.bnbchain.org \
@@ -49,6 +50,8 @@
  *   REPAY_AMOUNT     (req) repay amount in DEBT underlying, human units
  *   TARGET           (req) Binance top-up / custody address to receive bStock
  *                    — set ALLOW_PLACEHOLDER=1 to emit with a zero target (DRAFT)
+ *   SEIZE_BUFFER     haircut % on the redeem/transfer amounts (default 0.1) absorbing oracle price
+ *                    drift before the Safe executes; the unredeemed dust is sweepable
  *   OUT              output path (default out/bstock-safe-fallback.json)
  */
 import { BigNumber, Contract, providers, utils } from "ethers";
@@ -180,28 +183,45 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
 
   // The Venus Liquidator keeps a treasury cut of the liquidation BONUS (see
   // Liquidator._splitLiquidationIncentive), so the Safe is credited fewer vTokens than seizeTokens.
-  // Redeem only the credited amount, else the batch reverts.
+  // Redeem only the credited amount, else the batch reverts. On BSC mainnet the cut is 50% of the bonus
+  // (treasuryPercentMantissa = 0.5e18) today — not 0 — and is governance-settable.
   let vReceived = seizeTokens;
   const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
   if (!liqTreasuryPct.eq(0)) {
-    // Use the SAME incentive the seize above was computed with, else the bonus (and so the cut) is
-    // sized against the wrong number: VAI's seize math uses the borrower-agnostic getLiquidationIncentive.
-    const totalIncentive: BigNumber = isVai
-      ? await comptroller.getLiquidationIncentive(vBStock.address)
-      : await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+    // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
+    // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included. The
+    // borrower-agnostic getLiquidationIncentive is only correct for VAI's SEIZE math above; using it for
+    // the cut would diverge whenever the borrower sits in a non-core pool with a different vBStock incentive.
+    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(
+      borrower,
+      vBStock.address,
+    );
     const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
     const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
     vReceived = seizeTokens.sub(treasuryCut);
   }
 
-  // Raw bStock from redeeming vReceived, after Core's redeem treasuryPercent fee, FLOORED at the current
+  // The credited vTokens are decided at EXECUTION time, but the batch bakes in fixed amounts computed
+  // now. seizeTokens ∝ priceBorrowed / (priceCollateral · exchangeRate), and the bStock oracle price
+  // moves continuously — so between generation and signer quorum (often hours) an ordinary upward tick
+  // makes the real credit LESS than vReceived and reverts the redeem (tx #3). Haircut vReceived by
+  // SEIZE_BUFFER so a modest price move leaves harmless dust vTokens rather than bricking the batch;
+  // the dust is sweepable later. Regenerate for a large move. (Mirrors atomic-liquidate.ts SEIZE_BUFFER.)
+  const seizeBufferPct = Number(process.env.SEIZE_BUFFER || "0.1");
+  if (!Number.isFinite(seizeBufferPct) || seizeBufferPct < 0 || seizeBufferPct >= 100) {
+    throw new Error(`SEIZE_BUFFER must be a percent in [0, 100), got "${process.env.SEIZE_BUFFER}"`);
+  }
+  const vRedeem = vReceived.mul(Math.round((100 - seizeBufferPct) * 100)).div(10000);
+
+  // Raw bStock from redeeming vRedeem, after Core's redeem treasuryPercent fee, FLOORED at the current
   // exchange rate (rate only grows, so transferring this floor never exceeds what we hold).
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
-  const seizedRaw = vReceived.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
+  const seizedRaw = vRedeem.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   console.log(
-    `seize: ${utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${utils.formatUnits(seizedRaw, bStockDec)} ` +
-      `${bStockSym} (floor)`,
+    `seize: ${utils.formatUnits(seizeTokens, 8)} v${bStockSym} credited ~${utils.formatUnits(vReceived, 8)} ` +
+      `-> redeem ${utils.formatUnits(vRedeem, 8)} (SEIZE_BUFFER ${seizeBufferPct}%) -> ` +
+      `~${utils.formatUnits(seizedRaw, bStockDec)} ${bStockSym} (floor, ship)`,
   );
 
   // --- target (Binance top-up) ---
@@ -227,7 +247,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   );
 
   const seizeTxs = [
-    call(vBStock.address, "redeem(uint256)", [vReceived]),
+    call(vBStock.address, "redeem(uint256)", [vRedeem]),
     call(bStock.address, "transfer(address,uint256)", [target, seizedRaw]),
   ];
 
@@ -242,12 +262,13 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
     description:
       `Repay ${utils.formatUnits(repay, debtDec)} ${debtSym} of ${borrower}, ` +
       `seize ~${utils.formatUnits(seizedRaw, bStockDec)} ${bStockSym}, ship to ${target}. ` +
-      `Snapshot @ block ${await provider.getBlockNumber()}; regenerate if the position changed.`,
+      `Snapshot @ block ${await provider.getBlockNumber()}; SEIZE_BUFFER ${seizeBufferPct}% absorbs small ` +
+      `oracle drift — regenerate for a large price move or a position change.`,
     createdAt: Date.now(),
     transactions: txs,
   });
 
-  return { batch, txs, gate, seizeTokens, vReceived, seizedRaw, target };
+  return { batch, txs, gate, seizeTokens, vReceived, vRedeem, seizedRaw, target };
 }
 
 async function main() {

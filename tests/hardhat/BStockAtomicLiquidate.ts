@@ -38,6 +38,7 @@ const SCRIPT_ENV = [
   "MIN_OUT_BUFFER",
   "SEIZE_BUFFER",
   "SETTLE_TTL_MARGIN",
+  "ALLOW_NO_SHORTFALL",
   "NATIVE_API_KEY",
   "SOURCE",
   "LM_API_KEY",
@@ -173,6 +174,35 @@ describe("bStock atomic liquidation script", () => {
   it("rejects an out-of-range SETTLE_TTL_MARGIN before quoting", async () => {
     setEnv({ SETTLE_TTL_MARGIN: "-5" });
     await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SETTLE_TTL_MARGIN/);
+  });
+
+  it("rejects a non-numeric SLIPPAGE before quoting", async () => {
+    setEnv({ SLIPPAGE: "abc" });
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SLIPPAGE/);
+  });
+
+  it("rejects a negative MIN_OUT_BUFFER before quoting (would push minOut above the quote)", async () => {
+    setEnv({ MIN_OUT_BUFFER: "-1" });
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/MIN_OUT_BUFFER/);
+  });
+
+  it("aborts distinctly when getAccountLiquidity reports an error code (not a healthy account)", async () => {
+    await usdt.mint(liq.address, REPAY);
+    await comptroller.setLiquidityErr(13); // e.g. an oracle PRICE_ERROR — the shortfall reading is unreliable
+    setEnv();
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/error code 13/);
+    expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+  });
+
+  it("proceeds on a healthy (no-shortfall) borrower under ALLOW_NO_SHORTFALL (forced liquidation)", async () => {
+    await usdt.mint(liq.address, REPAY);
+    await comptroller.setShortfall(0); // healthy by the normal metric — a forced liquidation target
+    setEnv({ ALLOW_NO_SHORTFALL: "1" });
+
+    await atomicLiquidate(owner); // no throw: the override lets the forced path through
+
+    expect(await usdt.balanceOf(liq.address)).to.equal(OUT); // settled like the happy path
+    expect(await bStock.balanceOf(liq.address)).to.equal(0);
   });
 
   it("aborts before submit when the Native quote TTL is below the safety margin", async () => {
@@ -420,6 +450,45 @@ describe("bStock atomic liquidation script", () => {
       expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
     });
 
+    it("sizes the Liquidator treasury cut off the effective incentive, not core (VAI)", async () => {
+      await vai.mint(liq.address, REPAY);
+      // Model a VAI borrower in a non-core pool: the EFFECTIVE vBStock incentive (1.25x) differs from
+      // core (1.1x). The gate sizes its bonus cut with the effective incentive for EVERY debt type
+      // (Liquidator._splitLiquidationIncentive), so the script must too. Using the borrower-agnostic
+      // core incentive (the pre-fix VAI path) would under-deduct the cut and over-quote the hop-1 amount.
+      await comptroller.setEffectiveIncentive(U("1.25"));
+      const venusLiq = await ethers.getContractAt("MockVenusLiquidator", await comptroller.liquidatorContract());
+      await venusLiq.setTreasuryCut(U("0.5")); // 50% of the bonus, like BSC mainnet today
+
+      // seize = repay*core = 5500; bonus = 5500*(0.25/1.25) = 1100; cut = 550 -> QUOTED seize 4950.
+      // The pre-fix core-based math would give bonus 500, cut 250, quoted 5250 — the divergence asserted.
+      // (The MockVenusLiquidator credits by its own simpler formula, so hop 1 delivers 2750 USDT on-chain;
+      // stub the firm-quote `out` to that so the settle stays self-consistent. The ASSERTION is the
+      // captured off-chain quote `amount`, which is driven purely by the script's cut math under test.)
+      let quotedAmount: string | null = null;
+      const realFetch = globalThis.fetch;
+      globalThis.fetch = (async (url: unknown) => {
+        quotedAmount = new URL(String(url)).searchParams.get("amount");
+        return {
+          json: async () => ({
+            success: true,
+            recipient: liq.address,
+            amountIn: "0",
+            amountOut: U("2750").toString(), // what the mock gate actually credits + hop 1 delivers
+            orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+            txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+          }),
+        };
+      }) as unknown as typeof fetch;
+      try {
+        vaiEnv({ SEIZE_BUFFER: "0" }); // no buffer: the quoted amount equals the credited seize exactly
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = realFetch;
+      }
+      expect(quotedAmount).to.equal("4950.0"); // effective-incentive cut, not the core-based 5250
+    });
+
     it("rejects MODE=flash for a VAI debt before quoting (mirrors FlashNotSupportedForVai)", async () => {
       await vai.mint(liq.address, REPAY);
       vaiEnv({ MODE: "flash" });
@@ -580,6 +649,24 @@ describe("bStock atomic liquidation script", () => {
       expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
     });
 
+    it("single-hop: derives minOut from the LM built floor, so a fill below the indicative quote still settles", async () => {
+      await usdt.mint(liq.address, REPAY); // USDT debt inventory (single hop, no AMM leg)
+      // SLIPPAGE (1%) > MIN_OUT_BUFFER (0.5%) opens the window the bug lived in. The built LM order only
+      // guarantees out*(1-slippage) = 5445, but the OLD code derived minOut from the INDICATIVE out
+      // (5500*(1-0.5%) = 5472.5). An in-slippage fill between the floor and that stale minOut reverted
+      // InsufficientOut. Deriving minOut from the floor (5445*(1-0.5%) = 5417.775) lets it settle.
+      await lmRouter.setRate(U("0.99")); // fills at exactly the floor 5445 (< the stale 5472.5 minOut)
+      const real = stubFetch({ nativeOut: U("0"), lmOut: OUT, lmCalldata: lmSwapAll() });
+      try {
+        lmEnv({ SOURCE: "liquidmesh", SLIPPAGE: "1", MIN_OUT_BUFFER: "0.5" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+      // Settled at the floor fill with no revert — proof minOut was sized off the floor, not the quote.
+      expect(await usdt.balanceOf(liq.address)).to.equal(U("5445"));
+    });
+
     it("tolerates a trailing comma / empty segment in SOURCE", async () => {
       await usdt.mint(liq.address, REPAY);
       const real = stubFetch({ nativeOut: U("5400"), lmOut: OUT, lmCalldata: lmSwapAll() });
@@ -605,6 +692,20 @@ describe("bStock atomic liquidation script", () => {
       try {
         lmEnv({ SOURCE: "liquidmesh" });
         await expect(atomicLiquidate(owner)).to.be.rejectedWith(/TTL .*LM_MIN_TTL/);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0); // nothing settled
+    });
+
+    it("rejects an implausible (millisecond-epoch) Liquid Mesh order expiry", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // A ms-epoch value read as unix SECONDS lands ~55000 AD — it would pass every TTL check and put a
+      // far-future deadline on-chain, silently disabling the off-chain expiry guards. buildSwap bounds it.
+      const real = stubFetch({ nativeOut: U("0"), lmOut: OUT, lmCalldata: lmSwapAll(), lmExpiry: Date.now() });
+      try {
+        lmEnv({ SOURCE: "liquidmesh" });
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/implausible expiryTimestamp/);
       } finally {
         globalThis.fetch = real;
       }

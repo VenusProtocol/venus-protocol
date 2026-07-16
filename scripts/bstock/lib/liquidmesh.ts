@@ -215,5 +215,18 @@ export async function buildSwap(p: LmSwapParams): Promise<LmSwap> {
     throw new Error(`Liquid Mesh /swap error (HTTP ${res.status}) ${j.code}: ${j.msg}`);
   }
   const d = j.data;
-  return { chainId: d.chainId, callMsg: d.callMsg, orderId: d.orderId, expiryTimestamp: Number(d.expiryTimestamp) };
+  const expiryTimestamp = Number(d.expiryTimestamp);
+  // Sanity-bound the unit: every downstream TTL check (LM_MIN_TTL, the pre-submit re-check, the
+  // on-chain `deadline`) assumes unix SECONDS. A millisecond-epoch (or otherwise malformed) value would
+  // sail through them all and place a far-future deadline on-chain, silently disabling the off-chain
+  // expiry guards. A real RFQ order lives seconds-to-minutes, so anything > 24h out is a unit/format
+  // bug — fail legibly instead of trusting it.
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(expiryTimestamp) || expiryTimestamp > nowSec + 86400) {
+    throw new Error(
+      `Liquid Mesh /swap returned an implausible expiryTimestamp ${d.expiryTimestamp} ` +
+        `(expected unix seconds within 24h of now) — refusing to trust it as the on-chain deadline`,
+    );
+  }
+  return { chainId: d.chainId, callMsg: d.callMsg, orderId: d.orderId, expiryTimestamp };
 }

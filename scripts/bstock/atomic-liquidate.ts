@@ -43,8 +43,12 @@
  *                   LM_SPENDER)` set (separate puller). New sources = one adapter in lib/sources.ts.
  *   LM_MIN_TTL      min seconds left on a built Liquid Mesh order, else abort pre-submit (default 15);
  *                   LM RFQ orders are short-lived and an already-tight order would revert on-chain
- *   SLIPPAGE        Native/LM slippage %, default 0.5
- *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%)
+ *   SLIPPAGE        Native/LM slippage %, default 0.5 (validated to [0,100))
+ *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%) (validated to [0,100))
+ *   SETTLE_TTL_MARGIN  min seconds of Native/LM quote TTL required immediately before submit, else
+ *                   abort + refetch instead of burning gas on an on-chain DeadlineExpired (default 10)
+ *   ALLOW_NO_SHORTFALL  "1" -> proceed even when the borrower has no shortfall (FORCED liquidation of a
+ *                   healthy account); default aborts as a fat-finger guard
  *   SEIZE_BUFFER    haircut on the QUOTED seize so a small oracle uptick can't make the router pull more
  *                   bStock than was seized (which reverts). Default 0.1 (%); unsold remainder is sweepable.
  *                   Keep it small: in MODE=flash the quoted proceeds must still cover principal + premium,
@@ -180,6 +184,16 @@ export async function atomicLiquidate(signer: Signer) {
   const slippage = Number(process.env.SLIPPAGE || "0.5");
   const minOutBufferPct = Number(process.env.MIN_OUT_BUFFER || "0.5");
   const seizeBufferPct = Number(process.env.SEIZE_BUFFER || "0.1");
+  // Bound SLIPPAGE / MIN_OUT_BUFFER the same way SEIZE_BUFFER is bounded below: a NaN slippage would
+  // reach the Native/LM request (and `out.mul(NaN)`) as garbage, and a negative MIN_OUT_BUFFER would
+  // silently push minOut ABOVE the quote — a guaranteed on-chain revert after the quote is already
+  // burned. Fail loudly here instead.
+  if (!Number.isFinite(slippage) || slippage < 0 || slippage >= 100) {
+    throw new Error(`SLIPPAGE must be a percent in [0, 100), got "${process.env.SLIPPAGE}"`);
+  }
+  if (!Number.isFinite(minOutBufferPct) || minOutBufferPct < 0 || minOutBufferPct >= 100) {
+    throw new Error(`MIN_OUT_BUFFER must be a percent in [0, 100), got "${process.env.MIN_OUT_BUFFER}"`);
+  }
   // Bound the haircut: a garbage or oversized value would silently under-quote (and in flash mode
   // starve the principal + premium repay). The on-chain InsufficientOut still backstops it, but fail
   // loudly here instead of after burning a Native quote.
@@ -239,9 +253,25 @@ export async function atomicLiquidate(signer: Signer) {
     throw new Error("MODE=flash is not supported for a VAI debt (no vVAI to flash from) — use MODE=inventory");
   }
 
-  // 0. liquidatable?
-  const [, , shortfall]: BigNumber[] = await comptroller.getAccountLiquidity(borrower);
-  if (shortfall.eq(0)) throw new Error(`${borrower} has no shortfall — not liquidatable`);
+  // 0. liquidatable? getAccountLiquidity returns (errorCode, liquidity, shortfall). A non-zero error
+  // code means the reading itself failed (e.g. an oracle PRICE_ERROR), so the shortfall is unreliable —
+  // surface THAT distinctly rather than mislabel it "no shortfall". A zero shortfall means the account
+  // is healthy by the normal metric; abort by default (guards against a fat-fingered borrower), but let
+  // ALLOW_NO_SHORTFALL=1 through: the contract deliberately does NOT pre-check liquidatability
+  // (BStockLiquidator._validateRouters comment) because Core's FORCED liquidations liquidate healthy
+  // accounts, and this script must be able to serve that path.
+  const [liqErr, , shortfall]: BigNumber[] = await comptroller.getAccountLiquidity(borrower);
+  if (!liqErr.eq(0)) {
+    throw new Error(`getAccountLiquidity returned error code ${liqErr} for ${borrower} — cannot assess shortfall`);
+  }
+  if (shortfall.eq(0)) {
+    if (process.env.ALLOW_NO_SHORTFALL !== "1") {
+      throw new Error(
+        `${borrower} has no shortfall — not liquidatable. Set ALLOW_NO_SHORTFALL=1 for a forced liquidation of a healthy account.`,
+      );
+    }
+    console.warn(`WARN: ${borrower} has no shortfall — proceeding under ALLOW_NO_SHORTFALL (forced liquidation).`);
+  }
   console.log(`borrower ${borrower} shortfall=${ethers.utils.formatEther(shortfall)} (USD-scaled)`);
 
   // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields. Mirror the
@@ -273,19 +303,28 @@ export async function atomicLiquidate(signer: Signer) {
 
   // The gate keeps a treasury cut of the liquidation BONUS (see Liquidator._splitLiquidationIncentive),
   // so this contract receives fewer vTokens than `seizeTokens`. Deduct that cut, else the precomputed
-  // amount overstates our holdings and the fixed-amountIn router pull reverts. 0 today, but governance-settable.
+  // amount overstates our holdings and the fixed-amountIn router pull reverts. On BSC mainnet today this
+  // cut is 50% of the bonus (treasuryPercentMantissa = 0.5e18) — not 0 — and is governance-settable.
   let vReceived = seizeTokens;
   const venusLiquidator = new Contract(gate, VENUS_LIQUIDATOR_ABI, signer);
   const liqTreasuryPct: BigNumber = await venusLiquidator.treasuryPercentMantissa();
   if (!liqTreasuryPct.eq(0)) {
-    // Use the SAME incentive the seize above was computed with, else the bonus (and so the cut) is
-    // sized against the wrong number: VAI's seize math uses the borrower-agnostic getLiquidationIncentive.
-    const totalIncentive: BigNumber = isVai
-      ? await comptroller.getLiquidationIncentive(vBStock.address)
-      : await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+    // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
+    // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included — so
+    // use it here regardless of `isVai`. (The borrower-agnostic getLiquidationIncentive is only correct
+    // for VAI's SEIZE math, above; it is the wrong basis for the cut and would diverge whenever the
+    // borrower sits in a non-core pool whose vBStock incentive differs from core.)
+    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(
+      borrower,
+      vBStock.address,
+    );
     const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
     const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
     vReceived = seizeTokens.sub(treasuryCut);
+    console.log(
+      `Venus Liquidator treasury cut ${ethers.utils.formatEther(liqTreasuryPct)} of bonus -> ` +
+        `-${ethers.utils.formatUnits(treasuryCut, 8)} v${bStockSym} (credited ${ethers.utils.formatUnits(vReceived, 8)})`,
+    );
   }
 
   // Core redeem then routes `treasuryPercent` of the redeemed underlying to the treasury, so we hold
@@ -317,7 +356,13 @@ export async function atomicLiquidate(signer: Signer) {
 
   let router: string;
   let swapCalldata: string;
-  let amountOut: BigNumber; // final debt-asset out (drives minOut)
+  let amountOut: BigNumber; // final debt-asset out — display / expected proceeds
+  // The number minOut is derived from. It must be the GUARANTEED worst-case debt-asset out, not the
+  // indicative one: for a single-hop firm quote these coincide, but for a single-hop INDICATIVE winner
+  // (Liquid Mesh) the built order can fill anywhere down to its own floor, so deriving minOut off the
+  // indicative `out` would set minOut above what the fill guarantees and revert InsufficientOut on a
+  // perfectly in-slippage fill. Two-hop already sizes off the floor via `amm.expectedOut`.
+  let minOutBasis: BigNumber;
   let router2 = ethers.constants.AddressZero;
   let swapCalldata2 = "0x";
   let intermediateToken = ethers.constants.AddressZero;
@@ -331,6 +376,7 @@ export async function atomicLiquidate(signer: Signer) {
     router = ethers.utils.getAddress(r);
     swapCalldata = data;
     amountOut = BigNumber.from(process.env.MOCK_OUT || "0");
+    minOutBasis = amountOut; // mock path has no floor/indicative distinction
     if (process.env.MOCK_AMM) {
       const [r2, data2] = process.env.MOCK_AMM.split(":");
       router2 = ethers.utils.getAddress(r2);
@@ -391,14 +437,20 @@ export async function atomicLiquidate(signer: Signer) {
       swapCalldata2 = amm.calldata;
       intermediateToken = nativeOut;
       amountOut = BigNumber.from(amm.expectedOut);
+      minOutBasis = amountOut; // hop-2 expectedOut is already computed off the hop-1 floor
       console.log(
         `${hop1.source}: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(midOut, 18)} USDT (TTL ${ttl}s, ${router}); ` +
           `AMM: -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (${router2})`,
       );
     } else {
+      // USDT debt: the single hop IS the debt asset. Display the indicative out, but derive minOut from
+      // the built order's GUARANTEED floor (== out for a firm Native quote; the built worst-case for an
+      // indicative Liquid Mesh order), so an in-slippage LM fill below the indicative quote still clears.
       amountOut = midOut;
+      minOutBasis = midFloor;
       console.log(
-        `${hop1.source} quote: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} (TTL ${ttl}s, router ${router})`,
+        `${hop1.source} quote: ${seizedHumanQuote} ${bStockSym} -> ${ethers.utils.formatUnits(amountOut, debtDec)} ${debtSym} ` +
+          `(floor ${ethers.utils.formatUnits(midFloor, debtDec)}, TTL ${ttl}s, router ${router})`,
       );
     }
   }
@@ -411,8 +463,8 @@ export async function atomicLiquidate(signer: Signer) {
     }
   }
 
-  // minOut = amountOut minus an extra safety buffer on top of the quote slippage.
-  const minOut = amountOut.mul(Math.round((100 - minOutBufferPct) * 100)).div(10000);
+  // minOut = the GUARANTEED basis minus an extra safety buffer on top of the quote slippage.
+  const minOut = minOutBasis.mul(Math.round((100 - minOutBufferPct) * 100)).div(10000);
 
   const params = {
     borrower,

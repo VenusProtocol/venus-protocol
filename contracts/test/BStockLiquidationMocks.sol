@@ -53,8 +53,13 @@ contract MockVAIController {
 /// @dev Minimal Comptroller surface the script + BStockLiquidator read, plus a flash lender.
 contract MockComptrollerLite {
     uint256 public shortfall;
+    uint256 public liquidityErr; // getAccountLiquidity error slot; non-zero -> a failed reading (oracle etc.)
     uint256 public closeFactorMantissa = 0.5e18;
     uint256 public liquidationIncentiveMantissa = 1.1e18;
+    // Borrower-aware effective incentive. 0 -> falls back to liquidationIncentiveMantissa (the common
+    // case: a single-pool borrower). Set non-zero to model a borrower in a non-core pool whose vBStock
+    // incentive DIFFERS from core — the case the treasury-cut math must size against (effective, not core).
+    uint256 public effectiveIncentiveMantissa;
     uint256 public flashPremiumMantissa; // fee on flash principal, 1e18-scaled (default 0)
     address public liquidatorContract; // pool-wide gate; 0 = permissionless (direct liquidateBorrow)
     uint256 public treasuryPercent; // redeem fee, 1e18-scaled (default 0)
@@ -66,6 +71,14 @@ contract MockComptrollerLite {
 
     function setShortfall(uint256 s) external {
         shortfall = s;
+    }
+
+    function setLiquidityErr(uint256 e) external {
+        liquidityErr = e;
+    }
+
+    function setEffectiveIncentive(uint256 m) external {
+        effectiveIncentiveMantissa = m;
     }
 
     function setTreasuryPercent(uint256 p) external {
@@ -81,7 +94,7 @@ contract MockComptrollerLite {
     }
 
     function getAccountLiquidity(address) external view returns (uint256, uint256, uint256) {
-        return (0, 0, shortfall);
+        return (liquidityErr, 0, shortfall);
     }
 
     /// @dev Mirrors the seize math: seizeTokens = repay * incentive (1:1 collateral rate here).
@@ -110,9 +123,11 @@ contract MockComptrollerLite {
         return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
     }
 
-    /// @dev Read by the off-chain script to size the Venus Liquidator's bonus cut.
+    /// @dev Read by the off-chain script to size the Venus Liquidator's bonus cut. Returns the
+    ///      borrower-aware effective incentive when set, else the core value — so a test can make the
+    ///      two DIVERGE and prove the cut is sized off the effective one (mirrors the real gate).
     function getEffectiveLiquidationIncentive(address, address) external view returns (uint256) {
-        return liquidationIncentiveMantissa;
+        return effectiveIncentiveMantissa != 0 ? effectiveIncentiveMantissa : liquidationIncentiveMantissa;
     }
 
     /// @dev Borrower-agnostic incentive — the one VAI's seize math uses.
