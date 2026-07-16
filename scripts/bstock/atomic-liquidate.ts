@@ -282,13 +282,14 @@ export async function atomicLiquidate(signer: Signer) {
   //   - else -> vToken.liquidateBorrowFresh calls the borrower-aware 4-arg overload (reads the pool the
   //             borrower is actually in). The 3-arg overload always reads Core Pool params and diverges
   //             if the borrower has switched pools.
+  const seizeFn = isVai ? "liquidateVAICalculateSeizeTokens" : "liquidateCalculateSeizeTokens";
   const [seizeErr, seizeTokens]: BigNumber[] = isVai
     ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
     : await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay);
-  if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error ${seizeErr}`);
+  if (!seizeErr.eq(0)) throw new Error(`${seizeFn} error ${seizeErr}`);
   // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
   // surface it here rather than building a degenerate quote that reverts on-chain.
-  if (seizeTokens.eq(0)) throw new Error(`liquidateCalculateSeizeTokens returned 0 seize for ${borrower}`);
+  if (seizeTokens.eq(0)) throw new Error(`${seizeFn} returned 0 seize for ${borrower}`);
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const ONE = BigNumber.from(10).pow(18);
 

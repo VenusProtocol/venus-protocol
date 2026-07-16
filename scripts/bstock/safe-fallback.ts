@@ -175,13 +175,14 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   //   - else -> vToken.liquidateBorrowFresh calls the borrower-aware 4-arg overload (reads the
   //             borrower's actual pool). The 3-arg overload always reads Core Pool params and diverges
   //             if the borrower has switched pools, producing a stale redeem amount in the batch.
+  const seizeFn = isVai ? "liquidateVAICalculateSeizeTokens" : "liquidateCalculateSeizeTokens";
   const [seizeErr, seizeTokens]: BigNumber[] = isVai
     ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
     : await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay);
-  if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error code ${seizeErr}`);
+  if (!seizeErr.eq(0)) throw new Error(`${seizeFn} error code ${seizeErr}`);
   // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
   // surface it here rather than baking a degenerate redeem amount into the batch.
-  if (seizeTokens.eq(0)) throw new Error(`liquidateCalculateSeizeTokens returned 0 seize for ${borrower}`);
+  if (seizeTokens.eq(0)) throw new Error(`${seizeFn} returned 0 seize for ${borrower}`);
 
   // The Venus Liquidator keeps a treasury cut of the liquidation BONUS (see
   // Liquidator._splitLiquidationIncentive), so the Safe is credited fewer vTokens than seizeTokens.
