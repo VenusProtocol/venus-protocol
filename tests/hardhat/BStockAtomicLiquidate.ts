@@ -450,12 +450,19 @@ describe("bStock atomic liquidation script", () => {
       expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
     });
 
-    it("sizes the Liquidator treasury cut off the effective incentive, not core (VAI)", async () => {
+    it("sizes the Liquidator treasury cut off the effective incentive, not core (VAI, defensive)", async () => {
       await vai.mint(liq.address, REPAY);
-      // Model a VAI borrower in a non-core pool: the EFFECTIVE vBStock incentive (1.25x) differs from
-      // core (1.1x). The gate sizes its bonus cut with the effective incentive for EVERY debt type
-      // (Liquidator._splitLiquidationIncentive), so the script must too. Using the borrower-agnostic
-      // core incentive (the pre-fix VAI path) would under-deduct the cut and over-quote the hop-1 amount.
+      // DEFENSIVE guard, not a reproducible mainnet state. The gate sizes its bonus cut with the
+      // EFFECTIVE incentive for EVERY debt type (Liquidator._splitLiquidationIncentive), so the script
+      // must too; using the borrower-agnostic core incentive (the pre-fix VAI path) would under-deduct
+      // the cut and over-quote hop-1. This test forces core (1.1x) != effective (1.25x) on the MOCK to
+      // pin the script to the gate's formula. On the REAL protocol the two CANNOT diverge for a VAI
+      // borrower: VAI mint requires the core pool (VAIController.mintVAI) and an account with VAI debt is
+      // barred from leaving it (MarketFacet.hasValidPoolBorrows rejects a non-core switch while
+      // mintedVAIs>0), so userPoolId is always 0 and getEffectiveLiquidationIncentive == getLiquidationIncentive.
+      // The genuinely divergent case is an ERC20 debt with the borrower in a non-core pool — exercised
+      // on real contracts in the fork suite ("effective-incentive divergence"). We still assert effective
+      // here so the script stays correct if that VAI-core invariant is ever relaxed (e.g. e-mode VAI).
       await comptroller.setEffectiveIncentive(U("1.25"));
       const venusLiq = await ethers.getContractAt("MockVenusLiquidator", await comptroller.liquidatorContract());
       await venusLiq.setTreasuryCut(U("0.5")); // 50% of the bonus, like BSC mainnet today

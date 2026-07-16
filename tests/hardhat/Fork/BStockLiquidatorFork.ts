@@ -82,6 +82,23 @@ const PSM_FORK_ABI = [
   "function isPaused() view returns (bool)",
   "function pause()",
 ];
+// e-mode pool admin surface used to stand up a NON-CORE pool that lists vBStock at a divergent
+// liquidation incentive — the only reachable state where getEffectiveLiquidationIncentive differs
+// from the core-pool getLiquidationIncentive (impossible for VAI, which is core-pool-locked).
+const POOL_ADMIN_ABI = [
+  "function createPool(string) returns (uint96)",
+  "function addPoolMarkets(uint96[],address[])",
+  "function setCollateralFactor(uint96,address,uint256,uint256) returns (uint256)",
+  "function setLiquidationIncentive(uint96,address,uint256) returns (uint256)",
+  "function setIsBorrowAllowed(uint96,address,bool)",
+  "function enterPool(uint96)",
+  "function enterMarkets(address[]) returns (uint256[])",
+  "function getLiquidationIncentive(address) view returns (uint256)",
+  "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
+  "function treasuryPercent() view returns (uint256)",
+  "function liquidatorContract() view returns (address)",
+];
+const VENUS_LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
 // bStock USD prices: healthy vs post-crash (the stock gapped down ~80%).
 const P_HEALTHY = parseUnits("250", 18);
@@ -94,6 +111,7 @@ const B = {
   BNB: ethers.utils.getAddress("0x00000000000000000000000000000000ca110003"),
   VAI: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000a"),
   VAI_SCRIPT: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000b"),
+  EMODE: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000d"),
   FLASH: ethers.utils.getAddress("0x00000000000000000000000000000000ca110004"),
   FORCED: ethers.utils.getAddress("0x00000000000000000000000000000000ca110005"),
   FORCED_SCRIPT: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000c"),
@@ -410,6 +428,57 @@ const test = () => {
         return seizeTokens.mul(xr).div(ONE).mul(P_CRASH).div(ONE).mul(90).div(100);
       }
 
+      // Stand up a NON-CORE e-mode pool that lists vBStock at a liquidation incentive DIFFERENT from
+      // core, put the borrower in it with an ERC20 (USDT) debt, and gap the stock into shortfall. This is
+      // the only state where getEffectiveLiquidationIncentive (pool-resolved) diverges from the core
+      // getLiquidationIncentive — VAI can never reach it (VAIController.mintVAI requires the core pool and
+      // hasValidPoolBorrows bars leaving it while VAI debt is open), so the treasury-cut divergence is
+      // proven here on a real ERC20 debt against the live diamond.
+      async function makeUnderwaterEmodeBorrower(
+        borrowerAddr: string,
+        poolIncentive: BigNumber,
+        borrowUsdt: BigNumber,
+      ): Promise<BigNumber> {
+        const tl = await initMainnetUser(A.TIMELOCK, parseEther("10"));
+        const acm = new ethers.Contract(A.ACM, ACM_GIVE_ABI, tl);
+        for (const sig of [
+          "createPool(string)",
+          "addPoolMarkets(uint96[],address[])",
+          "setCollateralFactor(uint96,address,uint256,uint256)",
+          "setLiquidationIncentive(uint96,address,uint256)",
+          "setIsBorrowAllowed(uint96,address,bool)",
+        ]) {
+          await acm.giveCallPermission(A.COMPTROLLER, sig, A.TIMELOCK);
+        }
+        const cTl = new ethers.Contract(A.COMPTROLLER, POOL_ADMIN_ABI, tl);
+        const poolId: BigNumber = await cTl.callStatic.createPool("bstock-emode-divergence");
+        await cTl.createPool("bstock-emode-divergence");
+        // vBStock is the collateral in the pool at a DIVERGENT incentive; VUSDT is the borrowable debt.
+        await cTl.addPoolMarkets([poolId, poolId], [mkt.vBStock.address, VUSDT]);
+        await cTl.setCollateralFactor(poolId, mkt.vBStock.address, parseUnits("0.6", 18), parseUnits("0.6", 18));
+        await cTl.setLiquidationIncentive(poolId, mkt.vBStock.address, poolIncentive);
+        await cTl.setIsBorrowAllowed(poolId, VUSDT, true);
+
+        const borrower = await initMainnetUser(borrowerAddr, parseUnits("10", 18));
+        const COLLATERAL = parseUnits("100", 18);
+        await mkt.bStock.mint(borrowerAddr, COLLATERAL);
+        await mkt.bStock.connect(borrower).approve(mkt.vBStock.address, COLLATERAL);
+        await new ethers.Contract(mkt.vBStock.address, VTOKEN_ABI, borrower).mint(COLLATERAL);
+        const cAsBorrower = new ethers.Contract(A.COMPTROLLER, POOL_ADMIN_ABI, borrower);
+        await cAsBorrower.enterMarkets([mkt.vBStock.address]);
+        // Switch pools BEFORE borrowing: with no open debt the enterPool liquidity check passes trivially.
+        await cAsBorrower.enterPool(poolId);
+        // Borrow USDT while in the non-core pool. Legacy vTokens return an error CODE — probe, then assert.
+        const vUsdt = new ethers.Contract(VUSDT, VTOKEN_ABI, borrower);
+        const code: BigNumber = await vUsdt.callStatic.borrow(borrowUsdt);
+        if (!code.eq(0)) throw new Error(`borrow(VUSDT) in pool ${poolId.toString()} returned code ${code.toString()}`);
+        await vUsdt.borrow(borrowUsdt);
+        if ((await vUsdt.borrowBalanceStored(borrowerAddr)).eq(0)) throw new Error("borrow produced no debt");
+        await mkt.setPrice(P_CRASH);
+        await mock.setRate(P_CRASH);
+        return poolId;
+      }
+
       it("two-hop VAI debt, inventory mode: bStock->USDT (mock) -> VAI through the REAL PSM, script-built calldata", async () => {
         const vaiCtrl = await makeUnderwaterVaiBorrower(B.VAI, parseUnits("4000", 18));
         const liqVai = await deployVaiLiquidator();
@@ -548,6 +617,115 @@ const test = () => {
         await expect(getPsmSwap({ amountIn: ONE, recipient: liq.address }, ethers.provider)).to.be.rejectedWith(
           /paused/i,
         );
+      });
+
+      it("effective-incentive divergence (ERC20 debt, non-core pool): script sizes the cut off effective and settles", async () => {
+        // The divergence the VAI unit test can only MODEL is REAL here. A non-core e-mode pool lists
+        // vBStock at 1.25x while core stays 1.1x, and the USDT borrower sits in that pool — so on the live
+        // diamond getEffectiveLiquidationIncentive(borrower, vBStock) (1.25) differs from the core
+        // getLiquidationIncentive(vBStock) (1.1). The gate sizes its treasury cut off the effective one for
+        // EVERY debt (Liquidator._splitLiquidationIncentive), so the script must too; a core-based cut
+        // would overstate the credited seize and missize the hop-1 sell. We prove (a) the two getters
+        // actually diverge on real contracts, (b) the script quotes hop-1 off the EFFECTIVE-derived seize,
+        // and (c) it settles end-to-end through the real gate.
+        const POOL_INCENTIVE = parseUnits("1.25", 18);
+        await makeUnderwaterEmodeBorrower(B.EMODE, POOL_INCENTIVE, parseUnits("5000", 18));
+
+        const comptroller = new ethers.Contract(A.COMPTROLLER, POOL_ADMIN_ABI, owner);
+        const coreInc: BigNumber = await comptroller.getLiquidationIncentive(mkt.vBStock.address);
+        const effInc: BigNumber = await comptroller.getEffectiveLiquidationIncentive(B.EMODE, mkt.vBStock.address);
+        // (a) real, reachable divergence — not a mock.
+        expect(coreInc).to.equal(parseUnits("1.1", 18));
+        expect(effInc).to.equal(POOL_INCENTIVE);
+        expect(effInc.eq(coreInc)).to.equal(false);
+
+        const REPAY = parseUnits("2000", 18);
+        // Reproduce the script's cut math for BOTH incentives so the assertion is discriminating.
+        const seizeLens = new ethers.Contract(
+          A.COMPTROLLER,
+          ["function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)"],
+          owner,
+        );
+        const [, seizeTokens]: BigNumber[] = await seizeLens.liquidateCalculateSeizeTokens(
+          B.EMODE,
+          VUSDT,
+          mkt.vBStock.address,
+          REPAY,
+        );
+        const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
+        const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
+        const gate: string = await comptroller.liquidatorContract();
+        const treasuryPct: BigNumber = await new ethers.Contract(
+          gate,
+          VENUS_LIQUIDATOR_ABI,
+          owner,
+        ).treasuryPercentMantissa();
+        // Mirrors atomic-liquidate.ts exactly (SEIZE_BUFFER=0 -> seizedForQuote == seizedRaw), so the
+        // human string below equals the script's quoted `amount` bit-for-bit.
+        const sellFor = (inc: BigNumber): BigNumber => {
+          const bonus = seizeTokens.mul(inc.sub(ONE)).div(inc);
+          const cut = bonus.mul(treasuryPct).div(ONE);
+          const vRecv = seizeTokens.sub(cut);
+          return vRecv.mul(xr).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
+        };
+        const sellEff = sellFor(effInc);
+        const sellCore = sellFor(coreInc);
+        expect(sellEff.eq(sellCore)).to.equal(false); // the incentive choice materially moves the sell size
+
+        // Run the SCRIPT and capture the hop-1 quote `amount` (bStock, human units) it asks Native for.
+        await fund(TOK.USDT, liq.address, REPAY); // inventory
+        const usdtDelivered = P_CRASH.mul(sellEff).div(ONE); // mock router pays this for the seized bStock
+        let quotedAmount: string | null = null;
+        const realFetch = globalThis.fetch;
+        globalThis.fetch = (async (url: unknown) => {
+          quotedAmount = new URL(String(url)).searchParams.get("amount");
+          return {
+            json: async () => ({
+              success: true,
+              recipient: liq.address,
+              amountIn: "0",
+              amountOut: usdtDelivered.toString(),
+              orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+              txRequest: { target: mock.address, calldata: buildSingleHopMock(mkt, mock, liq.address), value: "0" },
+            }),
+          };
+        }) as unknown as typeof fetch;
+
+        const SCRIPT_ENV = [
+          "LIQUIDATOR",
+          "BORROWER",
+          "VBSTOCK",
+          "VDEBT",
+          "REPAY_AMOUNT",
+          "MODE",
+          "SOURCE",
+          "NATIVE_API_KEY",
+          "SEIZE_BUFFER",
+        ];
+        const borrowBefore = await new ethers.Contract(VUSDT, VTOKEN_ABI, owner).borrowBalanceStored(B.EMODE);
+        try {
+          Object.assign(process.env, {
+            LIQUIDATOR: liq.address,
+            BORROWER: B.EMODE,
+            VBSTOCK: mkt.vBStock.address,
+            VDEBT: VUSDT,
+            REPAY_AMOUNT: "2000",
+            MODE: "inventory",
+            SOURCE: "native",
+            NATIVE_API_KEY: "test-key",
+            SEIZE_BUFFER: "0", // no haircut -> the quoted amount equals the effective-cut seizedRaw exactly
+          });
+          await atomicLiquidate(owner);
+        } finally {
+          globalThis.fetch = realFetch;
+          for (const k of SCRIPT_ENV) delete process.env[k];
+        }
+
+        // (b) the script quoted the EFFECTIVE-derived sell size — and it is NOT the core-derived one.
+        expect(quotedAmount).to.equal(ethers.utils.formatUnits(sellEff, 18));
+        expect(quotedAmount).to.not.equal(ethers.utils.formatUnits(sellCore, 18));
+        // (c) settled through the real gate.
+        await assertSettledFor(liq, mkt, VUSDT, B.EMODE, borrowBefore);
       });
 
       it("minOut breach -> InsufficientOut, FULL rollback: borrow + inventory intact, nothing stranded", async () => {
