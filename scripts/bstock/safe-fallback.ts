@@ -1,10 +1,12 @@
 /**
- * bStock backstop liquidation — Safe multisig FALLBACK flow (no Native swap).
+ * bStock backstop liquidation — Safe multisig FALLBACK flow (no on-chain swap).
  *
- * When the Native RFQ path is unavailable (API down, halt, weekend, thin depth), the liquidation is
- * settled manually: a Safe{Wallet} multisig repays the bad debt with its OWN funds, seizes the
- * bStock, and ships the raw bStock to a custody/Binance top-up address where finance offloads it on
- * the CEX.
+ * When the atomic path's quote leg is unavailable — EVERY hop-1 RFQ source down (both Native and Liquid
+ * Mesh: API halt, weekend, thin depth) or, for a VAI debt, the hop-2 PSM paused / mint-cap exhausted —
+ * the liquidation is settled manually: a Safe{Wallet} multisig repays the bad debt with its OWN funds,
+ * seizes the bStock, and ships the raw bStock to a custody/Binance top-up address where finance offloads
+ * it on the CEX. Because nothing is swapped on-chain here, this flow is independent of the RFQ sources
+ * and the PSM — which is exactly why it is the fallback when either is down.
  *
  * This script does NOT send anything. It READS chain state and EMITS a Safe Transaction Builder
  * batch JSON for the signers to review and execute.
