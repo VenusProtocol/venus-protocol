@@ -20,7 +20,8 @@
 
   <!-- atomic-liquidate grouping backdrop -->
   <rect class="grp" x="92" y="270" width="456" height="520" rx="12"/>
-  <text class="mono" x="108" y="290" fill="#475569" font-weight="600">2 · atomic-liquidate.ts &#160;(DRY_RUN=1)</text>
+  <text class="mono" x="108" y="290" fill="#475569" font-weight="600">2 · atomic-liquidate.ts</text>
+  <text class="mono" x="540" y="290" fill="#475569" font-weight="600" text-anchor="end">DRY_RUN=1</text>
 
   <!-- ============================ edges ============================ -->
   <!-- start -> native-smoke -->
