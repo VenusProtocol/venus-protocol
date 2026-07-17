@@ -51,6 +51,7 @@ describe("bStock atomic liquidation script", () => {
   let usdt: Contract, bStock: Contract;
   let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, liq: Contract;
   let wbnb: Contract, vWBNB: Contract;
+  let venusLiq: Contract, vai: Contract, vaiController: Contract;
 
   async function deployLiquidator(comptrollerAddr: string) {
     const Factory = await ethers.getContractFactory("BStockLiquidator");
@@ -103,9 +104,15 @@ describe("bStock atomic liquidation script", () => {
     vWBNB = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(wbnb.address, comptroller.address);
 
     // Core's pool-wide liquidator gate is always configured; every liquidation routes through it.
-    const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
+    venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
     await comptroller.setLiquidatorContract(venusLiq.address);
     await venusLiq.setVBnb(VBNB);
+
+    // VAI wiring: needed by the script's VAI detection and by the gate's VAI-guard pre-flight.
+    vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
 
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
@@ -258,6 +265,55 @@ describe("bStock atomic liquidation script", () => {
 
     await expect(atomicLiquidate(owner)).to.be.rejectedWith(/unset/i);
     expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+  });
+
+  // The gate blocks liquidating an UNRELATED market while the borrower's VAI debt is above the
+  // threshold (Liquidator._checkForceVAILiquidate). It is a five-term OR that permits the liquidation
+  // if ANY term holds, so the pre-flight must mirror all five: warning on a subset would refuse
+  // liquidations that would actually succeed.
+  describe("VAI gate pre-flight (non-VAI debt)", () => {
+    beforeEach(async () => {
+      await usdt.mint(liq.address, REPAY);
+      await vaiController.setVAIRepayAmount(borrower.address, U("5000")); // >= the 1000 default threshold
+    });
+
+    it("refuses a USDT liquidation and names the VAI-first remedy when the gate would block it", async () => {
+      await venusLiq.setForceVAILiquidate(true); // all five terms now false -> the gate WOULD revert
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/liquidate the VAI debt first/i);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // nothing sent
+    });
+
+    it("does not fire while forceVAILiquidate is off (the mainnet default)", async () => {
+      setEnv(); // forceVAILiquidate defaults to false
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT); // settled normally
+    });
+
+    it("does not fire when forced liquidation is enabled on the debt market (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setForcedLiquidation(vDebt.address, true); // gate lets it through
+      setEnv();
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("does not fire when VAI liquidation is paused (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setActionPaused(vaiController.address, 5, true); // Action.LIQUIDATE
+      setEnv();
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("does not fire when the borrower's VAI debt is below the threshold", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await vaiController.setVAIRepayAmount(borrower.address, U("999")); // < 1000
+      setEnv();
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
   });
 
   it("refuses a router that is not allowlisted on the contract", async () => {

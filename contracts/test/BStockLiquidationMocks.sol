@@ -40,13 +40,23 @@ interface IFlashReceiverLike {
 ///      is resolved through `getVAIAddress()`, exactly as the real VAIController exposes it.
 contract MockVAIController {
     address public immutable vai;
+    mapping(address => uint256) public vaiRepayAmount; // borrower -> outstanding VAI debt
 
     constructor(address vai_) {
         vai = vai_;
     }
 
+    function setVAIRepayAmount(address borrower, uint256 amount) external {
+        vaiRepayAmount[borrower] = amount;
+    }
+
     function getVAIAddress() external view returns (address) {
         return vai;
+    }
+
+    /// @dev Read by the gate's `_checkForceVAILiquidate` and by the scripts' VAI-gate pre-flight.
+    function getVAIRepayAmount(address borrower) external view returns (uint256) {
+        return vaiRepayAmount[borrower];
     }
 }
 
@@ -65,8 +75,25 @@ contract MockComptrollerLite {
     uint256 public treasuryPercent; // redeem fee, 1e18-scaled (default 0)
     address public vaiController; // a debt equal to this is VAI (no underlying(); see MockVAIController)
 
+    /// @dev Two of the gate's VAI-guard escape hatches (see Liquidator._checkForceVAILiquidate): either
+    ///      one permits liquidating a non-VAI market regardless of the borrower's VAI debt.
+    mapping(address => bool) public isForcedLiquidationEnabled; // vToken -> forced liquidation on
+    mapping(address => mapping(uint8 => bool)) private _actionPaused; // market -> Action -> paused
+
     function setVaiController(address v) external {
         vaiController = v;
+    }
+
+    function setForcedLiquidation(address vToken, bool enabled) external {
+        isForcedLiquidationEnabled[vToken] = enabled;
+    }
+
+    function setActionPaused(address market, uint8 action, bool paused) external {
+        _actionPaused[market][action] = paused;
+    }
+
+    function actionPaused(address market, uint8 action) external view returns (bool) {
+        return _actionPaused[market][action];
     }
 
     function setShortfall(uint256 s) external {
@@ -406,6 +433,19 @@ contract MockVenusLiquidator {
     uint256 public pullMantissa = 1e18; // fraction of repayAmount actually pulled (default 100%)
     address public vBnb; // native BNB market; a repay for this vToken must arrive as msg.value
     address public vaiController; // VAI "market"; the repay is the VAI ERC20, resolved via getVAIAddress()
+
+    /// @dev The gate's VAI guard, mirrored for the scripts' pre-flight. `forceVAILiquidate` is FALSE on
+    ///      BSC mainnet today, which short-circuits the guard — hence the default here.
+    bool public forceVAILiquidate;
+    uint256 public minLiquidatableVAI = 1000e18;
+
+    function setForceVAILiquidate(bool v) external {
+        forceVAILiquidate = v;
+    }
+
+    function setMinLiquidatableVAI(uint256 v) external {
+        minLiquidatableVAI = v;
+    }
 
     function setTreasuryCut(uint256 m) external {
         treasuryCutMantissa = m;

@@ -133,6 +133,56 @@ describe("BStock safe-fallback batch generator", () => {
     expect(vReceived).to.equal(SEIZE); // seize via the VAI 2-arg math, cut 0
   });
 
+  // The gate blocks liquidating an UNRELATED market while the borrower's VAI debt is above the
+  // threshold. Catching it at BUILD time matters more here than in the atomic script: a batch that
+  // reverts on execution costs a signing round, not just gas.
+  describe("VAI gate pre-flight (non-VAI debt)", () => {
+    let vaiController: Contract;
+
+    beforeEach(async () => {
+      const vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+      vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+      await comptroller.setVaiController(vaiController.address);
+      await venusLiq.setVaiController(vaiController.address);
+      await vaiController.setVAIRepayAmount(borrower.address, U("5000")); // >= the 1000 default threshold
+    });
+
+    it("refuses to build the batch and names the VAI-first remedy when the gate would block it", async () => {
+      await venusLiq.setForceVAILiquidate(true); // all five terms false -> the gate WOULD revert
+      setEnv();
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/liquidate the VAI debt first/i);
+    });
+
+    it("does not fire while forceVAILiquidate is off (the mainnet default)", async () => {
+      setEnv();
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4); // built normally
+    });
+
+    it("does not fire when forced liquidation is enabled on the debt market (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setForcedLiquidation(vDebt.address, true);
+      setEnv();
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4);
+    });
+
+    it("does not fire when VAI liquidation is paused (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setActionPaused(vaiController.address, 5, true); // Action.LIQUIDATE
+      setEnv();
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4);
+    });
+
+    it("never blocks liquidating the VAI debt itself (the remedy step)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      setEnv({ VDEBT: vaiController.address });
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4); // the VAI-first step must never be self-blocked
+    });
+  });
+
   it("throws when the gate is unset, aligning with the on-chain liquidator", async () => {
     await comptroller.setLiquidatorContract(ethers.constants.AddressZero);
     setEnv();

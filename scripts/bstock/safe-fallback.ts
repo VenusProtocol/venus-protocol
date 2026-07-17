@@ -61,6 +61,7 @@ import { promises as fs } from "fs";
 import * as path from "path";
 
 import { buildBatch, call } from "./lib/safe";
+import { assertVaiGateClear } from "./lib/vai-gate";
 
 const DEFAULT_SAFE = "0xdc6E047f665c3Db94292Bb7fB412B25370db2029";
 const DEFAULT_RPC = "https://bsc-dataseed.bnbchain.org";
@@ -157,6 +158,18 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   }
   const repaySpender = utils.getAddress(gate);
   console.log(`routing repay through Venus Liquidator ${gate}`);
+
+  // The gate refuses to liquidate an unrelated market while the borrower's VAI debt is above the
+  // threshold (Liquidator._checkForceVAILiquidate). Catch it while BUILDING the batch — a Safe batch
+  // that reverts on execution costs signer time and a fresh signing round, not just gas.
+  await assertVaiGateClear({
+    provider,
+    gate,
+    comptroller: comptroller.address,
+    vaiController: vaiControllerAddr,
+    vDebt: vDebt.address,
+    borrower,
+  });
 
   const safeDebtBal: BigNumber = isBnb ? await provider.getBalance(safe) : await debt!.balanceOf(safe);
   if (safeDebtBal.lt(repay)) {

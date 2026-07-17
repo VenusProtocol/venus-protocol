@@ -79,6 +79,7 @@ import { BSC_WBNB, getAmmSwap } from "./lib/amm";
 import { BSC_USDT } from "./lib/native";
 import { getPsmSwap } from "./lib/psm";
 import { QuoteArgs, selectedSources } from "./lib/sources";
+import { assertVaiGateClear } from "./lib/vai-gate";
 
 const PARAMS_TUPLE =
   "(address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut,address router2,bytes swapCalldata2,address intermediateToken,uint256 deadline)";
@@ -309,6 +310,18 @@ export async function atomicLiquidate(signer: Signer) {
       "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the contract routes every repay through it and reverts when unset",
     );
   }
+
+  // The gate refuses to liquidate an unrelated market while the borrower's VAI debt is above the
+  // threshold (Liquidator._checkForceVAILiquidate). Surface that here — naming the VAI-first remedy —
+  // rather than burning a settle tx on an on-chain VAIDebtTooHigh revert.
+  await assertVaiGateClear({
+    provider: ethers.provider,
+    gate,
+    comptroller: comptroller.address,
+    vaiController: vaiControllerAddr,
+    vDebt: vDebt.address,
+    borrower,
+  });
 
   // The gate keeps a treasury cut of the liquidation BONUS (see Liquidator._splitLiquidationIncentive),
   // so this contract receives fewer vTokens than `seizeTokens`. Deduct that cut, else the precomputed

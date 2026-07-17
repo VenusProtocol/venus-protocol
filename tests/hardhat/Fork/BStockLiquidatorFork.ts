@@ -34,6 +34,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { atomicLiquidate } from "../../../scripts/bstock/atomic-liquidate";
 import { getPsmSwap } from "../../../scripts/bstock/lib/psm";
+import { assertVaiGateClear } from "../../../scripts/bstock/lib/vai-gate";
 import {
   A,
   Action,
@@ -44,6 +45,7 @@ import {
   TOK,
   VTOKEN_ABI,
   ZERO,
+  asTimelockWith,
   assertRolledBack,
   assertSettledFor,
   buildSingleHopMock,
@@ -111,6 +113,7 @@ const B = {
   BNB: ethers.utils.getAddress("0x00000000000000000000000000000000ca110003"),
   VAI: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000a"),
   VAI_SCRIPT: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000b"),
+  VAI_GATE: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000e"),
   EMODE: ethers.utils.getAddress("0x00000000000000000000000000000000ca11000d"),
   FLASH: ethers.utils.getAddress("0x00000000000000000000000000000000ca110004"),
   FORCED: ethers.utils.getAddress("0x00000000000000000000000000000000ca110005"),
@@ -617,6 +620,78 @@ const test = () => {
         await expect(getPsmSwap({ amountIn: ONE, recipient: liq.address }, ethers.provider)).to.be.rejectedWith(
           /paused/i,
         );
+      });
+
+      // The scripts' VAI-gate pre-flight (lib/vai-gate.ts) is a hand-copied mirror of the Liquidator's
+      // PRIVATE _checkForceVAILiquidate. Unit tests can only assert it against our own mock — written from
+      // the same reading — so a misreading would leave both wrong in the same direction and still green
+      // (exactly how L04's overload bug survived). This pins the mirror to the REAL gate instead: for each
+      // state, the pre-flight must refuse IFF the live Liquidator would revert VAIDebtTooHigh.
+      it("VAI gate: the script pre-flight mirrors the REAL Liquidator guard in both directions", async () => {
+        await makeUnderwaterVaiBorrower(B.VAI_GATE, parseUnits("5000", 18)); // VAI debt >> minLiquidatableVAI
+
+        const gateAddr: string = await new ethers.Contract(
+          A.COMPTROLLER,
+          ["function liquidatorContract() view returns (address)"],
+          owner,
+        ).liquidatorContract();
+        const gate = new ethers.Contract(
+          gateAddr,
+          [
+            "function liquidateBorrow(address,address,uint256,address) payable",
+            "function resumeForceVAILiquidate()",
+            "function forceVAILiquidate() view returns (bool)",
+            "error VAIDebtTooHigh(uint256 vaiDebt, uint256 minLiquidatableVAI)",
+          ],
+          owner,
+        );
+        const args = {
+          provider: ethers.provider,
+          gate: gateAddr,
+          comptroller: A.COMPTROLLER,
+          vaiController: VAI_CONTROLLER,
+          vDebt: VUSDT, // an UNRELATED market — the one the VAI debt would block
+          borrower: B.VAI_GATE,
+        };
+        // _checkForceVAILiquidate runs before any repay logic, so callStatic surfaces the guard itself
+        // without the borrower needing a live USDT borrow.
+        const probeGate = () =>
+          gate.callStatic.liquidateBorrow(VUSDT, B.VAI_GATE, parseUnits("1", 18), mkt.vBStock.address);
+
+        // BASELINE — mainnet has the switch OFF, so the guard cannot fire and the pre-flight permits.
+        expect(await gate.forceVAILiquidate()).to.equal(false);
+        await assertVaiGateClear(args); // does not throw
+
+        // Flip the REAL switch through the REAL ACM + timelock (a governance-reachable state).
+        const tl = await asTimelockWith([[gateAddr, "resumeForceVAILiquidate()"]]);
+        await gate.connect(tl).resumeForceVAILiquidate();
+        expect(await gate.forceVAILiquidate()).to.equal(true);
+
+        // 1. The live gate now rejects the unrelated liquidation...
+        await expect(probeGate()).to.be.revertedWithCustomError(gate, "VAIDebtTooHigh");
+        // ...and the pre-flight refuses the same state, naming the remedy.
+        await expect(assertVaiGateClear(args)).to.be.rejectedWith(/liquidate the VAI debt first/i);
+
+        // 2. Liquidating VAI ITSELF is never blocked — the remedy step must stay reachable.
+        await assertVaiGateClear({ ...args, vDebt: VAI_CONTROLLER });
+
+        // 3. ESCAPE HATCH (forced liquidation on the debt market). This is the term a subset-check would
+        //    miss: the live gate stops rejecting on VAI grounds, so the pre-flight MUST stop warning —
+        //    otherwise it blocks a liquidation that would have succeeded.
+        const cTl = await asTimelockWith([[A.COMPTROLLER, "_setForcedLiquidation(address,bool)"]]);
+        await new ethers.Contract(
+          A.COMPTROLLER,
+          ["function _setForcedLiquidation(address,bool)"],
+          cTl,
+        )._setForcedLiquidation(VUSDT, true);
+
+        // The live gate no longer fails on VAI grounds (it still fails later — no borrow to repay).
+        const err = await probeGate().then(
+          () => null,
+          (e: Error) => e,
+        );
+        expect(err?.message ?? "").to.not.match(/VAIDebtTooHigh/);
+        await assertVaiGateClear(args); // pre-flight agrees: no warning
       });
 
       it("effective-incentive divergence (ERC20 debt, non-core pool): script sizes the cut off effective and settles", async () => {
