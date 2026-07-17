@@ -4,10 +4,12 @@
  * One tx: the contract repays the borrow, seizes + redeems the bStock, and sells it to the debt
  * asset in one or two hops. Hop 1 is a pre-fetched best-of quote (bStock -> USDT) from the source
  * registry (Native RFQ / Liquid Mesh / future sources — see lib/sources.ts). For a USDT debt market that
- * single hop is the debt asset; for a non-USDT debt market a second hop (USDT -> debt via an allowlisted
- * AMM/aggregator, see lib/amm.ts) is appended. This script does the OFF-CHAIN half (precompute the seize,
- * fetch the quotes with the taker = the contract) and then calls `liquidate` (inventory mode) or
- * `flashLiquidate` (Venus flash-loan mode).
+ * single hop is the debt asset; for a non-USDT debt market a second hop (USDT -> debt) is appended — via
+ * an allowlisted AMM/aggregator (lib/amm.ts) for an ERC20 debt, or via the Peg Stability Module
+ * (`swapStableForVAI`, lib/psm.ts) for a VAI debt. VAI is inventory-only (no vVAI to flash from) and its
+ * seize keys off `liquidateVAICalculateSeizeTokens`. Native BNB debt (vBNB) is handled too (see below).
+ * This script does the OFF-CHAIN half (precompute the seize, fetch the quotes with the taker = the
+ * contract) and then calls `liquidate` (inventory mode) or `flashLiquidate` (Venus flash-loan mode).
  *
  *   1. Comptroller.liquidateCalculateSeizeTokens(borrower, vDebt, vBStock, repay) -> seize vTokens
  *   2. seizeTokens * vBStock.exchangeRateStored() / 1e18                  -> raw bStock (floor)
@@ -58,8 +60,14 @@
  *                   PegStability_USDT). Must be allowlisted via setRouter; calldata is encoded
  *                   locally (lib/psm.ts). MODE=flash is rejected for VAI (no vVAI to flash from).
  *   DRY_RUN         "1" -> callStatic only, send nothing
- *   MOCK_NATIVE     hop-1 "router:calldata" for fork/local tests (see below)
- *   MOCK_AMM        hop-2 "router:calldata" for fork/local tests (two-hop); MOCK_OUT = final debt out
+ *
+ *   Test / fork overrides (normally unset):
+ *   MOCK_NATIVE     hop-1 "router:calldata" that bypasses the source registry (name is historical — it
+ *                   mocks whichever hop-1 source, not only Native); MOCK_OUT = the out it should report
+ *   MOCK_AMM        hop-2 "router:calldata" for the two-hop path; MOCK_OUT = final debt out
+ *   IMPERSONATE     address to impersonate as the caller on a fork (hardhat_impersonateAccount)
+ *   USDT_ADDR       override the hop-1 output / intermediate token (default BSC USDT)
+ *   WBNB_ADDR       override WBNB for the native-BNB accounting (default canonical BSC WBNB)
  *
  * Native BNB debt (vBNB) is auto-detected — vBNB has no underlying() — and accounted in WBNB at its
  * canonical BSC address; the contract unwraps the repay, so pre-fund inventory in WBNB (MODE=inventory).
@@ -196,11 +204,11 @@ export async function atomicLiquidate(signer: Signer) {
   }
   // Bound the haircut: a garbage or oversized value would silently under-quote (and in flash mode
   // starve the principal + premium repay). The on-chain InsufficientOut still backstops it, but fail
-  // loudly here instead of after burning a Native quote.
+  // loudly here instead of after burning a hop-1 quote.
   if (!Number.isFinite(seizeBufferPct) || seizeBufferPct < 0 || seizeBufferPct >= 100) {
     throw new Error(`SEIZE_BUFFER must be a percent in [0, 100), got "${process.env.SEIZE_BUFFER}"`);
   }
-  // Minimum remaining Native-quote TTL (seconds) required just before submitting the settle tx. The
+  // Minimum remaining hop-1 quote TTL (seconds) required just before submitting the settle tx. The
   // two-hop AMM round-trip and on-chain reads after the initial TTL check consume wall-clock, so the
   // quote is re-verified against this margin to abort + refetch rather than burn gas on an on-chain
   // DeadlineExpired revert.
@@ -355,8 +363,8 @@ export async function atomicLiquidate(signer: Signer) {
   //   - other debt -> two hops:   bStock->USDT (hop 1, from the source registry), then USDT->debt via an
   //                               allowlisted AMM/aggregator (hop 2, see lib/amm.ts). `minOut` is in the
   //                               debt asset across the whole chain; `amountOut` below is the FINAL debt out.
-  const nativeOut = ethers.utils.getAddress(process.env.USDT_ADDR || BSC_USDT);
-  const twoHop = debt.address.toLowerCase() !== nativeOut.toLowerCase();
+  const usdtOut = ethers.utils.getAddress(process.env.USDT_ADDR || BSC_USDT);
+  const twoHop = debt.address.toLowerCase() !== usdtOut.toLowerCase();
 
   let router: string;
   let swapCalldata: string;
@@ -385,7 +393,7 @@ export async function atomicLiquidate(signer: Signer) {
       const [r2, data2] = process.env.MOCK_AMM.split(":");
       router2 = ethers.utils.getAddress(r2);
       swapCalldata2 = data2;
-      intermediateToken = nativeOut;
+      intermediateToken = usdtOut;
     }
   } else {
     // Hop 1: bStock -> USDT (bStock pairs only with USDT on BSC). Sources come from the registry
@@ -396,7 +404,7 @@ export async function atomicLiquidate(signer: Signer) {
     const hop1 = await pickHop1Source({
       taker: liquidator.address,
       tokenIn: bStock.address,
-      usdtOut: nativeOut,
+      usdtOut,
       humanAmount: seizedHumanQuote,
       weiAmount: seizedForQuote,
       slippage,
@@ -429,7 +437,7 @@ export async function atomicLiquidate(signer: Signer) {
         ? await getPsmSwap({ amountIn: midFloor, recipient: liquidator.address }, ethers.provider)
         : await getAmmSwap(
             {
-              tokenIn: nativeOut,
+              tokenIn: usdtOut,
               tokenOut: debt.address,
               amountIn: midFloor.toString(),
               recipient: liquidator.address,
@@ -439,7 +447,7 @@ export async function atomicLiquidate(signer: Signer) {
           );
       router2 = ethers.utils.getAddress(amm.router);
       swapCalldata2 = amm.calldata;
-      intermediateToken = nativeOut;
+      intermediateToken = usdtOut;
       amountOut = BigNumber.from(amm.expectedOut);
       minOutBasis = amountOut; // hop-2 expectedOut is already computed off the hop-1 floor
       console.log(
@@ -496,7 +504,7 @@ export async function atomicLiquidate(signer: Signer) {
     }
   }
 
-  // Re-verify the Native quote's remaining TTL immediately before submission. Everything since the
+  // Re-verify the hop-1 quote's remaining TTL immediately before submission. Everything since the
   // initial TTL check — the two-hop AMM round-trip, the isRouter reads, the inventory check — consumes
   // real wall-clock, so the quote may have drifted close to (or past) expiry. Abort + refetch here
   // rather than relying solely on the on-chain DeadlineExpired backstop and wasting gas. Skipped when
@@ -505,7 +513,7 @@ export async function atomicLiquidate(signer: Signer) {
     const remainingTtl = deadline.toNumber() - Math.floor(Date.now() / 1000);
     if (remainingTtl < settleTtlMarginSec) {
       throw new Error(
-        `Native quote TTL ${remainingTtl}s is below the ${settleTtlMarginSec}s safety margin before submit — refetch`,
+        `hop-1 quote TTL ${remainingTtl}s is below the ${settleTtlMarginSec}s safety margin before submit — refetch`,
       );
     }
   }

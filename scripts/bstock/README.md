@@ -7,13 +7,14 @@ one shared goal: repay a borrower's debt, seize their bStock, and offload it.
 | ----------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | **Atomic**        | `atomic-liquidate.ts` | Primary path. Drives the on-chain `BStockLiquidator` — repay, seize, redeem, and sell bStock in ONE tx via a Native or Liquid Mesh RFQ quote (+ optional AMM hop).                                                                                  | Yes              |
 | **Safe fallback** | `safe-fallback.ts`    | Backstop when the quote path is unavailable — every hop-1 RFQ source (Native and Liquid Mesh) down, or for VAI the hop-2 PSM paused / cap-exhausted. Emits a Safe{Wallet} batch JSON; signers repay from Safe funds and ship raw bStock to Binance. | No — writes JSON |
-| **Native smoke**  | `native-smoke.ts`     | Pre-flight check. Prints the Native orderbook + a live firm-quote (price, spread, TTL). No chain interaction.                                                                                                                                       | No               |
+| **Native smoke**  | `native-smoke.ts`     | Pre-flight check. Fetches a live Native firm-quote (price, TTL, executable router). No chain interaction.                                                                                                                                           | No               |
+| **LM smoke**      | `lm-smoke.ts`         | Pre-flight check. Fetches a live Liquid Mesh `/quote` (price, output, route split). Read-only — no `/swap`; only a best-effort `symbol()` read for the label.                                                                                       | No               |
 
 Pick **Atomic** first. Fall back to **Safe** only if the whole quote path fails — all RFQ sources down, or (for VAI) the PSM hop paused/capped.
 
 ## Which script? — start here
 
-![bStock liquidation decision flowchart: native-smoke checks the quote path, then atomic-liquidate.ts (DRY_RUN) runs pre-flight gates (debt-type detection, shortfall/ALLOW_NO_SHORTFALL, VAI-forces-inventory) and routes hop-2 by debt type — single-hop USDT, AMM for other ERC20, WBNB unwrap for native BNB, or the PSM swapStableForVAI for VAI — sending atomically when the dry-run passes, and falling back to the Safe multisig batch (which ships bStock to the CEX, PSM-independent) when the RFQ path is dead, the VAI PSM is paused or cap-exhausted, or the dry-run fails](liquidation-flowchart.svg)
+![bStock liquidation decision flowchart: native-smoke and lm-smoke check which RFQ sources are live, then atomic-liquidate.ts (DRY_RUN) runs pre-flight gates (debt-type detection, shortfall/ALLOW_NO_SHORTFALL, VAI-forces-inventory) and routes hop-2 by debt type — single-hop USDT, AMM for other ERC20, WBNB unwrap for native BNB, or the PSM swapStableForVAI for VAI — sending atomically when the dry-run passes, and falling back to the Safe multisig batch (which ships bStock to the CEX, PSM-independent) when the RFQ path is dead, the VAI PSM is paused or cap-exhausted, or the dry-run fails](liquidation-flowchart.svg)
 
 Rules of thumb:
 
@@ -32,6 +33,8 @@ Rules of thumb:
 - **Native API key** (`NATIVE_API_KEY`) for anything that fetches a Native quote. Never commit it.
 - **Liquid Mesh credentials** (only if `SOURCE=liquidmesh` or `SOURCE=auto`): `LM_API_KEY` and the
   Ed25519 private-key seed `LM_PRIVATE_KEY_SEED` (base64url). Never commit them.
+- These three keys can live in `.env` (git-ignored, loaded automatically by `hardhat.config.ts` when you
+  run through `npx hardhat`); see `.env.example`. Everything else below is a per-run flag passed inline.
 - **Deployed `BStockLiquidator`** (see `deploy/019-deploy-bstock-liquidator.ts`). Its owner must have run:
   - `setRouter(router, true)` for every router the swap will touch (the Native RFQ router and/or the
     Liquid Mesh router, plus the AMM router for non-USDT debt). The scripts **abort** if a router isn't
@@ -82,11 +85,67 @@ Two Liquid-Mesh mechanics, both handled automatically:
 ## 1. Native smoke — verify the quote path
 
 ```bash
-NATIVE_API_KEY=... TOKEN=TSLAB AMOUNT=5 npx hardhat run scripts/bstock/native-smoke.ts
+# NATIVE_API_KEY read from .env
+TOKEN=TSLAB AMOUNT=5 npx hardhat run scripts/bstock/native-smoke.ts
 ```
 
-Run this first during an incident to confirm Native is live and see the current price/spread/TTL.
-`TOKEN` = any bStock in the orderbook (default `TSLAB`), `AMOUNT` = bStock to sell (default `1`).
+```text
+Native quote: 5 TSLAB (0x5b19…292f) -> USDT
+  amountIn : 5 TSLAB
+  amountOut: 1924.5 USDT
+  px/token : 384.9000 USDT
+  -- firm-only --
+  deadline : 1752… (58s TTL)
+  router   : 0x…            ← executable txRequest.target
+  orders   : 1
+```
+
+Run this first during an incident to confirm Native is live and see the current price/TTL. `TOKEN` = any
+bStock in the orderbook (default `TSLAB`), `AMOUNT` = bStock to sell (default `1`). The shared fields
+(amountIn/out, px/token) match `lm-smoke`; the `firm-only` block (deadline, executable router, orders) is
+what a **firm** MM-signed RFQ carries that an **indicative** LM `/quote` does not (LM instead shows
+price-impact / mid-price / route split — see §1b).
+
+---
+
+## 1b. Liquid Mesh smoke — verify the LM quote path
+
+```bash
+# keys read from .env (LM_API_KEY, LM_PRIVATE_KEY_SEED)
+AMOUNT=5 npx hardhat run scripts/bstock/lm-smoke.ts
+# or price a different bStock (LM has no orderbook, so pass the address):
+BSTOCK=0x… AMOUNT=5 npx hardhat run scripts/bstock/lm-smoke.ts
+```
+
+```text
+Liquid Mesh quote: 5 TSLAB (0x5b19…292f) -> USDT
+  amountIn : 5 TSLAB
+  amountOut: 1927.13 USDT
+  px/token : 385.4300 USDT
+  -- indicative --
+  priceImp : 0.0000117%
+  midPrice : 385.43
+  est. gas : 219000
+  route    : rfq_neptune:99% uniswap_v4:1%
+  deadline : none at quote time (set only on the built /swap order)
+```
+
+Same shape as `native-smoke` (header, amountIn/out, px/token), with an `indicative` block instead of
+Native's `firm-only` one — the only difference is which fields each API returns (see §1).
+
+The Liquid Mesh counterpart of the Native smoke: fetches a live `/quote` (bStock → USDT) and prints
+price, output, price impact, mid-price and the route split (which makers/dexes filled, at what weight).
+Use it when `SOURCE=liquidmesh`/`auto` to confirm LM is live and priced, independently of Native.
+
+- **Read-only.** It calls `/quote` only — never `/swap`. The one chain read is a best-effort `symbol()`
+  for the label (via `RPC_URL`, else `ARCHIVE_NODE_bscmainnet`, else a public dataseed); it falls back to
+  the raw address if no RPC is reachable, so the quote itself never depends on a chain.
+- **No orderbook** — the token is given by address (`BSTOCK`, default `TSLAB`); `AMOUNT` = bStock to sell
+  (default `1`), treated as 1e18 units.
+- **No quote-level TTL** — a `/quote` is indicative; only the built `/swap` order carries a deadline. This
+  probe confirms liveness + price, nothing more.
+
+An executable `/swap` blob and its actual on-chain fill are proven separately by `verify-lm-fork.ts`.
 
 ---
 
@@ -98,7 +157,8 @@ NATIVE_API_KEY=... LIQUIDATOR=0x.. BORROWER=0x.. VBSTOCK=0x.. VDEBT=0x.. REPAY_A
 ```
 
 Flow: precompute the exact seize → fetch the hop-1 quote (bStock→USDT) from the best of Native / Liquid
-Mesh with the taker = the contract → for non-USDT debt, append an AMM hop (USDT→debt) →
+Mesh with the taker = the contract → for non-USDT debt, append a hop-2 (USDT→debt): an AMM for an ERC20
+debt, or the PSM (`swapStableForVAI`) for a VAI debt →
 call `liquidate`/`flashLiquidate`.
 
 **Always dry-run first** (`DRY_RUN=1`) — it `callStatic`s the settle with no send.
@@ -144,10 +204,13 @@ tuning); `NATIVE_API_BASE`, `LM_API_HOST` (RFQ endpoints).
 
 ## 3. Safe fallback — manual multisig path
 
-Use when Native is unavailable. Reads chain state and writes a Safe Transaction Builder batch JSON —
+Use when the whole quote path is unavailable — every hop-1 RFQ source (Native and Liquid Mesh) down, or
+for a VAI debt the hop-2 PSM paused / cap-exhausted. Reads chain state and writes a Safe Transaction
+Builder batch JSON —
 **it sends nothing.**
 
 ```bash
+# standalone — builds its own provider (RPC_URL), so it uses ts-node, not `hardhat run`
 BORROWER=0x.. VBSTOCK=0x.. VDEBT=0x.. REPAY_AMOUNT=5000 TARGET=0x.. \
   npx ts-node scripts/bstock/safe-fallback.ts
 ```
@@ -174,3 +237,44 @@ native BNB debt, so 3): the Safe repays from its own funds, seizes the bStock, a
 > **price drift alone** (not just a position change) can still invalidate the exact amounts — a stale
 > redeem/transfer that exceeds the seized balance reverts the batch. **Regenerate immediately before
 > signing** for anything but a tiny move.
+
+---
+
+## 4. Verify LM fork — dev-time on-chain proof (not for incidents)
+
+Proves a Liquid Mesh `disableSimulate:true` swap blob actually **executes on-chain** — the one thing the
+mocked unit suite can't cover. It forks bscmainnet at head, fetches a live `/quote` + `/swap`, then
+replicates the contract's `_swap` exactly (approve the LM spender → `router.call(callMsg.data)`) using a
+**real, already-allowlisted** bStock holder as the taker, and asserts USDT ≥ `minOut` landed. One-shot
+diagnostic — run it when onboarding or debugging the LM integration, never during a live liquidation.
+
+```bash
+FORKED_NETWORK=bscmainnet AMOUNT=3 npx hardhat run scripts/bstock/verify-lm-fork.ts
+# LM_API_KEY, LM_PRIVATE_KEY_SEED, ARCHIVE_NODE_bscmainnet read from .env
+```
+
+**Required config tweak** (temporary, in `hardhat.config.ts` `isFork()`): the RFQ maker orders are
+EIP-712 signed with chainId 56 and the head block needs modern opcodes, neither of which the default
+fork network provides. Add:
+
+```ts
+chainId: 56,
+chains: { 56: { hardforkHistory: { berlin: 0, london: 13000000, shanghai: 40000000, cancun: 48000000 } } }
+```
+
+Without `chainId: 56` the maker signature fails `InvalidSignature` (the fork otherwise runs as 31337) —
+a fork artifact, not a real defect; the script aborts early with this hint if the chainId is wrong.
+
+| Var                       | Req | Default                 | Notes                                                                    |
+| ------------------------- | --- | ----------------------- | ------------------------------------------------------------------------ |
+| `LM_API_KEY`              | ✓   |                         | Liquid Mesh API key                                                      |
+| `LM_PRIVATE_KEY_SEED`     | ✓   |                         | Ed25519 seed, base64url (32 bytes)                                       |
+| `ARCHIVE_NODE_bscmainnet` | ✓   |                         | Archive RPC to fork at head (maker state must match head or it reverts)  |
+| `FORKED_NETWORK`          | ✓   |                         | Must be `bscmainnet`                                                     |
+| `BSTOCK`                  |     | `TSLAB` (`0x5b19…292f`) | bStock token to sell                                                     |
+| `AMOUNT`                  |     | `10`                    | bStock to sell, human units                                              |
+| `TAKER`                   |     | auto (recent LM holder) | Override the taker; default scans recent Transfer logs for a real holder |
+
+On success it prints the fork block, the LM quote + route, gas, USDT received vs `minOut`, and a
+`✅ PASS` — proving the same approve-spender → `router.call` sequence succeeds inside the liquidator's
+`_swap`.

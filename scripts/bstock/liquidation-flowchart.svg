@@ -28,15 +28,14 @@
   <path class="edge" d="M320,52 L320,82" marker-end="url(#arrow)"/>
   <!-- native-smoke -> quote decision -->
   <path class="edge" d="M320,140 L320,170" marker-end="url(#arrow)"/>
-  <!-- Native alive -> atomic (SOURCE=auto) -->
+  <!-- a source is live -> atomic (SOURCE=auto picks it) -->
   <path class="edge" d="M320,228 L320,300" marker-end="url(#arrow)"/>
-  <text class="elbl" x="328" y="266">alive · auto</text>
-  <!-- Native down -> STILL enter atomic and try Liquid Mesh (SOURCE=liquidmesh) -->
-  <path class="edge" d="M184,199 C104,199 58,245 58,349 L120,349" marker-end="url(#arrow)"/>
-  <text class="elbl" x="8" y="330">down →</text>
-  <text class="elbl" x="8" y="346">try LM</text>
-  <!-- right rail spine — fed by hop-1 no-source, VAI PSM-down, dry-run-fail — one entry into safe-fallback -->
-  <path class="edge" d="M600,446 L600,737"/>
+  <text class="elbl" x="328" y="266">live · auto</text>
+  <!-- all sources dead -> straight to fallback -->
+  <path class="edge" d="M456,199 L600,199"/>
+  <text class="elbl" x="466" y="191">all sources dead</text>
+  <!-- right rail spine — fed by decision, hop-1 no-source, VAI PSM-down, dry-run-fail — one entry into safe-fallback -->
+  <path class="edge" d="M600,199 L600,737"/>
   <path class="edge" d="M600,505 L660,505" marker-end="url(#arrow)"/>
   <!-- preflight -> hop1 -->
   <path class="edge" d="M320,398 L320,416" marker-end="url(#arrow)"/>
@@ -69,13 +68,13 @@
 
   <!-- native-smoke -->
   <rect class="box" x="160" y="82" width="320" height="58" rx="8" fill="#f1f5f9" stroke="#64748b"/>
-  <text class="lbl mono" x="320" y="106" text-anchor="middle">1 · native-smoke.ts</text>
-  <text class="lbl" x="320" y="124" text-anchor="middle" font-size="12">read-only, ~10s — is the Native quote alive?</text>
+  <text class="lbl mono" x="320" y="106" text-anchor="middle">1 · native-smoke.ts · lm-smoke.ts</text>
+  <text class="lbl" x="320" y="124" text-anchor="middle" font-size="12">read-only, ~10s — which RFQ sources are live?</text>
 
   <!-- quote? decision -->
   <rect class="box" x="184" y="170" width="272" height="58" rx="8" fill="#fef3c7" stroke="#d97706"/>
-  <text class="lbl" x="320" y="194" text-anchor="middle" font-weight="600">Native quote alive?</text>
-  <text class="lbl" x="320" y="212" text-anchor="middle" font-size="11">Native only · LM tried in atomic</text>
+  <text class="lbl" x="320" y="194" text-anchor="middle" font-weight="600">Any RFQ source live?</text>
+  <text class="lbl" x="320" y="212" text-anchor="middle" font-size="11">native-smoke (Native) · lm-smoke (LM)</text>
 
   <!-- preflight gates -->
   <rect class="box" x="120" y="300" width="400" height="98" rx="8" fill="#f1f5f9" stroke="#64748b"/>
