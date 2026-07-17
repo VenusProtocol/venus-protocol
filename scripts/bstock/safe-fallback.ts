@@ -1,10 +1,12 @@
 /**
- * bStock backstop liquidation — Safe multisig FALLBACK flow (no Native swap).
+ * bStock backstop liquidation — Safe multisig FALLBACK flow (no on-chain swap).
  *
- * When the Native RFQ path is unavailable (API down, halt, weekend, thin depth), the liquidation is
- * settled manually: a Safe{Wallet} multisig repays the bad debt with its OWN funds, seizes the
- * bStock, and ships the raw bStock to a custody/Binance top-up address where finance offloads it on
- * the CEX.
+ * When the atomic path's quote leg is unavailable — EVERY hop-1 RFQ source down (both Native and Liquid
+ * Mesh: API halt, weekend, thin depth) or, for a VAI debt, the hop-2 PSM paused / mint-cap exhausted —
+ * the liquidation is settled manually: a Safe{Wallet} multisig repays the bad debt with its OWN funds,
+ * seizes the bStock, and ships the raw bStock to a custody/Binance top-up address where finance offloads
+ * it on the CEX. Because nothing is swapped on-chain here, this flow is independent of the RFQ sources
+ * and the PSM — which is exactly why it is the fallback when either is down.
  *
  * This script does NOT send anything. It READS chain state and EMITS a Safe Transaction Builder
  * batch JSON for the signers to review and execute.
@@ -22,11 +24,19 @@
  *   Action 2 — hand off:
  *     4. bStock.transfer(TARGET, seizedRaw)                         // raw bStock -> Binance top-up
  *
- * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens`. The Venus
+ * VAI debt (VAIController): supported. VAI is not a vToken and has no `underlying()`, so the debt token
+ * is resolved via `getVAIAddress()`; the batch is the normal ERC20 shape (approve VAI to the gate, then a
+ * zero-value liquidateBorrow), which the gate settles through its `_liquidateVAI` branch. Because this
+ * script ships the seized bStock to Binance rather than swapping it, no PSM/USDT->VAI leg is involved —
+ * making it the manual fallback when the atomic path's PSM hop is paused or capped.
+ *
+ * Seize amount is the on-chain truth from `Comptroller.liquidateCalculateSeizeTokens` (or
+ * `liquidateVAICalculateSeizeTokens` for VAI). The Venus
  * Liquidator keeps a treasury cut of the liquidation bonus, so the Safe is credited fewer vTokens than
- * `seizeTokens`; we redeem only that credited amount (`received`). Snapshotted at the current block — if
- * the borrower's position changes before the Safe executes, REGENERATE, else a stale redeem/transfer
- * that exceeds the seized balance reverts the batch.
+ * `seizeTokens`; we redeem only that credited amount, further haircut by `SEIZE_BUFFER` (default 0.1%)
+ * so ordinary oracle price drift between generation and signer quorum leaves dust rather than reverting
+ * the redeem. Snapshotted at the current block — PRICE DRIFT ALONE (not just a position change) can
+ * invalidate the exact amounts, so regenerate immediately before signing for anything but a tiny move.
  *
  * Usage:
  *   RPC_URL=https://bsc-dataseed.bnbchain.org \
@@ -42,6 +52,8 @@
  *   REPAY_AMOUNT     (req) repay amount in DEBT underlying, human units
  *   TARGET           (req) Binance top-up / custody address to receive bStock
  *                    — set ALLOW_PLACEHOLDER=1 to emit with a zero target (DRAFT)
+ *   SEIZE_BUFFER     haircut % on the redeem/transfer amounts (default 0.1) absorbing oracle price
+ *                    drift before the Safe executes; the unredeemed dust is sweepable
  *   OUT              output path (default out/bstock-safe-fallback.json)
  */
 import { BigNumber, Contract, providers, utils } from "ethers";
@@ -70,9 +82,15 @@ const COMPTROLLER_ABI = [
   "function liquidationIncentiveMantissa() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
   "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
+  // VAI's seize math is a separate function: VAI is priced at $1 and the incentive is the
+  // borrower-agnostic getLiquidationIncentive (see ComptrollerLens.liquidateVAICalculateSeizeTokens).
+  "function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)",
   "function treasuryPercent() view returns (uint256)",
+  "function vaiController() view returns (address)",
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
+  "function getLiquidationIncentive(address) view returns (uint256)",
 ];
+const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
 const LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -91,15 +109,27 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, provider);
   const comptroller = new Contract(await vBStock.comptroller(), COMPTROLLER_ABI, provider);
 
+  // VAI is not a vToken: its "market" is the VAIController, which has no underlying() EITHER. It must be
+  // detected BEFORE the vBNB fallback below — otherwise the catch would misread a VAI debt as native BNB
+  // and build a `{value: repay}` batch that the gate rejects (its VAI branch requires msg.value == 0).
+  // The VAI token itself is a plain ERC20, so it takes the normal approve-then-liquidate batch below.
+  const vaiControllerAddr: string = await comptroller.vaiController();
+  const isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+
   // vBNB has no underlying(): a native-BNB debt market is repaid in native BNB, so there is no ERC20
   // debt token to approve or read. Detect it the way the atomic script does — try underlying(), treat
   // a revert as native BNB (18 decimals, "BNB"). `debt` stays undefined on the native path.
   let isBnb = false;
   let debt: Contract | undefined;
-  try {
-    debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
-  } catch {
-    isBnb = true;
+  if (isVai) {
+    const vaiAddr: string = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, provider).getVAIAddress();
+    debt = new Contract(vaiAddr, ERC20_ABI, provider);
+  } else {
+    try {
+      debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
+    } catch {
+      isBnb = true;
+    }
   }
   const bStock = new Contract(await vBStock.underlying(), ERC20_ABI, provider);
 
@@ -138,40 +168,67 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
 
   // --- seize math from on-chain truth ---
   const ONE = BigNumber.from(10).pow(18);
-  // Borrower-aware 4-arg overload (reads the borrower's actual pool via getEffectiveLiquidationIncentive),
-  // matching vToken.liquidateBorrowFresh on-chain. The 3-arg overload always reads Core Pool params and
-  // diverges if the borrower has switched pools, producing a stale redeem amount in the batch.
-  const [seizeErr, seizeTokens]: BigNumber[] = await comptroller.liquidateCalculateSeizeTokens(
-    borrower,
-    vDebt.address,
-    vBStock.address,
-    repay,
-  );
-  if (!seizeErr.eq(0)) throw new Error(`liquidateCalculateSeizeTokens error code ${seizeErr}`);
+  // Mirror the function the on-chain path actually calls for this debt:
+  //   - VAI  -> VAIController.liquidateVAIFresh calls liquidateVAICalculateSeizeTokens(vCollateral,
+  //             repay): VAI is priced at $1 and the incentive is the borrower-agnostic
+  //             getLiquidationIncentive, so the 4-arg overload does NOT apply.
+  //   - else -> vToken.liquidateBorrowFresh calls the borrower-aware 4-arg overload (reads the
+  //             borrower's actual pool). The 3-arg overload always reads Core Pool params and diverges
+  //             if the borrower has switched pools, producing a stale redeem amount in the batch.
+  const seizeFn = isVai ? "liquidateVAICalculateSeizeTokens" : "liquidateCalculateSeizeTokens";
+  const [seizeErr, seizeTokens]: BigNumber[] = isVai
+    ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
+    : await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay);
+  if (!seizeErr.eq(0)) throw new Error(`${seizeFn} error code ${seizeErr}`);
   // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
   // surface it here rather than baking a degenerate redeem amount into the batch.
-  if (seizeTokens.eq(0)) throw new Error(`liquidateCalculateSeizeTokens returned 0 seize for ${borrower}`);
+  if (seizeTokens.eq(0)) throw new Error(`${seizeFn} returned 0 seize for ${borrower}`);
 
   // The Venus Liquidator keeps a treasury cut of the liquidation BONUS (see
   // Liquidator._splitLiquidationIncentive), so the Safe is credited fewer vTokens than seizeTokens.
-  // Redeem only the credited amount, else the batch reverts.
+  // Redeem only the credited amount, else the batch reverts. On BSC mainnet the cut is 50% of the bonus
+  // (treasuryPercentMantissa = 0.5e18) today — not 0 — and is governance-settable.
   let vReceived = seizeTokens;
   const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
   if (!liqTreasuryPct.eq(0)) {
+    // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
+    // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included — so
+    // use it here regardless of `isVai`. Two distinct incentives are in play and must not be conflated:
+    // the borrower-agnostic getLiquidationIncentive drives VAI's SEIZE math above (that is what
+    // liquidateVAICalculateSeizeTokens reads), while the CUT is always the effective (pool-resolved) one.
+    //   - Non-VAI: the borrower may have switched to a non-core pool whose vBStock incentive differs from
+    //     core, so effective != core is REACHABLE — using core here would missize the cut and the redeem.
+    //   - VAI: effective == core ALWAYS. A VAI borrower is core-pool-locked (VAIController.mintVAI requires
+    //     the core pool, and MarketFacet.hasValidPoolBorrows bars leaving it while mintedVAIs>0), so
+    //     userPoolId==0 and the two getters return the same value. Calling effective is a safe no-op that
+    //     keeps one code path and stays correct if that VAI-core invariant is ever relaxed.
     const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
     const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
     const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
     vReceived = seizeTokens.sub(treasuryCut);
   }
 
-  // Raw bStock from redeeming vReceived, after Core's redeem treasuryPercent fee, FLOORED at the current
+  // The credited vTokens are decided at EXECUTION time, but the batch bakes in fixed amounts computed
+  // now. seizeTokens ∝ priceBorrowed / (priceCollateral · exchangeRate), and the bStock oracle price
+  // moves continuously — so between generation and signer quorum (often hours) an ordinary upward tick
+  // makes the real credit LESS than vReceived and reverts the redeem (tx #3). Haircut vReceived by
+  // SEIZE_BUFFER so a modest price move leaves harmless dust vTokens rather than bricking the batch;
+  // the dust is sweepable later. Regenerate for a large move. (Mirrors atomic-liquidate.ts SEIZE_BUFFER.)
+  const seizeBufferPct = Number(process.env.SEIZE_BUFFER || "0.1");
+  if (!Number.isFinite(seizeBufferPct) || seizeBufferPct < 0 || seizeBufferPct >= 100) {
+    throw new Error(`SEIZE_BUFFER must be a percent in [0, 100), got "${process.env.SEIZE_BUFFER}"`);
+  }
+  const vRedeem = vReceived.mul(Math.round((100 - seizeBufferPct) * 100)).div(10000);
+
+  // Raw bStock from redeeming vRedeem, after Core's redeem treasuryPercent fee, FLOORED at the current
   // exchange rate (rate only grows, so transferring this floor never exceeds what we hold).
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
-  const seizedRaw = vReceived.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
+  const seizedRaw = vRedeem.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   console.log(
-    `seize: ${utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${utils.formatUnits(seizedRaw, bStockDec)} ` +
-      `${bStockSym} (floor)`,
+    `seize: ${utils.formatUnits(seizeTokens, 8)} v${bStockSym} credited ~${utils.formatUnits(vReceived, 8)} ` +
+      `-> redeem ${utils.formatUnits(vRedeem, 8)} (SEIZE_BUFFER ${seizeBufferPct}%) -> ` +
+      `~${utils.formatUnits(seizedRaw, bStockDec)} ${bStockSym} (floor, ship)`,
   );
 
   // --- target (Binance top-up) ---
@@ -197,7 +254,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   );
 
   const seizeTxs = [
-    call(vBStock.address, "redeem(uint256)", [vReceived]),
+    call(vBStock.address, "redeem(uint256)", [vRedeem]),
     call(bStock.address, "transfer(address,uint256)", [target, seizedRaw]),
   ];
 
@@ -212,12 +269,13 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
     description:
       `Repay ${utils.formatUnits(repay, debtDec)} ${debtSym} of ${borrower}, ` +
       `seize ~${utils.formatUnits(seizedRaw, bStockDec)} ${bStockSym}, ship to ${target}. ` +
-      `Snapshot @ block ${await provider.getBlockNumber()}; regenerate if the position changed.`,
+      `Snapshot @ block ${await provider.getBlockNumber()}; SEIZE_BUFFER ${seizeBufferPct}% absorbs small ` +
+      `oracle drift — regenerate for a large price move or a position change.`,
     createdAt: Date.now(),
     transactions: txs,
   });
 
-  return { batch, txs, gate, seizeTokens, vReceived, seizedRaw, target };
+  return { batch, txs, gate, seizeTokens, vReceived, vRedeem, seizedRaw, target };
 }
 
 async function main() {

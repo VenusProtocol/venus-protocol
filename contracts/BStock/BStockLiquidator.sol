@@ -14,7 +14,7 @@ import { IWBNB } from "../external/IWBNB.sol";
 // Shared Venus interfaces: IComptroller (Core diamond — liquidator gate + flash loan), IVToken
 // (flash-loan asset array element), and ILiquidator (the pool-wide Venus Liquidator gate that pulls
 // the repay and returns our share of the seized collateral).
-import { IComptroller, IVToken, ILiquidator } from "../InterfacesV8.sol";
+import { IComptroller, IVToken, ILiquidator, IVAIController } from "../InterfacesV8.sol";
 import { IBStockLiquidator } from "./IBStockLiquidator.sol";
 
 /**
@@ -24,14 +24,14 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *
  * In ONE transaction it repays an undercollateralized borrow, seizes the bStock vToken,
  * redeems it to the raw bStock, and sells that bStock to the debt asset in one or two hops. Hop 1
- * always sells bStock through the Native RFQ router using a pre-fetched, MM-signed firm-quote
- * `txRequest`. For USDT debt that single hop lands the debt asset directly. For non-USDT debt an
- * OPTIONAL hop 2 (Native quotes bStock->USDT only) converts the USDT to the debt asset through a
- * second allowlisted router (an AMM/aggregator). Because seize and sell happen in the same tx there
- * is no price-drift window, and the realized debt-asset amount must clear `minOut` or the whole call
- * reverts. On a full fill the protocol ends up holding only the debt asset; if a hop's router fills
- * less than approved (e.g. a partial RFQ fill) any residual input token stays in the contract, is
- * surfaced via `PartialSwapLeftover`, and is recoverable via `sweep`.
+ * sells bStock (to USDT) through an allowlisted RFQ router using a pre-fetched, off-chain-signed
+ * `swapCalldata` — Native firm-quote or Liquid Mesh (see `routerSpender`) or any future allowlisted
+ * source; the contract is router-agnostic and just forwards the opaque blob. For USDT debt that single
+ * hop lands the debt asset directly. For non-USDT debt an OPTIONAL hop 2 (RFQ sources quote bStock->USDT
+ * only) converts the USDT to the debt asset through a second allowlisted router (an AMM/aggregator).
+ * Because seize and sell happen in the same tx there is no price-drift window, and the realized
+ * debt-asset amount must clear `minOut` or the whole call reverts — the protocol never ends up holding
+ * the RFQ-only asset or the intermediate.
  *
  * Two funding modes share the same core (`_liquidate`):
  *   - INVENTORY: the contract is pre-funded with the debt asset and repays from its own balance.
@@ -43,6 +43,15 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  * payable path; the two-hop swap lands WBNB (bStock->USDT->WBNB) and `minOut` is measured in WBNB
  * (1:1 with BNB). FLASH mode borrows from vWBNB, NOT vBNB: vBNB cannot be flash-repaid (its
  * `doTransferIn` requires `msg.value`), whereas vWBNB's underlying is a plain ERC20.
+ *
+ * VAI debt (VAIController): supported in INVENTORY mode only. VAI is not a vToken — a `vDebt` equal to
+ * `comptroller.vaiController()` is VAI, and like vBNB it has no `underlying()`, so the debt token is
+ * resolved via `getVAIAddress()`. The repay is a plain ERC20 approval to the gate, which takes its
+ * `_liquidateVAI` branch (pulls the VAI from us, then burns it via `VAIController.liquidateVAI`).
+ * Because RFQ sources quote bStock->USDT only, a VAI debt is inherently two-hop (bStock->USDT->VAI);
+ * hop 2 is expected to be the Peg Stability Module (`swapStableForVAI`, allowlisted as `router2`),
+ * which mints VAI from USDT at the oracle rate. FLASH mode is rejected (`FlashNotSupportedForVai`):
+ * `executeFlashLoan` lends a vToken's underlying, and VAI is minted/burned with no vVAI market.
  *
  * Ownership / scope: this is Venus's OWN backstop tool, NOT a public utility — `liquidate` and
  * `flashLiquidate` are operator-only (owner + allowlisted operators). It does not make bStock
@@ -57,9 +66,9 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *   - `liquidate` / `flashLiquidate` are `onlyOperator` (owner or allowlisted operator).
  *   - BOTH swap targets (`router` and, when set, `router2`) must be allowlisted (`isRouter`) — defends
  *     the low-level `router.call(swapCalldata)` on each hop.
- *   - the approval to each router is the exact amount being sold on that hop, reset to 0 afterwards
- *     (bStock on hop 1; the measured intermediate balance delta on hop 2, so pre-existing inventory
- *     is never exposed).
+ *   - the approval for each hop is the exact amount being sold, granted to the router's configured spender
+ *     (the router itself when unset — see `routerSpender`) and reset to 0 afterwards (bStock on hop 1; the
+ *     measured intermediate balance delta on hop 2, so pre-existing inventory is never exposed).
  *   - `executeOperation` accepts calls only from the Comptroller with `initiator == this` (i.e. a flash we started).
  *   - the realized debt-asset amount must clear `minOut` or the tx reverts.
  *
@@ -105,8 +114,15 @@ contract BStockLiquidator is
     /// @notice Routers allowed as the swap target (defends the low-level call).
     mapping(address => bool) public isRouter;
 
+    /// @notice Optional token-approval target (spender) per router, for aggregators whose settlement
+    ///         contract that pulls the input token differs from the call target (e.g. Liquid Mesh, where
+    ///         the router is the call target but a separate spender pulls the token). When unset
+    ///         (address(0)), the approval defaults to the router itself — the Native behaviour, where the
+    ///         call target IS the puller — so existing routers need no spender entry.
+    mapping(address => address) public routerSpender;
+
     /// @dev Reserved storage to allow new state variables in future upgrades without layout clashes.
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     modifier onlyOperator() {
         if (msg.sender != owner() && !isOperator[msg.sender]) revert NotOperator();
@@ -162,7 +178,28 @@ contract BStockLiquidator is
     function setRouter(address router, bool allowed) external override onlyOwner {
         ensureNonzeroAddress(router);
         isRouter[router] = allowed;
+        // De-allowlisting also clears any configured spender: a stale entry must not silently
+        // reactivate (with a possibly rotated-away spender) if the router is ever re-allowlisted.
+        if (!allowed && routerSpender[router] != address(0)) {
+            delete routerSpender[router];
+            emit RouterSpenderSet(router, address(0));
+        }
         emit RouterSet(router, allowed);
+    }
+
+    /// @inheritdoc IBStockLiquidator
+    function setRouterSpender(address router, address spender) external override onlyOwner {
+        // Couple the spender lifecycle to the allowlist: a spender only ever matters for an
+        // allowlisted router (`_swap` approves it right before the router call), so requiring
+        // `isRouter` here catches a fat-fingered router address instead of storing it silently.
+        if (!isRouter[router]) revert RouterNotAllowed(router);
+        // `spender == address(0)` is allowed and clears the entry, reverting the router to
+        // approve-the-call-target (Native) behaviour. A non-zero spender receives a live (exact-amount,
+        // same-tx) approval during `_swap`, so require it to be a deployed contract — an EOA spender is
+        // always a misconfiguration.
+        if (spender != address(0) && spender.code.length == 0) revert SpenderNotContract(spender);
+        routerSpender[router] = spender;
+        emit RouterSpenderSet(router, spender);
     }
 
     /// @inheritdoc IBStockLiquidator
@@ -231,6 +268,12 @@ contract BStockLiquidator is
 
         if (params.minOut == 0) revert ZeroMinOut();
         if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
+
+        // VAI has no market to flash from: `executeFlashLoan` lends a vToken's underlying, whereas VAI is
+        // MINTED/BURNED by the VAIController (`repayVAIFresh` burns it) and has no vVAI. Reject up front
+        // instead of passing the VAIController into `executeFlashLoan` and failing opaquely. Use
+        // `liquidate` (INVENTORY) with pre-funded VAI for a VAI debt.
+        if (address(params.vDebt) == address(comptroller.vaiController())) revert FlashNotSupportedForVai();
 
         // BNB debt is flash-funded from vWBNB (an ERC20 market), not vBNB: vBNB cannot be flash-repaid.
         // The flashed WBNB is unwrapped to native BNB for the repay inside `_liquidate` (see `executeOperation`).
@@ -312,15 +355,22 @@ contract BStockLiquidator is
         if (router2 != address(0) && !isRouter[router2]) revert RouterNotAllowed(router2);
     }
 
-    /// @dev One swap hop: approve the exact `amount` to the allowlisted `router`, forward the opaque
-    ///      calldata via a low-level call, then reset the approval to 0. The approval caps what the
-    ///      router can pull; if the calldata sells less (e.g. a partially-filled RFQ quote), the
-    ///      unconsumed remainder stays in the contract and is surfaced via `PartialSwapLeftover` so
-    ///      operations can recover it with `sweep` — `minOut` still bounds the realized debt-asset
-    ///      proceeds regardless.
+    /// @dev One swap hop: approve the exact `amount` to the router's configured spender, forward the
+    ///      opaque calldata via a low-level call to the allowlisted `router`, then reset the approval to
+    ///      0. The spender defaults to the router itself when unset (Native, where the call target is the
+    ///      puller); aggregators with a separate settlement/pull contract (e.g. Liquid Mesh) set it via
+    ///      `setRouterSpender`. The approval caps what the spender can pull; if the calldata sells less
+    ///      (e.g. a partially-filled RFQ quote), the unconsumed remainder stays in the contract and is
+    ///      surfaced via `PartialSwapLeftover` so operations can recover it with `sweep` — `minOut` still
+    ///      bounds the realized debt-asset proceeds regardless.
     function _swap(IERC20Upgradeable token, address router, bytes memory data, uint256 amount) private {
         uint256 balBefore = token.balanceOf(address(this));
-        token.forceApprove(router, amount);
+        // Approve the PULLER, which is not always the call target: Liquid Mesh and similar split-settlement
+        // aggregators pull through a separate spender. Defaults to the router when unset, so Native (whose
+        // call target is the puller) is unaffected.
+        address spender = routerSpender[router];
+        if (spender == address(0)) spender = router;
+        token.forceApprove(spender, amount);
         (bool ok, bytes memory returndata) = router.call(data);
         if (!ok) {
             // Bubble up the router's own revert reason for easier debugging; fall back to SwapFailed()
@@ -332,8 +382,8 @@ contract BStockLiquidator is
             }
             revert SwapFailed();
         }
-        token.forceApprove(router, 0); // never leave a standing approval
-        // `token` is the hop's INPUT: the router can pull at most `amount` (the approval, just reset),
+        token.forceApprove(spender, 0); // never leave a standing approval
+        // `token` is the hop's INPUT: the spender can pull at most `amount` (the approval, just reset),
         // and any refund is a subset of what it pulled, so the balance can only fall (balAfter <=
         // balBefore) — the subtraction cannot underflow. A shortfall (spent < amount) means the router
         // filled less than approved; emit the residual so it can be swept.
@@ -357,12 +407,26 @@ contract BStockLiquidator is
         // debt-accounting token throughout (1:1 with BNB), so the whole swap/minOut path below is reused.
         // KEEP THIS ORDER — hoisting `underlying()` above the check reverts every BNB liquidation.
         bool isBnb = address(params.vDebt) == vBNB;
-        // Native RFQ only quotes bStock->USDT, so a BNB debt is inherently two-hop (...->WBNB). Reject a
-        // single-hop BNB config up front instead of failing opaquely later on a zero WBNB delta.
-        if (isBnb && params.router2 == address(0)) revert InvalidIntermediate();
-        IERC20Upgradeable debt = isBnb
-            ? IERC20Upgradeable(address(wbnb))
-            : IERC20Upgradeable(params.vDebt.underlying());
+        IERC20Upgradeable debt;
+        // Scoped so `vaiCtrl`/`isVai` don't hold stack slots for the rest of the frame.
+        {
+            // A debt equal to the VAIController is VAI: it is not a vToken and has no `underlying()`
+            // either, so — like vBNB — the check MUST come before any `underlying()` evaluation. The gate
+            // takes its VAI branch (`Liquidator._liquidateVAI`), which pulls VAI from us and burns it via
+            // `VAIController.liquidateVAI`; the repay is a plain ERC20 approval, so the non-BNB path below
+            // is reused as-is.
+            IVAIController vaiCtrl = comptroller.vaiController();
+            bool isVai = address(params.vDebt) == address(vaiCtrl);
+            // RFQ sources only quote bStock->USDT, so BNB and VAI debts are inherently two-hop
+            // (...->WBNB / ...->VAI). Reject a single-hop config up front instead of failing opaquely
+            // later on a zero debt-asset delta.
+            if ((isBnb || isVai) && params.router2 == address(0)) revert InvalidIntermediate();
+            debt = isBnb
+                ? IERC20Upgradeable(address(wbnb))
+                : isVai
+                    ? IERC20Upgradeable(vaiCtrl.getVAIAddress())
+                    : IERC20Upgradeable(params.vDebt.underlying());
+        }
         IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
         // 1. Repay the borrow, seizing the bStock vToken to this contract.
