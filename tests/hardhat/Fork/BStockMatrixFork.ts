@@ -18,16 +18,17 @@
 // off-chain RFQ fill is mocked (MockNativeRouter = target-pulls, MockSplitRouter + MockSpender =
 // split-spender pulls, i.e. the Liquid Mesh settlement shape).
 //
-// Hop-2 sizing mirrors atomic-liquidate.ts EXACTLY (borrower-aware 4-arg seize, gate treasury cut
-// off the effective incentive, redeem treasuryPercent) instead of the main helper's blanket -10%,
-// so the flash cells' principal+premium repay constraint is exercised at the REAL incentive margin
-// (~4%: 10% per-market bonus, gate keeps 50%, redeem fee and flash fee both 0 live) — a -10%
-// undershoot would starve the flash repay and could never settle.
+// Hop-2 sizing uses the same accounting inputs as atomic-liquidate.ts (borrower-aware 4-arg seize,
+// gate treasury cut off the effective incentive, redeem treasuryPercent), with a conservative 0.5%
+// margin instead of the main helper's blanket -10%. This exercises the flash principal+premium repay
+// constraint at the REAL incentive margin (~4%: 10% per-market bonus, gate keeps 50%, redeem fee and
+// flash fee both 0 live) — a -10% undershoot would starve the flash repay and could never settle.
 //
 // Run (recent block: flash-loan support + the whitelist setter are live there):
 //   FORK_BSTOCK_BLOCK=110490000 FORKED_NETWORK=bscmainnet npx hardhat test \
 //     tests/hardhat/Fork/BStockMatrixFork.ts
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { parseEther, parseUnits } from "ethers/lib/utils";
@@ -72,6 +73,7 @@ const COMPTROLLER_ABI = [
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
   "function treasuryPercent() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
+  "function authorizedFlashLoan(address) view returns (bool)",
   "function setWhiteListFlashLoanAccount(address,bool)",
 ];
 const VAI_CONTROLLER_ABI = [
@@ -103,13 +105,12 @@ const M = {
 
 const test = () => {
   describe("BStockLiquidator — scenario matrix (mode × hop-1 source × debt)", () => {
-    let owner: any;
+    let owner: SignerWithAddress;
     let mkt: BStockMarket;
     let liq: Contract; // fresh proxy on the current impl (routerSpender + VAI support)
     let mock: Contract; // native-style hop-1: the router itself pulls
     let lmRouter: Contract; // LM-style hop-1: pulls via a separate spender contract
     let spender: Contract;
-    const flashReady: Record<string, boolean> = {};
     let baseSnap: string;
 
     const slotCache: Record<string, BalanceSlot> = {};
@@ -123,24 +124,23 @@ const test = () => {
     }
 
     // Enable flash-loans on a market + whitelist the liquidator on the diamond, through the real
-    // ACM + timelock (governance-reachable state). Returns false when the infra is absent at this
-    // block (cells then log a skip, mirroring the original suite's documented-skip pattern).
-    async function enableFlash(vDebt: string): Promise<boolean> {
-      try {
-        const tl = await initMainnetUser(A.TIMELOCK, parseEther("10"));
-        const acm = new ethers.Contract(A.ACM, ACM_GIVE_ABI, tl);
-        const v = new ethers.Contract(vDebt, FLASH_VTOKEN_ABI, owner);
-        if (!(await v.isFlashLoanEnabled())) {
-          await acm.giveCallPermission(vDebt, "setFlashLoanEnabled(bool)", owner.address);
-          await v.setFlashLoanEnabled(true);
-        }
-        await acm.giveCallPermission(A.COMPTROLLER, "setWhiteListFlashLoanAccount(address,bool)", A.TIMELOCK);
-        await new ethers.Contract(A.COMPTROLLER, COMPTROLLER_ABI, tl).setWhiteListFlashLoanAccount(liq.address, true);
-        return true;
-      } catch (e) {
-        console.log(`      flash infra unavailable for ${vDebt} at this block: ${(e as Error).message.slice(0, 80)}`);
-        return false;
+    // ACM + timelock (governance-reachable state). This suite pins a block where the required flash
+    // infrastructure is live, so any setup failure must fail the suite instead of turning flash cells
+    // into passing no-ops.
+    async function enableFlash(vDebt: string): Promise<void> {
+      const tl = await initMainnetUser(A.TIMELOCK, parseEther("10"));
+      const acm = new ethers.Contract(A.ACM, ACM_GIVE_ABI, tl);
+      const v = new ethers.Contract(vDebt, FLASH_VTOKEN_ABI, owner);
+      if (!(await v.isFlashLoanEnabled())) {
+        await acm.giveCallPermission(vDebt, "setFlashLoanEnabled(bool)", owner.address);
+        await v.setFlashLoanEnabled(true);
       }
+      expect(await v.isFlashLoanEnabled()).to.equal(true);
+
+      await acm.giveCallPermission(A.COMPTROLLER, "setWhiteListFlashLoanAccount(address,bool)", A.TIMELOCK);
+      const comptroller = new ethers.Contract(A.COMPTROLLER, COMPTROLLER_ABI, tl);
+      await comptroller.setWhiteListFlashLoanAccount(liq.address, true);
+      expect(await comptroller.authorizedFlashLoan(liq.address)).to.equal(true);
     }
 
     // Hop-1 calldata: both mocks share the swapAll(tokenIn, tokenOut, to) shape; the difference under
@@ -293,7 +293,7 @@ const test = () => {
       await liq.connect(owner).setRouter(PSM_USDT, true);
 
       // Flash infra once for every flash market used by the matrix.
-      for (const v of [VUSDT, VCAKE, A.VWBNB]) flashReady[v] = await enableFlash(v);
+      for (const v of [VUSDT, VCAKE, A.VWBNB]) await enableFlash(v);
 
       baseSnap = await ethers.provider.send("evm_snapshot", []);
     });
@@ -339,11 +339,12 @@ const test = () => {
       expect(await liq.connect(owner).callStatic.liquidate(params)).to.be.gte(params.minOut);
       await liq.connect(owner).liquidate(params);
       await assertSettledFor(liq, mkt, VCAKE, M.LM_CAKE, borrowBefore);
-      // No standing approval left for the split spender on either hop input.
+      // No standing approval remains for either hop's input-token spender.
       const alw = ["function allowance(address,address) view returns (uint256)"];
       expect(
         await new ethers.Contract(mkt.bStock.address, alw, owner).allowance(liq.address, spender.address),
       ).to.equal(0);
+      expect(await new ethers.Contract(TOK.USDT, alw, owner).allowance(liq.address, A.PCS_ROUTER)).to.equal(0);
     });
 
     it("inv × LM × BNB: split-spender hop-1, WBNB unwrap repay, settles", async () => {
@@ -521,12 +522,6 @@ const test = () => {
 
     for (const cell of flashCells) {
       it(cell.title, async () => {
-        // vBNB debt is flash-funded from vWBNB (vBNB cannot be flash-repaid).
-        const flashMarket = cell.vDebt === A.VBNB ? A.VWBNB : cell.vDebt;
-        if (!flashReady[flashMarket]) {
-          console.log(`      SKIP: flash infra unavailable for ${flashMarket} at block ${FORK_BLOCK}`);
-          return;
-        }
         await makeUnderwaterBorrower({
           mkt,
           vDebt: cell.vDebt,

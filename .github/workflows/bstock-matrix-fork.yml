@@ -1,0 +1,51 @@
+name: bStock scenario matrix fork
+
+on:
+  workflow_dispatch:
+    inputs:
+      block:
+        description: BSC block to fork
+        required: true
+        default: "110490000"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bstock-matrix-fork-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Fork matrix at block ${{ inputs.block }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      ARCHIVE_NODE_bscmainnet: ${{ secrets.ARCHIVE_NODE_BSCMAINNET }}
+      FORK_BSTOCK_BLOCK: ${{ inputs.block }}
+      FORKED_NETWORK: bscmainnet
+      NODE_OPTIONS: --max-old-space-size=4096
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: yarn
+
+      - name: Require the BSC archive RPC secret
+        run: |
+          if [ -z "$ARCHIVE_NODE_bscmainnet" ]; then
+            echo "::error::Actions secret ARCHIVE_NODE_BSCMAINNET is required"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: YARN_CHECKSUM_BEHAVIOR=update yarn
+
+      - name: Run the bStock scenario matrix
+        run: yarn hardhat test tests/hardhat/Fork/BStockMatrixFork.ts
