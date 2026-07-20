@@ -243,31 +243,40 @@ const test = () => {
       await setTokenBalance(TOK.USDT, lmRouter.address, parseUnits("5000000", 18), usdtSlot);
 
       // Pin the BNB price as a DIRECT price on the live ChainlinkOracle (same pattern the suite uses
-      // for bStock): the live BNB feed's staleness window is short, so fork-time drift (every simulated
-      // tx advances the clock) makes the untouched 3-oracle config revert "invalid resilient oracle
-      // price" on any vBNB borrow/liquidity check by the time the BNB cells run. Direct prices skip the
-      // staleness/pivot validation; $564 matches the live price at the fork block.
+      // for bStock): the live BNB feed's staleness window is short (~30 min), so fork-time drift (every
+      // simulated tx advances the clock) makes the untouched 3-oracle config revert "invalid resilient
+      // oracle price" on any vBNB borrow/liquidity check. A direct price short-circuits the feed read
+      // (ChainlinkOracle._getPriceInternal prefers `prices[asset]`), so it skips the staleness check.
+      //
+      // KEY: vBNB does NOT price under WBNB. ResilientOracle._getUnderlyingAsset maps the native market
+      // to the sentinel NATIVE_TOKEN_ADDR (0xbBbB…BBbB) — deceptively similar to WBNB (0xbb4CdB…095c) —
+      // because vBNB has no `underlying()`. Pinning WBNB alone leaves every vBNB read on the live feed,
+      // which is why the BNB cells failed intermittently once a run advanced the clock far enough.
+      // Both are pinned: the sentinel for vBNB, and WBNB itself for vWBNB (a normal market whose
+      // `underlying()` IS WBNB — the flash source for the BNB cells). $564 ≈ the live price at the block.
       {
+        const NATIVE_TOKEN_ADDR = ethers.utils.getAddress("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB");
         const tl = await asTimelockWith([
           [A.RESILIENT_ORACLE, "setTokenConfig(TokenConfig)"],
           [A.CHAINLINK_ORACLE, "setDirectPrice(address,uint256)"],
         ]);
-        await new ethers.Contract(
+        const resilient = new ethers.Contract(
           A.RESILIENT_ORACLE,
           [
             "function setTokenConfig(tuple(address asset, address[3] oracles, bool[3] enableFlagsForOracles, bool cachingEnabled))",
           ],
           tl,
-        ).setTokenConfig({
-          asset: TOK.WBNB,
-          oracles: [A.CHAINLINK_ORACLE, ZERO, ZERO],
-          enableFlagsForOracles: [true, false, false],
-          cachingEnabled: false,
-        });
-        await new ethers.Contract(A.CHAINLINK_ORACLE, ["function setDirectPrice(address,uint256)"], tl).setDirectPrice(
-          TOK.WBNB,
-          parseUnits("564", 18),
         );
+        const chainlink = new ethers.Contract(A.CHAINLINK_ORACLE, ["function setDirectPrice(address,uint256)"], tl);
+        for (const asset of [NATIVE_TOKEN_ADDR, TOK.WBNB]) {
+          await resilient.setTokenConfig({
+            asset,
+            oracles: [A.CHAINLINK_ORACLE, ZERO, ZERO],
+            enableFlagsForOracles: [true, false, false],
+            cachingEnabled: false,
+          });
+          await chainlink.setDirectPrice(asset, parseUnits("564", 18));
+        }
       }
 
       // Fresh proxy on the current implementation: the deployed bscmainnet proxy predates both
