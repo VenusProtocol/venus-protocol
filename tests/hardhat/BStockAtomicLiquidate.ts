@@ -1,6 +1,6 @@
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { Contract } from "ethers";
+import { BigNumberish, Contract } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
 import { atomicLiquidate } from "../../scripts/bstock/atomic-liquidate";
@@ -37,7 +37,13 @@ const SCRIPT_ENV = [
   "SLIPPAGE",
   "MIN_OUT_BUFFER",
   "SEIZE_BUFFER",
+  "SETTLE_TTL_MARGIN",
+  "ALLOW_NO_SHORTFALL",
   "NATIVE_API_KEY",
+  "SOURCE",
+  "LM_API_KEY",
+  "LM_PRIVATE_KEY_SEED",
+  "PSM_ADDR",
 ] as const;
 
 describe("bStock atomic liquidation script", () => {
@@ -45,6 +51,7 @@ describe("bStock atomic liquidation script", () => {
   let usdt: Contract, bStock: Contract;
   let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, liq: Contract;
   let wbnb: Contract, vWBNB: Contract;
+  let venusLiq: Contract, vai: Contract, vaiController: Contract;
 
   async function deployLiquidator(comptrollerAddr: string) {
     const Factory = await ethers.getContractFactory("BStockLiquidator");
@@ -97,9 +104,15 @@ describe("bStock atomic liquidation script", () => {
     vWBNB = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(wbnb.address, comptroller.address);
 
     // Core's pool-wide liquidator gate is always configured; every liquidation routes through it.
-    const venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
+    venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
     await comptroller.setLiquidatorContract(venusLiq.address);
     await venusLiq.setVBnb(VBNB);
+
+    // VAI wiring: needed by the script's VAI detection and by the gate's VAI-guard pre-flight.
+    vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
 
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
@@ -165,6 +178,65 @@ describe("bStock atomic liquidation script", () => {
     await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SEIZE_BUFFER/);
   });
 
+  it("rejects an out-of-range SETTLE_TTL_MARGIN before quoting", async () => {
+    setEnv({ SETTLE_TTL_MARGIN: "-5" });
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SETTLE_TTL_MARGIN/);
+  });
+
+  it("rejects a non-numeric SLIPPAGE before quoting", async () => {
+    setEnv({ SLIPPAGE: "abc" });
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SLIPPAGE/);
+  });
+
+  it("rejects a negative MIN_OUT_BUFFER before quoting (would push minOut above the quote)", async () => {
+    setEnv({ MIN_OUT_BUFFER: "-1" });
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/MIN_OUT_BUFFER/);
+  });
+
+  it("aborts distinctly when getAccountLiquidity reports an error code (not a healthy account)", async () => {
+    await usdt.mint(liq.address, REPAY);
+    await comptroller.setLiquidityErr(13); // e.g. an oracle PRICE_ERROR — the shortfall reading is unreliable
+    setEnv();
+    await expect(atomicLiquidate(owner)).to.be.rejectedWith(/error code 13/);
+    expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+  });
+
+  it("proceeds on a healthy (no-shortfall) borrower under ALLOW_NO_SHORTFALL (forced liquidation)", async () => {
+    await usdt.mint(liq.address, REPAY);
+    await comptroller.setShortfall(0); // healthy by the normal metric — a forced liquidation target
+    setEnv({ ALLOW_NO_SHORTFALL: "1" });
+
+    await atomicLiquidate(owner); // no throw: the override lets the forced path through
+
+    expect(await usdt.balanceOf(liq.address)).to.equal(OUT); // settled like the happy path
+    expect(await bStock.balanceOf(liq.address)).to.equal(0);
+  });
+
+  it("aborts before submit when the Native quote TTL is below the safety margin", async () => {
+    await usdt.mint(liq.address, REPAY); // inventory so the guard, not a funding error, is what trips
+    // Real Native quote path (no MOCK_NATIVE): stub fetch to return a quote that expires in ~2s, below
+    // the default 10s margin, so the pre-submit TTL re-check aborts instead of relying on the on-chain
+    // DeadlineExpired backstop.
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () => ({
+      json: async () => ({
+        success: true,
+        recipient: liq.address,
+        amountIn: "0",
+        amountOut: OUT.toString(),
+        orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 2 }],
+        txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+      }),
+    })) as unknown as typeof fetch;
+
+    try {
+      setEnv({ MOCK_NATIVE: "", MOCK_OUT: "", NATIVE_API_KEY: "test-key" });
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/safety margin/);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
   it("flash mode: routes through flashLiquidate, repays principal + premium, keeps the rest", async () => {
     await usdt.mint(vDebt.address, REPAY); // the vToken lends the principal
     await comptroller.setFlashPremium(U("0.001")); // 0.1% premium
@@ -193,6 +265,55 @@ describe("bStock atomic liquidation script", () => {
 
     await expect(atomicLiquidate(owner)).to.be.rejectedWith(/unset/i);
     expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+  });
+
+  // The gate blocks liquidating an UNRELATED market while the borrower's VAI debt is above the
+  // threshold (Liquidator._checkForceVAILiquidate). It is a five-term OR that permits the liquidation
+  // if ANY term holds, so the pre-flight must mirror all five: warning on a subset would refuse
+  // liquidations that would actually succeed.
+  describe("VAI gate pre-flight (non-VAI debt)", () => {
+    beforeEach(async () => {
+      await usdt.mint(liq.address, REPAY);
+      await vaiController.setVAIRepayAmount(borrower.address, U("5000")); // >= the 1000 default threshold
+    });
+
+    it("refuses a USDT liquidation and names the VAI-first remedy when the gate would block it", async () => {
+      await venusLiq.setForceVAILiquidate(true); // all five terms now false -> the gate WOULD revert
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/liquidate the VAI debt first/i);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // nothing sent
+    });
+
+    it("does not fire while forceVAILiquidate is off (the mainnet default)", async () => {
+      setEnv(); // forceVAILiquidate defaults to false
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT); // settled normally
+    });
+
+    it("does not fire when forced liquidation is enabled on the debt market (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setForcedLiquidation(vDebt.address, true); // gate lets it through
+      setEnv();
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("does not fire when VAI liquidation is paused (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setActionPaused(vaiController.address, 5, true); // Action.LIQUIDATE
+      setEnv();
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("does not fire when the borrower's VAI debt is below the threshold", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await vaiController.setVAIRepayAmount(borrower.address, U("999")); // < 1000
+      setEnv();
+      await atomicLiquidate(owner);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
   });
 
   it("refuses a router that is not allowlisted on the contract", async () => {
@@ -272,5 +393,477 @@ describe("bStock atomic liquidation script", () => {
     expect(await wbnb.balanceOf(liq.address)).to.equal(OUT); // float consumed, proceeds retained as WBNB
     expect(await ethers.provider.getBalance(liq.address)).to.equal(0); // no native BNB retained
     expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate consumed
+  });
+
+  // VAI debt: VDEBT is the VAIController (no underlying(); resolved via getVAIAddress()). RFQ sources
+  // quote bStock->USDT only, so VAI is inherently two-hop — and hop 2 is the Peg Stability Module, whose
+  // `swapStableForVAI` calldata the script must construct ITSELF (lib/psm.ts: encoded locally, expected
+  // out from previewSwapStableForVAI — no aggregator API). MockPSM exposes the real PSM surface, so what
+  // executes on-chain is exactly the blob the script built.
+  describe("VAI debt (PSM hop 2 built by the script)", () => {
+    let vai: Contract, vaiController: Contract, psm: Contract;
+
+    beforeEach(async () => {
+      const ERC20 = await ethers.getContractFactory("MockMintableERC20");
+      vai = await ERC20.deploy("Vai Stablecoin", "VAI", 18);
+      vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+      await comptroller.setVaiController(vaiController.address);
+      const venusLiq = await ethers.getContractAt("MockVenusLiquidator", await comptroller.liquidatorContract());
+      await venusLiq.setVaiController(vaiController.address);
+
+      psm = await (await ethers.getContractFactory("MockPSM")).deploy(usdt.address, vai.address);
+      await liq.connect(owner).setRouter(psm.address, true);
+    });
+
+    // Real hop-1 source path (fetch stubbed with a firm Native quote), so the script reaches the REAL
+    // hop-2 build — the PSM branch under test. MOCK_NATIVE would bypass it.
+    function stubNativeFetch() {
+      const real = globalThis.fetch;
+      globalThis.fetch = (async () => ({
+        json: async () => ({
+          success: true,
+          recipient: liq.address,
+          amountIn: "0",
+          amountOut: OUT.toString(),
+          orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+          txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+        }),
+      })) as unknown as typeof fetch;
+      return real;
+    }
+
+    function vaiEnv(over: Record<string, string> = {}) {
+      setEnv({
+        VDEBT: vaiController.address,
+        MOCK_NATIVE: "",
+        MOCK_OUT: "",
+        NATIVE_API_KEY: "test-key",
+        PSM_ADDR: psm.address,
+        ...over,
+      });
+    }
+
+    it("builds the swapStableForVAI calldata itself and settles through the PSM", async () => {
+      await vai.mint(liq.address, REPAY); // pre-funded VAI inventory
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      // Hop 1 is firm, so its floor == OUT: the PSM pulled exactly OUT USDT and minted OUT VAI (rate 1:1)
+      // to the contract. Started with REPAY VAI, repaid REPAY, received OUT -> profit retained as VAI.
+      expect(await usdt.balanceOf(psm.address)).to.equal(OUT);
+      expect(await psm.vaiMinted()).to.equal(OUT);
+      expect(await vai.balanceOf(liq.address)).to.equal(OUT);
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+    });
+
+    it("derives minOut from previewSwapStableForVAI, not a 1:1 assumption", async () => {
+      await vai.mint(liq.address, REPAY);
+      // Oracle prices USDT under $1: the PSM mints 0.999 VAI per USDT. A 1:1 expectedOut would put
+      // minOut (0.5% buffer) above the 5494.5 delivered and revert InsufficientOut; the preview-derived
+      // minOut clears it.
+      await psm.setRate(U("0.999"));
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      const delivered = OUT.mul(U("0.999")).div(U("1"));
+      expect(await vai.balanceOf(liq.address)).to.equal(delivered); // repay spent, preview-out received
+    });
+
+    it("fails legibly before settling when the PSM is paused", async () => {
+      await vai.mint(liq.address, REPAY);
+      await psm.setPaused(true);
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/paused/i);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    it("fails legibly when the PSM mint-cap headroom cannot cover the hop-1 floor", async () => {
+      await vai.mint(liq.address, REPAY);
+      await psm.setVaiMintCap(U("100")); // headroom 100 < floor 5500
+      const real = stubNativeFetch();
+      try {
+        vaiEnv();
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/mint-cap/i);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    it("sizes the Liquidator treasury cut off the effective incentive, not core (VAI, defensive)", async () => {
+      await vai.mint(liq.address, REPAY);
+      // DEFENSIVE guard, not a reproducible mainnet state. The gate sizes its bonus cut with the
+      // EFFECTIVE incentive for EVERY debt type (Liquidator._splitLiquidationIncentive), so the script
+      // must too; using the borrower-agnostic core incentive (the pre-fix VAI path) would under-deduct
+      // the cut and over-quote hop-1. This test forces core (1.1x) != effective (1.25x) on the MOCK to
+      // pin the script to the gate's formula. On the REAL protocol the two CANNOT diverge for a VAI
+      // borrower: VAI mint requires the core pool (VAIController.mintVAI) and an account with VAI debt is
+      // barred from leaving it (MarketFacet.hasValidPoolBorrows rejects a non-core switch while
+      // mintedVAIs>0), so userPoolId is always 0 and getEffectiveLiquidationIncentive == getLiquidationIncentive.
+      // The genuinely divergent case is an ERC20 debt with the borrower in a non-core pool — exercised
+      // on real contracts in the fork suite ("effective-incentive divergence"). We still assert effective
+      // here so the script stays correct if that VAI-core invariant is ever relaxed (e.g. e-mode VAI).
+      await comptroller.setEffectiveIncentive(U("1.25"));
+      const venusLiq = await ethers.getContractAt("MockVenusLiquidator", await comptroller.liquidatorContract());
+      await venusLiq.setTreasuryCut(U("0.5")); // 50% of the bonus, like BSC mainnet today
+
+      // seize = repay*core = 5500; bonus = 5500*(0.25/1.25) = 1100; cut = 550 -> QUOTED seize 4950.
+      // The pre-fix core-based math would give bonus 500, cut 250, quoted 5250 — the divergence asserted.
+      // (The MockVenusLiquidator credits by its own simpler formula, so hop 1 delivers 2750 USDT on-chain;
+      // stub the firm-quote `out` to that so the settle stays self-consistent. The ASSERTION is the
+      // captured off-chain quote `amount`, which is driven purely by the script's cut math under test.)
+      let quotedAmount: string | null = null;
+      const realFetch = globalThis.fetch;
+      globalThis.fetch = (async (url: unknown) => {
+        quotedAmount = new URL(String(url)).searchParams.get("amount");
+        return {
+          json: async () => ({
+            success: true,
+            recipient: liq.address,
+            amountIn: "0",
+            amountOut: U("2750").toString(), // what the mock gate actually credits + hop 1 delivers
+            orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+            txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+          }),
+        };
+      }) as unknown as typeof fetch;
+      try {
+        vaiEnv({ SEIZE_BUFFER: "0" }); // no buffer: the quoted amount equals the credited seize exactly
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = realFetch;
+      }
+      expect(quotedAmount).to.equal("4950.0"); // effective-incentive cut, not the core-based 5250
+    });
+
+    it("rejects MODE=flash for a VAI debt before quoting (mirrors FlashNotSupportedForVai)", async () => {
+      await vai.mint(liq.address, REPAY);
+      vaiEnv({ MODE: "flash" });
+      // No fetch stub: the guard must fire before any hop-1 quote is requested.
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/flash.*VAI/i);
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+  });
+
+  // ------------------------------------------------------------------------ //
+  //   Liquidity-source registry (lib/sources.ts): Native vs Liquid Mesh      //
+  // ------------------------------------------------------------------------ //
+  // These exercise the REAL hop-1 source path (no MOCK_NATIVE): `fetch` is stubbed to answer the Native
+  // firm-quote, the Liquid Mesh `/quote`, and the Liquid Mesh `/swap` (disableSimulate) so the winner
+  // selection, the LM JWT/build round-trip, and the split-spender settle all run for real on-chain.
+  describe("liquidity-source registry", () => {
+    // Any 32-byte Ed25519 seed signs a valid JWT locally (the LM server is never hit — fetch is stubbed).
+    const LM_SEED = Buffer.alloc(32, 7).toString("base64url");
+    let spender: Contract, lmRouter: Contract;
+
+    // A response object exposing both `.json()` (Native lib) and `.text()` (Liquid Mesh lib).
+    const resp = (obj: any) => ({ status: 200, json: async () => obj, text: async () => JSON.stringify(obj) });
+
+    // Stub Native firm-quote + LM /quote + LM /swap. `lmCalldata` is executed on-chain against `lmRouter`;
+    // `lmExpiry` overrides the /swap order expiry (default: generous, see below).
+    function stubFetch(opts: { nativeOut: BigNumberish; lmOut: BigNumberish; lmCalldata: string; lmExpiry?: number }) {
+      const real = globalThis.fetch;
+      globalThis.fetch = (async (url: unknown, init?: any) => {
+        const u = String(url);
+        const method = (init?.method || "GET").toUpperCase();
+        if (u.includes("native.org")) {
+          return resp({
+            success: true,
+            recipient: liq.address,
+            amountIn: "0",
+            amountOut: opts.nativeOut.toString(),
+            orders: [{ deadlineTimestamp: Math.floor(Date.now() / 1000) + 3600 }],
+            txRequest: { target: router.address, calldata: swapAllCalldata(liq.address), value: "0" },
+          });
+        }
+        if (u.includes("liquidmesh.io") && u.includes("/quote")) {
+          return resp({
+            code: 0,
+            msg: "OK",
+            data: {
+              inputAmount: "0",
+              outputAmount: opts.lmOut.toString(),
+              routePlans: [{ subRouters: [{ dexes: [{ dex: "rfq_native", weight: 10000 }] }] }],
+            },
+          });
+        }
+        if (u.includes("liquidmesh.io") && method === "POST") {
+          // /swap (disableSimulate): calldata blob + expiry, target = the LM split router.
+          return resp({
+            code: 0,
+            msg: "OK",
+            data: {
+              chainId: "56",
+              callMsg: { from: liq.address, to: lmRouter.address, value: "0x0", data: opts.lmCalldata },
+              orderId: "1",
+              // Generous expiry: the hardhat chain clock can run ahead of wall-clock after prior tests, so a
+              // short TTL would trip DeadlineExpired. (Real LM orders are short-lived; the contract enforces it.)
+              expiryTimestamp: opts.lmExpiry ?? Math.floor(Date.now() / 1000) + 3600,
+            },
+          });
+        }
+        throw new Error(`unexpected fetch: ${method} ${u}`);
+      }) as unknown as typeof fetch;
+      return real;
+    }
+
+    // Deploy the Liquid-Mesh-style split router (call target 0x…/spender 0x… differ), allowlist it, wire
+    // the spender, and pre-fund it with USDT so its swap can pay out.
+    beforeEach(async () => {
+      spender = await (await ethers.getContractFactory("MockSpender")).deploy();
+      lmRouter = await (await ethers.getContractFactory("MockSplitRouter")).deploy(spender.address);
+      await liq.connect(owner).setRouter(lmRouter.address, true);
+      await liq.connect(owner).setRouterSpender(lmRouter.address, spender.address);
+      await usdt.mint(lmRouter.address, OUT); // LM router pays USDT
+    });
+
+    function lmSwapAll() {
+      return lmRouter.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, liq.address]);
+    }
+
+    function lmEnv(over: Record<string, string> = {}) {
+      setEnv({
+        MOCK_NATIVE: "", // force the real source path
+        MOCK_OUT: "",
+        NATIVE_API_KEY: "test-native",
+        LM_API_KEY: "test-lm",
+        LM_PRIVATE_KEY_SEED: LM_SEED,
+        ...over,
+      });
+    }
+
+    it("SOURCE=auto: picks Liquid Mesh when it out-quotes Native, settles via the split spender", async () => {
+      await usdt.mint(liq.address, REPAY); // inventory
+      const real = stubFetch({ nativeOut: U("5400"), lmOut: OUT, lmCalldata: lmSwapAll() }); // LM (5500) > Native (5400)
+      try {
+        lmEnv({ SOURCE: "auto" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      // Sold through the LM split router (its spender pulled the bStock), proceeds retained.
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(SEIZED);
+      expect(await bStock.balanceOf(router.address)).to.equal(0); // Native router untouched
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+      expect(await bStock.allowance(liq.address, spender.address)).to.equal(0); // no standing approval
+    });
+
+    it("SOURCE=auto: picks Native when it out-quotes Liquid Mesh", async () => {
+      await usdt.mint(liq.address, REPAY);
+      const real = stubFetch({ nativeOut: OUT, lmOut: U("5400"), lmCalldata: lmSwapAll() }); // Native (5500) > LM (5400)
+      try {
+        lmEnv({ SOURCE: "auto" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      expect(await bStock.balanceOf(router.address)).to.equal(SEIZED); // Native router sold it
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("SOURCE=auto: falls back to the firm Native quote when the LM built floor undercuts it", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // LM's INDICATIVE quote (5500) beats Native's FIRM 5490, so LM wins the comparison — but its built
+      // order only guarantees out*(1-slippage) = 5472.5 (< 5490 firm). The post-build reconcile must
+      // detect the regression and execute the Native quote instead.
+      const real = stubFetch({ nativeOut: U("5490"), lmOut: OUT, lmCalldata: lmSwapAll() });
+      try {
+        lmEnv({ SOURCE: "auto" }); // default SLIPPAGE 0.5%
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      expect(await bStock.balanceOf(router.address)).to.equal(SEIZED); // Native sold it, not LM
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0);
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("SOURCE=liquidmesh: forces Liquid Mesh even when Native quotes higher", async () => {
+      await usdt.mint(liq.address, REPAY);
+      const real = stubFetch({ nativeOut: U("9000"), lmOut: OUT, lmCalldata: lmSwapAll() }); // Native higher, but forced LM
+      try {
+        lmEnv({ SOURCE: "liquidmesh" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(SEIZED); // LM used despite lower quote
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("single-hop: derives minOut from the LM built floor, so a fill below the indicative quote still settles", async () => {
+      await usdt.mint(liq.address, REPAY); // USDT debt inventory (single hop, no AMM leg)
+      // SLIPPAGE (1%) > MIN_OUT_BUFFER (0.5%) opens the window the bug lived in. The built LM order only
+      // guarantees out*(1-slippage) = 5445, but the OLD code derived minOut from the INDICATIVE out
+      // (5500*(1-0.5%) = 5472.5). An in-slippage fill between the floor and that stale minOut reverted
+      // InsufficientOut. Deriving minOut from the floor (5445*(1-0.5%) = 5417.775) lets it settle.
+      await lmRouter.setRate(U("0.99")); // fills at exactly the floor 5445 (< the stale 5472.5 minOut)
+      const real = stubFetch({ nativeOut: U("0"), lmOut: OUT, lmCalldata: lmSwapAll() });
+      try {
+        lmEnv({ SOURCE: "liquidmesh", SLIPPAGE: "1", MIN_OUT_BUFFER: "0.5" });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+      // Settled at the floor fill with no revert — proof minOut was sized off the floor, not the quote.
+      expect(await usdt.balanceOf(liq.address)).to.equal(U("5445"));
+    });
+
+    it("tolerates a trailing comma / empty segment in SOURCE", async () => {
+      await usdt.mint(liq.address, REPAY);
+      const real = stubFetch({ nativeOut: U("5400"), lmOut: OUT, lmCalldata: lmSwapAll() });
+      try {
+        lmEnv({ SOURCE: "liquidmesh," }); // empty tail segment must be dropped, not read as an unknown source
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(SEIZED);
+    });
+
+    it("rejects a built Liquid Mesh order whose TTL is below LM_MIN_TTL", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // The built order expires 5s from now — under the 15s default margin. The guard must abort
+      // BEFORE the settle tx (an already-tight order would otherwise revert DeadlineExpired on-chain).
+      const real = stubFetch({
+        nativeOut: U("5400"),
+        lmOut: OUT,
+        lmCalldata: lmSwapAll(),
+        lmExpiry: Math.floor(Date.now() / 1000) + 5,
+      });
+      try {
+        lmEnv({ SOURCE: "liquidmesh" });
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/TTL .*LM_MIN_TTL/);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0); // nothing settled
+    });
+
+    it("rejects an implausible (millisecond-epoch) Liquid Mesh order expiry", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // A ms-epoch value read as unix SECONDS lands ~55000 AD — it would pass every TTL check and put a
+      // far-future deadline on-chain, silently disabling the off-chain expiry guards. buildSwap bounds it.
+      const real = stubFetch({ nativeOut: U("0"), lmOut: OUT, lmCalldata: lmSwapAll(), lmExpiry: Date.now() });
+      try {
+        lmEnv({ SOURCE: "liquidmesh" });
+        await expect(atomicLiquidate(owner)).to.be.rejectedWith(/implausible expiryTimestamp/);
+      } finally {
+        globalThis.fetch = real;
+      }
+      expect(await bStock.balanceOf(lmRouter.address)).to.equal(0); // nothing settled
+    });
+
+    it("rejects an unknown SOURCE name", async () => {
+      await usdt.mint(liq.address, REPAY);
+      lmEnv({ SOURCE: "nope" });
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/unknown SOURCE/i);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    it("rejects SOURCE=liquidmesh when the LM creds are absent", async () => {
+      await usdt.mint(liq.address, REPAY);
+      lmEnv({ SOURCE: "liquidmesh", LM_API_KEY: "", LM_PRIVATE_KEY_SEED: "" });
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/missing required creds/i);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    // A Liquid Mesh `/quote` is INDICATIVE: the built order may fill below it, down to its own floor. The
+    // hop-2 calldata bakes in a fixed `amountIn` off-chain, while on-chain the contract approves router2 for
+    // the ACTUAL hop-1 delta. Size hop 2 off the indicative `out` and an underfilling LM leaves the AMM
+    // pulling more than the approval — hop 2 reverts on allowance. Sizing it off the GUARANTEED floor keeps
+    // the pull within the approval. Here LM quotes 1:1 (5500 USDT) but its order fills at 0.998 (5489),
+    // between the floor (5472.5) and the quote — the exact gap the floor exists to absorb.
+    it("two-hop: sizes the AMM hop off the LM floor, so an LM order that underfills its quote still settles", async () => {
+      const { btcb, vBtcb, amm } = await deployTwoHop();
+      await liq.connect(owner).setRouter(amm.address, true);
+      await btcb.mint(liq.address, REPAY); // debt inventory for the repay
+
+      await lmRouter.setRate(U("0.998")); // LM fills 0.2% under its own indicative quote
+      const lmFilled = SEIZED.mul(U("0.998")).div(U("1")); // 5489 USDT actually delivered by hop 1
+      const floor = OUT.mul(9950).div(10000); // quote 5500 haircut by SLIPPAGE=0.5% -> 5472.5
+
+      // Stub LM (/quote + /swap) and the hop-2 KyberSwap round-trip. The AMM calldata is built from the
+      // `amountIn` the script ASKS for (captured off the /routes query), so the on-chain pull is exactly
+      // what the script sized the leg at — that is what this test is asserting on.
+      let ammAmountIn = "";
+      const real = globalThis.fetch;
+      globalThis.fetch = (async (url: unknown, init?: any) => {
+        const u = String(url);
+        const method = (init?.method || "GET").toUpperCase();
+        if (u.includes("liquidmesh.io") && u.includes("/quote")) {
+          return resp({
+            code: 0,
+            data: {
+              inputAmount: "0",
+              outputAmount: OUT.toString(), // indicative 1:1 — optimistic vs the 0.998 the order fills at
+              routePlans: [{ subRouters: [{ dexes: [{ dex: "rfq_native", weight: 10000 }] }] }],
+            },
+          });
+        }
+        if (u.includes("liquidmesh.io") && method === "POST") {
+          return resp({
+            code: 0,
+            data: {
+              chainId: "56",
+              callMsg: { from: liq.address, to: lmRouter.address, value: "0x0", data: lmSwapAll() },
+              orderId: "1",
+              expiryTimestamp: Math.floor(Date.now() / 1000) + 3600,
+            },
+          });
+        }
+        if (u.includes("kyberswap") && u.includes("/routes")) {
+          ammAmountIn = new URL(u).searchParams.get("amountIn") || "";
+          return resp({ code: 0, data: { routeSummary: { amountOut: ammAmountIn } } });
+        }
+        if (u.includes("kyberswap") && u.includes("/route/build")) {
+          // Pull EXACTLY what the script sized this leg at.
+          return resp({
+            code: 0,
+            data: {
+              routerAddress: amm.address,
+              data: amm.interface.encodeFunctionData("swap", [usdt.address, ammAmountIn, btcb.address, liq.address]),
+              amountOut: ammAmountIn,
+            },
+          });
+        }
+        throw new Error(`unexpected fetch: ${method} ${u}`);
+      }) as unknown as typeof fetch;
+
+      try {
+        lmEnv({ SOURCE: "liquidmesh", VDEBT: vBtcb.address });
+        await atomicLiquidate(owner);
+      } finally {
+        globalThis.fetch = real;
+      }
+
+      // Sized off the floor, not the indicative quote — the whole point.
+      expect(ammAmountIn).to.equal(floor.toString());
+      // Hop 2 pulled the floor out of the larger real delta, so the surplus stays behind as sweepable
+      // USDT inventory rather than reverting the settle.
+      expect(await usdt.balanceOf(liq.address)).to.equal(lmFilled.sub(floor));
+      expect(await btcb.balanceOf(liq.address)).to.equal(floor); // AMM pays 1:1 on what it pulled
+    });
   });
 });

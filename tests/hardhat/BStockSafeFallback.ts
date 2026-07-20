@@ -2,7 +2,7 @@
 // BStock mocks and asserts the emitted Transaction Builder batch. Covers the gate routing (T1), the
 // Venus Liquidator bonus-cut deduction, and the redeem treasuryPercent fee (T2).
 import { expect } from "chai";
-import { Contract } from "ethers";
+import { BigNumber, Contract } from "ethers";
 import { ethers } from "hardhat";
 
 import { buildSafeFallbackBatch } from "../../scripts/bstock/safe-fallback";
@@ -51,6 +51,9 @@ describe("BStock safe-fallback batch generator", () => {
       VDEBT: vDebt.address,
       REPAY_AMOUNT: "5000",
       TARGET: target.address,
+      // Isolate the price-drift buffer from the cut/fee assertions: default it off here so those tests
+      // assert exact seize-based amounts. The dedicated buffer tests below override it.
+      SEIZE_BUFFER: "0",
       ...over,
     });
   }
@@ -58,7 +61,16 @@ describe("BStock safe-fallback batch generator", () => {
   beforeEach(async () => {
     await deploy();
     // wipe any env leakage between tests
-    for (const k of ["SAFE", "BORROWER", "VBSTOCK", "VDEBT", "REPAY_AMOUNT", "TARGET", "ALLOW_PLACEHOLDER"]) {
+    for (const k of [
+      "SAFE",
+      "BORROWER",
+      "VBSTOCK",
+      "VDEBT",
+      "REPAY_AMOUNT",
+      "TARGET",
+      "ALLOW_PLACEHOLDER",
+      "SEIZE_BUFFER",
+    ]) {
       delete process.env[k];
     }
   });
@@ -92,6 +104,83 @@ describe("BStock safe-fallback batch generator", () => {
     expect(xfer[0]).to.equal(target.address);
     expect(xfer[1]).to.equal(seizedRaw);
     expect(seizedRaw).to.equal(SEIZE); // cut 0, treasuryPercent 0 → full seize at 1:1 rate
+  });
+
+  it("VAI debt: approves the VAI token and emits a zero-value batch (not misread as native BNB)", async () => {
+    // VAI has no underlying(), same as vBNB — the script must detect it explicitly, else the vBNB
+    // fallback would build a `{value: repay}` batch the gate rejects. No PSM leg here: this path ships
+    // the seized bStock rather than swapping it, so it works even when the atomic path's PSM hop is down.
+    const vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    const vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
+
+    setEnv({ VDEBT: vaiController.address });
+    const { txs, vReceived } = await buildSafeFallbackBatch(ethers.provider);
+
+    // ERC20 shape (4 txs incl. the approve) — a BNB misread would drop the approve and use value.
+    expect(txs).to.have.length(4);
+    expect(ethers.utils.getAddress(txs[0].to)).to.equal(vai.address); // approve the VAI token itself
+    const approve = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], "0x" + txs[0].data.slice(10));
+    expect(approve[0]).to.equal(venusLiq.address); // the gate is the repay spender
+    expect(approve[1]).to.equal(REPAY);
+
+    // liquidateBorrow routes through the gate with ZERO value (the gate's VAI branch requires msg.value == 0).
+    expect(ethers.utils.getAddress(txs[1].to)).to.equal(venusLiq.address);
+    expect(txs[1].data.slice(0, 10)).to.equal(SEL_ROUTED);
+    expect(BigNumber.from(txs[1].value)).to.equal(0);
+
+    expect(vReceived).to.equal(SEIZE); // seize via the VAI 2-arg math, cut 0
+  });
+
+  // The gate blocks liquidating an UNRELATED market while the borrower's VAI debt is above the
+  // threshold. Catching it at BUILD time matters more here than in the atomic script: a batch that
+  // reverts on execution costs a signing round, not just gas.
+  describe("VAI gate pre-flight (non-VAI debt)", () => {
+    let vaiController: Contract;
+
+    beforeEach(async () => {
+      const vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+      vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+      await comptroller.setVaiController(vaiController.address);
+      await venusLiq.setVaiController(vaiController.address);
+      await vaiController.setVAIRepayAmount(borrower.address, U("5000")); // >= the 1000 default threshold
+    });
+
+    it("refuses to build the batch and names the VAI-first remedy when the gate would block it", async () => {
+      await venusLiq.setForceVAILiquidate(true); // all five terms false -> the gate WOULD revert
+      setEnv();
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/liquidate the VAI debt first/i);
+    });
+
+    it("does not fire while forceVAILiquidate is off (the mainnet default)", async () => {
+      setEnv();
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4); // built normally
+    });
+
+    it("does not fire when forced liquidation is enabled on the debt market (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setForcedLiquidation(vDebt.address, true);
+      setEnv();
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4);
+    });
+
+    it("does not fire when VAI liquidation is paused (escape hatch)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      await comptroller.setActionPaused(vaiController.address, 5, true); // Action.LIQUIDATE
+      setEnv();
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4);
+    });
+
+    it("never blocks liquidating the VAI debt itself (the remedy step)", async () => {
+      await venusLiq.setForceVAILiquidate(true);
+      setEnv({ VDEBT: vaiController.address });
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4); // the VAI-first step must never be self-blocked
+    });
   });
 
   it("throws when the gate is unset, aligning with the on-chain liquidator", async () => {
@@ -148,5 +237,46 @@ describe("BStock safe-fallback batch generator", () => {
     const xfer = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], "0x" + txs[2].data.slice(10));
     expect(xfer[0]).to.equal(target.address);
     expect(xfer[1]).to.equal(seizedRaw);
+  });
+
+  it("haircuts the redeem/transfer by SEIZE_BUFFER so oracle drift leaves dust, not a revert (M4)", async () => {
+    setEnv({ SEIZE_BUFFER: "10" }); // 10% haircut for a clean, observable number
+    const { vReceived, vRedeem, seizedRaw, txs } = await buildSafeFallbackBatch(ethers.provider);
+
+    // Credited (vReceived) is still the full seize (cut 0); only the REDEEMED amount is haircut, so a
+    // small upward price move before quorum leaves the batch redeeming less than credited (dust remains).
+    expect(vReceived).to.equal(SEIZE);
+    expect(vRedeem).to.equal(SEIZE.mul(9000).div(10000)); // 90% of 5500 = 4950
+    expect(seizedRaw).to.equal(SEIZE.mul(9000).div(10000)); // 1:1 rate, treasuryPercent 0
+
+    // The redeem tx uses the haircut amount, not the full credit.
+    const redeem = ethers.utils.defaultAbiCoder.decode(["uint256"], txs[2].data.slice(0, 2) + txs[2].data.slice(10));
+    expect(redeem[0]).to.equal(vRedeem);
+  });
+
+  it("rejects an out-of-range SEIZE_BUFFER", async () => {
+    setEnv({ SEIZE_BUFFER: "150" });
+    await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/SEIZE_BUFFER/);
+  });
+
+  it("sizes the Liquidator treasury cut off the effective incentive, not core (VAI)", async () => {
+    // VAI borrower in a non-core pool: effective vBStock incentive (1.25x) differs from core (1.1x). The
+    // gate sizes the bonus cut with the effective incentive for every debt type, so the batch must too —
+    // the borrower-agnostic core incentive is only correct for VAI's SEIZE math, not the cut.
+    const vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    const vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
+    await comptroller.setEffectiveIncentive(U("1.25"));
+    await venusLiq.setTreasuryCut(U("0.5")); // 50% of the bonus
+
+    setEnv({ VDEBT: vaiController.address });
+    const { vReceived } = await buildSafeFallbackBatch(ethers.provider);
+
+    // seize = repay*core = 5500; bonus = 5500*(0.25/1.25) = 1100; cut = 550 -> credited 4950.
+    // Core-based sizing (the pre-fix path) would give bonus 500, cut 250, credited 5250.
+    const bonusAmount = SEIZE.mul(U("1.25").sub(ONE)).div(U("1.25"));
+    const cut = bonusAmount.mul(U("0.5")).div(ONE);
+    expect(vReceived).to.equal(SEIZE.sub(cut)); // 4950, not 5250
   });
 });

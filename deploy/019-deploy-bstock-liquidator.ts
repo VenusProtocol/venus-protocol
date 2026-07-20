@@ -64,7 +64,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   //   1. setRouter(nativeRfqRouter, true)      — hop-1 Native RFQ router (bStock -> USDT)
   //   2. setRouter(ammRouter, true)            — hop-2 AMM/aggregator router(s) for non-USDT / BNB debt
   //   3. setOperator(operatorKey, true)        — each liquidation-bot key (or each Safe signer)
+  //   (VAI debt only) setRouter(PegStability_USDT, true) — hop-2 USDT->VAI via swapStableForVAI. The
+  //   PSM is the call target AND the token puller, so it needs no setRouterSpender entry.
   // These are onlyOwner, so they cannot run here (deployer is not the owner); ship them as a Safe batch.
+  //
+  // FLASH mode ONLY (skip if using INVENTORY mode): flashLiquidate calls Comptroller.executeFlashLoan,
+  // which reverts SenderNotAuthorizedForFlashLoan unless this contract is whitelisted. This is a
+  // SEPARATE, governance-gated step (NOT owner-callable) that must be scheduled as a VIP:
+  //   4. Comptroller.setWhiteListFlashLoanAccount(bStockLiquidator, true)  — via the Comptroller admin
 
   return hre.network.live; // record as executed on a live network to prevent re-execution
 };

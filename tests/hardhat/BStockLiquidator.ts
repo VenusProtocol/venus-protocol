@@ -22,6 +22,7 @@ describe("BStockLiquidator (atomic)", () => {
   let usdt: Contract, bStock: Contract;
   let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, venusLiq: Contract;
   let wbnb: Contract, vWBNB: Contract;
+  let vai: Contract, vaiController: Contract;
   let liq: Contract;
 
   const REPAY = U("5000");
@@ -53,6 +54,12 @@ describe("BStockLiquidator (atomic)", () => {
     venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
     await comptroller.setLiquidatorContract(venusLiq.address);
     await venusLiq.setVBnb(VBNB);
+
+    // VAI: not a vToken, so the debt token is resolved via the VAIController's getVAIAddress().
+    vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
+    vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
+    await comptroller.setVaiController(vaiController.address);
+    await venusLiq.setVaiController(vaiController.address);
 
     liq = await deployLiquidator(comptroller.address);
     await liq.connect(owner).setRouter(router.address, true);
@@ -184,6 +191,38 @@ describe("BStockLiquidator (atomic)", () => {
       await venusLiq.setPullMantissa(U("0.5"));
       await liq.connect(owner).liquidate(params());
       expect(await usdt.allowance(liq.address, venusLiq.address)).to.equal(0);
+    });
+  });
+
+  // A hop's router pulls the FIXED amountIn baked into the signed calldata, while the contract approves
+  // the actual measured seize. The off-chain SEIZE_BUFFER haircut signs for slightly LESS than the seize
+  // (so an upward price tick can't make the pull exceed the approval and revert), which means a small
+  // residual of the input token routinely stays in the contract. `PartialSwapLeftover` surfaces it.
+  describe("partial swap fill (PartialSwapLeftover)", () => {
+    const LEFTOVER = U("50"); // seize 5500, sign for 5450 -> 50 bStock left behind
+
+    it("emits PartialSwapLeftover and strands the residual, which is then sweepable", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // Contract approves the full measured seize (SEIZED); the signed calldata pulls SEIZED - LEFTOVER.
+      const pulled = SEIZED.sub(LEFTOVER); // 5450 -> proceeds 5450 USDT, clears the 5400 minOut
+      const p = params({ swapCalldata: swapCalldata(pulled, liq.address) });
+
+      await expect(liq.connect(owner).liquidate(p))
+        .to.emit(liq, "PartialSwapLeftover")
+        .withArgs(bStock.address, LEFTOVER);
+
+      // Residual bStock is retained (not silently lost) and recoverable via sweep.
+      expect(await bStock.balanceOf(liq.address)).to.equal(LEFTOVER);
+      await expect(liq.connect(owner).sweep(bStock.address, owner.address, LEFTOVER))
+        .to.emit(liq, "Swept")
+        .withArgs(bStock.address, owner.address, LEFTOVER);
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+    });
+
+    it("does not emit PartialSwapLeftover when the router consumes the full approval", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await expect(liq.connect(owner).liquidate(params())).to.not.emit(liq, "PartialSwapLeftover");
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
     });
   });
 
@@ -335,10 +374,93 @@ describe("BStockLiquidator (atomic)", () => {
     it("caps the hop-2 approval at the hop-1 delta (a swapAll cannot drain intermediate inventory)", async () => {
       await btcb.mint(liq.address, REPAY);
       await usdt.mint(liq.address, U("2000")); // inventory a greedy swapAll would try to take
-      // swapAll pulls the caller's ENTIRE USDT balance (7500), but the approval is capped at midDelta (5500).
+      // swapAll pulls the caller's ENTIRE USDT balance (7500), but the approval is capped at midDelta (5500),
+      // so the router's transferFrom reverts — and _swap bubbles that reason up verbatim.
       const p = twoHopParams({ swapCalldata2: ammSwapAllCalldata(liq.address) });
-      await expect(liq.connect(owner).liquidate(p)).to.be.revertedWithCustomError(liq, "SwapFailed");
+      await expect(liq.connect(owner).liquidate(p)).to.be.revertedWith("ERC20: insufficient allowance");
       expect(await usdt.balanceOf(liq.address)).to.equal(U("2000")); // reverted, inventory intact
+    });
+
+    it("emits PartialSwapLeftover for the intermediate when hop 2 pulls less than the hop-1 delta", async () => {
+      await btcb.mint(liq.address, REPAY);
+      const leftover = U("50");
+      // Hop 1 fills fully (midDelta = SEIZED USDT); hop 2 pulls SEIZED - leftover, stranding intermediate USDT.
+      const p = twoHopParams({ swapCalldata2: ammSwapCalldata(SEIZED.sub(leftover), liq.address) });
+
+      await expect(liq.connect(owner).liquidate(p))
+        .to.emit(liq, "PartialSwapLeftover")
+        .withArgs(usdt.address, leftover);
+
+      expect(await usdt.balanceOf(liq.address)).to.equal(leftover); // intermediate residual retained
+      // Inventory nets to proceeds: start REPAY, repay REPAY, + (SEIZED - leftover) BTCB proceeds.
+      expect(await btcb.balanceOf(liq.address)).to.equal(OUT.sub(leftover)); // proceeds landed
+    });
+  });
+
+  // VAI debt. VAI is not a vToken: the "market" is the VAIController, which has no underlying(), so the
+  // debt token is resolved via getVAIAddress(). The gate takes its _liquidateVAI branch, pulling the VAI
+  // ERC20 from us. RFQ quotes bStock->USDT only, so VAI is inherently two-hop (bStock -> USDT -> VAI),
+  // with the Peg Stability Module standing in as hop 2 (mocked here as a plain USDT->VAI router).
+  describe("VAI debt (VAIController-routed, PSM hop 2)", () => {
+    let psm: Contract;
+
+    function psmSwapCalldata(amountIn: BigNumber, to: string) {
+      return psm.interface.encodeFunctionData("swap", [usdt.address, amountIn, vai.address, to]);
+    }
+    function vaiParams(over: Partial<any> = {}) {
+      return params({
+        vDebt: vaiController.address, // VAI is repaid through the VAIController, not a vToken
+        router2: psm.address,
+        swapCalldata2: psmSwapCalldata(SEIZED, liq.address),
+        intermediateToken: usdt.address,
+        ...over,
+      });
+    }
+
+    beforeEach(async () => {
+      psm = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+      await liq.connect(owner).setRouter(psm.address, true);
+      await vai.mint(psm.address, OUT); // the PSM mints VAI for the USDT it pulls
+    });
+
+    it("inventory: repays VAI, sells bStock -> USDT -> VAI, keeps the incentive", async () => {
+      await vai.mint(liq.address, REPAY); // pre-funded VAI inventory
+
+      expect(await liq.connect(owner).callStatic.liquidate(vaiParams())).to.equal(OUT);
+
+      await expect(liq.connect(owner).liquidate(vaiParams()))
+        .to.emit(liq, "Liquidated")
+        .withArgs(borrower.address, vBStock.address, vaiController.address, REPAY, SEIZED, OUT, false);
+
+      expect(await vai.balanceOf(liq.address)).to.equal(OUT); // profit = OUT - REPAY
+      expect(await usdt.balanceOf(liq.address)).to.equal(0); // intermediate fully consumed
+      expect(await bStock.balanceOf(liq.address)).to.equal(0);
+      // The repay reached the gate as the VAI ERC20 (its _liquidateVAI branch).
+      expect(await vai.balanceOf(venusLiq.address)).to.equal(REPAY);
+      // No standing approvals: to the gate (VAI) nor on either hop.
+      expect(await vai.allowance(liq.address, venusLiq.address)).to.equal(0);
+      expect(await usdt.allowance(liq.address, psm.address)).to.equal(0);
+    });
+
+    it("rejects a single-hop VAI config (router2 == 0)", async () => {
+      await vai.mint(liq.address, REPAY);
+      await expect(
+        liq.connect(owner).liquidate(vaiParams({ router2: ZERO, swapCalldata2: "0x", intermediateToken: ZERO })),
+      ).to.be.revertedWithCustomError(liq, "InvalidIntermediate");
+    });
+
+    it("rejects flashLiquidate for a VAI debt (VAI is burned; there is no vVAI to flash from)", async () => {
+      await expect(liq.connect(owner).flashLiquidate(vaiParams())).to.be.revertedWithCustomError(
+        liq,
+        "FlashNotSupportedForVai",
+      );
+    });
+
+    it("enforces minOut in VAI when the PSM hop underdelivers", async () => {
+      await vai.mint(liq.address, REPAY);
+      await psm.setRate(U("0.9")); // 5500 USDT -> 4950 VAI, below the 5400 minOut
+      await expect(liq.connect(owner).liquidate(vaiParams())).to.be.revertedWithCustomError(liq, "InsufficientOut");
+      expect(await vai.balanceOf(liq.address)).to.equal(REPAY); // reverted, inventory intact
     });
   });
 
@@ -533,11 +655,21 @@ describe("BStockLiquidator (atomic)", () => {
         .withArgs(7);
     });
 
-    it("reverts SwapFailed when the router call reverts", async () => {
-      // amountIn exceeds what the contract holds/approves, so the router's transferFrom reverts.
+    it("bubbles up the router's revert reason when the swap call reverts", async () => {
+      // amountIn exceeds what the contract holds/approves, so the router's transferFrom reverts —
+      // and _swap surfaces that reason verbatim instead of an opaque SwapFailed().
       await expect(
         liq.connect(owner).liquidate(params({ swapCalldata: swapCalldata(SEIZED.mul(2), liq.address) })),
-      ).to.be.revertedWithCustomError(liq, "SwapFailed");
+      ).to.be.revertedWith("ERC20: insufficient allowance");
+    });
+
+    it("falls back to SwapFailed when the router reverts without a reason", async () => {
+      // An unknown selector on the router (no matching function, no fallback) reverts with empty
+      // returndata, so _swap has no reason to bubble and raises the custom SwapFailed().
+      await expect(liq.connect(owner).liquidate(params({ swapCalldata: "0xdeadbeef" }))).to.be.revertedWithCustomError(
+        liq,
+        "SwapFailed",
+      );
     });
   });
 
@@ -610,6 +742,15 @@ describe("BStockLiquidator (atomic)", () => {
         .withArgs(usdt.address, owner.address, U("123"));
       expect(await usdt.balanceOf(owner.address)).to.equal(U("123"));
       expect(await usdt.balanceOf(liq.address)).to.equal(0);
+    });
+
+    it("renounceOwnership is disabled (owner cannot brick the fund-custodying contract)", async () => {
+      await expect(liq.connect(stranger).renounceOwnership()).to.be.revertedWith("Ownable: caller is not the owner");
+      // Owner call is a no-op: ownership is retained, admin surface stays live.
+      await liq.connect(owner).renounceOwnership();
+      expect(await liq.owner()).to.equal(owner.address);
+      await usdt.mint(liq.address, U("1"));
+      await expect(liq.connect(owner).sweep(usdt.address, owner.address, U("1"))).to.emit(liq, "Swept");
     });
   });
 

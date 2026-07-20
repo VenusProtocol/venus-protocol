@@ -1,8 +1,11 @@
 /**
  * Smoke test for the Native Swap API integration (no chain interaction).
  *
- * Prints the BSC orderbook entries for our bStock tokens and fetches a live
- * firm-quote so we can eyeball price, spread, TTL and the returned txRequest.
+ * The Native counterpart of lm-smoke.ts: fetches a live firm-quote (bStock -> USDT) so we can eyeball
+ * price, TTL and the executable router before an incident. Prints the shared shape (amountIn/amountOut,
+ * px/token) plus a `firm-only` block (deadline/TTL, txRequest router, order count) that a firm MM-signed
+ * RFQ carries but an indicative Liquid Mesh quote does not. The token address is resolved from the live
+ * Native orderbook by symbol (`TOKEN`); the orderbook itself is not printed.
  *
  * Usage:
  *   NATIVE_API_KEY=... npx hardhat run scripts/bstock/native-smoke.ts
@@ -23,27 +26,23 @@ async function main() {
   const amount = process.env.AMOUNT || "1";
   const from = process.env.FROM || "0x000000000000000000000000000000000000dEaD";
 
-  // Resolve the token address from the live orderbook (the source of truth) rather than a hardcoded
-  // map, so this stays correct as Native lists more bStock tokens. `tokenIn` is the sell-side base
-  // (base = symbol, quote = USDT).
-  console.log(`\nOrderbook (bsc) entries for ${symbol}:`);
+  // Resolve the token address from the live orderbook (the source of truth) rather than a hardcoded map,
+  // so this stays correct as Native lists more bStock tokens. tokenIn is the sell-side base (quote = USDT).
   const ob = await getOrderbook("bsc");
-  let tokenIn: string | undefined;
-  for (const r of ob) {
-    if (`${r.base_symbol}${r.quote_symbol}`.includes(symbol)) {
-      console.log(`  ${r.base_symbol} <-> ${r.quote_symbol}`);
-    }
-    if (r.base_symbol === symbol && r.quote_symbol === "USDT") tokenIn = r.base_address;
-  }
+  const tokenIn = ob.find(r => r.base_symbol === symbol && r.quote_symbol === "USDT")?.base_address;
   if (!tokenIn) throw new Error(`No ${symbol}<->USDT pair in the Native bsc orderbook`);
 
-  console.log(`\nFirm quote: ${amount} ${symbol} -> USDT`);
+  // Shared shape with lm-smoke.ts (amountIn / amountOut / px/token), then the Native-firm-only extras.
+  console.log(`\nNative quote: ${amount} ${symbol} (${tokenIn}) -> USDT`);
   const q = await getFirmQuote({ fromAddress: from, tokenIn, tokenOut: BSC_USDT, amount, slippage: 0.5 });
   const amtIn = Number(q.amountIn) / 1e18;
   const amtOut = Number(q.amountOut) / 1e18; // USDT is 18 decimals on BSC
   console.log(`  amountIn : ${amtIn} ${symbol}`);
   console.log(`  amountOut: ${amtOut} USDT`);
-  console.log(`  px/token : ${(amtOut / amtIn).toFixed(4)} USDT`);
+  console.log(`  px/token : ${amtIn ? (amtOut / amtIn).toFixed(4) : "?"} USDT`);
+  // firm-only: a Native RFQ is an MM-signed, single-fill order — so it carries an executable txRequest,
+  // a signed deadline, and the order objects (no route split / price-impact, unlike an indicative LM quote).
+  console.log(`  -- firm-only --`);
   const dl = quoteDeadline(q);
   console.log(`  deadline : ${dl} (${dl ? Math.max(0, dl - Math.floor(Date.now() / 1000)) : "?"}s TTL)`);
   console.log(`  router   : ${q.txRequest?.target}`);

@@ -36,17 +36,76 @@ interface IFlashReceiverLike {
     ) external returns (bool, uint256[] memory);
 }
 
+/// @dev Minimal VAIController stand-in. VAI is not a vToken and has no `underlying()`; the debt token
+///      is resolved through `getVAIAddress()`, exactly as the real VAIController exposes it.
+contract MockVAIController {
+    address public immutable vai;
+    mapping(address => uint256) public vaiRepayAmount; // borrower -> outstanding VAI debt
+
+    constructor(address vai_) {
+        vai = vai_;
+    }
+
+    function setVAIRepayAmount(address borrower, uint256 amount) external {
+        vaiRepayAmount[borrower] = amount;
+    }
+
+    function getVAIAddress() external view returns (address) {
+        return vai;
+    }
+
+    /// @dev Read by the gate's `_checkForceVAILiquidate` and by the scripts' VAI-gate pre-flight.
+    function getVAIRepayAmount(address borrower) external view returns (uint256) {
+        return vaiRepayAmount[borrower];
+    }
+}
+
 /// @dev Minimal Comptroller surface the script + BStockLiquidator read, plus a flash lender.
 contract MockComptrollerLite {
     uint256 public shortfall;
+    uint256 public liquidityErr; // getAccountLiquidity error slot; non-zero -> a failed reading (oracle etc.)
     uint256 public closeFactorMantissa = 0.5e18;
     uint256 public liquidationIncentiveMantissa = 1.1e18;
+    // Borrower-aware effective incentive. 0 -> falls back to liquidationIncentiveMantissa (the common
+    // case: a single-pool borrower). Set non-zero to model a borrower in a non-core pool whose vBStock
+    // incentive DIFFERS from core — the case the treasury-cut math must size against (effective, not core).
+    uint256 public effectiveIncentiveMantissa;
     uint256 public flashPremiumMantissa; // fee on flash principal, 1e18-scaled (default 0)
     address public liquidatorContract; // pool-wide gate; 0 = permissionless (direct liquidateBorrow)
     uint256 public treasuryPercent; // redeem fee, 1e18-scaled (default 0)
+    address public vaiController; // a debt equal to this is VAI (no underlying(); see MockVAIController)
+
+    /// @dev Two of the gate's VAI-guard escape hatches (see Liquidator._checkForceVAILiquidate): either
+    ///      one permits liquidating a non-VAI market regardless of the borrower's VAI debt.
+    mapping(address => bool) public isForcedLiquidationEnabled; // vToken -> forced liquidation on
+    mapping(address => mapping(uint8 => bool)) private _actionPaused; // market -> Action -> paused
+
+    function setVaiController(address v) external {
+        vaiController = v;
+    }
+
+    function setForcedLiquidation(address vToken, bool enabled) external {
+        isForcedLiquidationEnabled[vToken] = enabled;
+    }
+
+    function setActionPaused(address market, uint8 action, bool paused) external {
+        _actionPaused[market][action] = paused;
+    }
+
+    function actionPaused(address market, uint8 action) external view returns (bool) {
+        return _actionPaused[market][action];
+    }
 
     function setShortfall(uint256 s) external {
         shortfall = s;
+    }
+
+    function setLiquidityErr(uint256 e) external {
+        liquidityErr = e;
+    }
+
+    function setEffectiveIncentive(uint256 m) external {
+        effectiveIncentiveMantissa = m;
     }
 
     function setTreasuryPercent(uint256 p) external {
@@ -62,7 +121,7 @@ contract MockComptrollerLite {
     }
 
     function getAccountLiquidity(address) external view returns (uint256, uint256, uint256) {
-        return (0, 0, shortfall);
+        return (liquidityErr, 0, shortfall);
     }
 
     /// @dev Mirrors the seize math: seizeTokens = repay * incentive (1:1 collateral rate here).
@@ -74,8 +133,32 @@ contract MockComptrollerLite {
         return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
     }
 
-    /// @dev Read by the off-chain script to size the Venus Liquidator's bonus cut.
+    /// @dev Borrower-aware 4-arg overload (the version vToken.liquidateBorrowFresh and the off-chain
+    ///      scripts call). Same math here — the mock has a single pool — so both overloads agree.
+    function liquidateCalculateSeizeTokens(
+        address,
+        address,
+        address,
+        uint256 repayAmount
+    ) external view returns (uint256, uint256) {
+        return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
+    }
+
+    /// @dev VAI's seize math (VAIController.liquidateVAIFresh calls this): VAI is priced at $1 and the
+    ///      incentive is the borrower-agnostic getLiquidationIncentive — hence the 2-arg shape.
+    function liquidateVAICalculateSeizeTokens(address, uint256 repayAmount) external view returns (uint256, uint256) {
+        return (0, (repayAmount * liquidationIncentiveMantissa) / 1e18);
+    }
+
+    /// @dev Read by the off-chain script to size the Venus Liquidator's bonus cut. Returns the
+    ///      borrower-aware effective incentive when set, else the core value — so a test can make the
+    ///      two DIVERGE and prove the cut is sized off the effective one (mirrors the real gate).
     function getEffectiveLiquidationIncentive(address, address) external view returns (uint256) {
+        return effectiveIncentiveMantissa != 0 ? effectiveIncentiveMantissa : liquidationIncentiveMantissa;
+    }
+
+    /// @dev Borrower-agnostic incentive — the one VAI's seize math uses.
+    function getLiquidationIncentive(address) external view returns (uint256) {
         return liquidationIncentiveMantissa;
     }
 
@@ -252,6 +335,96 @@ contract MockReentrantRouter {
     }
 }
 
+/// @dev Stand-in for an aggregator (e.g. Liquid Mesh) whose settlement pulls the input token through a
+///      SEPARATE spender contract, distinct from the call target. On Liquid Mesh you approve the spender
+///      `0x8157…` but call the router `0x3d90…`. `MockSpender.pull` does the `transferFrom`, so the input
+///      allowance must sit on the SPENDER, not the router — exactly the case `routerSpender` handles.
+contract MockSpender {
+    /// @dev Pull `amountIn` of `tokenIn` from `from` to `to`. `from` must have approved THIS contract.
+    function pull(address tokenIn, address from, address to, uint256 amountIn) external {
+        require(ERC20(tokenIn).transferFrom(from, to, amountIn), "spender pull failed");
+    }
+}
+
+/// @dev The call target that pairs with `MockSpender`: it pulls the caller's input token VIA the spender
+///      (so the caller must approve the spender, NOT this router) and pays the output at `rate`. Mirrors a
+///      Liquid Mesh swap: `router.call(swapCalldata)` where settlement pulls via a separate spender.
+///      Pre-fund it with `tokenOut`.
+contract MockSplitRouter {
+    address public immutable spender;
+    uint256 public rate = 1e18; // tokenOut per tokenIn, 18-dec fixed point
+
+    constructor(address spender_) {
+        spender = spender_;
+    }
+
+    function setRate(uint256 r) external {
+        rate = r;
+    }
+
+    function swap(address tokenIn, uint256 amountIn, address tokenOut, address to) external {
+        // Pull via the spender — reverts with "spender pull failed" if the caller approved this router
+        // instead of the spender (the SafeTransferFromFailed analog of Liquid Mesh's build-time sim).
+        MockSpender(spender).pull(tokenIn, msg.sender, address(this), amountIn);
+        require(ERC20(tokenOut).transfer(to, (amountIn * rate) / 1e18), "out transfer failed");
+    }
+
+    /// @dev Pulls the caller's ENTIRE tokenIn balance VIA THE SPENDER (what the liquidator holds after
+    ///      redeem) and pays tokenOut at `rate`. Mirrors MockNativeRouter.swapAll but through the split
+    ///      spender, so tests need not match the exact seized amount.
+    function swapAll(address tokenIn, address tokenOut, address to) external {
+        uint256 amountIn = ERC20(tokenIn).balanceOf(msg.sender);
+        MockSpender(spender).pull(tokenIn, msg.sender, address(this), amountIn);
+        require(ERC20(tokenOut).transfer(to, (amountIn * rate) / 1e18), "out transfer failed");
+    }
+}
+
+/// @dev Peg Stability Module stand-in exposing the REAL PSM surface the off-chain script encodes
+///      against (`swapStableForVAI` / `previewSwapStableForVAI` / `isPaused` / `vaiMintCap` /
+///      `vaiMinted`) — unlike the generic router mocks, so the script's locally-built calldata is what
+///      executes here. `rateMantissa` mirrors the PSM's IN-direction pricing (min($1, oracle), minus
+///      feeIn): out = amountIn * rateMantissa / 1e18. Pays VAI by minting, like the real PSM.
+contract MockPSM {
+    address public immutable stableToken;
+    MockMintableERC20 public immutable vai;
+
+    uint256 public rateMantissa = 1e18;
+    bool public isPaused;
+    uint256 public vaiMintCap = type(uint256).max;
+    uint256 public vaiMinted;
+
+    constructor(address stableToken_, MockMintableERC20 vai_) {
+        stableToken = stableToken_;
+        vai = vai_;
+    }
+
+    function setRate(uint256 r) external {
+        rateMantissa = r;
+    }
+
+    function setPaused(bool p) external {
+        isPaused = p;
+    }
+
+    function setVaiMintCap(uint256 c) external {
+        vaiMintCap = c;
+    }
+
+    function previewSwapStableForVAI(uint256 stableTknAmount) public view returns (uint256) {
+        return (stableTknAmount * rateMantissa) / 1e18;
+    }
+
+    function swapStableForVAI(address receiver, uint256 stableTknAmount) external returns (uint256) {
+        require(!isPaused, "psm paused");
+        uint256 vaiToMint = previewSwapStableForVAI(stableTknAmount);
+        require(vaiMinted + vaiToMint <= vaiMintCap, "mint cap reached");
+        vaiMinted += vaiToMint;
+        require(ERC20(stableToken).transferFrom(msg.sender, address(this), stableTknAmount), "stable pull failed");
+        vai.mint(receiver, vaiToMint);
+        return vaiToMint;
+    }
+}
+
 /// @dev Stand-in for the pool-wide Venus Liquidator (`liquidatorContract`). Pulls the repay from the
 ///      caller and credits the seized collateral (repay * incentive) to the caller, minus a treasury cut.
 contract MockVenusLiquidator {
@@ -259,6 +432,20 @@ contract MockVenusLiquidator {
     uint256 public treasuryCutMantissa; // cut of the seized collateral kept by the liquidator (default 0)
     uint256 public pullMantissa = 1e18; // fraction of repayAmount actually pulled (default 100%)
     address public vBnb; // native BNB market; a repay for this vToken must arrive as msg.value
+    address public vaiController; // VAI "market"; the repay is the VAI ERC20, resolved via getVAIAddress()
+
+    /// @dev The gate's VAI guard, mirrored for the scripts' pre-flight. `forceVAILiquidate` is FALSE on
+    ///      BSC mainnet today, which short-circuits the guard — hence the default here.
+    bool public forceVAILiquidate;
+    uint256 public minLiquidatableVAI = 1000e18;
+
+    function setForceVAILiquidate(bool v) external {
+        forceVAILiquidate = v;
+    }
+
+    function setMinLiquidatableVAI(uint256 v) external {
+        minLiquidatableVAI = v;
+    }
 
     function setTreasuryCut(uint256 m) external {
         treasuryCutMantissa = m;
@@ -273,6 +460,13 @@ contract MockVenusLiquidator {
     /// @dev Mirrors the real gate: a vBNB repay is native BNB (msg.value), not an ERC20 transferFrom.
     function setVBnb(address v) external {
         vBnb = v;
+    }
+
+    /// @dev Mirrors `Liquidator._liquidateVAI`: a VAI repay is pulled as the VAI ERC20 (resolved via
+    ///      `getVAIAddress()`, since the VAIController has no `underlying()`), then burned by the real
+    ///      VAIController. Here we just keep it — only the pull is observable to the liquidator.
+    function setVaiController(address v) external {
+        vaiController = v;
     }
 
     /// @dev Mirrors the real Venus Liquidator getter the off-chain script reads to precompute the cut.
@@ -290,7 +484,10 @@ contract MockVenusLiquidator {
             // Native BNB repay: require exact msg.value (mirrors Liquidator.sol) and keep the BNB.
             require(msg.value == repayAmount, "bad value");
         } else {
-            address underlying = MockVTokenDebt(vToken).underlying();
+            // VAI has no `underlying()` — resolve it via `getVAIAddress()`, like `Liquidator._liquidateVAI`.
+            address underlying = vToken == vaiController
+                ? MockVAIController(vToken).getVAIAddress()
+                : MockVTokenDebt(vToken).underlying();
             uint256 pulled = (repayAmount * pullMantissa) / 1e18;
             require(ERC20(underlying).transferFrom(msg.sender, address(this), pulled), "repay pull failed");
         }
@@ -312,6 +509,7 @@ contract MockMaliciousFlashComptroller {
 
     Mode public mode;
     address public liquidatorContract; // unset: the receiver would liquidate directly
+    address public vaiController; // unset: `flashLiquidate`'s VAI check reads this and never matches vDebt
 
     function setMode(Mode mode_) external {
         mode = mode_;

@@ -23,8 +23,8 @@ interface IBStockLiquidator {
         IVBep20 vDebt; // borrowed market to repay (e.g. vUSDT)
         IVBep20 vBStock; // bStock collateral market to seize (e.g. vTSLAB)
         uint256 repayAmount; // debt underlying to repay (its own decimals)
-        address router; // hop-1 router = Native firm-quote txRequest.target (must be allowlisted)
-        bytes swapCalldata; // hop-1 calldata (MM-signed Native order): bStock -> intermediate (or -> debt if single-hop)
+        address router; // hop-1 RFQ router (Native firm-quote target, Liquid Mesh router, …) — must be allowlisted
+        bytes swapCalldata; // hop-1 calldata (off-chain-signed RFQ order): bStock -> intermediate (or -> debt if single-hop)
         uint256 minOut; // minimum FINAL debt-asset amount the swap chain must yield, else revert
         address router2; // hop-2 router (AMM/aggregator): intermediate -> debt; address(0) = single-hop
         bytes swapCalldata2; // hop-2 calldata; the swap recipient inside it MUST be this contract
@@ -37,6 +37,9 @@ interface IBStockLiquidator {
 
     /// @notice Emitted when a swap router is allowlisted or removed.
     event RouterSet(address indexed router, bool allowed);
+
+    /// @notice Emitted when a router's token-approval target (spender) is set or cleared.
+    event RouterSpenderSet(address indexed router, address indexed spender);
 
     /// @notice Emitted on a successful liquidation.
     /// @param borrower The liquidated account.
@@ -62,11 +65,22 @@ interface IBStockLiquidator {
     /// @notice Emitted when the owner withdraws stuck native BNB.
     event SweptNative(address indexed to, uint256 amount);
 
+    /// @notice Emitted when a swap hop pulls less than the amount approved to the router, leaving a
+    ///         residual of the input token in the contract (e.g. a partially-filled RFQ quote). The
+    ///         residual is recoverable via `sweep`.
+    /// @param token The input token left over (bStock on hop 1, the intermediate on hop 2).
+    /// @param amount The residual amount not consumed by the swap.
+    event PartialSwapLeftover(address indexed token, uint256 amount);
+
     /// @notice Thrown when the caller is neither the owner nor an allowlisted operator.
     error NotOperator();
 
     /// @notice Thrown when the supplied swap router is not allowlisted.
     error RouterNotAllowed(address router);
+
+    /// @notice Thrown when a router spender being set is not a deployed contract. The spender receives
+    ///         a live token approval during the swap, so an EOA spender is always a misconfiguration.
+    error SpenderNotContract(address spender);
 
     /// @notice Thrown when `vBStock.redeem` returns a non-zero error code.
     error RedeemFailed(uint256 errCode);
@@ -93,6 +107,11 @@ interface IBStockLiquidator {
     /// @notice Thrown when the flashed asset does not match `params.vDebt`.
     error WrongFlashAsset();
 
+    /// @notice Thrown when `flashLiquidate` is called with a VAI debt. VAI is minted/burned by the
+    ///         VAIController and has no vToken market to flash from — use `liquidate` (INVENTORY mode)
+    ///         with pre-funded VAI instead.
+    error FlashNotSupportedForVai();
+
     /// @notice Thrown when the call is submitted after `params.deadline`.
     error DeadlineExpired(uint256 deadline, uint256 nowTs);
 
@@ -105,9 +124,21 @@ interface IBStockLiquidator {
     function setOperator(address operator, bool allowed) external;
 
     /// @notice Allow or disallow a router as the swap target (e.g. the Native router).
+    /// @dev Removing a router also clears its `routerSpender` entry (emitting {RouterSpenderSet} with
+    ///      `address(0)`), so a stale spender cannot silently reactivate on a later re-allowlist.
     /// @param router Address to allowlist or remove.
     /// @param allowed True to allow, false to remove.
     function setRouter(address router, bool allowed) external;
+
+    /// @notice Set the token-approval target (spender) for a router whose settlement contract that pulls
+    ///         the input token differs from the call target (e.g. Liquid Mesh). When unset, the approval
+    ///         defaults to the router itself (Native behaviour). Setting `spender = address(0)` clears it.
+    /// @dev Reverts with {RouterNotAllowed} unless `router` is currently allowlisted, and with
+    ///      {SpenderNotContract} when a non-zero `spender` has no code. The spender is an approval
+    ///      target only — it is never called; the low-level call always targets the allowlisted router.
+    /// @param router The allowlisted swap target (call target).
+    /// @param spender The contract that pulls the input token via `transferFrom` during settlement.
+    function setRouterSpender(address router, address spender) external;
 
     /// @notice Withdraw any token (profit, leftover inventory, stuck dust) to `to`.
     /// @param token Token to withdraw.
