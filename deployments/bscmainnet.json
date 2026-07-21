@@ -2123,7 +2123,7 @@
       ]
     },
     "BStockLiquidator": {
-      "address": "0xF03C90e6BF66b43411189Ad848F17723f8B4A3c1",
+      "address": "0x5974Badab6911a78Ba15229045514C2C1bD42343",
       "abi": [
         {
           "anonymous": false,
@@ -2276,6 +2276,11 @@
           "type": "error"
         },
         {
+          "inputs": [],
+          "name": "FlashNotSupportedForVai",
+          "type": "error"
+        },
+        {
           "inputs": [
             {
               "internalType": "uint256",
@@ -2331,6 +2336,17 @@
             }
           ],
           "name": "RouterNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            }
+          ],
+          "name": "SpenderNotContract",
           "type": "error"
         },
         {
@@ -2478,6 +2494,25 @@
             {
               "indexed": true,
               "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "PartialSwapLeftover",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
               "name": "router",
               "type": "address"
             },
@@ -2489,6 +2524,25 @@
             }
           ],
           "name": "RouterSet",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "router",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            }
+          ],
+          "name": "RouterSpenderSet",
           "type": "event"
         },
         {
@@ -2838,6 +2892,25 @@
           "inputs": [
             {
               "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "routerSpender",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
               "name": "operator",
               "type": "address"
             },
@@ -2866,6 +2939,24 @@
             }
           ],
           "name": "setRouter",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "router",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            }
+          ],
+          "name": "setRouterSpender",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -2987,7 +3078,7 @@
       ]
     },
     "BStockLiquidator_Implementation": {
-      "address": "0x883C36BADe4BAbE393feF2FcfcFC24A5e8E1A3D5",
+      "address": "0xde9734DD7AEad610Dd41FFE9Abc25C5cCf142487",
       "abi": [
         {
           "inputs": [
@@ -3040,6 +3131,11 @@
             }
           ],
           "name": "DeadlineExpired",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "FlashNotSupportedForVai",
           "type": "error"
         },
         {
@@ -3098,6 +3194,17 @@
             }
           ],
           "name": "RouterNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            }
+          ],
+          "name": "SpenderNotContract",
           "type": "error"
         },
         {
@@ -3245,6 +3352,25 @@
             {
               "indexed": true,
               "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "PartialSwapLeftover",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
               "name": "router",
               "type": "address"
             },
@@ -3256,6 +3382,25 @@
             }
           ],
           "name": "RouterSet",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "router",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            }
+          ],
+          "name": "RouterSpenderSet",
           "type": "event"
         },
         {
@@ -3605,6 +3750,25 @@
           "inputs": [
             {
               "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "routerSpender",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
               "name": "operator",
               "type": "address"
             },
@@ -3633,6 +3797,24 @@
             }
           ],
           "name": "setRouter",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "router",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            }
+          ],
+          "name": "setRouterSpender",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -3737,7 +3919,7 @@
       ]
     },
     "BStockLiquidator_Proxy": {
-      "address": "0xF03C90e6BF66b43411189Ad848F17723f8B4A3c1",
+      "address": "0x5974Badab6911a78Ba15229045514C2C1bD42343",
       "abi": [
         {
           "inputs": [
