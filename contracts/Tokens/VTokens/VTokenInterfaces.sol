@@ -425,20 +425,64 @@ abstract contract VTokenInterface is VTokenStorage {
 interface VBep20Interface {
     /*** User Interface ***/
 
+    /**
+     * @notice Sender supplies assets into the market and receives vTokens in exchange
+     * @param mintAmount The amount of the underlying asset to supply
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function mint(uint mintAmount) external returns (uint);
 
+    /**
+     * @notice Sender supplies assets on behalf of another account
+     * @param receiver The account that receives the minted vTokens
+     * @param mintAmount The amount of the underlying asset to supply
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function mintBehalf(address receiver, uint mintAmount) external returns (uint);
 
+    /**
+     * @notice Sender redeems vTokens in exchange for the underlying asset
+     * @param redeemTokens The number of vTokens to redeem into underlying
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function redeem(uint redeemTokens) external returns (uint);
 
+    /**
+     * @notice Sender redeems vTokens in exchange for a specified amount of underlying asset
+     * @param redeemAmount The amount of underlying asset to receive
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function redeemUnderlying(uint redeemAmount) external returns (uint);
 
+    /**
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function borrow(uint borrowAmount) external returns (uint);
 
+    /**
+     * @notice Sender repays their own borrow
+     * @param repayAmount The amount of underlying asset to repay
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function repayBorrow(uint repayAmount) external returns (uint);
 
+    /**
+     * @notice Sender repays a borrow belonging to another account
+     * @param borrower The account whose borrow is being repaid
+     * @param repayAmount The amount of underlying asset to repay
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);
 
+    /**
+     * @notice The sender repays a borrow and seizes collateral from the borrower
+     * @param borrower The borrower of this vToken to be liquidated
+     * @param repayAmount The amount of underlying asset to repay on behalf of the borrower
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @return uint Returns 0 on success, otherwise returns a failure code
+     */
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
