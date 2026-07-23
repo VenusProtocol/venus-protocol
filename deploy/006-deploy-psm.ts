@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+import { isLocalNetwork, skipRemoteNetworks } from "../helpers/deploymentConfig";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts, getChainId } = hre;
@@ -16,11 +16,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const usdtAddress = (await deployments.get("USDT")).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
-  const treasuryAddress = (await deployments.get(hre.network.name == "hardhat" ? "VTreasuryV8" : "VTreasury")).address;
+  const treasuryAddress = (await deployments.get(isLocalNetwork(network.name) ? "VTreasuryV8" : "VTreasury")).address;
   const oracleAddress = (await deployments.get("ResilientOracle")).address;
 
   let normalVipTimelockAddress;
-  if (hre.network.name === "hardhat") {
+  if (isLocalNetwork(network.name)) {
     normalVipTimelockAddress = (
       await deploy("NormalTimelock", {
         contract: "TestTimelockV8",
@@ -55,7 +55,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     proxy: {
-      owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
+      owner: isLocalNetwork(network.name) ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
@@ -66,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const psm = await ethers.getContract("PegStability_USDT");
 
-  if (network.name !== "hardhat") {
+  if (!isLocalNetwork(network.name)) {
     const timelockAddress = normalVipTimelockAddress;
     await psm.transferOwnership(timelockAddress);
     console.log(`PSM Contract (${psm.address}) owner changed from ${deployer} to ${timelockAddress}`);

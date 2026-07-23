@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+import { isLocalNetwork, getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
 interface AdminAccounts {
   [key: string]: string;
@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const prime = await ethers.getContract("Prime");
   const plp = await ethers.getContract("PrimeLiquidityProvider");
 
-  if (network.name !== "hardhat") {
+  if (!isLocalNetwork(network.name)) {
     console.log("Transferring Prime ownership to Timelock");
     await prime.transferOwnership(adminAccount[network.name]);
 

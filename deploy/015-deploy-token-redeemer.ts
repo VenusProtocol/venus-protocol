@@ -1,3 +1,4 @@
+import { isLocalNetwork } from "../helpers/deploymentConfig";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -19,6 +20,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["TokenRedeemer"];
-func.skip = async hre => hre.network.name !== "hardhat" && hre.network.name !== "bscmainnet";
+func.skip = async hre => !isLocalNetwork(hre.network.name) && hre.network.name !== "bscmainnet";
 
 export default func;

@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+import { isLocalNetwork, getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
 /**
  * Deploys ONLY a new PrimeV2 implementation contract — no proxy, no wiring.
@@ -37,6 +37,7 @@ const blocksPerYear: Config = {
   bscmainnet: 70_080_000,
   ethereum: 2_628_000,
   hardhat: 100,
+  localhost: 100,,
 };
 
 const xVSVaultPoolId: Config = {
@@ -52,6 +53,7 @@ const xVSVaultPoolId: Config = {
   opmainnet: 0,
   unichainsepolia: 0,
   hardhat: 0,
+  localhost: 0,,
   basesepolia: 0,
   basemainnet: 0,
   unichainmainnet: 0,
@@ -95,7 +97,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`PrimeV2 implementation: ${implDeployment.address}`);
 
   // ============ Verify implementation ============
-  if (network.name !== "hardhat") {
+  if (!isLocalNetwork(network.name)) {
     try {
       await hre.run("verify:verify", {
         address: implDeployment.address,

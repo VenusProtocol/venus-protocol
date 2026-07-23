@@ -1,3 +1,4 @@
+import { isLocalNetwork } from "../helpers/deploymentConfig";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -24,8 +25,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   //   - Ownable owner (OPERATIONAL admin) -> the bStock owner Safe, set directly in `initialize`.
   // On hardhat both collapse to the deployer so tests can drive them.
   const timelockAddress = (await deployments.get("NormalTimelock")).address;
-  const proxyAdmin = network.name === "hardhat" ? deployer : timelockAddress;
-  const contractOwner = network.name === "hardhat" ? deployer : BSTOCK_LIQUIDATOR_OWNER;
+  const proxyAdmin = isLocalNetwork(network.name) ? deployer : timelockAddress;
+  const contractOwner = isLocalNetwork(network.name) ? deployer : BSTOCK_LIQUIDATOR_OWNER;
 
   await catchUnknownSigner(
     deploy("BStockLiquidator", {

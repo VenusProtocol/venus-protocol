@@ -1,5 +1,6 @@
 const knownChains = [
   "hardhat",
+  "localhost",
   "bsctestnet",
   "bscmainnet",
   "sepolia",
@@ -24,6 +25,7 @@ export type BlocksPerYear = number | "time-based";
 
 export const blocksPerYear = {
   hardhat: 100,
+  localhost: 100,
   bsctestnet: 70_080_000, // 0.45 sec per block
   bscmainnet: 70_080_000,
   sepolia: 2_628_000, // 12 sec per block

@@ -2,7 +2,7 @@ import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+import { isLocalNetwork, skipRemoteNetworks } from "../helpers/deploymentConfig";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
@@ -27,7 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       proxy: {
-        owner: network.name === "hardhat" ? deployer : timelockAddress,
+        owner: isLocalNetwork(network.name) ? deployer : timelockAddress,
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           methodName: "initialize",

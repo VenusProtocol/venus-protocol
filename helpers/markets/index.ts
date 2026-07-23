@@ -90,6 +90,7 @@ const parseMarkets = <chain extends Chain>(
 
 export const markets = {
   hardhat: parseMarkets("hardhat", hardhatMarketsList),
+  localhost: parseMarkets("localhost", hardhatMarketsList),
   bscmainnet: parseMarkets("bscmainnet", bscmainnetMarketsList),
   bsctestnet: parseMarkets("bsctestnet", bsctestnetMarketsList),
   sepolia: [],

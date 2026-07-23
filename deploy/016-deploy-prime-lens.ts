@@ -1,3 +1,4 @@
+import { isLocalNetwork } from "../helpers/deploymentConfig";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -32,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`PrimeLens: ${lensDeployment.address}`);
   console.log(`  reads from PrimeV2: ${primeV2.address}`);
 
-  if (network.name !== "hardhat") {
+  if (!isLocalNetwork(network.name)) {
     try {
       await hre.run("verify:verify", {
         address: lensDeployment.address,

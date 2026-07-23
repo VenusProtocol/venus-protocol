@@ -9,6 +9,7 @@ import { TokenConfig } from "./types";
 
 export const tokens = {
   hardhat: hardhatTokens,
+  localhost: hardhatTokens,
   bsctestnet: bsctestnetTokens,
   bscmainnet: bscmainnetTokens,
   sepolia: {},

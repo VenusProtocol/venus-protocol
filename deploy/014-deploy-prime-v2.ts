@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+import { isLocalNetwork, getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
 interface AdminAccounts {
   [key: string]: string;
@@ -35,6 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bscmainnet: 70_080_000,
     ethereum: 2_628_000,
     hardhat: 100,
+    localhost: 100,,
   };
 
   const xVSVaultPoolId: Config = {
@@ -50,6 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opmainnet: 0,
     unichainsepolia: 0,
     hardhat: 0,
+    localhost: 0,,
     basesepolia: 0,
     basemainnet: 0,
     unichainmainnet: 0,
@@ -112,7 +114,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: false,
     args: constructorArgs,
     proxy: {
-      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
+      owner: isLocalNetwork(network.name) ? deployer : adminAccount[networkName],
       proxyContract: "OptimizedTransparentUpgradeableProxy",
       execute: {
         methodName: "initialize",
@@ -136,7 +138,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const primeV2 = await ethers.getContract("PrimeV2");
 
   // ============ Verify implementation ============
-  if (network.name !== "hardhat" && primeV2Deployment.implementation) {
+  if (!isLocalNetwork(network.name) && primeV2Deployment.implementation) {
     try {
       await hre.run("verify:verify", {
         address: primeV2Deployment.implementation,
@@ -151,7 +153,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // On live networks the setPrimeV2 / setPrimeLeaderboard wiring is performed via a VIP
   // (both setters are ACM-gated and called by governance). On hardhat we grant the deployer
   // permission and wire inline so local/integration runs have a usable, fully-wired pair.
-  if (network.name === "hardhat") {
+  if (isLocalNetwork(network.name)) {
     const accessControlManager = await ethers.getContract("AccessControlManager");
     await accessControlManager.giveCallPermission(primeLeaderboard.address, "setPrimeV2(address)", deployer);
     await accessControlManager.giveCallPermission(primeV2.address, "setPrimeLeaderboard(address)", deployer);
@@ -165,7 +167,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // ============ Transfer ownership to Timelock ============
-  if (network.name !== "hardhat") {
+  if (!isLocalNetwork(network.name)) {
     console.log("Transferring PrimeV2 ownership to Timelock...");
     await primeV2.transferOwnership(adminAccount[networkName]);
     console.log(`PrimeV2 ownership transfer initiated to ${adminAccount[networkName]} (pending acceptance)`);

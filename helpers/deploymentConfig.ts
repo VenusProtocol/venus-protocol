@@ -47,12 +47,19 @@ export const getContractAddressOrNullAddress = async (deployments: DeploymentsEx
   }
 };
 
+export const isLocalNetwork = (networkName: string): boolean =>
+  networkName === "hardhat" || networkName === "localhost";
+
 export const onlyHardhat = () => async (hre: HardhatRuntimeEnvironment) => {
-  return hre.network.name !== "hardhat";
+  return !isLocalNetwork(hre.network.name);
 };
 
 export const skipRemoteNetworks = () => async (hre: HardhatRuntimeEnvironment) => {
-  return hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet" && hre.network.name !== "hardhat";
+  return (
+    hre.network.name !== "bscmainnet" &&
+    hre.network.name !== "bsctestnet" &&
+    !isLocalNetwork(hre.network.name)
+  );
 };
 
 export const skipSourceNetworks =

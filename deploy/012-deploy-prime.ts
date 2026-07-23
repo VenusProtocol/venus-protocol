@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+import { isLocalNetwork, getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
 interface AdminAccounts {
   [key: string]: string;
@@ -25,6 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
   const stakingPeriod: Config = {
     hardhat: TEN_MINUTES,
+    localhost: TEN_MINUTES,,
     bsctestnet: TEN_MINUTES,
     sepolia: TEN_MINUTES,
     arbitrumsepolia: TEN_MINUTES,
@@ -54,6 +55,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opmainnet: 0,
     unichainsepolia: 0,
     hardhat: 0,
+    localhost: 0,,
     basesepolia: 0,
     basemainnet: 0,
     unichainmainnet: 0,
@@ -75,6 +77,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bscmainnet: 70_080_000,
     ethereum: 2_628_000,
     hardhat: 100,
+    localhost: 100,,
   };
 
   const networkName: string = network.name;
@@ -125,7 +128,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       deterministicDeployment: false,
       args: [isTimeBased, blocksPerYear[networkName]],
       proxy: {
-        owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
+        owner: isLocalNetwork(network.name) ? deployer : adminAccount[networkName],
         proxyContract: "OptimizedTransparentUpgradeableProxy",
         execute: {
           methodName: "initialize",
@@ -154,7 +157,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         isTimeBased,
       ],
       proxy: {
-        owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
+        owner: isLocalNetwork(network.name) ? deployer : adminAccount[networkName],
         proxyContract: "OptimizedTransparentUpgradeableProxy",
         execute: {
           methodName: "initialize",

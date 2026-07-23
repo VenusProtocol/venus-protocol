@@ -56,6 +56,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bscmainnet: await getTimelock(),
     bsctestnet: await getTimelock(),
     hardhat: deployer,
+    localhost: deployer,,
   };
 
   const deployerSigner = await hre.ethers.getSigner(deployer);

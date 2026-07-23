@@ -103,6 +103,7 @@ npx hardhat deploy
 - This command will execute all the deployment scripts in `./deploy` directory - It will skip only deployment scripts which implement a `skip` condition - Here is example of a skip condition: - Skipping deployment script on `bsctestnet` network `func.skip = async (hre: HardhatRuntimeEnvironment) => hre.network.name !== "bsctestnet";`
 - The default network will be `hardhat`
 - Deployment to another network: - Make sure the desired network is configured in `hardhat.config.ts` - Add `MNEMONIC` variable in `.env` file - Execute deploy command by adding `--network <network_name>` in the deploy command above - E.g. `npx hardhat deploy --network bsctestnet`
+- Local Hardhat node: start `npx hardhat node` in one terminal, then run `npx hardhat deploy --network localhost` in another
 - Execution of single or custom set of scripts is possible, if:
   - In the deployment scripts you have added `tags` for example: - `func.tags = ["MockTokens"];`
   - Once this is done, adding `--tags "<tag_name>,<tag_name>..."` to the deployment command will execute only the scripts containing the tags.

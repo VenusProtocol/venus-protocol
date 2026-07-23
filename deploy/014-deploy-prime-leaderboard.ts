@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+import { isLocalNetwork, getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
 interface AdminAccounts {
   [key: string]: string;
@@ -30,6 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opmainnet: 0,
     unichainsepolia: 0,
     hardhat: 0,
+    localhost: 0,,
     basesepolia: 0,
     basemainnet: 0,
     unichainmainnet: 0,
@@ -72,7 +73,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: false,
     args: constructorArgs,
     proxy: {
-      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
+      owner: isLocalNetwork(network.name) ? deployer : adminAccount[networkName],
       proxyContract: "OptimizedTransparentUpgradeableProxy",
       execute: {
         methodName: "initialize",
@@ -89,7 +90,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`PrimeLeaderboard deployed: ${primeLeaderboard.address}`);
 
   // ============ Verify implementation ============
-  if (network.name !== "hardhat" && primeLeaderboardDeployment.implementation) {
+  if (!isLocalNetwork(network.name) && primeLeaderboardDeployment.implementation) {
     try {
       await hre.run("verify:verify", {
         address: primeLeaderboardDeployment.implementation,
@@ -101,7 +102,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // ============ Transfer ownership to Timelock ============
-  if (network.name !== "hardhat") {
+  if (!isLocalNetwork(network.name)) {
     console.log("Transferring PrimeLeaderboard ownership to Timelock...");
     await primeLeaderboard.transferOwnership(adminAccount[networkName]);
     console.log(`PrimeLeaderboard ownership transfer initiated to ${adminAccount[networkName]} (pending acceptance)`);

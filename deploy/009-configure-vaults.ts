@@ -47,6 +47,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     unichainsepolia: unichainsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
     unichainmainnet: unichainmainnetGovernanceDeployments.contracts.NormalTimelock.address,
     hardhat: deployer,
+    localhost: deployer,,
   };
 
   const accessControlManager = await ethers.getContract("AccessControlManager");

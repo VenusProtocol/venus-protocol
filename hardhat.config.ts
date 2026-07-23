@@ -257,6 +257,10 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
+    localhost: {
+      url: process.env.ARCHIVE_NODE_localhost || "http://127.0.0.1:8545",
+      chainId: 31337,
+    },
   },
   sourcify: {
     enabled: false,
@@ -348,6 +352,7 @@ const config: HardhatUserConfig = {
     paths: [
       "hardhat-deploy/solc_0.8/proxy/OptimizedTransparentUpgradeableProxy.sol",
       "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol",
+      "contracts/test/MockToken.sol",
     ],
   },
 };

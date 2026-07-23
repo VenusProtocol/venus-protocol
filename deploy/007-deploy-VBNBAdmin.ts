@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+import { isLocalNetwork, skipRemoteNetworks } from "../helpers/deploymentConfig";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     proxy: {
-      owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
+      owner: isLocalNetwork(network.name) ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const vBNBAdmin = await ethers.getContract("VBNBAdmin");
 
-  if (network.name !== "hardhat") {
+  if (!isLocalNetwork(network.name)) {
     await vBNBAdmin.transferOwnership(normalVipTimelockAddress);
     console.log(
       `VBNBAdmin Contract (${vBNBAdmin.address}) owner changed from ${deployer} to ${normalVipTimelockAddress}`,
