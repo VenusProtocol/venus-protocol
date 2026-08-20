@@ -14,8 +14,20 @@ import { IWBNB } from "../external/IWBNB.sol";
 // Shared Venus interfaces: IComptroller (Core diamond — liquidator gate + flash loan), IVToken
 // (flash-loan asset array element), and ILiquidator (the pool-wide Venus Liquidator gate that pulls
 // the repay and returns our share of the seized collateral).
-import { IComptroller, IVToken, ILiquidator, IVAIController } from "../InterfacesV8.sol";
+import { IComptroller, IVToken, IVBep20, ILiquidator, IVAIController } from "../InterfacesV8.sol";
 import { IBStockLiquidator } from "./IBStockLiquidator.sol";
+
+/// @notice View surface of the non-Core pools this contract liquidates in: the hub-funded spoke pool's
+///         `SpokeComptroller` and any isolated-pools `Comptroller`. Declared locally because the
+///         isolated-pools package is not a direct dependency and only these two getters are needed.
+interface IPoolComptroller {
+    /// @dev Declared as `isMarketListed(VToken)` in the pool; `VToken` is a contract type, so the ABI
+    ///      signature is `isMarketListed(address)` / 0x3d98a1e5.
+    function isMarketListed(address vToken) external view returns (bool);
+
+    /// @dev `pure` in the pool (0x007e3dd2); `view` here is a safe widening — both are a STATICCALL.
+    function isComptroller() external view returns (bool);
+}
 
 /**
  * @title BStockLiquidator
@@ -37,6 +49,16 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  *   - INVENTORY: the contract is pre-funded with the debt asset and repays from its own balance.
  *   - FLASH:     the debt asset is flash-borrowed from Venus (`Comptroller.executeFlashLoan`) and repaid
  *                (+ premium) within the same tx; no capital is locked in the contract.
+ *
+ * Two POOLS are served by that same core, resolved per call in `_resolvePool` from the COLLATERAL
+ * market's own comptroller — never from a flag the caller supplies:
+ *   - CORE:     the Venus Core pool, via the pool-wide Venus Liquidator gate.
+ *   - ISOLATED: a hub-funded spoke pool (an isolated-pools `Comptroller` fork) whose comptroller the owner
+ *               has allowlisted in `isAllowedComptroller`. While that allowlist is empty every call
+ *               resolves to Core, so the only thing this adds to a Core liquidation is `_resolvePool`'s
+ *               single `vBStock.comptroller()` staticcall.
+ * Only the repay differs between pools (`_repayAndSeize`); redeem, sale, `minOut` and `sweep` are shared.
+ * Isolated pools are ERC20-only, so the vBNB and VAI branches below are Core-only.
  *
  * Native BNB debt (vBNB): supported in both modes with WBNB as the debt-accounting token. The repay
  * must be native BNB, so exactly the repay amount of WBNB is unwrapped and forwarded to the gate's
@@ -79,6 +101,16 @@ import { IBStockLiquidator } from "./IBStockLiquidator.sol";
  * call), reverting if the gate is ever unset. Routing through the gate needs no governance change, and no
  * other Core market is affected. Note: setting THIS contract as `liquidatorContract` is NOT an option —
  * the gate is pool-wide, so every other market's liquidations would be forced through here.
+ *
+ * Isolated pools have no such gate — `VToken.liquidateBorrow` is unrestricted there — so the repay goes
+ * straight to the debt market, which makes the approval target caller-supplied where Core never is. That
+ * is why `_resolvePool` proves both legs are listed in the allowlisted pool's own storage first. A pool
+ * may also gate seizing behind its own liquidation allowlist, on which THIS CONTRACT's address (not the
+ * operator's) has to appear, by governance action on that pool.
+ *
+ * Isolated FLASH still borrows from CORE via `coreFlashSource`: `FlashLoanFacet` lends a Core market's
+ * underlying and only wants it back in the same tx, never asking what happens in between. Isolated pools
+ * have no flash lender of their own.
  */
 contract BStockLiquidator is
     Ownable2StepUpgradeable,
@@ -121,8 +153,22 @@ contract BStockLiquidator is
     ///         call target IS the puller — so existing routers need no spender entry.
     mapping(address => address) public routerSpender;
 
+    /// @notice Comptrollers of NON-Core pools this contract may liquidate in (the hub-funded spoke pool).
+    ///         Core is never keyed here — it is resolved by identity against the `comptroller` immutable.
+    /// @dev Gates the entire isolated branch: while it is empty, every call resolves to Core.
+    mapping(address => bool) public isAllowedComptroller;
+
+    /// @notice Core market whose underlying flash-funds an isolated repay, keyed by the isolated pool's
+    ///         debt underlying (e.g. USDT -> the Core USDT market). Unused in Core mode.
+    /// @dev Isolated pools have no flash lender, but a Core flash is not bound to the liquidation target:
+    ///      it lends a market's underlying and wants it back in the same tx, so it can fund another pool's
+    ///      repay as long as the token matches.
+    mapping(address => IVBep20) public coreFlashSource;
+
     /// @dev Reserved storage to allow new state variables in future upgrades without layout clashes.
-    uint256[49] private __gap;
+    ///      Was `[49]`; `isAllowedComptroller` and `coreFlashSource` were APPENDED above (inserting them
+    ///      would shift `isRouter`/`routerSpender` and corrupt live state) and take one slot each.
+    uint256[47] private __gap;
 
     modifier onlyOperator() {
         if (msg.sender != owner() && !isOperator[msg.sender]) revert NotOperator();
@@ -203,6 +249,33 @@ contract BStockLiquidator is
     }
 
     /// @inheritdoc IBStockLiquidator
+    function setAllowedComptroller(address comptroller_, bool allowed) external override onlyOwner {
+        ensureNonzeroAddress(comptroller_);
+        // Core is resolved by identity in `_resolvePool` and never read from this mapping, so an entry for
+        // it would be config that is never consulted. Reject instead of storing a silent no-op.
+        if (comptroller_ == address(comptroller)) revert CoreComptrollerNotConfigurable();
+        // Checked only on the way IN, so a broken or self-destructed pool always stays removable. A codeless
+        // address reverts on the call itself; one that answers `false` reverts with {NotAComptroller}.
+        if (allowed && !IPoolComptroller(comptroller_).isComptroller()) revert NotAComptroller(comptroller_);
+        isAllowedComptroller[comptroller_] = allowed;
+        emit AllowedComptrollerSet(comptroller_, allowed);
+    }
+
+    /// @inheritdoc IBStockLiquidator
+    function setCoreFlashSource(address debtToken, IVBep20 vToken) external override onlyOwner {
+        ensureNonzeroAddress(debtToken);
+        // `vToken == 0` clears the entry. A non-zero one MUST lend `debtToken`: `executeOperation` approves
+        // the debt token to this market while the facet pulls the market's own underlying, so a mismatch
+        // would approve one token while another is owed. Core-listed and flash-enabled are separately
+        // enforced by `FlashLoanFacet` at call time.
+        if (address(vToken) != address(0) && vToken.underlying() != debtToken) {
+            revert FlashSourceMismatch(address(vToken), debtToken);
+        }
+        coreFlashSource[debtToken] = vToken;
+        emit CoreFlashSourceSet(debtToken, address(vToken));
+    }
+
+    /// @inheritdoc IBStockLiquidator
     function sweep(address token, address to, uint256 amount) external override onlyOwner {
         ensureNonzeroAddress(token);
         ensureNonzeroAddress(to);
@@ -246,7 +319,7 @@ contract BStockLiquidator is
         if (params.minOut == 0) revert ZeroMinOut();
         if (block.timestamp > params.deadline) revert DeadlineExpired(params.deadline, block.timestamp);
         uint256 seizedBStock;
-        (debtOut, seizedBStock) = _liquidate(params);
+        (debtOut, seizedBStock) = _liquidate(params, _resolvePool(params.vDebt, params.vBStock));
         emit Liquidated(
             params.borrower,
             address(params.vBStock),
@@ -275,10 +348,11 @@ contract BStockLiquidator is
         // `liquidate` (INVENTORY) with pre-funded VAI for a VAI debt.
         if (address(params.vDebt) == address(comptroller.vaiController())) revert FlashNotSupportedForVai();
 
-        // BNB debt is flash-funded from vWBNB (an ERC20 market), not vBNB: vBNB cannot be flash-repaid.
-        // The flashed WBNB is unwrapped to native BNB for the repay inside `_liquidate` (see `executeOperation`).
+        // Always a CORE market, in both pool modes: `vDebt` itself, vWBNB for a BNB debt (vBNB cannot be
+        // flash-repaid; the flashed WBNB is unwrapped for the repay in `_repayAndSeize`), or the configured
+        // `coreFlashSource` for an isolated debt. See `_flashSource`.
         IVToken[] memory vTokens = new IVToken[](1);
-        vTokens[0] = (address(params.vDebt) == vBNB) ? vWBNB : IVToken(address(params.vDebt));
+        vTokens[0] = _flashSource(params.vDebt, _resolvePool(params.vDebt, params.vBStock));
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = params.repayAmount;
 
@@ -305,16 +379,15 @@ contract BStockLiquidator is
         // passes msg.sender (the executeFlashLoan caller) as `initiator`, and only flashLiquidate calls it.
         if (initiator != address(this)) revert BadInitiator(initiator);
 
-        LiquidationParams memory params = abi.decode(param, (LiquidationParams));
-        // For BNB debt the flash is drawn from vWBNB, not vBNB (see `flashLiquidate`). Scoped so the
-        // temporary doesn't count against the stack depth of the rest of the function.
-        {
-            address expectedFlash = address(params.vDebt) == vBNB ? address(vWBNB) : address(params.vDebt);
-            if (address(vTokens[0]) != expectedFlash) revert WrongFlashAsset();
-        }
+        // Hoisted while the frame is shallow. This repo does not use viaIR, so the stack budget here is
+        // tight: the flashed-asset check and the mode flag live in `_runFlashLiquidation` for the same
+        // reason — keeping either in this frame puts the approval below out of reach.
+        address flashed = address(vTokens[0]);
 
-        // Repay was just funded by the flash loan; run the liquidation + swap.
-        (uint256 debtOut, uint256 seizedBStock) = _liquidate(params);
+        LiquidationParams memory params = abi.decode(param, (LiquidationParams));
+
+        // Repay was just funded by the flash loan; verify the flashed asset, then liquidate + swap.
+        (uint256 debtOut, uint256 seizedBStock) = _runFlashLiquidation(params, flashed);
 
         // The swap proceeds alone MUST cover principal + premium. Without this, any debt-asset inventory
         // held by the contract would silently backfill an underwater swap (a real loss), since the
@@ -325,8 +398,11 @@ contract BStockLiquidator is
 
         // Approve the flashed vToken to pull back principal + premium. For BNB debt the flashed asset is
         // WBNB (from vWBNB); the ternary short-circuits so `underlying()` is never called on vBNB (it has none).
+        // No mode branch is needed: vBNB is a Core market, and `_resolvePool` has already required an
+        // isolated `vDebt` to be listed in its own pool, where `_flashSource` asserted that its underlying
+        // equals the flash market's. Either way this is the token that is owed.
         IERC20Upgradeable(address(params.vDebt) == vBNB ? address(wbnb) : params.vDebt.underlying()).forceApprove(
-            address(vTokens[0]),
+            flashed,
             repayAmounts[0]
         );
 
@@ -347,12 +423,66 @@ contract BStockLiquidator is
     // --------------------------------------------------------------------- //
 
     /// @dev Pre-flight: every swap router must be allowlisted. `router2` is optional (single-hop when
-    ///      zero) so it is only checked when set. Liquidatability itself is not pre-checked here — Core's
-    ///      `liquidateBorrowAllowed` already enforces it, and pre-checking shortfall would wrongly block
+    ///      zero) so it is only checked when set. Liquidatability itself is not pre-checked here — the
+    ///      owning pool's own liquidate hook already enforces it, and pre-checking shortfall would wrongly block
     ///      forced liquidations (which liquidate healthy accounts).
     function _validateRouters(address router, address router2) private view {
         if (!isRouter[router]) revert RouterNotAllowed(router);
         if (router2 != address(0) && !isRouter[router2]) revert RouterNotAllowed(router2);
+    }
+
+    /**
+     * @dev Resolves which pool owns the position, and for a non-Core pool proves both legs belong to it.
+     *
+     *      Anchored on the COLLATERAL leg: it is the asset this contract custodies, and it is always a real
+     *      vToken, whereas `vDebt` may be the vBNB sentinel or the VAIController — calling `comptroller()`
+     *      on those is exactly the hazard the `KEEP THIS ORDER` note in `_liquidate` is about.
+     *
+     *      Core returns early and keeps its existing validation: the Venus Liquidator gate always checks the
+     *      collateral market is Core-listed, and covers the borrowed leg either by a listing check (BEP20)
+     *      or by identity against its own vBNB / VAIController.
+     * @return isCore True when the position lives in the Core pool, false for an allowlisted isolated pool.
+     */
+    function _resolvePool(IVBep20 vDebt, IVBep20 vBStock) private view returns (bool isCore) {
+        address pool = address(vBStock.comptroller());
+        if (pool == address(comptroller)) return true;
+
+        if (!isAllowedComptroller[pool]) revert ComptrollerNotAllowed(pool);
+        // Ask the POOL what it lists rather than trust what a market claims about itself. This is what makes
+        // the isolated repay safe: that repay approves a caller-supplied `vDebt` whose `underlying()` is
+        // also caller-supplied, unlike Core where the only targets are the protocol-derived gate and
+        // owner-curated router spenders. A hostile contract can forge `comptroller()`, but it cannot forge
+        // an entry in another contract's storage.
+        if (!IPoolComptroller(pool).isMarketListed(address(vBStock))) {
+            revert MarketNotInPool(pool, address(vBStock));
+        }
+        if (!IPoolComptroller(pool).isMarketListed(address(vDebt))) {
+            revert MarketNotInPool(pool, address(vDebt));
+        }
+        return false;
+    }
+
+    /**
+     * @dev The CORE market whose underlying funds a flash repay, in both pool modes: `FlashLoanFacet` only
+     *      lends against Core-listed, flash-enabled markets, and nothing there ties the flashed asset to the
+     *      liquidation target — it hands over a market's underlying and wants it back in the same tx. That
+     *      is why an isolated pool with no flash lender of its own can still be flash-liquidated.
+     */
+    function _flashSource(IVBep20 vDebt, bool isCore) private view returns (IVToken) {
+        // KEEP THIS ORDER — `underlying()` below must never be evaluated for the vBNB sentinel or the
+        // VAIController, neither of which implements it. BNB draws from vWBNB: vBNB cannot be flash-repaid.
+        if (isCore) {
+            return (address(vDebt) == vBNB) ? vWBNB : IVToken(address(vDebt));
+        }
+
+        address debtToken = vDebt.underlying();
+        IVBep20 src = coreFlashSource[debtToken];
+        if (address(src) == address(0)) revert FlashSourceNotSet(debtToken);
+        // Re-assert the setter's invariant where it actually bites: `executeOperation` approves `debtToken`
+        // to this market while the facet pulls the market's own underlying. If those differ, the approval
+        // and the debt are different tokens.
+        if (src.underlying() != debtToken) revert FlashSourceMismatch(address(src), debtToken);
+        return IVToken(address(src));
     }
 
     /// @dev One swap hop: approve the exact `amount` to the router's configured spender, forward the
@@ -401,12 +531,17 @@ contract BStockLiquidator is
      * @return debtOut Debt-asset proceeds realized by the swap chain (reverts if below `minOut`).
      * @return seizedBStock Raw bStock redeemed and sold (balance delta).
      */
-    function _liquidate(LiquidationParams memory params) private returns (uint256 debtOut, uint256 seizedBStock) {
+    function _liquidate(
+        LiquidationParams memory params,
+        bool isCore
+    ) private returns (uint256 debtOut, uint256 seizedBStock) {
         // A debt equal to `vBNB` is native BNB. vBNB has no `underlying()`, so the `isBnb` check MUST come
         // first: the ternary short-circuits and `underlying()` is never evaluated for vBNB. WBNB is the
         // debt-accounting token throughout (1:1 with BNB), so the whole swap/minOut path below is reused.
-        // KEEP THIS ORDER — hoisting `underlying()` above the check reverts every BNB liquidation.
-        bool isBnb = address(params.vDebt) == vBNB;
+        // KEEP THIS ORDER — hoisting `underlying()` above the check reverts every BNB liquidation. The same
+        // hazard is why the pool probe lives on the COLLATERAL leg (see `_resolvePool`) and never on `vDebt`.
+        // vBNB and VAI are Core-only markets, so `isCore` gates them rather than address inequality alone.
+        bool isBnb = isCore && address(params.vDebt) == vBNB;
         IERC20Upgradeable debt;
         // Scoped so `vaiCtrl`/`isVai` don't hold stack slots for the rest of the frame.
         {
@@ -415,8 +550,10 @@ contract BStockLiquidator is
             // takes its VAI branch (`Liquidator._liquidateVAI`), which pulls VAI from us and burns it via
             // `VAIController.liquidateVAI`; the repay is a plain ERC20 approval, so the non-BNB path below
             // is reused as-is.
+            // Read against the CORE immutable rather than the position's own pool, so the Core call
+            // sequence is unchanged; in isolated mode it costs one staticcall and matches nothing.
             IVAIController vaiCtrl = comptroller.vaiController();
-            bool isVai = address(params.vDebt) == address(vaiCtrl);
+            bool isVai = isCore && address(params.vDebt) == address(vaiCtrl);
             // RFQ sources only quote bStock->USDT, so BNB and VAI debts are inherently two-hop
             // (...->WBNB / ...->VAI). Reject a single-hop config up front instead of failing opaquely
             // later on a zero debt-asset delta.
@@ -429,42 +566,10 @@ contract BStockLiquidator is
         }
         IERC20Upgradeable bStock = IERC20Upgradeable(params.vBStock.underlying());
 
-        // 1. Repay the borrow, seizing the bStock vToken to this contract.
-        //    Core has a POOL-WIDE liquidator gate (`liquidatorContract`), which is always configured on
-        //    the networks this contract targets. While it is set, a direct `vToken.liquidateBorrow`
-        //    reverts UNAUTHORIZED, so we route the repay through that Venus Liquidator (it pulls our
-        //    repay and sends us our share of the seized collateral; treasury keeps a cut). The seized
-        //    amount is read as a BALANCE DELTA, so the Liquidator's cut is handled correctly. We guard
-        //    against an unset gate so a misconfig fails loudly instead of silently no-op'ing a call to
-        //    address(0) (a low-level call to a codeless address returns success).
-        uint256 vBefore = params.vBStock.balanceOf(address(this));
-        address gate = comptroller.liquidatorContract();
-        ensureNonzeroAddress(gate);
-        if (isBnb) {
-            // Unwrap EXACTLY the repay (WBNB held as inventory or drawn from the vWBNB flash) and forward
-            // native BNB to the gate's vBNB branch (`{value:}`). Only the repay portion is unwrapped, so
-            // pre-existing WBNB inventory is untouched; the swap proceeds below stay as WBNB. No approval
-            // is granted (value is forwarded), so there is no standing allowance to reset.
-            wbnb.withdraw(params.repayAmount);
-            ILiquidator(gate).liquidateBorrow{ value: params.repayAmount }(
-                address(params.vDebt),
-                params.borrower,
-                params.repayAmount,
-                params.vBStock
-            );
-        } else {
-            debt.forceApprove(gate, params.repayAmount);
-            ILiquidator(gate).liquidateBorrow(
-                address(params.vDebt),
-                params.borrower,
-                params.repayAmount,
-                params.vBStock
-            );
-            // Reset the gate approval: if the Liquidator pulled less than `repayAmount` (e.g. a close-factor
-            // cap), the remainder would otherwise linger as a standing allowance. Same invariant as `_swap`.
-            debt.forceApprove(gate, 0);
-        }
-        uint256 seizedV = params.vBStock.balanceOf(address(this)) - vBefore;
+        // 1. Repay the borrow, seizing the bStock vToken to this contract. The whole Core/isolated branch
+        //    lives in `_repayAndSeize`; keeping `vBefore` and the gate out of this frame also buys back
+        //    more stack than the mode flag costs, which matters because this repo does not use viaIR.
+        uint256 seizedV = _repayAndSeize(params, debt, isCore, isBnb);
 
         // 2. Redeem the seized vBStock for raw bStock. Measure by DELTA so any pre-existing bStock
         //    (dust or a stray transfer) is excluded — we only sell what this redeem actually returned.
@@ -476,6 +581,88 @@ contract BStockLiquidator is
         // 3. Sell the bStock to the debt asset (one hop, or two via an intermediate) and assert minOut.
         //    Extracted into `_sellToDebt` to keep this frame within the EVM stack limit.
         debtOut = _sellToDebt(debt, bStock, seizedBStock, params);
+    }
+
+    /**
+     * @dev The body of `executeOperation`: prove the flashed asset is the one this position implies, then
+     *      run the liquidation. Split out purely for stack room (see the note in `executeOperation`).
+     * @param params Liquidation parameters, as decoded from the flash payload.
+     * @param flashed The asset the flash lender actually handed over.
+     */
+    function _runFlashLiquidation(
+        LiquidationParams memory params,
+        address flashed
+    ) private returns (uint256 debtOut, uint256 seizedBStock) {
+        // Re-derive the pool from chain state rather than trusting anything carried in the payload.
+        bool isCore = _resolvePool(params.vDebt, params.vBStock);
+        if (flashed != address(_flashSource(params.vDebt, isCore))) revert WrongFlashAsset();
+        return _liquidate(params, isCore);
+    }
+
+    /**
+     * @dev Repay the borrow and take delivery of the seized bStock vToken, in whichever pool owns it.
+     *
+     *      CORE routes through the pool-wide liquidator gate, which pulls our repay and sends back our share
+     *      of the seized collateral, keeping a treasury cut.
+     *
+     *      ISOLATED pools have no such gate, so the repay goes straight to the debt market; the COLLATERAL
+     *      market then withholds its own `protocolSeizeShare` for the ProtocolShareReserve before crediting
+     *      us. Neither cut needs handling here — the seize is read as a BALANCE DELTA either way.
+     *
+     *      The isolated approval target is validated upstream in `_resolvePool`, not here.
+     * @return seizedV Seized bStock vTokens actually credited to this contract (balance delta).
+     */
+    function _repayAndSeize(
+        LiquidationParams memory params,
+        IERC20Upgradeable debt,
+        bool isCore,
+        bool isBnb
+    ) private returns (uint256 seizedV) {
+        uint256 vBefore = params.vBStock.balanceOf(address(this));
+
+        if (isCore) {
+            // Guard against an unset gate so a misconfig fails loudly instead of silently no-op'ing a call
+            // to address(0) (a low-level call to a codeless address returns success).
+            address gate = comptroller.liquidatorContract();
+            ensureNonzeroAddress(gate);
+            if (isBnb) {
+                // Unwrap EXACTLY the repay (WBNB held as inventory or drawn from the vWBNB flash) and forward
+                // native BNB to the gate's vBNB branch (`{value:}`). Only the repay portion is unwrapped, so
+                // pre-existing WBNB inventory is untouched; the swap proceeds stay as WBNB. No approval
+                // is granted (value is forwarded), so there is no standing allowance to reset.
+                wbnb.withdraw(params.repayAmount);
+                ILiquidator(gate).liquidateBorrow{ value: params.repayAmount }(
+                    address(params.vDebt),
+                    params.borrower,
+                    params.repayAmount,
+                    params.vBStock
+                );
+            } else {
+                debt.forceApprove(gate, params.repayAmount);
+                ILiquidator(gate).liquidateBorrow(
+                    address(params.vDebt),
+                    params.borrower,
+                    params.repayAmount,
+                    params.vBStock
+                );
+                // Reset the gate approval: if the Liquidator pulled less than `repayAmount` (e.g. a close-factor
+                // cap), the remainder would otherwise linger as a standing allowance. Same invariant as `_swap`.
+                debt.forceApprove(gate, 0);
+            }
+        } else {
+            // Isolated pools are ERC20-only — no native market, no VAIController — so this is always the
+            // plain approve-and-call shape. `VToken.liquidateBorrow` answers NO_ERROR or reverts, so the
+            // return value carries no information and is ignored.
+            debt.forceApprove(address(params.vDebt), params.repayAmount);
+            params.vDebt.liquidateBorrow(params.borrower, params.repayAmount, params.vBStock);
+            // Reset unconditionally, exactly as the Core gate branch does. Today nothing is left over:
+            // `preLiquidateHook` bounds `repayAmount` at or below the borrow balance before the market
+            // pulls, so the pull always consumes the whole approval. The reset does not rely on that —
+            // the market sits behind an upgradeable beacon this contract does not control.
+            debt.forceApprove(address(params.vDebt), 0);
+        }
+
+        seizedV = params.vBStock.balanceOf(address(this)) - vBefore;
     }
 
     /**
