@@ -94,6 +94,24 @@ const COMPTROLLER_ABI = [
 const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
 const LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
+// Isolated-pools `Comptroller` / `SpokeComptroller`. Kept DISJOINT from COMPTROLLER_ABI: none of Core's gate
+// reads exist here and the contract has no fallback, so calling one reverts rather than returning a zero.
+// `liquidationIncentiveMantissa()` is deliberately absent — there it answers for msg.sender, and an eth_call
+// carries no from-address, so it would quietly return the pool-wide default and hide a per-market override.
+const ISOLATED_COMPTROLLER_ABI = [
+  "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
+  "function closeFactorMantissa() view returns (uint256)",
+  // 3-arg, no borrower: the only overload an isolated comptroller has, and the one VToken itself calls.
+  "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
+  "function effectiveLiquidationIncentive(address) view returns (uint256)",
+  "function isLiquidationAllowlistEnabled() view returns (bool)",
+  "function isAllowedLiquidator(address) view returns (bool)",
+  "function isMarketListed(address) view returns (bool)",
+];
+const ISOLATED_VTOKEN_ABI = ["function protocolSeizeShareMantissa() view returns (uint256)"];
+
+const GATE_PROBE_ABI = ["function liquidatorContract() view returns (address)"];
+
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 function env(name: string, required = true): string {
@@ -108,29 +126,70 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
 
   const vBStock = new Contract(env("VBSTOCK"), VTOKEN_ABI, provider);
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, provider);
-  const comptroller = new Contract(await vBStock.comptroller(), COMPTROLLER_ABI, provider);
+  // Which pool owns the position, taken from the COLLATERAL market — the same leg the contract anchors on.
+  const poolAddr: string = await vBStock.comptroller();
+
+  // Then: does that pool have a POOL-WIDE LIQUIDATOR GATE? That one fact is what decides everything below —
+  // whether the repay is approved to the gate or to the debt market, which liquidateBorrow signature the
+  // batch uses, and whether a treasury cut applies. So probe for it directly rather than comparing the pool
+  // against a hardcoded Core address: unlike atomic-liquidate.ts this script never touches the
+  // BStockLiquidator, so it has no Core immutable to compare against, and a hardcoded one would pin the tool
+  // to a single chain. Core answers (possibly with the zero address, rejected below); an isolated
+  // comptroller has no such function and no fallback, so the call reverts — and that revert IS the signal.
+  let isCore = true;
+  let gateProbe = ZERO;
+  try {
+    gateProbe = await new Contract(poolAddr, GATE_PROBE_ABI, provider).liquidatorContract();
+  } catch {
+    isCore = false;
+  }
+
+  const comptroller = new Contract(poolAddr, isCore ? COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, provider);
+  console.log(`pool: ${isCore ? "CORE" : "ISOLATED"} (${poolAddr})`);
 
   // VAI is not a vToken: its "market" is the VAIController, which has no underlying() EITHER. It must be
   // detected BEFORE the vBNB fallback below — otherwise the catch would misread a VAI debt as native BNB
   // and build a `{value: repay}` batch that the gate rejects (its VAI branch requires msg.value == 0).
   // The VAI token itself is a plain ERC20, so it takes the normal approve-then-liquidate batch below.
-  const vaiControllerAddr: string = await comptroller.vaiController();
-  const isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+  // Neither special exists in an isolated pool: they are Core markets, so that branch is ERC20-only.
+  let vaiControllerAddr = ZERO;
+  let isVai = false;
 
   // vBNB has no underlying(): a native-BNB debt market is repaid in native BNB, so there is no ERC20
   // debt token to approve or read. Detect it the way the atomic script does — try underlying(), treat
   // a revert as native BNB (18 decimals, "BNB"). `debt` stays undefined on the native path.
   let isBnb = false;
   let debt: Contract | undefined;
-  if (isVai) {
-    const vaiAddr: string = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, provider).getVAIAddress();
-    debt = new Contract(vaiAddr, ERC20_ABI, provider);
-  } else {
-    try {
-      debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
-    } catch {
-      isBnb = true;
+  if (isCore) {
+    vaiControllerAddr = await comptroller.vaiController();
+    isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+    if (isVai) {
+      const vaiAddr: string = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, provider).getVAIAddress();
+      debt = new Contract(vaiAddr, ERC20_ABI, provider);
+    } else {
+      try {
+        debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
+      } catch {
+        isBnb = true;
+      }
     }
+  } else {
+    // Both legs must belong to this pool, asked of the POOL rather than of the markets — the same proof
+    // `_resolvePool` performs on-chain.
+    const [debtListed, collListed]: boolean[] = await Promise.all([
+      comptroller.isMarketListed(vDebt.address),
+      comptroller.isMarketListed(vBStock.address),
+    ]);
+    if (!collListed) throw new Error(`VBSTOCK ${vBStock.address} is not listed in pool ${poolAddr}`);
+    if (!debtListed) {
+      throw new Error(
+        `VDEBT ${vDebt.address} is not listed in pool ${poolAddr} — a single liquidation cannot span two pools`,
+      );
+    }
+    // `underlying` is a plain public variable on every listed isolated market, so read it directly. The
+    // try/catch above must NOT be reused here: with no native market in the pool, treating a failure as
+    // native BNB would silently build a `{value: repay}` batch for an ERC20 debt.
+    debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
   }
   const bStock = new Contract(await vBStock.underlying(), ERC20_ABI, provider);
 
@@ -150,26 +209,45 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // reverts UNAUTHORIZED, so the repay is routed through that contract (its permissionless entry). The
   // on-chain BStockLiquidator routes every repay through this gate and reverts (ensureNonzeroAddress)
   // when unset, so align here and abort rather than emit a batch that would revert on execution.
-  const gate: string = await comptroller.liquidatorContract();
-  if (gate === ZERO) {
-    throw new Error(
-      "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the liquidation routes every repay through it and reverts when unset",
-    );
-  }
-  const repaySpender = utils.getAddress(gate);
-  console.log(`routing repay through Venus Liquidator ${gate}`);
+  let gate = ZERO;
+  // The contract the Safe approves the repay to and calls `liquidateBorrow` on. Core: the pool-wide gate.
+  // Isolated: the debt market itself, since there is no gate and `VToken.liquidateBorrow` is unrestricted.
+  let repaySpender: string;
 
-  // The gate refuses to liquidate an unrelated market while the borrower's VAI debt is above the
-  // threshold (Liquidator._checkForceVAILiquidate). Catch it while BUILDING the batch — a Safe batch
-  // that reverts on execution costs signer time and a fresh signing round, not just gas.
-  await assertVaiGateClear({
-    provider,
-    gate,
-    comptroller: comptroller.address,
-    vaiController: vaiControllerAddr,
-    vDebt: vDebt.address,
-    borrower,
-  });
+  if (isCore) {
+    gate = gateProbe;
+    if (gate === ZERO) {
+      throw new Error(
+        "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the liquidation routes every repay through it and reverts when unset",
+      );
+    }
+    repaySpender = utils.getAddress(gate);
+    console.log(`routing repay through Venus Liquidator ${gate}`);
+
+    // The gate refuses to liquidate an unrelated market while the borrower's VAI debt is above the
+    // threshold (Liquidator._checkForceVAILiquidate). Catch it while BUILDING the batch — a Safe batch
+    // that reverts on execution costs signer time and a fresh signing round, not just gas.
+    await assertVaiGateClear({
+      provider,
+      gate,
+      comptroller: comptroller.address,
+      vaiController: vaiControllerAddr,
+      vDebt: vDebt.address,
+      borrower,
+    });
+  } else {
+    repaySpender = utils.getAddress(vDebt.address);
+    console.log(`no pool-wide gate in this pool — repaying directly to the debt market ${repaySpender}`);
+
+    // Here the SAFE is the liquidator, so the SAFE is the address `preSeizeHook` checks — not the
+    // BStockLiquidator contract and not a bot key.
+    if ((await comptroller.isLiquidationAllowlistEnabled()) && !(await comptroller.isAllowedLiquidator(safe))) {
+      throw new Error(
+        `pool liquidation allowlist is ON and the executing Safe ${safe} is not on it — needs a governance ` +
+          `setAllowedLiquidator(${safe}, true) before this batch can execute`,
+      );
+    }
+  }
 
   const safeDebtBal: BigNumber = isBnb ? await provider.getBalance(safe) : await debt!.balanceOf(safe);
   if (safeDebtBal.lt(repay)) {
@@ -188,10 +266,15 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   //   - else -> vToken.liquidateBorrowFresh calls the borrower-aware 4-arg overload (reads the
   //             borrower's actual pool). The 3-arg overload always reads Core Pool params and diverges
   //             if the borrower has switched pools, producing a stale redeem amount in the batch.
+  //   - ISOLATED -> only a 3-arg (vBorrowed, vCollateral, repay) overload exists, which is exactly what
+  //             `VToken._liquidateBorrowFresh` calls. No borrower argument: there are no per-borrower pools
+  //             here, and the incentive is keyed on the COLLATERAL market.
   const seizeFn = isVai ? "liquidateVAICalculateSeizeTokens" : "liquidateCalculateSeizeTokens";
   const [seizeErr, seizeTokens]: BigNumber[] = isVai
     ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
-    : await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay);
+    : isCore
+      ? await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay)
+      : await comptroller.liquidateCalculateSeizeTokens(vDebt.address, vBStock.address, repay);
   if (!seizeErr.eq(0)) throw new Error(`${seizeFn} error code ${seizeErr}`);
   // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
   // surface it here rather than baking a degenerate redeem amount into the batch.
@@ -202,7 +285,28 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // Redeem only the credited amount, else the batch reverts. On BSC mainnet the cut is 50% of the bonus
   // (treasuryPercentMantissa = 0.5e18) today — not 0 — and is governance-settable.
   let vReceived = seizeTokens;
-  const liqTreasuryPct: BigNumber = await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa();
+  if (!isCore) {
+    // No gate and no redeem fee in an isolated pool. What reduces the credit is the collateral market's own
+    // protocol seize share, withheld inside `VToken._seize` and sent to the ProtocolShareReserve:
+    //     protocolSeizeTokens = floor(floor(seizeTokens * pss / 1e18) * 1e18 / incentive)
+    // Both floors, in that order, mirror ExponentialNoError's mul_ then div_. At the 5e16 default over a
+    // 1.1e18 incentive that is ~4.55% of the seize — far more than SEIZE_BUFFER absorbs, so omitting it
+    // would bake an over-large redeem into the batch and revert it after a full signing round.
+    const [incentive, pss]: BigNumber[] = await Promise.all([
+      comptroller.effectiveLiquidationIncentive(vBStock.address),
+      new Contract(vBStock.address, ISOLATED_VTOKEN_ABI, provider).protocolSeizeShareMantissa(),
+    ]);
+    if (incentive.isZero()) {
+      throw new Error(
+        `effectiveLiquidationIncentive(${vBStock.address}) is 0 — VToken._seize divides by it, so every ` +
+          `liquidation in this pool would revert`,
+      );
+    }
+    vReceived = seizeTokens.sub(seizeTokens.mul(pss).div(ONE).mul(ONE).div(incentive));
+  }
+  const liqTreasuryPct: BigNumber = isCore
+    ? await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa()
+    : BigNumber.from(0);
   if (!liqTreasuryPct.eq(0)) {
     // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
     // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included — so
@@ -236,7 +340,11 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // Raw bStock from redeeming vRedeem, after Core's redeem treasuryPercent fee, FLOORED at the current
   // exchange rate (rate only grows, so transferring this floor never exceeds what we hold).
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
-  const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
+  // Core takes `treasuryPercent` of the redeemed underlying on the way out. An isolated redeem has no such
+  // fee at all — its protocol cut is the reserve factor, already inside the exchange rate — so do NOT try
+  // to read `treasuryPercent()` there and fall back to a value: the call reverts, and any non-zero fallback
+  // would understate the shippable amount.
+  const treasuryPercent: BigNumber = isCore ? await comptroller.treasuryPercent() : BigNumber.from(0);
   const seizedRaw = vRedeem.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   console.log(
     `seize: ${utils.formatUnits(seizeTokens, 8)} v${bStockSym} credited ~${utils.formatUnits(vReceived, 8)} ` +
@@ -259,12 +367,18 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // Native BNB debt (vBNB): the Liquidator forwards msg.value to vBNB.liquidateBorrow and requires
   // msg.value == repay (see Liquidator.liquidateBorrow), so the Safe sends repay as native value and
   // there is no ERC20 to approve. ERC20 debt: approve the gate first, then a zero-value liquidateBorrow.
-  const liquidateTx = call(
-    gate,
-    "liquidateBorrow(address,address,uint256,address)",
-    [vDebt.address, borrower, repay, vBStock.address],
-    isBnb ? repay : 0,
-  );
+  // Isolated: no gate, so the Safe calls the DEBT MARKET directly. Note the signature and the argument
+  // order both differ from the gate's — 3-arg (borrower, repay, collateral) against the market itself,
+  // versus the gate's 4-arg (vDebt, borrower, repay, collateral). Always zero value: an isolated pool has
+  // no native market, so this is always the ERC20 approve-then-liquidate shape.
+  const liquidateTx = isCore
+    ? call(
+        gate,
+        "liquidateBorrow(address,address,uint256,address)",
+        [vDebt.address, borrower, repay, vBStock.address],
+        isBnb ? repay : 0,
+      )
+    : call(vDebt.address, "liquidateBorrow(address,uint256,address)", [borrower, repay, vBStock.address], 0);
 
   const seizeTxs = [
     call(vBStock.address, "redeem(uint256)", [vRedeem]),
@@ -288,7 +402,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
     transactions: txs,
   });
 
-  return { batch, txs, gate, seizeTokens, vReceived, vRedeem, seizedRaw, target };
+  return { batch, txs, gate, repaySpender, isCore, seizeTokens, vReceived, vRedeem, seizedRaw, target };
 }
 
 async function main() {

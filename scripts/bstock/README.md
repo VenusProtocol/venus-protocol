@@ -1,7 +1,12 @@
 # bStock Liquidation Scripts
 
-Operator runbook for liquidating bStock (tokenized-stock) collateral in Venus Core. Three entrypoints,
-one shared goal: repay a borrower's debt, seize their bStock, and offload it.
+Operator runbook for liquidating bStock (tokenized-stock) collateral. Three entrypoints, one shared goal:
+repay a borrower's debt, seize their bStock, and offload it.
+
+Two pools are served: **Venus Core**, and a **hub-funded spoke pool** (an isolated-pools comptroller with a
+USDT debt leg and bStock collateral). You do not select the pool — both scripts derive it from `VBSTOCK`, the
+same way the contract does, and print it as `pool: CORE` or `pool: ISOLATED` on the first line of output.
+Read that line before anything else: it determines which pre-checks ran and which batch shape you get.
 
 | Script            | Path                  | What it does                                                                                                                                                                                                                                        | Chain writes?    |
 | ----------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
@@ -28,6 +33,21 @@ Rules of thumb:
 
 ---
 
+## Which pool am I in?
+
+|                        | Core                                                                      | Isolated / spoke                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| How it is decided      | `vBStock.comptroller()` equals the liquidator's `comptroller()` immutable | it does not, and the pool is on `isAllowedComptroller`                                                                                    |
+| Repay path             | through the pool-wide Venus Liquidator gate                               | straight to the debt market (`vDebt.liquidateBorrow`)                                                                                     |
+| What shrinks the seize | gate treasury cut on the bonus, then Core's redeem `treasuryPercent`      | the collateral market's `protocolSeizeShareMantissa`, sent to the PSR (~4.55% at the 5e16 default over a 1.1e18 incentive). No redeem fee |
+| Debt shapes            | ERC20, native BNB (vBNB), VAI                                             | ERC20 only. No native market, no VAIController                                                                                            |
+| `MODE=flash`           | flash-borrows `vDebt` itself (vWBNB for BNB)                              | flash-borrows from **Core** via `coreFlashSource[debtToken]` — isolated pools have no flash lender of their own                           |
+
+**Not served in either pool:** positions at or below the pool's `minLiquidatableCollateral`. Those are
+refused by `preLiquidateHook` and can only be cleared by the comptroller's own `liquidateAccount` /
+`healAccount`, which are multi-market, all-borrows-at-once entry points this single-market tool cannot drive.
+`atomic-liquidate.ts` detects the case and aborts naming it, rather than burning a quote.
+
 ## Prerequisites
 
 - **Native API key** (`NATIVE_API_KEY`) for anything that fetches a Native quote. Never commit it.
@@ -49,6 +69,27 @@ Rules of thumb:
   - `setOperator(caller, true)` for the account that submits `liquidate` / `flashLiquidate`.
 - **Funding** for `MODE=inventory`: the liquidator must hold ≥ `REPAY_AMOUNT` of the debt asset.
   `MODE=flash` borrows instead (no pre-funding).
+
+### Extra prerequisites for the spoke pool
+
+These are one-time setup, not per-incident. Check them during readiness, not while a position is underwater.
+
+- `setAllowedComptroller(spokeComptroller, true)` on the liquidator (owner Safe). **Until this is set the
+  spoke branch does not exist** — the upgraded contract behaves exactly like the Core-only version, which is
+  deliberate: it makes the upgrade safe to ship before the pool is deployed. The script aborts naming the
+  missing call.
+- `setCoreFlashSource(USDT, <core vUSDT>)` on the liquidator (owner Safe), **only if you want `MODE=flash`**.
+  The Core flash loan is not tied to the liquidation target, so a spoke USDT debt is funded from the Core
+  USDT market and repaid in the same tx. Unset means `MODE=flash` aborts; `MODE=inventory` is unaffected.
+- **If the pool's liquidation allowlist is on**, the address that must be on it is the one that RECEIVES the
+  collateral — the **BStockLiquidator contract** for the atomic path, the **Safe** for the fallback path.
+  Not the operator EOA; allowlisting that does nothing. It is an ACM-gated governance call
+  (`setAllowedLiquidator`), so it cannot be fixed mid-incident. Both scripts pre-check it and name the
+  correct address in the error.
+- The spoke pool and both of its markets must be registered in the **PoolRegistry** the ProtocolShareReserve
+  reads. Isolated `_seize` transfers the protocol share to the PSR and calls `updateAssetsState`, which
+  reverts `InvalidAddress()` otherwise — on _every_ liquidation, with nothing in the message naming the
+  cause. This is pool-listing work, outside the liquidator entirely.
 
 ### Hop-1 source registry (Native, Liquid Mesh, …)
 
@@ -176,7 +217,7 @@ call `liquidate`/`flashLiquidate`.
 | `VDEBT`               | ✓   |             | Borrowed market to repay (e.g. vUSDT)                                                                                                                                                                        |
 | `REPAY_AMOUNT`        | ✓   |             | Repay in debt underlying, human units                                                                                                                                                                        |
 | `NATIVE_API_KEY`      |     |             | Native Swap API key (required for `native`/`auto`)                                                                                                                                                           |
-| `MODE`                |     | `inventory` | `inventory` (own funds) or `flash` (Venus flash-loan)                                                                                                                                                        |
+| `MODE`                |     | `inventory` | `inventory` (own funds) or `flash` (Venus flash-loan). In the spoke pool `flash` needs `setCoreFlashSource` configured; the loan comes from the CORE market for the same token                               |
 | `SOURCE`              |     | `auto`      | Hop-1 source: `auto` (price all available, take higher) / `native` / `liquidmesh` / comma-subset (e.g. `native,liquidmesh`)                                                                                  |
 | `LM_API_KEY`          |     |             | Liquid Mesh API key (required for `liquidmesh`/`auto`)                                                                                                                                                       |
 | `LM_PRIVATE_KEY_SEED` |     |             | Liquid Mesh Ed25519 seed, base64url (required for `liquidmesh`/`auto`)                                                                                                                                       |
@@ -220,6 +261,13 @@ Then: **Safe → Apps → Transaction Builder → Load** the JSON, review, sign,
 The batch is 3–4 txs (approve → liquidateBorrow → redeem → transfer; the approve is dropped for a
 native BNB debt, so 3): the Safe repays from its own funds, seizes the bStock, and ships raw bStock to
 `TARGET` (Binance top-up / custody) for finance to offload on the CEX.
+
+**In the spoke pool the batch is always 4 txs and two things change shape.** There is no gate, so the
+approval goes to the debt market itself and the call is the market's own 3-arg
+`liquidateBorrow(borrower, repay, vBStock)` — note both the different signature and the different argument
+order from the gate's 4-arg `liquidateBorrow(vDebt, borrower, repay, vBStock)`. The native-BNB 3-tx variant
+and the VAI branch cannot occur there (no native market, no VAIController). The script decides this by
+probing the pool for a `liquidatorContract()` gate rather than by address, so it needs no extra env.
 
 | Var            | Req | Default                         | Notes                                                                                                                             |
 | -------------- | --- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
