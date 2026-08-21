@@ -123,7 +123,12 @@ describe("BStockLiquidator — storage layout", () => {
     expect(newGap.slot + arrayLen(newGap.type) - 1).to.equal(oldGap.slot + arrayLen(oldGap.type) - 1);
   });
 
-  it("stays inside the EIP-170 runtime limit", async () => {
+  it("stays inside the EIP-170 runtime limit", async function () {
+    // solidity-coverage instruments every branch into the runtime, which roughly doubles it. The
+    // measurement only means anything against an uninstrumented build, so skip under coverage.
+    if ((hre as any).__SOLIDITY_COVERAGE_RUNNING) {
+      this.skip();
+    }
     const buildInfo = await hre.artifacts.getBuildInfo(`${SRC}:BStockLiquidator`);
     const out = (buildInfo!.output.contracts as any)[SRC].BStockLiquidator;
     const size = out.evm.deployedBytecode.object.replace(/^0x/, "").length / 2;

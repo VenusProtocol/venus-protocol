@@ -1,6 +1,6 @@
 import { SnapshotRestorer, takeSnapshot } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { BigNumber, Contract } from "ethers";
+import { Contract } from "ethers";
 import hre, { ethers, upgrades } from "hardhat";
 
 // ============================================================================================
