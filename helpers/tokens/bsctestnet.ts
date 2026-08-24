@@ -289,8 +289,8 @@ const tokens = [
   {
     isMock: false,
     tokenAddress: "0x7cE6ADF754D0eC81A6CF8ACd9C7454F45077dc61",
-    symbol: "vSHARE",
-    name: "Vault Share",
+    symbol: "vhUSDT",
+    name: "Venus Hub USDT",
     decimals: 12,
   },
 ] as const satisfies readonly TokenConfig[];

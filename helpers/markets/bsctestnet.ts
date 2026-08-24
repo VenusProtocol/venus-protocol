@@ -861,9 +861,9 @@ export default [
     },
   },
   {
-    name: "Venus vSHARE",
-    symbol: "vvSHARE",
-    asset: "vSHARE",
+    name: "Venus vhUSDT",
+    symbol: "vvhUSDT",
+    asset: "vhUSDT",
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
