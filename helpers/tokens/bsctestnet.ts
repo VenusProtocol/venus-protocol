@@ -286,6 +286,13 @@ const tokens = [
     symbol: "SKHYB",
     decimals: 18,
   },
+  {
+    isMock: false,
+    tokenAddress: "0x7cE6ADF754D0eC81A6CF8ACd9C7454F45077dc61",
+    symbol: "vSHARE",
+    name: "Vault Share",
+    decimals: 12,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
