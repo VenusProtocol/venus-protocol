@@ -286,11 +286,13 @@ const tokens = [
     symbol: "SKHYB",
     decimals: 18,
   },
+  // Predates the naming convention, so this contract reports "Vault Share" /
+  // "vSHARE" on chain. The bscmainnet equivalent is "Venus Hub USDT" / "vhUSDT".
   {
     isMock: false,
     tokenAddress: "0x7cE6ADF754D0eC81A6CF8ACd9C7454F45077dc61",
-    symbol: "vhUSDT",
-    name: "Venus Hub USDT",
+    symbol: "vSHARE", // vhUSDT
+    name: "Vault Share", // Venus Hub USDT
     decimals: 12,
   },
 ] as const satisfies readonly TokenConfig[];
