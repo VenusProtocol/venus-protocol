@@ -7,8 +7,8 @@ import hre, { ethers, upgrades } from "hardhat";
 // BStockLiquidator — ISOLATED (hub-funded spoke pool) mode
 // ============================================================================================
 //
-// The Core suite (BStockLiquidator.ts) covers everything the contract did before dual-pool support.
-// This file covers the branch that support added, against mocks ported from the real contracts:
+// The Core suite (BStockLiquidator.ts) covers the Core path; this file covers the ISOLATED one, against
+// mocks ported from the real contracts:
 // `MockSpokeComptroller` mirrors `SpokeComptroller`'s liquidation surface and `MockIsolatedVToken`
 // mirrors the isolated-pools `VToken` repay/seize/redeem path with its exact seize arithmetic.
 //

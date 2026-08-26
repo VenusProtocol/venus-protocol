@@ -3,11 +3,10 @@
 // ============================================================================================
 //
 // The spoke pool is an isolated-pools `SpokeComptroller` fork that is not deployed anywhere yet, so
-// this helper deploys the REAL compiled contracts into the fork: `SpokeComptroller` and the shared
-// isolated-pools `VToken`, from artifacts vendored under `../vendor/spoke/` (NOT `artifacts/` — the
-// repo gitignores every directory of that name), plus the real `DeviationBoundedOracle` from the
-// oracle package. Nothing here is a mock — the liquidation path the tests exercise is the pool's
-// own code.
+// this helper deploys the REAL compiled contracts into the fork: `SpokeComptroller` and the isolated
+// `VToken`, from artifacts vendored under `../vendor/spoke/`, plus the real `DeviationBoundedOracle`.
+// Nothing here is a mock; the liquidation path the tests exercise is the pool's own code.
+// (Vendored under `vendor/`, not `artifacts/`: the repo gitignores any directory of that name.)
 //
 // Everything it leans on is live bscmainnet infrastructure: the AccessControlManager, the Normal
 // Timelock that holds permissions on it, the ResilientOracle, and an isolated-pools interest-rate

@@ -62,14 +62,11 @@ import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
 // THE FORK BLOCK AND THIS PROXY ARE A MATCHED PAIR — change one and you must re-validate the other.
 //
-// There are two live BStockLiquidator proxies on bscmainnet. This one exists at FORK_BLOCK below;
-// `deployments/bscmainnet/BStockLiquidator.json` names a NEWER one deployed at block 111096720, which
-// does not exist yet at this block. Raising the block to reach it was tried and rejected: the BNB
-// resilient oracle does not price vBNB on a fork at those later blocks (`invalid resilient oracle price`
-// on borrow, and the market sweep classifies vWBNB as a dead oracle), which kills the native-BNB
-// scenario. Pinning an older block that prices every market the suite touches is worth more than
-// attaching to the newer address, so the pair stays as-is until the oracle question is settled
-// separately. Override both together with FORK_BSTOCK_BLOCK if you need to move.
+// bscmainnet has two live BStockLiquidator proxies. This is the older one, which exists at FORK_BLOCK
+// below; `deployments/bscmainnet/BStockLiquidator.json` names a newer one deployed at block 111096720.
+// The newer one is not reachable from here: at the blocks where it exists the resilient oracle does not
+// price vBNB on a fork, which kills the native-BNB scenario and makes the sweep report vWBNB as a dead
+// oracle. Override both together with FORK_BSTOCK_BLOCK.
 const DEPLOYED_LIQ = "0xF03C90e6BF66b43411189Ad848F17723f8B4A3c1";
 
 // EIP-1967 slots, read at runtime so the proxy admin is never a stale literal either.
@@ -86,12 +83,10 @@ const OPERATOR_PROBE = ethers.utils.getAddress("0x000000000000000000000000000000
 /**
  * Re-pin the forked chain's clock to `ts + 1`.
  *
- * Hardhat drives block.timestamp off WALL time (fork timestamp + seconds elapsed since the reset), and
- * evm_revert restores state but NOT that offset. So the longer the suite runs, the further the chain
- * clock walks past the fork block, and price feeds start reading stale: measured on this fork, vBNB is
- * priced up to fork_head + 63s and reverts with "invalid resilient oracle price" from +64s. Without a
- * pin, the native-BNB scenario passes alone and fails inside the full run purely because of position in
- * the file. Pinning after every revert gives every test the same on-chain time.
+ * Hardhat drives block.timestamp off WALL time, and evm_revert restores state but NOT that offset, so a
+ * long run walks the chain clock past the fork block and feeds start reading stale. Measured here: vBNB
+ * is priced up to fork_head + 63s and reverts from +64s. Without this, a test passes alone and fails in
+ * the full run purely because of where it sits in the file.
  */
 async function pinClock(ts: number): Promise<void> {
   await ethers.provider.send("evm_setNextBlockTimestamp", [ts + 1]);
@@ -290,7 +285,7 @@ const test = () => {
       it("adds the dual-pool surface that the old implementation did not have", () => {
         expect(oldImplHadNewGetter).to.equal(false);
         expect(newImplHasNewGetter).to.equal(true);
-        // The live instance also predates `routerSpender`; the upgrade brings that forward too.
+        // The live implementation has no `routerSpender` either; the upgrade adds both.
         expect(oldImplHadSpender).to.equal(false);
         expect(newImplHasSpender).to.equal(true);
       });
@@ -857,7 +852,8 @@ const test = () => {
           cTl,
         )._setForcedLiquidation(VUSDT, true);
 
-        // The live gate no longer fails on VAI grounds (it still fails later — no borrow to repay).
+        // With forced liquidation on, the gate stops failing on VAI grounds (it still fails later, on the
+        // absent borrow).
         const err = await probeGate().then(
           () => null,
           (e: Error) => e,

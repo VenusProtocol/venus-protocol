@@ -122,10 +122,9 @@ const COMPTROLLER_ABI = [
 const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
 const VENUS_LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
-// Isolated-pools `Comptroller` (and its `SpokeComptroller` fork). DISJOINT from COMPTROLLER_ABI on purpose:
-// none of Core's gate reads exist here, and a SpokeComptroller has no fallback, so calling one REVERTS rather
-// than returning a garbage value. Keeping the two ABIs separate makes a wrong call a TypeError up front
-// instead of an opaque CALL_EXCEPTION mid-run.
+// Isolated-pools `Comptroller` (and its `SpokeComptroller` fork). Kept DISJOINT from COMPTROLLER_ABI so a
+// wrong-mode call is an unknown-function TypeError up front rather than an opaque failure mid-run: none of
+// Core's gate reads exist here, and the pool has no fallback to answer them with a plausible zero.
 const ISOLATED_COMPTROLLER_ABI = [
   // Same 3-tuple and same liquidation-threshold weighting as Core, but the error slot is always 0: a bad
   // price REVERTS (PriceError / SnapshotError) instead of coming back as a code.
@@ -162,17 +161,15 @@ const ONE18 = BigNumber.from(10).pow(18);
 /**
  * Reproduce an isolated comptroller's `snapshot.totalCollateral` for an account, in USD-scaled 1e18 units.
  *
- * Needed because `minLiquidatableCollateral` is compared against that figure inside `preLiquidateHook`, and
- * nothing exposes it: `getAccountLiquidity` returns only liquidity and shortfall, and `totalCollateral` lives
- * purely in the in-memory snapshot struct. Mirrors `_accumulateMarket` exactly, including the order of the two
- * truncating divisions:
+ * `preLiquidateHook` compares `minLiquidatableCollateral` against this figure, and nothing exposes it:
+ * `getAccountLiquidity` returns only liquidity and shortfall. Mirrors `_accumulateMarket`, keeping the order
+ * of the two truncating divisions:
  *
  *   vTokenPrice     = exchangeRateMantissa * price / 1e18
  *   totalCollateral += vTokenPrice * vTokenBalance / 1e18
  *
- * The liquidation-threshold weighting values BOTH legs at the plain spot price (`_safeGetPrices` returns spot
- * for that weighting and only consults the deviation-bounded oracle under the collateral factor), so this is
- * exactly reproducible off-chain from `oracle.getUnderlyingPrice`.
+ * Reproducible off-chain because that weighting values both legs at plain spot, never the deviation-bounded
+ * oracle.
  */
 async function isolatedTotalCollateral(
   comptroller: Contract,
@@ -307,21 +304,15 @@ export async function atomicLiquidate(signer: Signer) {
   const vBStock = new Contract(env("VBSTOCK"), VTOKEN_ABI, signer);
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, signer);
 
-  // Which pool owns the position. Resolved from the COLLATERAL market's own comptroller and compared against
-  // the liquidator's Core immutable — the same derivation `_resolvePool` performs on-chain, so the script and
-  // the contract can never disagree about which branch will run.
+  // Which pool owns the position, derived exactly as `_resolvePool` does on-chain so the script and the
+  // contract cannot disagree about which branch will run.
   const poolAddr: string = await vBStock.comptroller();
   const coreAddr: string = await liquidator.comptroller();
   const isCore = poolAddr.toLowerCase() === coreAddr.toLowerCase();
 
-  // NOTE: do NOT cross-check by reading `vDebt.comptroller()`. The contract deliberately never calls
-  // anything on `vDebt` before it knows the mode, because a Core debt may be the vBNB sentinel or the
-  // VAIController, and neither is safe to probe. Both legs are instead proved to belong to the pool below,
-  // in isolated mode, by asking the POOL — which is exactly what `_resolvePool` does.
+  // Do NOT cross-check with `vDebt.comptroller()`: a Core debt may be the vBNB sentinel or the VAIController,
+  // and neither is safe to probe. Isolated legs are proved against the POOL below instead.
 
-  // Deliberately different ABIs per mode. None of Core's gate reads exist on an isolated comptroller, and it
-  // has no fallback, so calling one there REVERTS rather than returning a plausible-looking zero. Binding the
-  // wrong ABI therefore fails as an unknown-function TypeError up front, not as an opaque revert mid-run.
   const comptroller = new Contract(poolAddr, isCore ? COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, signer);
   console.log(`pool: ${isCore ? "CORE" : "ISOLATED"} (${poolAddr})`);
 
@@ -371,11 +362,9 @@ export async function atomicLiquidate(signer: Signer) {
       }
     }
   } else {
-    // Isolated pools are ERC20-only: no native market and no VAIController, so neither special applies and
-    // `underlying` is a plain public variable on every listed market. Read it DIRECTLY rather than through
-    // the try/catch above, which treats any failure as a native-BNB debt: there it is a useful heuristic
-    // (vBNB genuinely has no `underlying()`), here it would silently denominate the whole quote chain and
-    // `minOut` in WBNB because of an unrelated RPC hiccup or a fat-fingered VDEBT.
+    // Isolated pools are ERC20-only, so read `underlying` directly. The try/catch above must NOT be
+    // reused: it treats any failure as native BNB, which here would silently denominate the whole quote
+    // chain and `minOut` in WBNB after nothing worse than an RPC hiccup.
     debtAddr = await vDebt.underlying();
   }
   const debt = new Contract(debtAddr, ERC20_ABI, signer);
@@ -391,10 +380,8 @@ export async function atomicLiquidate(signer: Signer) {
     throw new Error("MODE=flash is not supported for a VAI debt (no vVAI to flash from) — use MODE=inventory");
   }
 
-  // Isolated pools have no flash lender of their own. FLASH still works there, because the CORE flash loan is
-  // not tied to the liquidation target: it lends a Core market's underlying and wants it back in the same tx.
-  // The contract picks that market from `coreFlashSource[debtToken]`; unset means an on-chain
-  // FlashSourceNotSet. Catch it here, before a firm RFQ quote is spent on a call that must revert.
+  // Isolated pools have no flash lender, so the contract draws from `coreFlashSource[debtToken]`. Unset
+  // means an on-chain FlashSourceNotSet: catch it before a firm RFQ quote is spent on a doomed call.
   if (!isCore && mode === "flash") {
     const flashSrc: string = await liquidator.coreFlashSource(debtAddr);
     if (flashSrc === ethers.constants.AddressZero) {
@@ -406,10 +393,9 @@ export async function atomicLiquidate(signer: Signer) {
     console.log(`isolated flash source: Core market ${flashSrc} lends ${debtSym}`);
   }
 
-  // 0a. ISOLATED-only pre-flight. Every check here mirrors a hook the on-chain liquidation reaches AFTER the
-  // repay has been staged, so a failure that surfaces here costs nothing while the same failure on-chain
-  // costs a firm RFQ quote and the gas of a doomed settle. Core has no analogue for any of them — they live
-  // in the pool's own comptroller and in the isolated VToken, not in the diamond.
+  // 0a. ISOLATED-only pre-flight. Each check mirrors a hook the on-chain liquidation only reaches AFTER the
+  // repay is staged, so catching it here costs nothing while the same failure on-chain costs a firm RFQ
+  // quote and the gas of a doomed settle. Core has no analogue: these live in the pool, not the diamond.
   let forcedIsolated = false;
   if (!isCore) {
     // Forced liquidation makes `preLiquidateHook` return BEFORE the collateral, shortfall and close-factor

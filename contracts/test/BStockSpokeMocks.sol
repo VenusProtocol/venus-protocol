@@ -3,13 +3,11 @@ pragma solidity 0.8.25;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/// @notice Test-only stand-ins for the hub-funded SPOKE pool, so `BStockLiquidator`'s isolated branch can be
-///         exercised on a local network. Ported from the real contracts rather than invented:
-///         `MockSpokeComptroller` mirrors `SpokeComptroller`'s liquidation surface and `MockIsolatedVToken`
-///         mirrors the isolated-pools `VToken` repay/seize/redeem path, including the exact seize arithmetic.
-///         Deliberately does NOT implement `liquidatorContract()`, `executeFlashLoan` or `vaiController()` —
-///         a spoke pool has none of them, so any accidental Core-branch call fails loudly here instead of
-///         silently passing. Not for production.
+/// @notice Test-only stand-ins for the hub-funded SPOKE pool, ported from the real contracts rather than
+///         invented: `MockSpokeComptroller` mirrors `SpokeComptroller`'s liquidation surface and
+///         `MockIsolatedVToken` the isolated `VToken` repay/seize/redeem path, seize arithmetic included.
+///         None of them implements `liquidatorContract()`, `executeFlashLoan` or `vaiController()`, so an
+///         accidental Core-branch call fails loudly here instead of silently passing. Not for production.
 
 /// @dev Isolated pools answer `NO_ERROR` or revert; they never return a non-zero error code.
 uint256 constant NO_ERROR = 0;
@@ -138,10 +136,9 @@ contract MockSpokeComptroller {
     /* ------------------------------- getters -------------------------------- */
 
     /**
-     * @dev Answers for `msg.sender`, not for a market passed in, exactly as the real pool does: `VToken._seize`
-     *      calls this on itself and must see the COLLATERAL market's own discount. Any other caller (a lens, a
-     *      bot, an off-chain script) is not a market and reads the pool-wide default — which is why the
-     *      off-chain seize precompute has to ask `effectiveLiquidationIncentive` instead.
+     * @dev Answers for `msg.sender`, as the real pool does: `VToken._seize` calls this on itself and must see
+     *      the COLLATERAL market's own discount. Any non-market caller reads the pool-wide default, which is
+     *      why off-chain code has to ask `effectiveLiquidationIncentive` instead.
      */
     function liquidationIncentiveMantissa() external view returns (uint256) {
         return _liquidationIncentive(msg.sender);
@@ -259,10 +256,10 @@ contract MockSpokeComptroller {
 }
 
 /**
- * @dev Isolated-pools `VToken` stand-in. The parts that matter to `BStockLiquidator` are ported verbatim in
- *      behaviour: `liquidateBorrow` answers NO_ERROR (never a non-zero code), the repay is capped at the
- *      borrower's outstanding balance, and `_seize` withholds `protocolSeizeShare` for the ProtocolShareReserve
- *      using the same arithmetic, so the liquidator's balance delta genuinely excludes the protocol's cut.
+ * @dev Isolated-pools `VToken` stand-in. The parts `BStockLiquidator` touches behave as the real one does:
+ *      `liquidateBorrow` answers NO_ERROR, the repay is capped at the outstanding balance, and `_seize`
+ *      withholds `protocolSeizeShare` with the same arithmetic, so the liquidator's balance delta really
+ *      does exclude the protocol's cut.
  */
 contract MockIsolatedVToken {
     error LiquidateCloseAmountIsZero();
@@ -320,9 +317,8 @@ contract MockIsolatedVToken {
     /* ------------------------------ liquidation ----------------------------- */
 
     /**
-     * @dev Returns NO_ERROR or reverts — never a non-zero error code. `BStockLiquidator` declares this through
-     *      `IVBep20` (which returns `uint256`), so a mock that returned nothing would make every isolated
-     *      repay revert on ABI decode. Keeping the `uint256` return is the point of this mock.
+     * @dev `BStockLiquidator` calls this through `IVBep20`, which declares a `uint256` return, so a mock
+     *      returning nothing would make every isolated repay fail on ABI decode.
      */
     function liquidateBorrow(
         address borrower,
@@ -403,10 +399,8 @@ contract MockIsolatedVToken {
 }
 
 /**
- * @dev Core-style flash-source market whose `underlying()` can be repointed AFTER `setCoreFlashSource` has
- *      validated it. Exists to prove `_flashSource`'s runtime re-check is not dead code: the setter's
- *      invariant can be broken later, and the liquidation has to catch it rather than approve one token
- *      while the facet pulls another.
+ * @dev Core-style flash-source market whose `underlying()` can be repointed after `setCoreFlashSource` has
+ *      validated it. Proves `_flashSource`'s runtime re-check is not dead code.
  */
 contract MockMutableFlashSource {
     address public underlying;
@@ -442,12 +436,9 @@ contract MockNotAComptroller {
 }
 
 /**
- * @dev A contract that LOOKS like a spoke debt market to anything that trusts a market's own word: it
- *      reports an allowlisted pool as its `comptroller()` and names a real token as its `underlying()`.
- *      `liquidateBorrow` then drains whatever it was approved.
- *
- *      It is the reason `_resolvePool` asks the POOL what it lists instead of asking the market. The pool
- *      has no entry for this address and cannot be made to grow one, so the approval is never granted.
+ * @dev Looks like a spoke debt market to anything that trusts a market's own word: it reports an allowlisted
+ *      pool as its `comptroller()`, names a real token as its `underlying()`, and drains whatever it was
+ *      approved. The pool has no entry for it, which is why `_resolvePool` asks the pool and not the market.
  */
 contract MockHostileDebtMarket {
     address public immutable underlying;

@@ -8,9 +8,8 @@ import * as path from "path";
 // ============================================================================================
 //
 // The contract is live behind a transparent proxy on bscmainnet, so its layout is append-only
-// forever. `isAllowedComptroller` and `coreFlashSource` were added by shrinking the trailing
-// `__gap` from [49] to [47]; inserting them anywhere earlier would have shifted `isRouter` and
-// `routerSpender` on top of live state.
+// forever: every declared slot must keep the index the deployed implementation gave it, and new
+// variables may only sit after the last one, paid for out of the trailing `__gap`.
 //
 // Two independent checks:
 //   1. The compiled layout matches the exact slot map below (catches an insertion or a reorder).

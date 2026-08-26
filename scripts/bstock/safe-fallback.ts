@@ -95,8 +95,8 @@ const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
 const LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
 
 // Isolated-pools `Comptroller` / `SpokeComptroller`. Kept DISJOINT from COMPTROLLER_ABI: none of Core's gate
-// reads exist here and the contract has no fallback, so calling one reverts rather than returning a zero.
-// `liquidationIncentiveMantissa()` is deliberately absent — there it answers for msg.sender, and an eth_call
+// reads exist here, and the pool has no fallback to answer them with a plausible zero.
+// `liquidationIncentiveMantissa()` is deliberately absent — it answers for msg.sender, and an eth_call
 // carries no from-address, so it would quietly return the pool-wide default and hide a per-market override.
 const ISOLATED_COMPTROLLER_ABI = [
   "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
@@ -129,13 +129,11 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // Which pool owns the position, taken from the COLLATERAL market — the same leg the contract anchors on.
   const poolAddr: string = await vBStock.comptroller();
 
-  // Then: does that pool have a POOL-WIDE LIQUIDATOR GATE? That one fact is what decides everything below —
-  // whether the repay is approved to the gate or to the debt market, which liquidateBorrow signature the
-  // batch uses, and whether a treasury cut applies. So probe for it directly rather than comparing the pool
-  // against a hardcoded Core address: unlike atomic-liquidate.ts this script never touches the
-  // BStockLiquidator, so it has no Core immutable to compare against, and a hardcoded one would pin the tool
-  // to a single chain. Core answers (possibly with the zero address, rejected below); an isolated
-  // comptroller has no such function and no fallback, so the call reverts — and that revert IS the signal.
+  // Then: does that pool have a POOL-WIDE LIQUIDATOR GATE? That decides the approve target, the
+  // liquidateBorrow signature and whether a treasury cut applies. Probed directly rather than compared
+  // against a hardcoded Core address, because this script never touches the BStockLiquidator and so has no
+  // Core immutable to compare against. Core answers; an isolated comptroller has no such function and no
+  // fallback, so the call fails — and that failure IS the signal.
   let isCore = true;
   let gateProbe = ZERO;
   try {
@@ -286,12 +284,11 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // (treasuryPercentMantissa = 0.5e18) today — not 0 — and is governance-settable.
   let vReceived = seizeTokens;
   if (!isCore) {
-    // No gate and no redeem fee in an isolated pool. What reduces the credit is the collateral market's own
-    // protocol seize share, withheld inside `VToken._seize` and sent to the ProtocolShareReserve:
+    // No gate and no redeem fee here. What reduces the credit is the collateral market's own protocol
+    // seize share, withheld inside `VToken._seize`:
     //     protocolSeizeTokens = floor(floor(seizeTokens * pss / 1e18) * 1e18 / incentive)
     // Both floors, in that order, mirror ExponentialNoError's mul_ then div_. At the 5e16 default over a
-    // 1.1e18 incentive that is ~4.55% of the seize — far more than SEIZE_BUFFER absorbs, so omitting it
-    // would bake an over-large redeem into the batch and revert it after a full signing round.
+    // 1.1e18 incentive that is ~4.55% of the seize, far more than SEIZE_BUFFER absorbs.
     const [incentive, pss]: BigNumber[] = await Promise.all([
       comptroller.effectiveLiquidationIncentive(vBStock.address),
       new Contract(vBStock.address, ISOLATED_VTOKEN_ABI, provider).protocolSeizeShareMantissa(),
@@ -341,9 +338,8 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // exchange rate (rate only grows, so transferring this floor never exceeds what we hold).
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   // Core takes `treasuryPercent` of the redeemed underlying on the way out. An isolated redeem has no such
-  // fee at all — its protocol cut is the reserve factor, already inside the exchange rate — so do NOT try
-  // to read `treasuryPercent()` there and fall back to a value: the call reverts, and any non-zero fallback
-  // would understate the shippable amount.
+  // fee: its protocol cut is the reserve factor, already inside the exchange rate. Do not read
+  // `treasuryPercent()` there — the call fails, and a non-zero fallback would understate what is shippable.
   const treasuryPercent: BigNumber = isCore ? await comptroller.treasuryPercent() : BigNumber.from(0);
   const seizedRaw = vRedeem.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   console.log(
@@ -367,10 +363,9 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // Native BNB debt (vBNB): the Liquidator forwards msg.value to vBNB.liquidateBorrow and requires
   // msg.value == repay (see Liquidator.liquidateBorrow), so the Safe sends repay as native value and
   // there is no ERC20 to approve. ERC20 debt: approve the gate first, then a zero-value liquidateBorrow.
-  // Isolated: no gate, so the Safe calls the DEBT MARKET directly. Note the signature and the argument
-  // order both differ from the gate's — 3-arg (borrower, repay, collateral) against the market itself,
-  // versus the gate's 4-arg (vDebt, borrower, repay, collateral). Always zero value: an isolated pool has
-  // no native market, so this is always the ERC20 approve-then-liquidate shape.
+  // Isolated: no gate, so the Safe calls the DEBT MARKET directly. Both the signature and the argument
+  // order differ from the gate's: 3-arg (borrower, repay, collateral) against the market itself, versus the
+  // gate's 4-arg (vDebt, borrower, repay, collateral). Always zero value, since there is no native market.
   const liquidateTx = isCore
     ? call(
         gate,
