@@ -1,3 +1,16 @@
+## 10.3.0-dev.5 (2026-08-27)
+
+* Merge pull request #708 from VenusProtocol/feat/vhub-core-markets ([1a0892e](https://github.com/VenusProtocol/venus-protocol/commit/1a0892e)), closes [#708](https://github.com/VenusProtocol/venus-protocol/issues/708)
+* feat: updating deployment files ([9b11add](https://github.com/VenusProtocol/venus-protocol/commit/9b11add))
+* feat(markets): add vhUSDT, vhUSDC and vhU Core pool configs ([ef4c3a0](https://github.com/VenusProtocol/venus-protocol/commit/ef4c3a0))
+* fix(deployment): update vvSHARE to vvhUSDT in bsctestnet deployment ([a0a5c7d](https://github.com/VenusProtocol/venus-protocol/commit/a0a5c7d))
+* fix(markets): record on-chain names for bsctestnet Hub token ([6926379](https://github.com/VenusProtocol/venus-protocol/commit/6926379))
+* fix(markets): update vSHARE to vhUSDT in bsctestnet configuration ([4dce420](https://github.com/VenusProtocol/venus-protocol/commit/4dce420))
+* chore: add vvhUSDT, vvhUSDC and vvhU deployment artifacts ([e8bc4e9](https://github.com/VenusProtocol/venus-protocol/commit/e8bc4e9))
+* chore: fix lint ([ada2fc6](https://github.com/VenusProtocol/venus-protocol/commit/ada2fc6))
+* chore(deploy): add vvSHARE solc input ([3d1646a](https://github.com/VenusProtocol/venus-protocol/commit/3d1646a))
+* chore(deploy): record bsctestnet vvSHARE market ([8de0c97](https://github.com/VenusProtocol/venus-protocol/commit/8de0c97))
+
 ## 10.3.0-dev.4 (2026-07-21)
 
 * fix(bstock):: enforce Venus Liquidator gate checks in atomicLiquidate and safe-fallback scripts ([28ba594](https://github.com/VenusProtocol/venus-protocol/commit/28ba594))
