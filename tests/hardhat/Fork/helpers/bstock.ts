@@ -348,6 +348,26 @@ export function buildSingleHopMock(mkt: BStockMarket, mock: Contract, liqAddr: s
   return mock.interface.encodeFunctionData("swapAll", [mkt.bStock.address, TOK.USDT, liqAddr]);
 }
 
+// USDT the hop-1 mock will pay out for the bStock seized by `repay`, at the quoted `rate`. Shared by the
+// PCS builder below and by the live-aggregator tests, which need the same number to size hop 2 before
+// calling out to an external API. Gross of the treasury cut — callers under-shoot it (see `x2`).
+export async function hop1UsdtOut(
+  owner: any,
+  mkt: BStockMarket,
+  vDebt: string,
+  repay: BigNumber,
+  rate: BigNumber,
+  borrower: string,
+): Promise<BigNumber> {
+  const comptroller = new ethers.Contract(A.COMPTROLLER, COMPTROLLER_ABI, owner);
+  // Borrower-aware 4-arg overload (reads the borrower's actual pool), matching
+  // vToken.liquidateBorrowFresh on-chain; the 3-arg overload always reads Core Pool params.
+  const [, seizeTokens] = await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt, mkt.vBStock.address, repay);
+  const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
+  const grossBStock = seizeTokens.mul(xr).div(ONE); // bStock the seized vTokens redeem to (pre treasury cut)
+  return grossBStock.mul(rate).div(ONE); // mock output at the quoted rate
+}
+
 // Two hops (non-USDT debt): hop-1 mock bStock->USDT (swapAll), hop-2 REAL PancakeSwap USDT->debt.
 // The hop-2 amountIn is under-shot so the fixed-amount PCS calldata always fits under the on-chain
 // approval (the actual USDT from hop-1 varies with the treasury cut). minOut tracks the live quote.
@@ -362,13 +382,7 @@ export async function buildTwoHopMockThenPcs(
   rate: BigNumber,
   borrower: string,
 ): Promise<{ swapCalldata: string; swapCalldata2: string; expectedOut: BigNumber }> {
-  const comptroller = new ethers.Contract(A.COMPTROLLER, COMPTROLLER_ABI, owner);
-  // Borrower-aware 4-arg overload (reads the borrower's actual pool), matching
-  // vToken.liquidateBorrowFresh on-chain; the 3-arg overload always reads Core Pool params.
-  const [, seizeTokens] = await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt, mkt.vBStock.address, repay);
-  const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
-  const grossBStock = seizeTokens.mul(xr).div(ONE); // bStock the seized vTokens redeem to (pre treasury cut)
-  const usdtFromHop1 = grossBStock.mul(rate).div(ONE); // mock output at the quoted rate
+  const usdtFromHop1 = await hop1UsdtOut(owner, mkt, vDebt, repay, rate, borrower);
   const x2 = usdtFromHop1.mul(90).div(100); // under-shoot 10% to stay under the real approval after the cut
   const pcs = new ethers.Contract(A.PCS_ROUTER, PCS_ABI, owner);
   const expectedOut: BigNumber = (await pcs.getAmountsOut(x2, pathUsdtToDebt))[pathUsdtToDebt.length - 1];

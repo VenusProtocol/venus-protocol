@@ -30,9 +30,10 @@ import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { parseEther, parseUnits } from "ethers/lib/utils";
 import fc from "fast-check";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 
 import { atomicLiquidate } from "../../../scripts/bstock/atomic-liquidate";
+import { getAmmSwap } from "../../../scripts/bstock/lib/amm";
 import { getPsmSwap } from "../../../scripts/bstock/lib/psm";
 import { assertVaiGateClear } from "../../../scripts/bstock/lib/vai-gate";
 import {
@@ -52,6 +53,7 @@ import {
   buildTwoHopMockThenPcs,
   deployFundedMockNative,
   findBalanceSlot,
+  hop1UsdtOut,
   listBStockMarket,
   makeUnderwaterBorrower,
   mulberry32,
@@ -60,10 +62,13 @@ import {
 } from "./helpers/bstock";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
-const FORK_BLOCK = Number(process.env.FORK_BSTOCK_BLOCK || "107820000");
+// Must be AFTER the on-chain router wiring (setRouter / setRouterSpender): the suite consumes that live
+// configuration instead of re-applying it, so an earlier block leaves `isRouter` false and trips the
+// allowlist assertions in `before`. The wiring landed at 111264556; the proxy deployed at 111096720.
+const FORK_BLOCK = Number(process.env.FORK_BSTOCK_BLOCK || "111264600");
 
-// Live BStockLiquidator proxy on bscmainnet (deployments/bscmainnet/BStockLiquidator.json, deployed at block 107817335).
-const DEPLOYED_LIQ = "0xF03C90e6BF66b43411189Ad848F17723f8B4A3c1";
+// Live BStockLiquidator proxy on bscmainnet (deployments/bscmainnet/BStockLiquidator.json).
+const DEPLOYED_LIQ = "0x5974Badab6911a78Ba15229045514C2C1bD42343";
 
 const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
 const VCAKE = "0x86aC3974e2BD0d60825230fa6F355fF11409df5c";
@@ -78,6 +83,19 @@ const VAI_CONTROLLER_ABI = [
   "function getVAIRepayAmount(address) view returns (uint256)",
   "function toggleOnlyPrimeHolderMint() returns (uint256)",
 ];
+// Hop-2 swap targets, allowlisted on mainnet and ASSERTED (not re-set) in `before`. PancakeSwap V2 is
+// the deterministic CI route (calldata encoded locally from getAmountsOut, no API); the two aggregators
+// are only reachable through their live APIs, so the tests that use them are opt-in — see the
+// "live AMM aggregators" describe below. All of these are hop 2 only: none can quote bStock.
+const KYBER_ROUTER = "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5";
+const OPENOCEAN_ROUTER = "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64";
+const HOP2_ROUTERS: Record<string, string> = {
+  "PancakeSwap V2": A.PCS_ROUTER,
+  KyberSwap: KYBER_ROUTER,
+  OpenOcean: OPENOCEAN_ROUTER,
+  "PSM (VAI)": PSM_USDT,
+};
+
 const ACM_GIVE_ABI = ["function giveCallPermission(address,string,address)"];
 const PSM_FORK_ABI = [
   "function vaiMinted() view returns (uint256)",
@@ -101,6 +119,14 @@ const POOL_ADMIN_ABI = [
   "function liquidatorContract() view returns (address)",
 ];
 const VENUS_LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
+// Reads needed to reproduce the script's seize sizing (see `realHop1Usdt`): what the contract actually
+// ends up holding after the gate's cut of the bonus and the redeem-side treasury cut.
+const SEIZE_MATH_ABI = [
+  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
+  "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
+  "function treasuryPercent() view returns (uint256)",
+  "function liquidatorContract() view returns (address)",
+];
 
 // bStock USD prices: healthy vs post-crash (the stock gapped down ~80%).
 const P_HEALTHY = parseUnits("250", 18);
@@ -161,8 +187,24 @@ const test = () => {
       const liqOwner = await initMainnetUser(await liq.owner(), parseEther("10"));
       await liq.connect(liqOwner).transferOwnership(owner.address);
       await liq.connect(owner).acceptOwnership();
-      await liq.connect(owner).setRouter(mock.address, true); // hop-1 (Native RFQ mock)
-      await liq.connect(owner).setRouter(A.PCS_ROUTER, true); // hop-2 (real PancakeSwap)
+
+      // The hop-2 routers are allowlisted ON MAINNET, so the suite ASSERTS that live configuration
+      // rather than re-applying it — a test that sets up its own allowlist cannot catch a missing or
+      // rolled-back `setRouter`, which is exactly the misconfiguration that bricks liquidations. Fail
+      // here with the offending address instead of inside a settle as an opaque RouterNotAllowed.
+      for (const [name, addr] of Object.entries(HOP2_ROUTERS)) {
+        if (!(await liq.isRouter(addr))) {
+          throw new Error(
+            `${name} (${addr}) is not allowlisted on ${DEPLOYED_LIQ} at block ${FORK_BLOCK} — ` +
+              `run setRouter on mainnet, or set FORK_BSTOCK_BLOCK to a block after the wiring tx`,
+          );
+        }
+      }
+
+      // Hop 1 is the ONE thing that cannot come from mainnet config: the Native RFQ router settles
+      // MM-signed off-chain quotes that a pinned fork cannot replay, so it stays a mock and needs its
+      // own allowlist entry. See verify-lm-fork.ts for the live, at-head proof of the real hop-1 path.
+      await liq.connect(owner).setRouter(mock.address, true);
 
       baseSnap = await ethers.provider.send("evm_snapshot", []);
     });
@@ -217,16 +259,11 @@ const test = () => {
 
       it("single-hop USDT debt via a Liquid-Mesh-style split router (separate spender): settles atomically", async () => {
         // Liquid Mesh pulls the input token through a SEPARATE spender, distinct from the call target, so
-        // the contract must approve the spender (not the router) via `setRouterSpender`. The DEPLOYED proxy
-        // (`DEPLOYED_LIQ`) predates `routerSpender`, so this scenario deploys a FRESH proxy on the current
-        // implementation and drives it against the SAME real gate + bStock market to prove the split path
-        // settles a real underwater position and leaves no standing approval.
-        const Factory = await ethers.getContractFactory("BStockLiquidator");
-        const liqLm = await upgrades.deployProxy(Factory, [owner.address], {
-          constructorArgs: [A.COMPTROLLER, A.VBNB, A.VWBNB, TOK.WBNB],
-          unsafeAllow: ["constructor", "state-variable-immutable"],
-        });
-
+        // the contract must approve the spender (not the router) via `setRouterSpender`. The deployed
+        // proxy supports `routerSpender`, so this drives the REAL instance rather than a fresh one.
+        // The mock split router still needs its own allowlist entry (the mainnet entry is for the real
+        // LM router, whose off-chain-signed orders a pinned fork cannot replay).
+        const liqLm = liq;
         const spender = await (await ethers.getContractFactory("MockSpender")).deploy();
         const lmRouter = await (await ethers.getContractFactory("MockSplitRouter")).deploy(spender.address);
         await lmRouter.setRate(P_CRASH); // models the crashed-price bStock->USDT quote
@@ -320,6 +357,255 @@ const test = () => {
         await assertSettledFor(liq, mkt, VCAKE, B.CAKE, borrowBefore);
       });
 
+      /* -------------------------------------------------------------- */
+      /*            live AMM aggregators (opt-in, not CI)               */
+      /* -------------------------------------------------------------- */
+
+      // KyberSwap and OpenOcean have NO offline encoder — unlike `pcsv2`, their calldata only exists as
+      // an API response, so the one thing worth proving is that `lib/amm.ts`'s output actually EXECUTES
+      // against the real allowlisted router. That needs a live call, which is why these are opt-in
+      // (LIVE_AMM=1) rather than CI fixtures: a third-party outage must not redden the build, and a
+      // pinned fixture would only prove that stale calldata still works, not that the adapter is correct.
+      //
+      // Same shape as the PCS test above: hop 1 stays the RFQ mock, hop 2 is the real aggregator router.
+      // The fork must be at/near head or the aggregator prices state the fork does not have.
+      //
+      //   LIVE_AMM=1 FORK_BSTOCK_BLOCK=<recent> npx hardhat test tests/hardhat/Fork/BStockLiquidatorFork.ts
+      const liveAmm = process.env.LIVE_AMM === "1" ? describe : describe.skip;
+      liveAmm("live AMM aggregators (LIVE_AMM=1)", () => {
+        for (const [provider, router] of [
+          ["kyberswap", KYBER_ROUTER],
+          ["openocean", OPENOCEAN_ROUTER],
+        ] as const) {
+          it(`two-hop CAKE debt via ${provider}: real API calldata fills on the real router`, async () => {
+            await makeUnderwaterBorrower({
+              mkt,
+              vDebt: VCAKE,
+              borrower: B.CAKE,
+              collateralBStock: parseUnits("100", 18),
+              borrowAmount: parseUnits("4000", 18),
+              crashPriceTo: P_CRASH,
+            });
+            await mock.setRate(P_CRASH);
+
+            const REPAY = parseUnits("1500", 18);
+            await fund(TOK.CAKE, liq.address, REPAY);
+
+            // Size hop 2 off the hop-1 output the way the script does, then undershoot 10% so the fixed
+            // `amountIn` baked into the aggregator calldata stays at/below the approval the contract
+            // grants (the actual hop-1 delta). Over-sizing here reverts SwapFailed on allowance.
+            const midOut = await hop1UsdtOut(owner, mkt, VCAKE, REPAY, P_CRASH, B.CAKE);
+            const amountIn = midOut.mul(90).div(100);
+
+            process.env.AMM_PROVIDER = provider;
+            const amm = await getAmmSwap(
+              {
+                tokenIn: TOK.USDT,
+                tokenOut: TOK.CAKE,
+                amountIn: amountIn.toString(),
+                recipient: liq.address,
+                slippage: 0.5,
+              },
+              ethers.provider,
+            );
+
+            // The adapter must resolve to the address we allowlisted. A mismatch means the aggregator
+            // rotated its router — the exact failure that silently bricks every non-USDT liquidation.
+            expect(ethers.utils.getAddress(amm.router)).to.equal(ethers.utils.getAddress(router));
+
+            const params = {
+              borrower: B.CAKE,
+              vDebt: VCAKE,
+              vBStock: mkt.vBStock.address,
+              repayAmount: REPAY,
+              router: mock.address,
+              swapCalldata: mock.interface.encodeFunctionData("swapAll", [mkt.bStock.address, TOK.USDT, liq.address]),
+              minOut: BigNumber.from(amm.expectedOut).mul(90).div(100),
+              router2: amm.router,
+              swapCalldata2: amm.calldata,
+              intermediateToken: TOK.USDT,
+              deadline: ethers.constants.MaxUint256,
+            };
+
+            const borrowBefore = await new ethers.Contract(VCAKE, VTOKEN_ABI, owner).borrowBalanceStored(B.CAKE);
+            const out = await liq.connect(owner).callStatic.liquidate(params);
+            expect(out).to.be.gte(params.minOut);
+            await liq.connect(owner).liquidate(params);
+            await assertSettledFor(liq, mkt, VCAKE, B.CAKE, borrowBefore);
+          });
+        }
+      });
+
+      /* -------------------------------------------------------------- */
+      /*                     flash mode + two hops                      */
+      /* -------------------------------------------------------------- */
+
+      /**
+       * Hop-1 USDT the contract will ACTUALLY hold, mirroring the script's seize math exactly
+       * (atomic-liquidate.ts steps 1-2): seize, minus the Venus Liquidator's cut of the BONUS, minus the
+       * redeem-side treasuryPercent, valued at the mock's quoted rate.
+       *
+       * `buildTwoHopMockThenPcs` deliberately sizes hop 2 at 90% of the GROSS (pre-cut) seize, which lands
+       * just UNDER the repay once the gate's cut is applied — fine for inventory mode, where proceeds are
+       * pure profit, but fatal under FLASH, where proceeds must cover the principal. So the flash tests
+       * size off the real post-cut figure and undershoot by a small margin instead.
+       */
+      async function realHop1Usdt(vDebt: string, borrower: string, repay: BigNumber): Promise<BigNumber> {
+        const comptroller = new ethers.Contract(A.COMPTROLLER, SEIZE_MATH_ABI, owner);
+        const [, seizeTokens] = await comptroller.liquidateCalculateSeizeTokens(
+          borrower,
+          vDebt,
+          mkt.vBStock.address,
+          repay,
+        );
+        const incentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, mkt.vBStock.address);
+        const gate: string = await comptroller.liquidatorContract();
+        const gatePct: BigNumber = await new ethers.Contract(
+          gate,
+          VENUS_LIQUIDATOR_ABI,
+          owner,
+        ).treasuryPercentMantissa();
+        const bonus = seizeTokens.mul(incentive.sub(ONE)).div(incentive);
+        const vReceived = seizeTokens.sub(bonus.mul(gatePct).div(ONE));
+        const xr: BigNumber = await mkt.vBStock.exchangeRateStored();
+        const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
+        const seized = vReceived.mul(xr).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
+        return seized.mul(P_CRASH).div(ONE); // the mock pays `rate` per bStock
+      }
+
+      it("flash mode + two hops (CAKE debt): flashed principal is repaid out of the swap proceeds", async () => {
+        // The production-recommended shape for a non-USDT debt (atomic-liquidate.ts header: prefer
+        // MODE=flash for two-hop so a revert burns gas, not locked inventory) — and the only path where
+        // the proceeds must cover the flashed PRINCIPAL, not merely clear a profit bar.
+        const flashOk = await enableFlashIfNeeded(owner, VCAKE, liq.address);
+        expect(flashOk, "vCAKE flash-loan not enabled at this fork block").to.equal(true);
+
+        await makeUnderwaterBorrower({
+          mkt,
+          vDebt: VCAKE,
+          borrower: B.CAKE,
+          collateralBStock: parseUnits("100", 18),
+          borrowAmount: parseUnits("4000", 18),
+          crashPriceTo: P_CRASH,
+        });
+        await mock.setRate(P_CRASH);
+
+        const REPAY = parseUnits("1000", 18); // modest, so the PCS leg's price impact stays small
+        const midUsdt = await realHop1Usdt(VCAKE, B.CAKE, REPAY);
+        // Undershoot the real hop-1 delta slightly: the calldata bakes in a FIXED amountIn while the
+        // contract approves only the actual delta, so amountIn must sit at/below it.
+        const amountIn = midUsdt.mul(995).div(1000);
+        const pcs = new ethers.Contract(
+          A.PCS_ROUTER,
+          [
+            "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) returns (uint256[])",
+            "function getAmountsOut(uint256,address[]) view returns (uint256[])",
+          ],
+          owner,
+        );
+        const path = [TOK.USDT, TOK.CAKE];
+        const expectedOut: BigNumber = (await pcs.getAmountsOut(amountIn, path))[1];
+        // Flash is only viable if the sale covers the principal; assert the premise before the settle so
+        // a sizing regression reads as "proceeds under principal", not an opaque InsufficientOut.
+        expect(expectedOut.gt(REPAY), "quoted proceeds must cover the flashed principal").to.equal(true);
+
+        const params = {
+          borrower: B.CAKE,
+          vDebt: VCAKE,
+          vBStock: mkt.vBStock.address,
+          repayAmount: REPAY,
+          router: mock.address,
+          swapCalldata: buildSingleHopMock(mkt, mock, liq.address),
+          minOut: expectedOut.mul(99).div(100),
+          router2: A.PCS_ROUTER,
+          swapCalldata2: pcs.interface.encodeFunctionData("swapExactTokensForTokens", [
+            amountIn,
+            0,
+            path,
+            liq.address,
+            ethers.constants.MaxUint256,
+          ]),
+          intermediateToken: TOK.USDT,
+          deadline: ethers.constants.MaxUint256,
+        };
+
+        const cake = new ethers.Contract(TOK.CAKE, ERC20_ABI, owner);
+        const vCake = new ethers.Contract(VCAKE, VTOKEN_ABI, owner);
+        const borrowBefore = await vCake.borrowBalanceStored(B.CAKE);
+        const cakeBefore = await cake.balanceOf(liq.address);
+
+        // No inventory funded: every CAKE used for the repay is flash-borrowed and returned in-tx.
+        expect(cakeBefore).to.equal(0);
+        await liq.connect(owner).flashLiquidate(params);
+
+        await assertSettledFor(liq, mkt, VCAKE, B.CAKE, borrowBefore);
+        // Principal + premium went back to the pool; the surplus stays as CAKE profit.
+        expect(await cake.balanceOf(liq.address)).to.be.gt(0);
+      });
+
+      it("flash mode + native BNB debt (vBNB): flashes vWBNB, unwraps, repays, nothing stranded", async () => {
+        // vBNB cannot be flash-repaid, so the contract flashes the vWBNB market instead and unwraps the
+        // proceeds for the native repay — a distinct immutable + code path from every other debt shape.
+        const flashOk = await enableFlashIfNeeded(owner, A.VWBNB, liq.address);
+        expect(flashOk, "vWBNB flash-loan not enabled at this fork block").to.equal(true);
+
+        await makeUnderwaterBorrower({
+          mkt,
+          vDebt: A.VBNB,
+          borrower: B.BNB,
+          collateralBStock: parseUnits("100", 18),
+          borrowAmount: parseEther("8"),
+          crashPriceTo: P_CRASH,
+        });
+        await mock.setRate(P_CRASH);
+
+        const REPAY = parseEther("1");
+        const midUsdt = await realHop1Usdt(A.VBNB, B.BNB, REPAY);
+        const amountIn = midUsdt.mul(995).div(1000);
+        const pcs = new ethers.Contract(
+          A.PCS_ROUTER,
+          [
+            "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) returns (uint256[])",
+            "function getAmountsOut(uint256,address[]) view returns (uint256[])",
+          ],
+          owner,
+        );
+        const path = [TOK.USDT, TOK.WBNB];
+        const expectedOut: BigNumber = (await pcs.getAmountsOut(amountIn, path))[1];
+        expect(expectedOut.gt(REPAY), "quoted WBNB proceeds must cover the flashed principal").to.equal(true);
+
+        const params = {
+          borrower: B.BNB,
+          vDebt: A.VBNB,
+          vBStock: mkt.vBStock.address,
+          repayAmount: REPAY,
+          router: mock.address,
+          swapCalldata: buildSingleHopMock(mkt, mock, liq.address),
+          minOut: expectedOut.mul(99).div(100),
+          router2: A.PCS_ROUTER,
+          swapCalldata2: pcs.interface.encodeFunctionData("swapExactTokensForTokens", [
+            amountIn,
+            0,
+            path,
+            liq.address,
+            ethers.constants.MaxUint256,
+          ]),
+          intermediateToken: TOK.USDT,
+          deadline: ethers.constants.MaxUint256,
+        };
+
+        const vBnb = new ethers.Contract(A.VBNB, VTOKEN_ABI, owner);
+        const wbnb = new ethers.Contract(TOK.WBNB, ERC20_ABI, owner);
+        const borrowBefore = await vBnb.borrowBalanceStored(B.BNB);
+        expect(await wbnb.balanceOf(liq.address)).to.equal(0); // nothing pre-funded
+
+        await liq.connect(owner).flashLiquidate(params);
+
+        expect(await vBnb.borrowBalanceStored(B.BNB)).to.be.lt(borrowBefore);
+        expect(await wbnb.balanceOf(liq.address)).to.be.gt(0); // surplus kept as WBNB
+        expect(await ethers.provider.getBalance(liq.address)).to.equal(0); // no native BNB stranded
+      });
+
       it("native BNB debt (vBNB): WBNB unwrap of the repay, two-hop to WBNB, nothing stranded", async () => {
         await makeUnderwaterBorrower({
           mkt,
@@ -404,18 +690,11 @@ const test = () => {
         return vaiCtrl;
       }
 
-      // The DEPLOYED proxy predates VAI support (it reads `underlying()` on every vDebt, which the
-      // VAIController lacks), so the VAI scenarios deploy a FRESH proxy on the current implementation
-      // and drive it against the same real gate, real VAIController, and real PSM.
+      // The deployed proxy supports VAI, and the real PSM is already allowlisted on mainnet (asserted in
+      // `before`), so the VAI scenarios drive the REAL instance against the real gate, real VAIController
+      // and real PSM. Only the hop-1 RFQ mock needs an allowlist entry, and `before` has already set it.
       async function deployVaiLiquidator(): Promise<Contract> {
-        const Factory = await ethers.getContractFactory("BStockLiquidator");
-        const liqVai = await upgrades.deployProxy(Factory, [owner.address], {
-          constructorArgs: [A.COMPTROLLER, A.VBNB, A.VWBNB, TOK.WBNB],
-          unsafeAllow: ["constructor", "state-variable-immutable"],
-        });
-        await liqVai.connect(owner).setRouter(mock.address, true); // hop-1 (Native RFQ mock)
-        await liqVai.connect(owner).setRouter(PSM_USDT, true); // hop-2 router: the real PSM
-        return liqVai;
+        return liq;
       }
 
       // Hop-1 USDT output at the crashed price for a given VAI repay, undershot 10% like the PCS leg,
