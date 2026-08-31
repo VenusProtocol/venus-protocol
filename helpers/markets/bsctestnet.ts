@@ -860,4 +860,31 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  // USDT Hub market. The underlying (HUB_USDT) was deployed before the current naming
+  // convention was settled, so on chain it reports "Vault Share" / "vSHARE", and this vToken
+  // was deployed to match it as "Venus vSHARE" / "vvSHARE" (0xb846eEbaC8b014296709dc660Bfcb6ea182718e8).
+  // The config and the deployment record use the current convention instead, so the naming
+  // lines up with bscmainnet. The deployed contracts themselves are unchanged.
+  {
+    name: "Venus vhUSDT",
+    symbol: "vvhUSDT",
+    asset: "vSHARE",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0.8",
+      reserveFactor: "0.1",
+      supplyCap: "10000000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "100",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];

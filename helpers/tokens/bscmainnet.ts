@@ -345,6 +345,27 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0xCA750eF65f295BBECd685Abf54e82CAf297BDB61",
   },
+  {
+    isMock: false,
+    name: "Venus Hub USDT",
+    symbol: "vhUSDT",
+    decimals: 24,
+    tokenAddress: "0x18AfDACF30F8671021dec4b78297E39d2FE87226",
+  },
+  {
+    isMock: false,
+    name: "Venus Hub USDC",
+    symbol: "vhUSDC",
+    decimals: 24,
+    tokenAddress: "0x9D2D9592cF8DFbf59107fAab703d08494BE14617",
+  },
+  {
+    isMock: false,
+    name: "Venus Hub U",
+    symbol: "vhU",
+    decimals: 24,
+    tokenAddress: "0x0e5AA174d4F31b757a237eb1999DE151596788B0",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

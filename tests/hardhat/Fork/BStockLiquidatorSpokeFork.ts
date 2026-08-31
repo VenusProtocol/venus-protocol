@@ -29,8 +29,10 @@ import {
 import { CORE_VUSDT, SPOKE_COMPTROLLER_ABI, SpokeAction, SpokePool, deploySpokePool } from "./helpers/spoke";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
-const FORK_BLOCK = Number(process.env.FORK_BSTOCK_BLOCK || "107820000");
-const DEPLOYED_LIQ = "0xF03C90e6BF66b43411189Ad848F17723f8B4A3c1";
+// Same block and same live proxy as the Core fork suite, so both upgrade the instance that is actually
+// deployed. `FORK_BSTOCK_BLOCK` overrides both together.
+const FORK_BLOCK = Number(process.env.FORK_BSTOCK_BLOCK || "111264600");
+const DEPLOYED_LIQ = "0x5974Badab6911a78Ba15229045514C2C1bD42343";
 const IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
 const PROXY_ADMIN_ABI = ["function upgrade(address,address)", "function owner() view returns (address)"];
