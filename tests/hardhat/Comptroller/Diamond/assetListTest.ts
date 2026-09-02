@@ -146,9 +146,21 @@ describe("Comptroller: assetListTest", () => {
     expectedError: ComptrollerErrorReporter.Error | null = null,
   ) {
     const reply = await comptroller.connect(customer).callStatic.unlistMarket(unlistToken.address);
+    const lastPoolId = await comptroller.lastPoolId();
+
+    if (lastPoolId.toNumber() != 0) {
+      const poolVTokens = await comptroller.getPoolVTokens(lastPoolId);
+      expect(poolVTokens).to.include(unlistToken.address);
+    }
 
     const receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
     expect(receipt).to.emit(unitroller, "MarketUnlisted");
+    expect(receipt).to.emit(unitroller, "PoolMarketRemoved");
+
+    if (lastPoolId.toNumber() != 0) {
+      const poolVTokens = await comptroller.getPoolVTokens(lastPoolId);
+      expect(poolVTokens).to.not.include(unlistToken.address);
+    }
 
     const expectedError_ = expectedError || Error.NO_ERROR;
     expect(reply).to.equal(expectedError_);
@@ -329,6 +341,10 @@ describe("Comptroller: assetListTest", () => {
           ],
           true,
         );
+
+      const newLabel = "test-pool";
+      await comptroller.createPool(newLabel);
+      await comptroller.addPoolMarkets([1], [OMG.address]);
 
       await unlistAndCheckMarket(OMG, [BAT, ZRX], [OMG, BAT, ZRX]);
     });

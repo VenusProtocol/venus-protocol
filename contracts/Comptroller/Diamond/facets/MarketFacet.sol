@@ -231,7 +231,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         require(_market.collateralFactorMantissa == 0, "collateral factor is not 0");
 
+        for (uint96 i = lastPoolId; i > corePoolId; i--) {
+            PoolMarketId index = getPoolMarketIndex(i, market);
+            if (_poolMarkets[index].isListed) {
+                _removePoolMarket(i, market);
+            }
+        }
+
         _market.isListed = false;
+
         emit MarketUnlisted(market);
 
         return uint256(Error.NO_ERROR);
@@ -429,27 +437,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      */
     function removePoolMarket(uint96 poolId, address vToken) external {
         ensureAllowed("removePoolMarket(uint96,address)");
-
-        if (poolId == corePoolId) revert InvalidOperationForCorePool();
-        PoolMarketId index = getPoolMarketIndex(poolId, vToken);
-        if (!_poolMarkets[index].isListed) {
-            revert PoolMarketNotFound(poolId, vToken);
-        }
-
-        address[] storage assets = pools[poolId].vTokens;
-
-        uint256 length = assets.length;
-        for (uint256 i; i < length; i++) {
-            if (assets[i] == vToken) {
-                assets[i] = assets[length - 1];
-                assets.pop();
-                break;
-            }
-        }
-
-        delete _poolMarkets[index];
-
-        emit PoolMarketRemoved(poolId, vToken);
+        _removePoolMarket(poolId, vToken);
     }
 
     /**
@@ -527,7 +515,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @custom:error PoolDoesNotExist Reverts if the given pool ID do not exist.
      * @custom:error InvalidOperationForCorePool Reverts if called on the Core Pool.
      */
-    function getPoolVTokens(uint96 poolId) external view returns (address[] memory) {
+    function getPoolVTokens(uint96 poolId) public view returns (address[] memory) {
         if (poolId > lastPoolId) revert PoolDoesNotExist(poolId);
         if (poolId == corePoolId) revert InvalidOperationForCorePool();
         return pools[poolId].vTokens;
@@ -715,6 +703,29 @@ contract MarketFacet is IMarketFacet, FacetBase {
         pools[poolId].vTokens.push(vToken);
 
         emit PoolMarketInitialized(poolId, vToken);
+    }
+
+    function _removePoolMarket(uint96 poolId, address vToken) internal {
+        if (poolId == corePoolId) revert InvalidOperationForCorePool();
+        PoolMarketId index = getPoolMarketIndex(poolId, vToken);
+        if (!_poolMarkets[index].isListed) {
+            revert PoolMarketNotFound(poolId, vToken);
+        }
+
+        address[] storage assets = pools[poolId].vTokens;
+
+        uint256 length = assets.length;
+        for (uint256 i; i < length; i++) {
+            if (assets[i] == vToken) {
+                assets[i] = assets[length - 1];
+                assets.pop();
+                break;
+            }
+        }
+
+        delete _poolMarkets[index];
+
+        emit PoolMarketRemoved(poolId, vToken);
     }
 
     /**
