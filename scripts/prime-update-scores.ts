@@ -10,6 +10,14 @@
  *     Reads HOLDERS_FILE, skips users already done this round (isScoreUpdated),
  *     sends updateScores in batches. Re-runnable: a crashed run just resumes.
  *
+ * WARNING — the holder list must match the contract at the moment STAGE=update runs.
+ * The monthly Prime cycle (keeper burnBatch + issueBatch, 1st of the month ~00:00 UTC)
+ * swaps holders, and a permissionless claimPrime can add one at any time. With a stale
+ * list, updateScores never sees the new holders, pendingScoreUpdates never reaches 0, and
+ * claimPrime/issue/burn keep reverting. Equal-count churn (13 out, 13 in) is invisible to
+ * the totalTokens() check below. So: never run STAGE=update across the monthly cycle, and
+ * re-run STAGE=index right before STAGE=update whenever time has passed since indexing.
+ *
  * Configuration (env var, or constant below) — one line each: meaning · stage · default
  */
 import * as fs from "fs";
@@ -149,6 +157,8 @@ async function main() {
   if (saved.address.toLowerCase() !== dep.address.toLowerCase() || saved.chainId !== chainId) {
     throw new Error(`${file} was indexed for ${saved.address} on chain ${saved.chainId}`);
   }
+  // Count-only check: catches a net change, not equal-count churn (see WARNING in the header).
+  // If the monthly cycle or any claimPrime happened since indexing, re-run STAGE=index first.
   const onChain = Number(await prime.totalTokens());
   console.log(`${saved.holders.length} holders indexed at block ${saved.toBlock}; on-chain totalTokens now ${onChain}`);
   if (onChain !== saved.holders.length)
