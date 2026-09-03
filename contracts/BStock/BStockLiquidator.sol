@@ -71,11 +71,11 @@ interface IPoolRegistry {
  * Only the repay differs between pools (`_repayAndSeize`); redeem, sale, `minOut` and `sweep` are shared.
  * Isolated pools are ERC20-only, so the vBNB and VAI branches below are Core-only.
  *
- * Native BNB debt (vBNB): supported in both modes with WBNB as the debt-accounting token. The repay
- * must be native BNB, so exactly the repay amount of WBNB is unwrapped and forwarded to the gate's
- * payable path; the two-hop swap lands WBNB (bStock->USDT->WBNB) and `minOut` is measured in WBNB
- * (1:1 with BNB). FLASH mode borrows from vWBNB, NOT vBNB: vBNB cannot be flash-repaid (its
- * `doTransferIn` requires `msg.value`), whereas vWBNB's underlying is a plain ERC20.
+ * Native BNB debt (vBNB): Core-only per the line above, but supported in both FUNDING modes, with WBNB as
+ * the debt-accounting token. The repay must be native BNB, so exactly the repay amount of WBNB is
+ * unwrapped and forwarded to the gate's payable path; the two-hop swap lands WBNB (bStock->USDT->WBNB)
+ * and `minOut` is measured in WBNB (1:1 with BNB). FLASH mode borrows from vWBNB, NOT vBNB: vBNB cannot
+ * be flash-repaid (its `doTransferIn` requires `msg.value`), whereas vWBNB's underlying is a plain ERC20.
  *
  * VAI debt (VAIController): supported in INVENTORY mode only. VAI is not a vToken — a `vDebt` equal to
  * `comptroller.vaiController()` is VAI, and like vBNB it has no `underlying()`, so the debt token is

@@ -160,12 +160,45 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const [debtDec, debtSym] = isBnb ? [18, "BNB"] : await Promise.all([debt!.decimals(), debt!.symbol()]);
   const repay = utils.parseUnits(env("REPAY_AMOUNT"), debtDec);
 
+  // Forced liquidation lifts both the shortfall requirement and the close-factor cap, so it has to be read
+  // before either is judged. Core ORs a per-market flag with a per-BORROWER one; the isolated hook has only
+  // the former.
+  const forced: boolean = isCore
+    ? (
+        await Promise.all([
+          comptroller.isForcedLiquidationEnabled(vDebt.address),
+          comptroller.isForcedLiquidationEnabledForUser(borrower, vDebt.address),
+        ])
+      ).some(Boolean)
+    : await comptroller.isForcedLiquidationEnabled(vDebt.address);
+  if (forced) console.warn(`WARN: forced liquidation is ENABLED for ${vDebt.address} — shortfall gate bypassed`);
+
   // --- read-only sanity checks (warn, do not block) ---
   const [, , shortfall]: BigNumber[] = await comptroller.getAccountLiquidity(borrower);
-  if (shortfall.eq(0)) console.warn(`WARN: ${borrower} has NO shortfall right now — not liquidatable yet.`);
-  else console.log(`shortfall: ${utils.formatEther(shortfall)} (USD-scaled)`);
+  if (shortfall.eq(0) && !forced) {
+    console.warn(`WARN: ${borrower} has NO shortfall right now — not liquidatable yet.`);
+  } else if (!shortfall.eq(0)) {
+    console.log(`shortfall: ${utils.formatEther(shortfall)} (USD-scaled)`);
+  }
 
+  // TooMuchRepay, on the other hand, DOES block. Both pools cap the repay at closeFactor * borrowBalance
+  // (the full balance under a forced liquidation) and revert past it, and unlike the warnings above that is
+  // a certainty rather than a guess about execution time: the batch would fail for every signer, costing a
+  // whole signing round. A VAI debt reads getVAIRepayAmount, since the VAIController is not a vToken and
+  // has no borrowBalanceStored.
+  const borrowBalance: BigNumber = isVai
+    ? await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, provider).getVAIRepayAmount(borrower)
+    : await vDebt.borrowBalanceStored(borrower);
   const closeFactor: BigNumber = await comptroller.closeFactorMantissa();
+  const maxRepay = forced ? borrowBalance : borrowBalance.mul(closeFactor).div(BigNumber.from(10).pow(18));
+  if (repay.gt(maxRepay)) {
+    throw new Error(
+      `REPAY_AMOUNT ${utils.formatUnits(repay, debtDec)} ${debtSym} exceeds the maximum ` +
+        `${utils.formatUnits(maxRepay, debtDec)} ${debtSym} ` +
+        `(borrowBalance ${utils.formatUnits(borrowBalance, debtDec)}` +
+        `${forced ? "" : `, closeFactor ${utils.formatEther(closeFactor)}`}) — TooMuchRepay`,
+    );
+  }
   console.log(`repay: ${env("REPAY_AMOUNT")} ${debtSym}  (closeFactor=${utils.formatEther(closeFactor)})`);
 
   // Pool-wide Venus Liquidator gate: while it is set, a direct vDebt.liquidateBorrow from the Safe

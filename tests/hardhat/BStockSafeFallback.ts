@@ -16,14 +16,10 @@ const SEIZE = REPAY.mul(INCENTIVE).div(ONE); // 5500 vBStock at the mock's 1.1x 
 // liquidateBorrow selector: the 4-arg ILiquidator (gate) form the script always routes through.
 const SEL_ROUTED = ethers.utils.id("liquidateBorrow(address,address,uint256,address)").slice(0, 10);
 
-// Stand-in native BNB market. The script identifies it by matching VBNB_ADDR, never by probing
-// underlying(), so it needs no code at all — mirrors the atomic suite.
-const VBNB = ethers.utils.getAddress("0x0000000000000000000000000000000000000b0b");
-
 describe("BStock safe-fallback batch generator", () => {
   let owner: any, borrower: any, target: any;
   let usdt: Contract, bStock: Contract;
-  let comptroller: Contract, vBStock: Contract, vDebt: Contract, venusLiq: Contract;
+  let comptroller: Contract, vBStock: Contract, vDebt: Contract, venusLiq: Contract, vBNB: Contract;
 
   async function deploy() {
     [owner, borrower, target] = await ethers.getSigners();
@@ -38,8 +34,13 @@ describe("BStock safe-fallback batch generator", () => {
     ).deploy(bStock.address, comptroller.address);
     vDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, comptroller.address);
     venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
+    // Stand-in native BNB market: identified by matching VBNB_ADDR rather than by probing underlying(),
+    // but it still needs a borrow balance for the close-factor cap. Mirrors the atomic suite.
+    vBNB = await (await ethers.getContractFactory("MockVBNBLite")).deploy();
 
     await comptroller.setShortfall(U("800"));
+    // Enough debt on both markets that REPAY (5000) stays under the close-factor cap (0.5 * balance).
+    for (const m of [vDebt, vBNB]) await m.setBorrowBalance(borrower.address, REPAY.mul(2));
     await comptroller.setLiquidatorContract(venusLiq.address); // gate set: the mainnet-like default
   }
 
@@ -54,7 +55,7 @@ describe("BStock safe-fallback batch generator", () => {
       // The script matches the pool and the native market by ADDRESS against these; point them at the
       // freshly-deployed mocks rather than the canonical BSC defaults.
       CORE_COMPTROLLER: comptroller.address,
-      VBNB_ADDR: VBNB,
+      VBNB_ADDR: vBNB.address,
       // Isolate the price-drift buffer from the cut/fee assertions: default it off here so those tests
       // assert exact seize-based amounts. The dedicated buffer tests below override it.
       SEIZE_BUFFER: "0",
@@ -120,6 +121,8 @@ describe("BStock safe-fallback batch generator", () => {
     const vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
     await comptroller.setVaiController(vaiController.address);
     await venusLiq.setVaiController(vaiController.address);
+    // A VAI debt sizes the close-factor cap off getVAIRepayAmount, not borrowBalanceStored.
+    await vaiController.setVAIRepayAmount(borrower.address, REPAY.mul(2));
 
     setEnv({ VDEBT: vaiController.address });
     const { txs, vReceived } = await buildSafeFallbackBatch(ethers.provider);
@@ -150,7 +153,8 @@ describe("BStock safe-fallback batch generator", () => {
       vaiController = await (await ethers.getContractFactory("MockVAIController")).deploy(vai.address);
       await comptroller.setVaiController(vaiController.address);
       await venusLiq.setVaiController(vaiController.address);
-      await vaiController.setVAIRepayAmount(borrower.address, U("5000")); // >= the 1000 default threshold
+      await vaiController.setVAIRepayAmount(borrower.address, U("10000")); // >= the 1000 gate threshold, and >= 2x REPAY
+      // so the remedy-step case below can legally repay REPAY under the 0.5 close factor
     });
 
     it("refuses to build the batch and names the VAI-first remedy when the gate would block it", async () => {
@@ -186,6 +190,31 @@ describe("BStock safe-fallback batch generator", () => {
       setEnv({ VDEBT: vaiController.address });
       const { txs } = await buildSafeFallbackBatch(ethers.provider);
       expect(txs).to.have.length(4); // the VAI-first step must never be self-blocked
+    });
+  });
+
+  // TooMuchRepay would revert the batch for every signer, so it blocks here rather than warning: unlike a
+  // shortfall that may change by execution time, this one is a certainty at build time.
+  describe("close-factor cap", () => {
+    it("refuses a repay above closeFactor * borrowBalance", async () => {
+      await vDebt.setBorrowBalance(borrower.address, U("9000")); // 0.5 cap -> 4500 < the 5000 repay
+      setEnv();
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/TooMuchRepay/);
+    });
+
+    it("lets a forced liquidation repay the full balance", async () => {
+      await vDebt.setBorrowBalance(borrower.address, REPAY); // 0.5 cap would be 2500
+      await comptroller.setForcedLiquidationForUser(borrower.address, vDebt.address, true);
+      setEnv();
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4);
+    });
+
+    it("still refuses a repay above the balance under a forced liquidation", async () => {
+      await vDebt.setBorrowBalance(borrower.address, U("4999"));
+      await comptroller.setForcedLiquidation(vDebt.address, true);
+      setEnv();
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/TooMuchRepay/);
     });
   });
 
@@ -237,7 +266,7 @@ describe("BStock safe-fallback batch generator", () => {
   // (nothing to approve), and sends repay as msg.value on the routed liquidateBorrow — the Liquidator
   // forwards it to vBNB and requires msg.value == repay.
   it("bnb debt: auto-detects vBNB, drops the approve, sends repay as msg.value", async () => {
-    setEnv({ VDEBT: VBNB });
+    setEnv({ VDEBT: vBNB.address });
     const { txs, seizedRaw } = await buildSafeFallbackBatch(ethers.provider);
 
     // three txs: no ERC20 approve on the native path
@@ -288,6 +317,7 @@ describe("BStock safe-fallback batch generator", () => {
     await venusLiq.setVaiController(vaiController.address);
     await comptroller.setEffectiveIncentive(U("1.25"));
     await venusLiq.setTreasuryCut(U("0.5")); // 50% of the bonus
+    await vaiController.setVAIRepayAmount(borrower.address, REPAY.mul(2)); // keeps REPAY under the cap
 
     setEnv({ VDEBT: vaiController.address });
     const { vReceived } = await buildSafeFallbackBatch(ethers.provider);
