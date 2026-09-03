@@ -76,101 +76,23 @@
 import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 
+import {
+  BSTOCK_LIQUIDATOR_ABI,
+  CORE_COMPTROLLER_ABI,
+  ERC20_ABI,
+  ISOLATED_COMPTROLLER_ABI,
+  ISOLATED_VTOKEN_SNAPSHOT_ABI,
+  ORACLE_ABI,
+  POOL_REGISTRY_ABI,
+  VAI_CONTROLLER_ABI,
+  VENUS_LIQUIDATOR_ABI,
+  VTOKEN_ABI,
+} from "./lib/abis";
 import { BSC_WBNB, getAmmSwap } from "./lib/amm";
 import { BSC_USDT } from "./lib/native";
 import { getPsmSwap } from "./lib/psm";
 import { QuoteArgs, selectedSources } from "./lib/sources";
 import { assertVaiGateClear } from "./lib/vai-gate";
-
-const PARAMS_TUPLE =
-  "(address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut,address router2,bytes swapCalldata2,address intermediateToken,uint256 deadline)";
-const LIQUIDATOR_ABI = [
-  `function liquidate(${PARAMS_TUPLE}) returns (uint256)`,
-  `function flashLiquidate(${PARAMS_TUPLE})`,
-  "function isRouter(address) view returns (bool)",
-  // The CORE comptroller baked into the contract as an immutable. Mode is whatever the collateral market's
-  // own comptroller is compared against this, exactly as `_resolvePool` does it on-chain.
-  "function comptroller() view returns (address)",
-  // The registry that decides which non-Core pools may be liquidated in.
-  "function poolRegistry() view returns (address)",
-  // The native BNB market, also an immutable. `_settle` decides a debt is native by comparing vDebt against
-  // THIS value, so read it rather than hardcode one: a constant that drifts from the deployed immutable
-  // would put the script and the contract on different branches.
-  "function vBNB() view returns (address)",
-  // Isolated FLASH draws from a CORE market keyed by the isolated pool's debt token.
-  "function coreFlashSource(address) view returns (address)",
-];
-const POOL_REGISTRY_ABI = [
-  "function getPoolByComptroller(address) view returns (tuple(string name,address creator,address comptroller,uint256 blockPosted,uint256 timestampPosted))",
-];
-const VTOKEN_ABI = [
-  "function underlying() view returns (address)",
-  "function comptroller() view returns (address)",
-  "function exchangeRateStored() view returns (uint256)",
-  // Isolated only: `VToken._seize` withholds this share of the seize for the ProtocolShareReserve.
-  "function protocolSeizeShareMantissa() view returns (uint256)",
-  "function borrowBalanceStored(address) view returns (uint256)",
-];
-const ERC20_ABI = [
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
-  "function balanceOf(address) view returns (uint256)",
-];
-const COMPTROLLER_ABI = [
-  "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
-  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
-  "function closeFactorMantissa() view returns (uint256)",
-  // Core has TWO forced-liquidation flags and `liquidateBorrowAllowed` ORs them; the isolated hook has only
-  // the per-market one. Reading just the market flag here would miss a per-user grant.
-  "function isForcedLiquidationEnabled(address) view returns (bool)",
-  "function isForcedLiquidationEnabledForUser(address,address) view returns (bool)",
-  // VAI's seize math is a separate function: VAI is priced at $1 and the incentive is the
-  // borrower-agnostic getLiquidationIncentive (see ComptrollerLens.liquidateVAICalculateSeizeTokens).
-  "function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)",
-  "function treasuryPercent() view returns (uint256)",
-  "function liquidatorContract() view returns (address)",
-  "function vaiController() view returns (address)",
-  "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
-  "function getLiquidationIncentive(address) view returns (uint256)",
-];
-const VAI_CONTROLLER_ABI = [
-  "function getVAIAddress() view returns (address)",
-  // VAI's "borrow balance": `liquidateBorrowAllowed` sizes the close-factor cap off this, NOT off
-  // `borrowBalanceStored` — the VAIController is not a vToken and has no such function.
-  "function getVAIRepayAmount(address) view returns (uint256)",
-];
-const VENUS_LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
-
-// Isolated-pools `Comptroller` (and its `SpokeComptroller` fork). The pool-SPECIFIC entries are kept
-// disjoint from COMPTROLLER_ABI so a wrong-mode call is an unknown-function TypeError up front rather than
-// an opaque failure mid-run: none of Core's gate reads exist here, and the pool has no fallback to answer
-// them with a plausible zero. Only genuinely pool-agnostic getters (closeFactorMantissa,
-// isForcedLiquidationEnabled) appear in both, where a shared name really does mean shared semantics.
-const ISOLATED_COMPTROLLER_ABI = [
-  // Same 3-tuple and same liquidation-threshold weighting as Core, but the error slot is always 0: a bad
-  // price REVERTS (PriceError / SnapshotError) instead of coming back as a code.
-  "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
-  // 3-arg, and NO borrower argument — this is the overload `VToken._liquidateBorrowFresh` actually calls.
-  // Core's borrower-aware 4-arg overload does not exist here.
-  "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
-  // Market-keyed. NEVER use `liquidationIncentiveMantissa()` off-chain: it answers for `msg.sender`, so an
-  // eth_call with no from-address silently returns the pool-wide default and hides any per-market override.
-  "function effectiveLiquidationIncentive(address) view returns (uint256)",
-  "function closeFactorMantissa() view returns (uint256)",
-  "function minLiquidatableCollateral() view returns (uint256)",
-  "function isLiquidationAllowlistEnabled() view returns (bool)",
-  "function isAllowedLiquidator(address) view returns (bool)",
-  "function isForcedLiquidationEnabled(address) view returns (bool)",
-  "function actionPaused(address,uint8) view returns (bool)",
-  "function checkMembership(address,address) view returns (bool)",
-  "function getAssetsIn(address) view returns (address[])",
-  "function oracle() view returns (address)",
-  "function isMarketListed(address) view returns (bool)",
-];
-const ORACLE_ABI = ["function getUnderlyingPrice(address) view returns (uint256)"];
-const ISOLATED_VTOKEN_SNAPSHOT_ABI = [
-  "function getAccountSnapshot(address) view returns (uint256,uint256,uint256,uint256)",
-];
 
 // `Action` ordinals, identical in both repos' ComptrollerInterface.
 const ACTION_REDEEM = 1;
@@ -320,7 +242,7 @@ export async function atomicLiquidate(signer: Signer) {
     );
   }
 
-  const liquidator = new Contract(env("LIQUIDATOR"), LIQUIDATOR_ABI, signer);
+  const liquidator = new Contract(env("LIQUIDATOR"), BSTOCK_LIQUIDATOR_ABI, signer);
   const borrower = ethers.utils.getAddress(env("BORROWER"));
   const vBStock = new Contract(env("VBSTOCK"), VTOKEN_ABI, signer);
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, signer);
@@ -334,7 +256,7 @@ export async function atomicLiquidate(signer: Signer) {
   // Do NOT cross-check with `vDebt.comptroller()`: a Core debt may be the vBNB sentinel or the VAIController,
   // and neither is safe to probe. Isolated legs are proved against the POOL below instead.
 
-  const comptroller = new Contract(poolAddr, isCore ? COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, signer);
+  const comptroller = new Contract(poolAddr, isCore ? CORE_COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, signer);
   console.log(`pool: ${isCore ? "CORE" : "ISOLATED"} (${poolAddr})`);
 
   if (!isCore) {

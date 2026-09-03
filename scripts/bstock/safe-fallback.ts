@@ -63,6 +63,14 @@ import { BigNumber, Contract, providers, utils } from "ethers";
 import { promises as fs } from "fs";
 import * as path from "path";
 
+import {
+  CORE_COMPTROLLER_ABI,
+  ERC20_ABI,
+  ISOLATED_COMPTROLLER_ABI,
+  VAI_CONTROLLER_ABI,
+  VENUS_LIQUIDATOR_ABI,
+  VTOKEN_ABI,
+} from "./lib/abis";
 import { buildBatch, call } from "./lib/safe";
 import { assertVaiGateClear } from "./lib/vai-gate";
 
@@ -77,49 +85,6 @@ const DEFAULT_CORE_COMPTROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
 const DEFAULT_VBNB = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
 const DEFAULT_RPC = "https://bsc-dataseed.bnbchain.org";
 const CHAIN_ID = 56;
-
-const ERC20_ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
-];
-const VTOKEN_ABI = [
-  "function underlying() view returns (address)",
-  "function comptroller() view returns (address)",
-  "function exchangeRateStored() view returns (uint256)",
-];
-const COMPTROLLER_ABI = [
-  "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
-  "function closeFactorMantissa() view returns (uint256)",
-  "function liquidationIncentiveMantissa() view returns (uint256)",
-  "function liquidatorContract() view returns (address)",
-  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
-  // VAI's seize math is a separate function: VAI is priced at $1 and the incentive is the
-  // borrower-agnostic getLiquidationIncentive (see ComptrollerLens.liquidateVAICalculateSeizeTokens).
-  "function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)",
-  "function treasuryPercent() view returns (uint256)",
-  "function vaiController() view returns (address)",
-  "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
-  "function getLiquidationIncentive(address) view returns (uint256)",
-];
-const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
-const LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
-
-// Isolated-pools `Comptroller` / `SpokeComptroller`. Kept DISJOINT from COMPTROLLER_ABI: none of Core's gate
-// reads exist here, and the pool has no fallback to answer them with a plausible zero.
-// `liquidationIncentiveMantissa()` is deliberately absent — it answers for msg.sender, and an eth_call
-// carries no from-address, so it would quietly return the pool-wide default and hide a per-market override.
-const ISOLATED_COMPTROLLER_ABI = [
-  "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
-  "function closeFactorMantissa() view returns (uint256)",
-  // 3-arg, no borrower: the only overload an isolated comptroller has, and the one VToken itself calls.
-  "function liquidateCalculateSeizeTokens(address,address,uint256) view returns (uint256,uint256)",
-  "function effectiveLiquidationIncentive(address) view returns (uint256)",
-  "function isLiquidationAllowlistEnabled() view returns (bool)",
-  "function isAllowedLiquidator(address) view returns (bool)",
-  "function isMarketListed(address) view returns (bool)",
-];
-const ISOLATED_VTOKEN_ABI = ["function protocolSeizeShareMantissa() view returns (uint256)"];
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -144,7 +109,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const coreAddr = utils.getAddress(process.env.CORE_COMPTROLLER || DEFAULT_CORE_COMPTROLLER);
   const isCore = poolAddr.toLowerCase() === coreAddr.toLowerCase();
 
-  const comptroller = new Contract(poolAddr, isCore ? COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, provider);
+  const comptroller = new Contract(poolAddr, isCore ? CORE_COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, provider);
   console.log(`pool: ${isCore ? "CORE" : "ISOLATED"} (${poolAddr})`);
 
   // Two Core "markets" are not ERC20-backed vTokens: the VAIController and the vBNB sentinel. Neither has
@@ -291,7 +256,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
     // 1.1e18 incentive that is ~4.55% of the seize, far more than SEIZE_BUFFER absorbs.
     const [incentive, pss]: BigNumber[] = await Promise.all([
       comptroller.effectiveLiquidationIncentive(vBStock.address),
-      new Contract(vBStock.address, ISOLATED_VTOKEN_ABI, provider).protocolSeizeShareMantissa(),
+      vBStock.protocolSeizeShareMantissa(),
     ]);
     if (incentive.isZero()) {
       throw new Error(
@@ -302,7 +267,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
     vReceived = seizeTokens.sub(seizeTokens.mul(pss).div(ONE).mul(ONE).div(incentive));
   }
   const liqTreasuryPct: BigNumber = isCore
-    ? await new Contract(gate, LIQUIDATOR_ABI, provider).treasuryPercentMantissa()
+    ? await new Contract(gate, VENUS_LIQUIDATOR_ABI, provider).treasuryPercentMantissa()
     : BigNumber.from(0);
   if (!liqTreasuryPct.eq(0)) {
     // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
