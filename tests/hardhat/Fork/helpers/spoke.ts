@@ -8,12 +8,15 @@
 // Nothing here is a mock; the liquidation path the tests exercise is the pool's own code.
 // (Vendored under `vendor/`, not `artifacts/`: the repo gitignores any directory of that name.)
 //
+// The directory the liquidator consults is the REAL `PoolRegistry`, deployed from the isolated-pools
+// package and registered with `addPool`, so `getPoolByComptroller` answers on the live ABI.
+//
 // Everything it leans on is live bscmainnet infrastructure: the AccessControlManager, the Normal
 // Timelock that holds permissions on it, the ResilientOracle, and an isolated-pools interest-rate
 // model. Two deliberate deviations, neither on the liquidation path:
-//   - `poolRegistry`: `supportMarket` is restricted to it, so the pool is deployed with the test's own EOA
-//     in that role instead of standing up a PoolRegistry. That changes who may list a market, not how the
-//     pool behaves once one is listed.
+//   - the comptroller's own `poolRegistry` immutable, which gates `supportMarket`, is the test's EOA rather
+//     than the registry above (listing through the registry means `addMarket`, which also seeds an initial
+//     supply). That changes who may list a market, not how the pool behaves once one is listed.
 //   - `protocolShareReserve` / `shortfall`: the markets point at `MockSpokeProtocolShareReserve` and at the
 //     deployer. The PSR must be a contract: `VToken` transfers the withheld seize share to it and then calls
 //     `updateAssetsState`, and Solidity's existence check makes that call revert against an EOA. Shortfall is
@@ -28,6 +31,7 @@ import { A, ONE, TOK, ZERO, asTimelockWith } from "./bstock";
 /* eslint-disable @typescript-eslint/no-var-requires */
 const SPOKE_COMPTROLLER_ARTIFACT = require("../vendor/spoke/SpokeComptroller.json");
 const ISOLATED_VTOKEN_ARTIFACT = require("../vendor/spoke/VToken.json");
+const POOL_REGISTRY_ARTIFACT = require("@venusprotocol/isolated-pools/artifacts/contracts/Pool/PoolRegistry.sol/PoolRegistry.json");
 const BOUNDED_ORACLE_ARTIFACT = require("@venusprotocol/oracle/artifacts/contracts/DeviationBoundedOracle.sol/DeviationBoundedOracle.json");
 /* eslint-enable @typescript-eslint/no-var-requires */
 
@@ -35,6 +39,13 @@ const BOUNDED_ORACLE_ARTIFACT = require("@venusprotocol/oracle/artifacts/contrac
 // needs the isolated `InterestRateModel` interface (its `getBorrowRate` takes badDebt), which a Core
 // interest-rate model does not implement.
 export const ISOLATED_IRM = "0x2ba0F45f7368d2A56d0c9e5a29af363987BE1d02";
+
+const ACM_ABI = ["function giveCallPermission(address contractAddress, string functionSig, address account)"];
+
+// Pool-level parameters. Owned by the registry: `addPool` writes all three onto the comptroller.
+const CLOSE_FACTOR = parseUnits("0.5", 18);
+const LIQUIDATION_INCENTIVE = parseUnits("1.1", 18);
+const MIN_LIQUIDATABLE_COLLATERAL = parseUnits("100", 18);
 
 /// The pool's own ABI, so a test can assert what the pool does and does not expose.
 export const SPOKE_COMPTROLLER_ABI = SPOKE_COMPTROLLER_ARTIFACT.abi;
@@ -67,6 +78,7 @@ export interface SpokeMarketCfg {
 
 export interface SpokePool {
   comptroller: Contract; // SpokeComptroller behind an ERC1967 proxy
+  registry: Contract; // the real PoolRegistry the pool is registered in
   boundedOracle: Contract;
   protocolShareReserve: Contract; // stand-in that receives the markets' withheld seize share
   markets: Record<string, Contract>; // symbol -> isolated VToken
@@ -96,6 +108,20 @@ async function deployBoundedOracle(deployer: any): Promise<Contract> {
   await impl.deployed();
   const initData = impl.interface.encodeFunctionData("initialize", [A.ACM]);
   return deployBehindProxy(impl, initData, BOUNDED_ORACLE_ARTIFACT.abi, deployer);
+}
+
+/// Deploy a real `PoolRegistry` holding no pools. Exported so a test can point the liquidator at a
+/// registry that holds nothing.
+export async function deployPoolRegistry(deployer: any): Promise<Contract> {
+  const Factory = new ethers.ContractFactory(POOL_REGISTRY_ARTIFACT.abi, POOL_REGISTRY_ARTIFACT.bytecode, deployer);
+  const impl = await Factory.deploy();
+  await impl.deployed();
+  return deployBehindProxy(
+    impl,
+    impl.interface.encodeFunctionData("initialize", [A.ACM]),
+    POOL_REGISTRY_ARTIFACT.abi,
+    deployer,
+  );
 }
 
 /**
@@ -182,6 +208,23 @@ export async function deploySpokePool(deployer: any, cfgs: SpokeMarketCfg[]): Pr
   }
   const timelock = await asTimelockWith(grants);
 
+  // ---- the real PoolRegistry, which is what the liquidator reads ---------------------------
+  const registry = await deployPoolRegistry(deployer);
+
+  const acm = new ethers.Contract(A.ACM, ACM_ABI, timelock);
+  await acm.giveCallPermission(registry.address, "addPool(string,address,uint256,uint256,uint256)", timelock.address);
+  // `addPool` writes the pool-level parameters onto the comptroller, so the registry needs those roles.
+  for (const sig of [
+    "setCloseFactor(uint256)",
+    "setLiquidationIncentive(uint256)",
+    "setMinLiquidatableCollateral(uint256)",
+  ]) {
+    await acm.giveCallPermission(comptroller.address, sig, registry.address);
+  }
+  await registry
+    .connect(timelock)
+    .addPool("Spoke", comptroller.address, CLOSE_FACTOR, LIQUIDATION_INCENTIVE, MIN_LIQUIDATABLE_COLLATERAL);
+
   // ---- list and configure ------------------------------------------------------------------
   const asTl = comptroller.connect(timelock);
   const all = cfgs.map(c => markets[c.symbol].address);
@@ -192,9 +235,7 @@ export async function deploySpokePool(deployer: any, cfgs: SpokeMarketCfg[]): Pr
     // a one-day cadence.
     await markets[cfg.symbol].connect(timelock).setReduceReservesBlockDelta(28800 * 3);
   }
-  await asTl.setCloseFactor(parseUnits("0.5", 18));
-  await asTl.setLiquidationIncentive(parseUnits("1.1", 18));
-  await asTl.setMinLiquidatableCollateral(parseUnits("100", 18));
+  // closeFactor, liquidationIncentive and minLiquidatableCollateral come from `addPool` above.
   await asTl.setMarketSupplyCaps(
     all,
     all.map(() => ethers.constants.MaxUint256.div(2)),
@@ -227,6 +268,7 @@ export async function deploySpokePool(deployer: any, cfgs: SpokeMarketCfg[]): Pr
 
   return {
     comptroller,
+    registry,
     boundedOracle,
     protocolShareReserve,
     markets,

@@ -41,8 +41,8 @@ interface IBStockLiquidator {
     /// @notice Emitted when a router's token-approval target (spender) is set or cleared.
     event RouterSpenderSet(address indexed router, address indexed spender);
 
-    /// @notice Emitted when a non-Core pool's comptroller is allowlisted or removed.
-    event AllowedComptrollerSet(address indexed comptroller, bool allowed);
+    /// @notice Emitted when the `PoolRegistry` that decides non-Core pools is set or cleared.
+    event PoolRegistrySet(address indexed oldPoolRegistry, address indexed newPoolRegistry);
 
     /// @notice Emitted when the Core market that flash-funds a non-Core debt token is set or cleared.
     event CoreFlashSourceSet(address indexed debtToken, address indexed vToken);
@@ -118,22 +118,21 @@ interface IBStockLiquidator {
     ///         with pre-funded VAI instead.
     error FlashNotSupportedForVai();
 
-    /// @notice Thrown when the pool that owns the position is neither Core nor an allowlisted comptroller.
-    /// @dev The pool is resolved from `vBStock.comptroller()`, the collateral leg.
-    error ComptrollerNotAllowed(address comptroller);
+    /// @notice Thrown when the position is in a non-Core pool and no `PoolRegistry` is configured.
+    error PoolRegistryNotSet();
 
-    /// @notice Thrown when a market is not listed in the allowlisted pool it claims to belong to.
+    /// @notice Thrown when the pool that owns the position has no entry in the configured `PoolRegistry`.
+    /// @dev The pool is resolved from `vBStock.comptroller()`, the collateral leg.
+    error PoolNotRegistered(address comptroller);
+
+    /// @notice Thrown when the address being set as the `PoolRegistry` has no code.
+    error PoolRegistryNotContract(address poolRegistry);
+
+    /// @notice Thrown when a market is not listed in the registered pool it claims to belong to.
     /// @dev Both legs are checked against the POOL's own storage, never against what the market reports
     ///      about itself: in isolated mode the repay approves `vDebt`, so an unvalidated one would be an
     ///      approval to a caller-chosen address.
     error MarketNotInPool(address comptroller, address market);
-
-    /// @notice Thrown when trying to allowlist the Core comptroller, which is matched by identity against
-    ///         the `comptroller` immutable and never read from the allowlist.
-    error CoreComptrollerNotConfigurable();
-
-    /// @notice Thrown when an address being allowlisted does not answer `isComptroller()` with true.
-    error NotAComptroller(address target);
 
     /// @notice Thrown when `flashLiquidate` is called for a non-Core pool whose debt token has no Core market
     ///         configured to flash-borrow from. Set one with `setCoreFlashSource`, or use `liquidate`.
@@ -170,12 +169,14 @@ interface IBStockLiquidator {
     /// @param spender The contract that pulls the input token via `transferFrom` during settlement.
     function setRouterSpender(address router, address spender) external;
 
-    /// @notice Allow or disallow a non-Core pool's comptroller as a liquidation target.
-    /// @dev Gates the whole isolated branch: while the allowlist is empty no call can resolve to a non-Core
-    ///      pool, so that branch stays unreachable until a pool is deliberately enabled.
-    /// @param comptroller_ The pool comptroller to allowlist or remove.
-    /// @param allowed True to allow, false to remove.
-    function setAllowedComptroller(address comptroller_, bool allowed) external;
+    /// @notice Set the `PoolRegistry` that decides which non-Core pools may be liquidated in. A pool is
+    ///         accepted only while that registry holds an entry for it, so enabling one is done by
+    ///         registering it there rather than by a call here.
+    /// @dev Gates the whole isolated branch: until a registry is set, no call can resolve to a non-Core
+    ///      pool. A non-zero address is checked on the way in, reverting {PoolRegistryNotContract} when it
+    ///      has no code and without a reason when it cannot answer `getPoolByComptroller`.
+    /// @param poolRegistry_ The registry to trust; `address(0)` clears it and closes the isolated branch.
+    function setPoolRegistry(address poolRegistry_) external;
 
     /// @notice Set the Core market whose underlying flash-funds the repay of a non-Core pool's debt token.
     /// @dev Isolated pools have no flash lender, but a Core flash is not tied to the liquidation target: it

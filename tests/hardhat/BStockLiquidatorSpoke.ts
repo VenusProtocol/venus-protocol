@@ -1,4 +1,4 @@
-import { SnapshotRestorer, takeSnapshot } from "@nomicfoundation/hardhat-network-helpers";
+import { SnapshotRestorer, setBalance, takeSnapshot } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Contract } from "ethers";
 import hre, { ethers, upgrades } from "hardhat";
@@ -39,8 +39,8 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
   let core: Contract, coreVUsdt: Contract, vWBNB: Contract, venusLiq: Contract;
   let coreVTslab: Contract; // a Core-pool collateral market, for the "Core still wins" tests
 
-  // Spoke side.
-  let spoke: Contract, spokeVUsdt: Contract, spokeVTslab: Contract, psr: Contract;
+  // Spoke side. `registry` is the PoolRegistry stand-in that vouches for `spoke`.
+  let spoke: Contract, spokeVUsdt: Contract, spokeVTslab: Contract, psr: Contract, registry: Contract;
 
   let router: Contract;
   let liq: Contract;
@@ -60,6 +60,9 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
 
   async function deploy() {
     [owner, operator, borrower, stranger] = await ethers.getSigners();
+    // The shared signers hold 1 BNB for the whole mocha process and every test here redeploys the world,
+    // so top the deployer up rather than depend on what ran before this file. Contained by `pristine`.
+    await setBalance(owner.address, U("1000"));
 
     const ERC20 = await ethers.getContractFactory("MockMintableERC20");
     usdt = await ERC20.deploy("Tether", "USDT", 18);
@@ -105,9 +108,12 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
     router = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
     await router.setRate(P_TSLAB); // 1 TSLAB -> 50 USDT
 
+    registry = await (await ethers.getContractFactory("MockPoolRegistry")).deploy();
+    await registry.addPool(spoke.address);
+
     liq = await deployLiquidator(core.address);
     await liq.connect(owner).setRouter(router.address, true);
-    await liq.connect(owner).setAllowedComptroller(spoke.address, true);
+    await liq.connect(owner).setPoolRegistry(registry.address);
     await liq.connect(owner).setCoreFlashSource(usdt.address, coreVUsdt.address);
 
     // Liquidity: the collateral market must cover the seize + redeem; the router pays the sale;
@@ -159,76 +165,53 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
   beforeEach(deploy);
 
   /* ====================================================================== */
-  /*                        setAllowedComptroller                           */
+  /*                            setPoolRegistry                             */
   /* ====================================================================== */
 
-  describe("setAllowedComptroller", () => {
+  describe("setPoolRegistry", () => {
     it("is owner-only", async () => {
-      await expect(liq.connect(stranger).setAllowedComptroller(spoke.address, true)).to.be.revertedWith(
+      await expect(liq.connect(stranger).setPoolRegistry(registry.address)).to.be.revertedWith(
         "Ownable: caller is not the owner",
       );
       // An allowlisted operator is not an admin either.
       await liq.connect(owner).setOperator(operator.address, true);
-      await expect(liq.connect(operator).setAllowedComptroller(spoke.address, true)).to.be.revertedWith(
+      await expect(liq.connect(operator).setPoolRegistry(registry.address)).to.be.revertedWith(
         "Ownable: caller is not the owner",
       );
     });
 
-    it("rejects the zero address", async () => {
-      await expect(liq.connect(owner).setAllowedComptroller(ZERO, true)).to.be.revertedWithCustomError(
-        liq,
-        "ZeroAddressNotAllowed",
-      );
+    it("rejects an address with no code", async () => {
+      await expect(liq.connect(owner).setPoolRegistry(stranger.address))
+        .to.be.revertedWithCustomError(liq, "PoolRegistryNotContract")
+        .withArgs(stranger.address);
     });
 
-    it("rejects the CORE comptroller in both directions — it is resolved by identity, never from the map", async () => {
-      await expect(liq.connect(owner).setAllowedComptroller(core.address, true)).to.be.revertedWithCustomError(
-        liq,
-        "CoreComptrollerNotConfigurable",
-      );
-      await expect(liq.connect(owner).setAllowedComptroller(core.address, false)).to.be.revertedWithCustomError(
-        liq,
-        "CoreComptrollerNotConfigurable",
-      );
-      expect(await liq.isAllowedComptroller(core.address)).to.equal(false);
+    it("rejects a contract that cannot answer getPoolByComptroller", async () => {
+      // A pool comptroller is the likeliest wrong paste: it has code, but not this getter.
+      await expect(liq.connect(owner).setPoolRegistry(spoke.address)).to.be.reverted;
+      expect(await liq.poolRegistry()).to.equal(registry.address);
     });
 
-    it("rejects a contract that answers isComptroller() with false", async () => {
-      const notPool = await (await ethers.getContractFactory("MockNotAComptroller")).deploy();
-      await expect(liq.connect(owner).setAllowedComptroller(notPool.address, true))
-        .to.be.revertedWithCustomError(liq, "NotAComptroller")
-        .withArgs(notPool.address);
+    it("sets and clears, emitting the transition each time", async () => {
+      await expect(liq.connect(owner).setPoolRegistry(ZERO))
+        .to.emit(liq, "PoolRegistrySet")
+        .withArgs(registry.address, ZERO);
+      expect(await liq.poolRegistry()).to.equal(ZERO);
+
+      await expect(liq.connect(owner).setPoolRegistry(registry.address))
+        .to.emit(liq, "PoolRegistrySet")
+        .withArgs(ZERO, registry.address);
+      expect(await liq.poolRegistry()).to.equal(registry.address);
     });
 
-    it("rejects a codeless address (the staticcall itself reverts)", async () => {
-      await expect(liq.connect(owner).setAllowedComptroller(stranger.address, true)).to.be.reverted;
+    it("clearing is unconditional, so a broken registry can always be unwound", async () => {
+      // Nothing about the outgoing registry is read, and `address(0)` skips the inbound checks.
+      await expect(liq.connect(owner).setPoolRegistry(ZERO)).to.not.be.reverted;
     });
 
-    it("allowlists and removes, emitting each time", async () => {
-      await liq.connect(owner).setAllowedComptroller(spoke.address, false);
-      expect(await liq.isAllowedComptroller(spoke.address)).to.equal(false);
-
-      await expect(liq.connect(owner).setAllowedComptroller(spoke.address, true))
-        .to.emit(liq, "AllowedComptrollerSet")
-        .withArgs(spoke.address, true);
-      expect(await liq.isAllowedComptroller(spoke.address)).to.equal(true);
-
-      await expect(liq.connect(owner).setAllowedComptroller(spoke.address, false))
-        .to.emit(liq, "AllowedComptrollerSet")
-        .withArgs(spoke.address, false);
-      expect(await liq.isAllowedComptroller(spoke.address)).to.equal(false);
-    });
-
-    it("can always REMOVE a pool that no longer answers isComptroller() — the check is inbound-only", async () => {
-      // A pool that has been broken/replaced would fail the inbound check; removal must not depend on it.
-      const notPool = await (await ethers.getContractFactory("MockNotAComptroller")).deploy();
-      await expect(liq.connect(owner).setAllowedComptroller(notPool.address, true)).to.be.reverted;
-      // Removal of any address is unconditional (other than Core), so a stuck entry can never brick.
-      await expect(liq.connect(owner).setAllowedComptroller(notPool.address, false)).to.not.be.reverted;
-    });
-
-    it("defaults to false for an unknown pool", async () => {
-      expect(await liq.isAllowedComptroller(stranger.address)).to.equal(false);
+    it("is unset on a fresh proxy, which keeps the isolated branch closed", async () => {
+      const fresh = await deployLiquidator(core.address);
+      expect(await fresh.poolRegistry()).to.equal(ZERO);
     });
   });
 
@@ -275,34 +258,59 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
   /* ====================================================================== */
 
   describe("pool resolution", () => {
-    it("rejects a collateral market whose pool is not allowlisted", async () => {
-      await liq.connect(owner).setAllowedComptroller(spoke.address, false);
+    it("rejects a non-Core pool while no registry is configured", async () => {
+      await liq.connect(owner).setPoolRegistry(ZERO);
+      await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "PoolRegistryNotSet");
+    });
+
+    it("rejects a collateral market whose pool the registry does not hold", async () => {
+      await registry.removePool(spoke.address);
       await expect(liq.connect(owner).liquidate(params()))
-        .to.be.revertedWithCustomError(liq, "ComptrollerNotAllowed")
+        .to.be.revertedWithCustomError(liq, "PoolNotRegistered")
         .withArgs(spoke.address);
     });
 
-    it("rejects a collateral market the allowlisted pool does not list", async () => {
+    it("rejects an entry filed under the pool that names a DIFFERENT comptroller", async () => {
+      // The check is the round-trip `entry.comptroller == pool`, not merely a populated struct.
+      await registry.removePool(spoke.address);
+      await registry.addMismatchedPool(spoke.address, stranger.address);
+      await expect(liq.connect(owner).liquidate(params()))
+        .to.be.revertedWithCustomError(liq, "PoolNotRegistered")
+        .withArgs(spoke.address);
+    });
+
+    it("follows the CONFIGURED registry, so repointing it re-decides what is liquidatable", async () => {
+      const other = await (await ethers.getContractFactory("MockPoolRegistry")).deploy();
+      await liq.connect(owner).setPoolRegistry(other.address);
+      await expect(liq.connect(owner).liquidate(params()))
+        .to.be.revertedWithCustomError(liq, "PoolNotRegistered")
+        .withArgs(spoke.address);
+
+      await other.addPool(spoke.address);
+      await expect(liq.connect(owner).liquidate(params())).to.not.be.reverted;
+    });
+
+    it("rejects a collateral market the registered pool does not list", async () => {
       await spoke.setMarketListed(spokeVTslab.address, false);
       await expect(liq.connect(owner).liquidate(params()))
         .to.be.revertedWithCustomError(liq, "MarketNotInPool")
         .withArgs(spoke.address, spokeVTslab.address);
     });
 
-    it("rejects a debt market the allowlisted pool does not list", async () => {
+    it("rejects a debt market the registered pool does not list", async () => {
       await spoke.setMarketListed(spokeVUsdt.address, false);
       await expect(liq.connect(owner).liquidate(params()))
         .to.be.revertedWithCustomError(liq, "MarketNotInPool")
         .withArgs(spoke.address, spokeVUsdt.address);
     });
 
-    it("rejects legs that belong to two DIFFERENT allowlisted pools", async () => {
+    it("rejects legs that belong to two DIFFERENT registered pools", async () => {
       const spokeB = await (await ethers.getContractFactory("MockSpokeComptroller")).deploy();
       const otherVUsdt = await (
         await ethers.getContractFactory("MockIsolatedVToken")
       ).deploy(usdt.address, spokeB.address, psr.address);
       await spokeB.setMarketListed(otherVUsdt.address, true);
-      await liq.connect(owner).setAllowedComptroller(spokeB.address, true);
+      await registry.addPool(spokeB.address);
 
       // Collateral is in `spoke`, debt is in `spokeB`. `spoke` does not list the debt leg.
       await expect(liq.connect(owner).liquidate(params({ vDebt: otherVUsdt.address })))
@@ -319,7 +327,7 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
     });
 
     it("SECURITY: a hostile 'market' that forges comptroller() is never approved", async () => {
-      // The contract reports the allowlisted pool and a real underlying, and would drain its whole
+      // The contract reports the registered pool and a real underlying, and would drain its whole
       // allowance if it were ever called. The pool has no entry for it, so the approval never happens.
       const hostile = await (
         await ethers.getContractFactory("MockHostileDebtMarket")
@@ -632,9 +640,9 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
   /*                    Core is unaffected by any of this                   */
   /* ====================================================================== */
 
-  describe("Core non-regression with a spoke allowlisted", () => {
+  describe("Core non-regression with a spoke registry configured", () => {
     it("a Core position still routes through the gate while a spoke pool is enabled", async () => {
-      expect(await liq.isAllowedComptroller(spoke.address)).to.equal(true);
+      expect(await liq.poolRegistry()).to.equal(registry.address);
 
       const coreVDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, core.address);
       await tslab.mint(coreVTslab.address, U("10000"));
@@ -667,7 +675,7 @@ describe("BStockLiquidator (spoke / isolated pool)", () => {
       expect(await usdt.allowance(liq.address, coreVDebt.address)).to.equal(0);
     });
 
-    it("an unset Core gate still fails loudly, and the spoke allowlist does not paper over it", async () => {
+    it("an unset Core gate still fails loudly, and the spoke registry does not paper over it", async () => {
       const coreVDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, core.address);
       await tslab.mint(coreVTslab.address, U("1000"));
       await core.setLiquidatorContract(ZERO);

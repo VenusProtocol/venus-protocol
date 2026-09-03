@@ -90,9 +90,13 @@ const LIQUIDATOR_ABI = [
   // The CORE comptroller baked into the contract as an immutable. Mode is whatever the collateral market's
   // own comptroller is compared against this, exactly as `_resolvePool` does it on-chain.
   "function comptroller() view returns (address)",
-  "function isAllowedComptroller(address) view returns (bool)",
+  // The registry that decides which non-Core pools may be liquidated in.
+  "function poolRegistry() view returns (address)",
   // Isolated FLASH draws from a CORE market keyed by the isolated pool's debt token.
   "function coreFlashSource(address) view returns (address)",
+];
+const POOL_REGISTRY_ABI = [
+  "function getPoolByComptroller(address) view returns (tuple(string name,address creator,address comptroller,uint256 blockPosted,uint256 timestampPosted))",
 ];
 const VTOKEN_ABI = [
   "function underlying() view returns (address)",
@@ -317,10 +321,20 @@ export async function atomicLiquidate(signer: Signer) {
   console.log(`pool: ${isCore ? "CORE" : "ISOLATED"} (${poolAddr})`);
 
   if (!isCore) {
-    if (!(await liquidator.isAllowedComptroller(poolAddr))) {
+    const registryAddr: string = await liquidator.poolRegistry();
+    if (registryAddr === ethers.constants.AddressZero) {
       throw new Error(
-        `pool ${poolAddr} is not allowlisted on the liquidator — the owner must call ` +
-          `setAllowedComptroller(${poolAddr}, true) before this pool can be liquidated`,
+        "the liquidator has no PoolRegistry configured — the owner must call setPoolRegistry(<registry>) " +
+          "before any non-Core pool can be liquidated",
+      );
+    }
+    const registered: string = (
+      await new Contract(registryAddr, POOL_REGISTRY_ABI, signer).getPoolByComptroller(poolAddr)
+    ).comptroller;
+    if (registered.toLowerCase() !== poolAddr.toLowerCase()) {
+      throw new Error(
+        `pool ${poolAddr} is not registered in the liquidator's PoolRegistry ${registryAddr} — ` +
+          "register it there before this pool can be liquidated",
       );
     }
     // Same two checks `_resolvePool` runs, asked of the POOL rather than of the markets themselves. Doing it

@@ -283,13 +283,13 @@ const test = () => {
 
       preUpgrade = await capture();
       // Neither getter exists on the old implementation; this is what proves the upgrade is real.
-      oldImplHadNewGetter = await has(liq.isAllowedComptroller(A.COMPTROLLER));
+      oldImplHadNewGetter = await has(liq.poolRegistry());
       oldImplHadSpender = await has(liq.routerSpender(mock.address));
 
       newImpl = await upgradeLiveProxy(liq);
       postUpgrade = await capture();
 
-      newImplHasNewGetter = await has(liq.isAllowedComptroller(A.COMPTROLLER));
+      newImplHasNewGetter = await has(liq.poolRegistry());
       newImplHasSpender = await has(liq.routerSpender(mock.address));
 
       // Clear the probe state so the scenarios below start from the configuration they expect.
@@ -348,9 +348,8 @@ const test = () => {
         expect(postUpgrade.routerPcs).to.equal(true);
       });
 
-      it("leaves the appended mappings empty — inert until a pool is deliberately enabled", async () => {
-        expect(await liq.isAllowedComptroller(A.COMPTROLLER)).to.equal(false);
-        expect(await liq.isAllowedComptroller(mock.address)).to.equal(false);
+      it("leaves the appended state empty — inert until a registry is deliberately configured", async () => {
+        expect(await liq.poolRegistry()).to.equal(ZERO);
         expect(await liq.coreFlashSource(TOK.USDT)).to.equal(ZERO);
         expect(await liq.coreFlashSource(TOK.WBNB)).to.equal(ZERO);
       });
@@ -364,10 +363,14 @@ const test = () => {
         expect(await vb.comptroller()).to.equal(await liq.comptroller());
       });
 
-      it("refuses to allowlist the Core comptroller", async () => {
-        await expect(
-          liq.connect(owner).setAllowedComptroller(await liq.comptroller(), true),
-        ).to.be.revertedWithCustomError(liq, "CoreComptrollerNotConfigurable");
+      it("refuses a PoolRegistry address with no code", async () => {
+        // A fresh address, not a signer: hardhat's own accounts can carry an EIP-7702 delegation on a
+        // mainnet fork, and that counts as code here.
+        const codeless = ethers.Wallet.createRandom().address;
+        expect(await ethers.provider.getCode(codeless)).to.equal("0x");
+        await expect(liq.connect(owner).setPoolRegistry(codeless))
+          .to.be.revertedWithCustomError(liq, "PoolRegistryNotContract")
+          .withArgs(codeless);
       });
 
       it("a Core liquidation reverts if someone tries to flash it from an unconfigured isolated source", async () => {

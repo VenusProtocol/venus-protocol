@@ -26,7 +26,14 @@ import {
   listBStockMarket,
   setTokenBalance,
 } from "./helpers/bstock";
-import { CORE_VUSDT, SPOKE_COMPTROLLER_ABI, SpokeAction, SpokePool, deploySpokePool } from "./helpers/spoke";
+import {
+  CORE_VUSDT,
+  SPOKE_COMPTROLLER_ABI,
+  SpokeAction,
+  SpokePool,
+  deployPoolRegistry,
+  deploySpokePool,
+} from "./helpers/spoke";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
 
 // Same block and same live proxy as the Core fork suite, so both upgrade the instance that is actually
@@ -136,7 +143,7 @@ const test = () => {
       await mock.setRate(P_CRASH);
 
       await liq.connect(owner).setRouter(mock.address, true);
-      await liq.connect(owner).setAllowedComptroller(spoke.comptroller.address, true);
+      await liq.connect(owner).setPoolRegistry(spoke.registry.address);
       await liq.connect(owner).setCoreFlashSource(TOK.USDT, CORE_VUSDT);
 
       // A non-zero protocol seize share makes the collateral market's withheld cut observable.
@@ -197,7 +204,6 @@ const test = () => {
         expect(await spoke.markets.svTSLAB.balanceOf(BORROWER)).to.be.gt(0);
         expect(await spoke.comptroller.isMarketListed(spoke.markets.svTSLAB.address)).to.equal(true);
         expect(await spoke.comptroller.isMarketListed(spoke.markets.svUSDT.address)).to.equal(true);
-        expect(await spoke.comptroller.isComptroller()).to.equal(true);
       });
 
       it("has no Core-style gate and no flash lender of its own", async () => {
@@ -223,7 +229,17 @@ const test = () => {
       it("is resolved from the COLLATERAL market, and both legs are listed in it", async () => {
         expect(await spoke.markets.svTSLAB.comptroller()).to.equal(spoke.comptroller.address);
         expect(await spoke.markets.svUSDT.comptroller()).to.equal(spoke.comptroller.address);
-        expect(await liq.isAllowedComptroller(spoke.comptroller.address)).to.equal(true);
+        expect(await liq.poolRegistry()).to.equal(spoke.registry.address);
+      });
+
+      it("is registered in the PoolRegistry the liquidator was pointed at", async () => {
+        // The struct the liquidator decodes, read off the real registry's own ABI.
+        const entry = await spoke.registry.getPoolByComptroller(spoke.comptroller.address);
+        expect(entry.comptroller).to.equal(spoke.comptroller.address);
+        expect(entry.creator).to.not.equal(ZERO);
+        // An unregistered address reads back zero-filled rather than reverting, which is why
+        // `_resolvePool` compares the round-tripped comptroller.
+        expect((await spoke.registry.getPoolByComptroller(owner.address)).comptroller).to.equal(ZERO);
       });
     });
 
@@ -303,10 +319,16 @@ const test = () => {
         expect(await usdt.balanceOf(liq.address)).to.equal(usdtBefore);
       });
 
-      it("is rejected once the pool is de-allowlisted", async () => {
-        await liq.connect(owner).setAllowedComptroller(spoke.comptroller.address, false);
+      it("is rejected once the registry is cleared", async () => {
+        await liq.connect(owner).setPoolRegistry(ZERO);
+        await expect(liq.connect(owner).liquidate(params())).to.be.revertedWithCustomError(liq, "PoolRegistryNotSet");
+      });
+
+      it("is rejected when the configured registry does not hold this pool", async () => {
+        const empty = await deployPoolRegistry(owner);
+        await liq.connect(owner).setPoolRegistry(empty.address);
         await expect(liq.connect(owner).liquidate(params()))
-          .to.be.revertedWithCustomError(liq, "ComptrollerNotAllowed")
+          .to.be.revertedWithCustomError(liq, "PoolNotRegistered")
           .withArgs(spoke.comptroller.address);
       });
 
@@ -605,10 +627,17 @@ const test = () => {
         expect(await mkt.bStock.balanceOf(liq.address)).to.equal(0);
       });
 
-      it("aborts before quoting when the pool is not allowlisted", async () => {
-        await liq.connect(owner).setAllowedComptroller(spoke.comptroller.address, false);
+      it("aborts before quoting when no registry is configured", async () => {
+        await liq.connect(owner).setPoolRegistry(ZERO);
         await fund(TOK.USDT, liq.address, REPAY);
-        await expect(runScript({ ...baseEnv(), MOCK_OUT: "1" })).to.be.rejectedWith(/not allowlisted/i);
+        await expect(runScript({ ...baseEnv(), MOCK_OUT: "1" })).to.be.rejectedWith(/no PoolRegistry configured/i);
+      });
+
+      it("aborts before quoting when the registry does not hold the pool", async () => {
+        const empty = await deployPoolRegistry(owner);
+        await liq.connect(owner).setPoolRegistry(empty.address);
+        await fund(TOK.USDT, liq.address, REPAY);
+        await expect(runScript({ ...baseEnv(), MOCK_OUT: "1" })).to.be.rejectedWith(/not registered/i);
       });
 
       it("aborts before quoting when MODE=flash has no Core flash source for the debt token", async () => {
@@ -701,11 +730,12 @@ const test = () => {
         expect(await coreVb.getCash()).to.equal(cashBefore);
       });
 
-      it("the Core comptroller can still not be allowlisted", async () => {
-        await expect(liq.connect(owner).setAllowedComptroller(A.COMPTROLLER, true)).to.be.revertedWithCustomError(
-          liq,
-          "CoreComptrollerNotConfigurable",
-        );
+      it("the Core comptroller has no entry in the registry, and needs none", async () => {
+        // Core is matched by identity against the `comptroller` immutable, so `_resolvePool` returns
+        // before any registry read.
+        const entry = await spoke.registry.getPoolByComptroller(A.COMPTROLLER);
+        expect(entry.comptroller).to.equal(ZERO);
+        expect(entry.creator).to.equal(ZERO);
       });
     });
   });

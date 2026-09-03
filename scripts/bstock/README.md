@@ -37,7 +37,7 @@ Rules of thumb:
 
 |                        | Core                                                                      | Isolated / spoke                                                                                                                          |
 | ---------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| How it is decided      | `vBStock.comptroller()` equals the liquidator's `comptroller()` immutable | it does not, and the pool is on `isAllowedComptroller`                                                                                    |
+| How it is decided      | `vBStock.comptroller()` equals the liquidator's `comptroller()` immutable | it does not, and the pool has an entry in the liquidator's `poolRegistry()`                                                               |
 | Repay path             | through the pool-wide Venus Liquidator gate                               | straight to the debt market (`vDebt.liquidateBorrow`)                                                                                     |
 | What shrinks the seize | gate treasury cut on the bonus, then Core's redeem `treasuryPercent`      | the collateral market's `protocolSeizeShareMantissa`, sent to the PSR (~4.55% at the 5e16 default over a 1.1e18 incentive). No redeem fee |
 | Debt shapes            | ERC20, native BNB (vBNB), VAI                                             | ERC20 only. No native market, no VAIController                                                                                            |
@@ -74,10 +74,12 @@ refused by `preLiquidateHook` and can only be cleared by the comptroller's own `
 
 These are one-time setup, not per-incident. Check them during readiness, not while a position is underwater.
 
-- `setAllowedComptroller(spokeComptroller, true)` on the liquidator (owner Safe). **Until this is set the
-  spoke branch does not exist** — the upgraded contract behaves exactly like the Core-only version, which is
-  deliberate: it makes the upgrade safe to ship before the pool is deployed. The script aborts naming the
-  missing call.
+- `setPoolRegistry(<spoke PoolRegistry>)` on the liquidator (owner Safe), and the spoke pool registered in
+  that registry (`addPool`, ACM-gated, done by whoever governs the registry). The liquidator holds no pool
+  list of its own: it accepts a non-Core pool only while that registry has an entry for it, so onboarding a
+  second pool later needs no call here. **Until a registry is set the spoke branch does not exist** — the
+  upgraded contract behaves exactly like the Core-only version, which is deliberate: it makes the upgrade
+  safe to ship before the pool is deployed. The script aborts naming whichever half is missing.
 - `setCoreFlashSource(USDT, <core vUSDT>)` on the liquidator (owner Safe), **only if you want `MODE=flash`**.
   The Core flash loan is not tied to the liquidation target, so a spoke USDT debt is funded from the Core
   USDT market and repaid in the same tx. Unset means `MODE=flash` aborts; `MODE=inventory` is unaffected.
@@ -86,10 +88,11 @@ These are one-time setup, not per-incident. Check them during readiness, not whi
   Not the operator EOA; allowlisting that does nothing. It is an ACM-gated governance call
   (`setAllowedLiquidator`), so it cannot be fixed mid-incident. Both scripts pre-check it and name the
   correct address in the error.
-- The spoke pool and both of its markets must be registered in the **PoolRegistry** the ProtocolShareReserve
-  reads. Isolated `_seize` transfers the protocol share to the PSR and calls `updateAssetsState`, which
-  reverts `InvalidAddress()` otherwise — on _every_ liquidation, with nothing in the message naming the
-  cause. This is pool-listing work, outside the liquidator entirely.
+- Both of the pool's markets must also be registered in the **PoolRegistry the ProtocolShareReserve reads**.
+  Isolated `_seize` transfers the protocol share to the PSR and calls `updateAssetsState`, which reverts
+  `InvalidAddress()` otherwise — on _every_ liquidation, with nothing in the message naming the cause. This
+  is pool-listing work, outside the liquidator entirely. Point `setPoolRegistry` at that same registry; a
+  pool the PSR does not know cannot be liquidated in anyway.
 
 ### Hop-1 source registry (Native, Liquid Mesh, …)
 

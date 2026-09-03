@@ -17,15 +17,28 @@ import { IWBNB } from "../external/IWBNB.sol";
 import { IComptroller, IVToken, IVBep20, ILiquidator, IVAIController } from "../InterfacesV8.sol";
 import { IBStockLiquidator } from "./IBStockLiquidator.sol";
 
-/// @notice The two getters this contract needs from a non-Core pool's comptroller. Declared locally
-///         because the isolated-pools package is not a dependency here.
+/// @notice The getter this contract needs from a non-Core pool's comptroller. Declared locally because
+///         the isolated-pools package is not a dependency here.
 interface IPoolComptroller {
     /// @dev The pool declares this as `isMarketListed(VToken)`. A contract type encodes as `address`,
     ///      so the selector is the same.
     function isMarketListed(address vToken) external view returns (bool);
+}
 
-    /// @dev `pure` in the pool. Widening to `view` is safe: both compile to a STATICCALL.
-    function isComptroller() external view returns (bool);
+/// @notice The getter this contract needs from the isolated pools' `PoolRegistry`, plus the struct it
+///         returns. Declared locally for the same reason. The struct must stay field-for-field identical to
+///         `PoolRegistryInterface.VenusPool`, or the return data decodes into the wrong values.
+interface IPoolRegistry {
+    struct VenusPool {
+        string name;
+        address creator;
+        address comptroller;
+        uint256 blockPosted;
+        uint256 timestampPosted;
+    }
+
+    /// @dev A comptroller that was never registered reads back as a zero-filled struct, not a revert.
+    function getPoolByComptroller(address comptroller) external view returns (VenusPool memory);
 }
 
 /**
@@ -52,9 +65,9 @@ interface IPoolComptroller {
  * Two POOLS are served by that same core, resolved per call in `_resolvePool` from the COLLATERAL
  * market's own comptroller — never from a flag the caller supplies:
  *   - CORE:     the Venus Core pool, via the pool-wide Venus Liquidator gate.
- *   - ISOLATED: a hub-funded spoke pool (an isolated-pools `Comptroller` fork) the owner has allowlisted
- *               in `isAllowedComptroller`. While that allowlist is empty every call resolves to Core, so
- *               all this adds to a Core liquidation is one `vBStock.comptroller()` staticcall.
+ *   - ISOLATED: a hub-funded spoke pool (an isolated-pools `Comptroller` fork) listed in the
+ *               `PoolRegistry` the owner configured. While that registry is unset only Core positions can
+ *               be liquidated, and all this adds to a Core one is a `vBStock.comptroller()` staticcall.
  * Only the repay differs between pools (`_repayAndSeize`); redeem, sale, `minOut` and `sweep` are shared.
  * Isolated pools are ERC20-only, so the vBNB and VAI branches below are Core-only.
  *
@@ -101,9 +114,10 @@ interface IPoolComptroller {
  * the gate is pool-wide, so every other market's liquidations would be forced through here.
  *
  * Isolated pools have no such gate, so the repay goes straight to the debt market. That makes the
- * approval target caller-supplied where Core never is, which is why `_resolvePool` proves both legs are
- * listed in the allowlisted pool's own storage first. A pool may separately gate seizing behind its own
- * liquidation allowlist; THIS CONTRACT's address has to appear on it, not the operator's.
+ * approval target caller-supplied where Core never is, which is why `_resolvePool` first proves the pool is
+ * registered in the configured `PoolRegistry` and that both legs are listed in that pool's own storage.
+ * A pool may separately gate seizing behind its own liquidation allowlist; THIS CONTRACT's address has to
+ * appear on it, not the operator's.
  *
  * Isolated FLASH still borrows from CORE via `coreFlashSource` — isolated pools have no flash lender of
  * their own. See `_flashSource`.
@@ -149,10 +163,11 @@ contract BStockLiquidator is
     ///         call target IS the puller — so existing routers need no spender entry.
     mapping(address => address) public routerSpender;
 
-    /// @notice Comptrollers of NON-Core pools this contract may liquidate in (the hub-funded spoke pool).
-    ///         Core is never keyed here — it is resolved by identity against the `comptroller` immutable.
-    /// @dev Gates the entire isolated branch: while it is empty, every call resolves to Core.
-    mapping(address => bool) public isAllowedComptroller;
+    /// @notice Registry that decides which NON-Core pools may be liquidated in (the hub-funded spoke pool):
+    ///         a pool is accepted only while this registry holds an entry for it. Core is matched by
+    ///         identity against the `comptroller` immutable and is never looked up here.
+    /// @dev Gates the entire isolated branch: while it is unset, only Core positions can be liquidated.
+    address public poolRegistry;
 
     /// @notice Core market whose underlying flash-funds an isolated repay, keyed by the isolated pool's
     ///         debt underlying (e.g. USDT -> the Core USDT market). Unused in Core mode.
@@ -240,15 +255,16 @@ contract BStockLiquidator is
     }
 
     /// @inheritdoc IBStockLiquidator
-    function setAllowedComptroller(address comptroller_, bool allowed) external override onlyOwner {
-        ensureNonzeroAddress(comptroller_);
-        // `_resolvePool` matches Core by identity and never reads this mapping, so an entry for it would
-        // never be consulted. Reject rather than store a silent no-op.
-        if (comptroller_ == address(comptroller)) revert CoreComptrollerNotConfigurable();
-        // Checked only on the way IN, so a pool that later breaks stays removable.
-        if (allowed && !IPoolComptroller(comptroller_).isComptroller()) revert NotAComptroller(comptroller_);
-        isAllowedComptroller[comptroller_] = allowed;
-        emit AllowedComptrollerSet(comptroller_, allowed);
+    function setPoolRegistry(address poolRegistry_) external override onlyOwner {
+        // `address(0)` clears the registry and closes the isolated branch.
+        if (poolRegistry_ != address(0)) {
+            if (poolRegistry_.code.length == 0) revert PoolRegistryNotContract(poolRegistry_);
+            // Probe the getter every isolated liquidation depends on, so a wrong address fails here rather
+            // than mid-liquidation. Only that the call answers and decodes matters, not what it returns.
+            IPoolRegistry(poolRegistry_).getPoolByComptroller(address(0));
+        }
+        emit PoolRegistrySet(poolRegistry, poolRegistry_);
+        poolRegistry = poolRegistry_;
     }
 
     /// @inheritdoc IBStockLiquidator
@@ -419,7 +435,8 @@ contract BStockLiquidator is
     }
 
     /**
-     * @dev Resolves which pool owns the position, and for a non-Core pool proves both legs belong to it.
+     * @dev Resolves which pool owns the position, and for a non-Core pool proves the pool is registered and
+     *      that both legs belong to it.
      *
      *      Probed on the COLLATERAL leg because it is always a real vToken, whereas `vDebt` may be the vBNB
      *      sentinel or the VAIController, neither of which has `comptroller()`.
@@ -427,13 +444,18 @@ contract BStockLiquidator is
      *      Core returns early and keeps its existing validation: the Venus Liquidator gate checks the
      *      collateral market is Core-listed, and covers the borrowed leg by a listing check (BEP20) or by
      *      identity against its own vBNB / VAIController.
-     * @return isCore True when the position lives in the Core pool, false for an allowlisted isolated pool.
+     * @return isCore True when the position lives in the Core pool, false for a registered isolated pool.
      */
     function _resolvePool(IVBep20 vDebt, IVBep20 vBStock) private view returns (bool isCore) {
         address pool = address(vBStock.comptroller());
         if (pool == address(comptroller)) return true;
 
-        if (!isAllowedComptroller[pool]) revert ComptrollerNotAllowed(pool);
+        address registry = poolRegistry;
+        if (registry == address(0)) revert PoolRegistryNotSet();
+        // Ask OUR registry, never the pool: a hostile contract can name any address as its own registry
+        // but cannot get itself into this one. Compare the round-tripped comptroller, because an
+        // unregistered pool reads back as a zero-filled struct rather than reverting.
+        if (IPoolRegistry(registry).getPoolByComptroller(pool).comptroller != pool) revert PoolNotRegistered(pool);
         // Ask the POOL what it lists rather than trust what a market claims about itself. The isolated
         // repay approves a caller-supplied `vDebt`, and a hostile contract can forge `comptroller()` —
         // but it cannot forge an entry in the pool's storage.

@@ -74,11 +74,6 @@ contract MockSpokeComptroller {
     mapping(address => uint256) public shortfallOf;
     mapping(address => uint256) public totalCollateralOf;
 
-    /// @dev `pure` in the real pool. Widened to `view` by the caller's interface, which is STATICCALL-safe.
-    function isComptroller() external pure returns (bool) {
-        return true;
-    }
-
     /* ----------------------------- test setters ----------------------------- */
 
     function setMarketListed(address vToken, bool listed) external {
@@ -427,11 +422,38 @@ contract MockMutableFlashSource {
     }
 }
 
-/// @dev Answers `isComptroller()` with `false`. Proves `setAllowedComptroller` rejects it with {NotAComptroller}
-///      rather than storing an address that only looks like a pool.
-contract MockNotAComptroller {
-    function isComptroller() external pure returns (bool) {
-        return false;
+/**
+ * @dev `PoolRegistry` stand-in. Only `getPoolByComptroller` is modelled, with the real `VenusPool` struct so
+ *      the return data decodes as the live registry's does, and an unknown pool reading back zero-filled.
+ */
+contract MockPoolRegistry {
+    struct VenusPool {
+        string name;
+        address creator;
+        address comptroller;
+        uint256 blockPosted;
+        uint256 timestampPosted;
+    }
+
+    mapping(address => VenusPool) internal _poolByComptroller;
+
+    function getPoolByComptroller(address comptroller) external view returns (VenusPool memory) {
+        return _poolByComptroller[comptroller];
+    }
+
+    /// @dev `addPool` records the caller as the creator.
+    function addPool(address comptroller) external {
+        _poolByComptroller[comptroller] = VenusPool("pool", msg.sender, comptroller, block.number, block.timestamp);
+    }
+
+    function removePool(address comptroller) external {
+        delete _poolByComptroller[comptroller];
+    }
+
+    /// @dev Files an entry under `key` whose `comptroller` field names someone else: populated, but not a
+    ///      round-trip match.
+    function addMismatchedPool(address key, address storedComptroller) external {
+        _poolByComptroller[key] = VenusPool("pool", msg.sender, storedComptroller, block.number, block.timestamp);
     }
 }
 

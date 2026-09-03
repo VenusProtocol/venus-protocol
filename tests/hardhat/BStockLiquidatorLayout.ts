@@ -33,7 +33,7 @@ const EXPECTED: [number, string, string][] = [
   [201, "isOperator", "mapping(address => bool)"],
   [202, "isRouter", "mapping(address => bool)"],
   [203, "routerSpender", "mapping(address => address)"],
-  [204, "isAllowedComptroller", "mapping(address => bool)"],
+  [204, "poolRegistry", "address"],
   [205, "coreFlashSource", "mapping(address => contract IVBep20)"],
   [206, "__gap", "uint256[47]"],
 ];
@@ -82,11 +82,11 @@ describe("BStockLiquidator — storage layout", () => {
     expect(actual.map(e => [e.slot, e.label, e.type])).to.deep.equal(EXPECTED);
   });
 
-  it("keeps the two new mappings APPENDED after routerSpender, never inserted", async () => {
+  it("keeps the two new variables APPENDED after routerSpender, never inserted", async () => {
     const actual = await compiledLayout();
     const idx = (label: string) => actual.findIndex(e => e.label === label);
-    expect(idx("isAllowedComptroller")).to.be.greaterThan(idx("routerSpender"));
-    expect(idx("coreFlashSource")).to.be.greaterThan(idx("isAllowedComptroller"));
+    expect(idx("poolRegistry")).to.be.greaterThan(idx("routerSpender"));
+    expect(idx("coreFlashSource")).to.be.greaterThan(idx("poolRegistry"));
     // ...and the trailing gap is still last, so nothing can sit past the reserved region.
     expect(actual[actual.length - 1].label).to.equal("__gap");
   });
@@ -134,7 +134,7 @@ describe("BStockLiquidator — storage layout", () => {
     expect(size).to.be.lessThan(24576);
   });
 
-  it("the new mappings read as empty on a freshly initialized proxy", async () => {
+  it("the new variables read as empty on a freshly initialized proxy", async () => {
     const [owner] = await ethers.getSigners();
     const wbnb = await (await ethers.getContractFactory("WBNB")).deploy();
     const core = await (await ethers.getContractFactory("MockComptrollerLite")).deploy();
@@ -147,7 +147,7 @@ describe("BStockLiquidator — storage layout", () => {
       unsafeAllow: ["constructor", "state-variable-immutable"],
     });
 
-    expect(await liq.isAllowedComptroller(core.address)).to.equal(false);
+    expect(await liq.poolRegistry()).to.equal(ethers.constants.AddressZero);
     expect(await liq.coreFlashSource(wbnb.address)).to.equal(ethers.constants.AddressZero);
     // The pre-existing surface is untouched.
     expect(await liq.owner()).to.equal(owner.address);
