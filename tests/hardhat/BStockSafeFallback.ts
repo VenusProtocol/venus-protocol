@@ -16,8 +16,8 @@ const SEIZE = REPAY.mul(INCENTIVE).div(ONE); // 5500 vBStock at the mock's 1.1x 
 // liquidateBorrow selector: the 4-arg ILiquidator (gate) form the script always routes through.
 const SEL_ROUTED = ethers.utils.id("liquidateBorrow(address,address,uint256,address)").slice(0, 10);
 
-// Sentinel native BNB market (vBNB); no code, so underlying() reverts and the script treats the debt
-// as native BNB — mirrors the atomic suite.
+// Stand-in native BNB market. The script identifies it by matching VBNB_ADDR, never by probing
+// underlying(), so it needs no code at all — mirrors the atomic suite.
 const VBNB = ethers.utils.getAddress("0x0000000000000000000000000000000000000b0b");
 
 describe("BStock safe-fallback batch generator", () => {
@@ -51,6 +51,10 @@ describe("BStock safe-fallback batch generator", () => {
       VDEBT: vDebt.address,
       REPAY_AMOUNT: "5000",
       TARGET: target.address,
+      // The script matches the pool and the native market by ADDRESS against these; point them at the
+      // freshly-deployed mocks rather than the canonical BSC defaults.
+      CORE_COMPTROLLER: comptroller.address,
+      VBNB_ADDR: VBNB,
       // Isolate the price-drift buffer from the cut/fee assertions: default it off here so those tests
       // assert exact seize-based amounts. The dedicated buffer tests below override it.
       SEIZE_BUFFER: "0",
@@ -70,6 +74,8 @@ describe("BStock safe-fallback batch generator", () => {
       "TARGET",
       "ALLOW_PLACEHOLDER",
       "SEIZE_BUFFER",
+      "CORE_COMPTROLLER",
+      "VBNB_ADDR",
     ]) {
       delete process.env[k];
     }
@@ -212,6 +218,19 @@ describe("BStock safe-fallback batch generator", () => {
     // seizedRaw = seize · rate(1:1) · (1 - treasuryPercent)
     const expected = SEIZE.mul(ONE.sub(U("0.2"))).div(ONE);
     expect(seizedRaw).to.equal(expected);
+  });
+
+  // Core-vs-isolated is decided by matching the pool against CORE_COMPTROLLER, NOT by probing a Core-only
+  // function and reading its success as proof. This pool answers `liquidatorContract()` exactly like Core
+  // does — under the old probe it would have been classified Core and handed a gate-routed batch.
+  it("classifies by address, not by whether liquidatorContract() answers", async () => {
+    const otherCore = await (await ethers.getContractFactory("MockComptrollerLite")).deploy();
+    await otherCore.setLiquidatorContract(venusLiq.address); // answers the probe, yet is not OUR core
+    setEnv({ CORE_COMPTROLLER: otherCore.address });
+
+    // Routed to the isolated branch, which asks the pool for `isMarketListed` — a function this Core-shaped
+    // mock does not have. The rejection is the point: no Core batch was built for a non-Core pool.
+    await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejected;
   });
 
   // Native BNB debt: VDEBT is vBNB (no underlying()), so the script auto-detects it, drops the approve

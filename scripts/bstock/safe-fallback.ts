@@ -24,9 +24,10 @@
  *   Action 2 — hand off:
  *     4. bStock.transfer(TARGET, seizedRaw)                         // raw bStock -> Binance top-up
  *
- * VAI debt (VAIController): supported. VAI is not a vToken and has no `underlying()`, so the debt token
- * is resolved via `getVAIAddress()`; the batch is the normal ERC20 shape (approve VAI to the gate, then a
- * zero-value liquidateBorrow), which the gate settles through its `_liquidateVAI` branch. Because this
+ * VAI debt (VAIController): supported. VAI is not a vToken, so the market is recognised by matching
+ * `comptroller.vaiController()`, and the debt token is resolved via `getVAIAddress()`. The batch is the
+ * normal ERC20 shape (approve VAI to the gate, then a zero-value liquidateBorrow), which the gate settles
+ * through its `_liquidateVAI` branch. Because this
  * script ships the seized bStock to Binance rather than swapping it, no PSM/USDT->VAI leg is involved —
  * making it the manual fallback when the atomic path's PSM hop is paused or capped.
  *
@@ -46,6 +47,8 @@
  * Env:
  *   RPC_URL          BSC RPC (default public dataseed)
  *   SAFE             executing Safe (default 0xdc6E…2029)
+ *   CORE_COMPTROLLER override the Core comptroller the pool is matched against (default canonical BSC)
+ *   VBNB_ADDR        override the native BNB market (default canonical BSC vBNB)
  *   BORROWER         (req) account to liquidate
  *   VBSTOCK          (req) vToken market of the bStock collateral
  *   VDEBT            (req) vToken market of the borrowed asset to repay
@@ -64,6 +67,14 @@ import { buildBatch, call } from "./lib/safe";
 import { assertVaiGateClear } from "./lib/vai-gate";
 
 const DEFAULT_SAFE = "0xdc6E047f665c3Db94292Bb7fB412B25370db2029";
+// Core Pool comptroller (Unitroller) and the native BNB market, both immutable on BSC. Unlike the atomic
+// script this one deliberately never touches the BStockLiquidator, so there is no on-chain immutable to
+// read these back from — they are named here instead of being inferred from a failing call, because a
+// revert is not proof of anything: an RPC hiccup would read as "isolated pool" / "native BNB" and silently
+// build the batch on the wrong branch. Overridable so a non-fork test can point at freshly-deployed mocks
+// (mirrors SAFE above).
+const DEFAULT_CORE_COMPTROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
+const DEFAULT_VBNB = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
 const DEFAULT_RPC = "https://bsc-dataseed.bnbchain.org";
 const CHAIN_ID = 56;
 
@@ -110,8 +121,6 @@ const ISOLATED_COMPTROLLER_ABI = [
 ];
 const ISOLATED_VTOKEN_ABI = ["function protocolSeizeShareMantissa() view returns (uint256)"];
 
-const GATE_PROBE_ABI = ["function liquidatorContract() view returns (address)"];
-
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 function env(name: string, required = true): string {
@@ -129,47 +138,38 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   // Which pool owns the position, taken from the COLLATERAL market — the same leg the contract anchors on.
   const poolAddr: string = await vBStock.comptroller();
 
-  // Then: does that pool have a POOL-WIDE LIQUIDATOR GATE? That decides the approve target, the
-  // liquidateBorrow signature and whether a treasury cut applies. Probed directly rather than compared
-  // against a hardcoded Core address, because this script never touches the BStockLiquidator and so has no
-  // Core immutable to compare against. Core answers; an isolated comptroller has no such function and no
-  // fallback, so the call fails — and that failure IS the signal.
-  let isCore = true;
-  let gateProbe = ZERO;
-  try {
-    gateProbe = await new Contract(poolAddr, GATE_PROBE_ABI, provider).liquidatorContract();
-  } catch {
-    isCore = false;
-  }
+  // Core or isolated? That decides the approve target, the liquidateBorrow signature and whether a treasury
+  // cut applies, so it is settled by an ADDRESS COMPARISON against the Core comptroller — not by probing a
+  // Core-only function and reading a revert as "isolated".
+  const coreAddr = utils.getAddress(process.env.CORE_COMPTROLLER || DEFAULT_CORE_COMPTROLLER);
+  const isCore = poolAddr.toLowerCase() === coreAddr.toLowerCase();
 
   const comptroller = new Contract(poolAddr, isCore ? COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, provider);
   console.log(`pool: ${isCore ? "CORE" : "ISOLATED"} (${poolAddr})`);
 
-  // VAI is not a vToken: its "market" is the VAIController, which has no underlying() EITHER. It must be
-  // detected BEFORE the vBNB fallback below — otherwise the catch would misread a VAI debt as native BNB
-  // and build a `{value: repay}` batch that the gate rejects (its VAI branch requires msg.value == 0).
-  // The VAI token itself is a plain ERC20, so it takes the normal approve-then-liquidate batch below.
-  // Neither special exists in an isolated pool: they are Core markets, so that branch is ERC20-only.
+  // Two Core "markets" are not ERC20-backed vTokens: the VAIController and the vBNB sentinel. Neither has
+  // an `underlying()`, and both are identified by ADDRESS — `comptroller.vaiController()` and VBNB_ADDR —
+  // for the same reason as the pool above: a failing `underlying()` is not proof of anything, and reading
+  // one as native BNB would build a `{value: repay}` batch that the gate's VAI branch rejects outright
+  // (it requires msg.value == 0). The VAI token itself is a plain ERC20, so a VAI debt takes the normal
+  // approve-then-liquidate batch; a native BNB debt has no ERC20 to approve or read (18 decimals, "BNB",
+  // and `debt` stays undefined on that path). Neither market exists in an isolated pool — they are Core
+  // markets, so that branch is ERC20-only.
   let vaiControllerAddr = ZERO;
   let isVai = false;
 
-  // vBNB has no underlying(): a native-BNB debt market is repaid in native BNB, so there is no ERC20
-  // debt token to approve or read. Detect it the way the atomic script does — try underlying(), treat
-  // a revert as native BNB (18 decimals, "BNB"). `debt` stays undefined on the native path.
+  const vBnbAddr = utils.getAddress(process.env.VBNB_ADDR || DEFAULT_VBNB);
   let isBnb = false;
   let debt: Contract | undefined;
   if (isCore) {
     vaiControllerAddr = await comptroller.vaiController();
     isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+    isBnb = vDebt.address.toLowerCase() === vBnbAddr.toLowerCase();
     if (isVai) {
       const vaiAddr: string = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, provider).getVAIAddress();
       debt = new Contract(vaiAddr, ERC20_ABI, provider);
-    } else {
-      try {
-        debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
-      } catch {
-        isBnb = true;
-      }
+    } else if (!isBnb) {
+      debt = new Contract(await vDebt.underlying(), ERC20_ABI, provider);
     }
   } else {
     // Both legs must belong to this pool, asked of the POOL rather than of the markets — the same proof
@@ -213,7 +213,7 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   let repaySpender: string;
 
   if (isCore) {
-    gate = gateProbe;
+    gate = await comptroller.liquidatorContract();
     if (gate === ZERO) {
       throw new Error(
         "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the liquidation routes every repay through it and reverts when unset",

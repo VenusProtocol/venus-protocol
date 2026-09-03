@@ -13,8 +13,6 @@ import { atomicLiquidate } from "../../scripts/bstock/atomic-liquidate";
 
 const U = (n: string) => ethers.utils.parseUnits(n, 18);
 const INCENTIVE = U("1.1"); // mock seizes repay * 1.1
-// Sentinel native BNB market (vBNB); no code — the ERC20 script paths never touch it.
-const VBNB = ethers.utils.getAddress("0x0000000000000000000000000000000000000b0b");
 
 const REPAY = U("5000");
 const SEIZED = REPAY.mul(INCENTIVE).div(U("1")); // 5500 bStock at 1:1 redeem
@@ -50,13 +48,13 @@ describe("bStock atomic liquidation script", () => {
   let owner: any, borrower: any;
   let usdt: Contract, bStock: Contract;
   let comptroller: Contract, vBStock: Contract, vDebt: Contract, router: Contract, liq: Contract;
-  let wbnb: Contract, vWBNB: Contract;
+  let wbnb: Contract, vWBNB: Contract, vBNB: Contract;
   let venusLiq: Contract, vai: Contract, vaiController: Contract;
 
   async function deployLiquidator(comptrollerAddr: string) {
     const Factory = await ethers.getContractFactory("BStockLiquidator");
     return upgrades.deployProxy(Factory, [owner.address], {
-      constructorArgs: [comptrollerAddr, VBNB, vWBNB.address, wbnb.address],
+      constructorArgs: [comptrollerAddr, vBNB.address, vWBNB.address, wbnb.address],
       unsafeAllow: ["constructor", "state-variable-immutable"],
     });
   }
@@ -99,14 +97,16 @@ describe("bStock atomic liquidation script", () => {
     vDebt = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(usdt.address, comptroller.address);
     router = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
 
-    // WBNB + its market, for the BNB-debt constructor immutables (vWBNB is the flash source).
+    // WBNB + its market, for the BNB-debt constructor immutables (vWBNB is the flash source). vBNB itself
+    // is a real (if minimal) market: it has a borrow balance the close-factor cap reads, and no underlying().
     wbnb = await (await ethers.getContractFactory("WBNB")).deploy();
     vWBNB = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(wbnb.address, comptroller.address);
+    vBNB = await (await ethers.getContractFactory("MockVBNBLite")).deploy();
 
     // Core's pool-wide liquidator gate is always configured; every liquidation routes through it.
     venusLiq = await (await ethers.getContractFactory("MockVenusLiquidator")).deploy();
     await comptroller.setLiquidatorContract(venusLiq.address);
-    await venusLiq.setVBnb(VBNB);
+    await venusLiq.setVBnb(vBNB.address);
 
     // VAI wiring: needed by the script's VAI detection and by the gate's VAI-guard pre-flight.
     vai = await (await ethers.getContractFactory("MockMintableERC20")).deploy("Venus VAI", "VAI", 18);
@@ -121,8 +121,10 @@ describe("bStock atomic liquidation script", () => {
     await bStock.mint(vBStock.address, SEIZED);
     await usdt.mint(router.address, OUT);
 
-    // Borrower is underwater.
+    // Borrower is underwater, with enough debt on every market that REPAY (5000) sits under the
+    // close-factor cap (0.5 * balance). Tests that care about TooMuchRepay lower this explicitly.
     await comptroller.setShortfall(U("800"));
+    for (const m of [vDebt, vWBNB, vBNB]) await m.setBorrowBalance(borrower.address, REPAY.mul(2));
   });
 
   afterEach(() => {
@@ -210,6 +212,54 @@ describe("bStock atomic liquidation script", () => {
 
     expect(await usdt.balanceOf(liq.address)).to.equal(OUT); // settled like the happy path
     expect(await bStock.balanceOf(liq.address)).to.equal(0);
+  });
+
+  // Core's close-factor cap. `liquidateBorrowAllowed` returns TOO_MUCH_REPAY past
+  // closeFactor * borrowBalance, which surfaces on-chain only AFTER a firm quote has been spent.
+  describe("close-factor cap (Core)", () => {
+    it("aborts when REPAY_AMOUNT exceeds closeFactor * borrowBalance", async () => {
+      await usdt.mint(liq.address, REPAY);
+      // closeFactor is 0.5, so a 9000 balance caps the repay at 4500 — under the 5000 REPAY_AMOUNT.
+      await vDebt.setBorrowBalance(borrower.address, U("9000"));
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/TooMuchRepay/);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched — aborted before any swap
+    });
+
+    it("sizes a VAI cap off getVAIRepayAmount, not borrowBalanceStored", async () => {
+      // The VAIController is not a vToken and has no borrowBalanceStored; reading the vDebt balance here
+      // would size the cap off the wrong market entirely.
+      await comptroller.setVaiController(vaiController.address);
+      await vaiController.setVAIRepayAmount(borrower.address, U("9000")); // caps at 4500 < 5000
+      setEnv({ VDEBT: vaiController.address });
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/TooMuchRepay/);
+    });
+
+    it("lifts both the shortfall and close-factor gates on a PER-BORROWER forced liquidation", async () => {
+      // Core ORs a per-market flag with a per-BORROWER one; the isolated hook has only the former. With
+      // either set, the repay is bounded by the full balance and no shortfall is required.
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setShortfall(0);
+      await vDebt.setBorrowBalance(borrower.address, REPAY); // < closeFactor * balance would be 2500
+      await comptroller.setForcedLiquidationForUser(borrower.address, vDebt.address, true);
+      setEnv(); // note: no ALLOW_NO_SHORTFALL — the flag itself explains the healthy account
+
+      await atomicLiquidate(owner);
+
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+
+    it("still caps at the full balance under a forced liquidation", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setForcedLiquidation(vDebt.address, true);
+      await vDebt.setBorrowBalance(borrower.address, U("4999")); // forced, but the repay still exceeds the debt
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/TooMuchRepay/);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY);
+    });
   });
 
   it("aborts before submit when the Native quote TTL is below the safety margin", async () => {
@@ -334,6 +384,7 @@ describe("bStock atomic liquidation script", () => {
     const btcb = await ERC20.deploy("Bitcoin BEP20", "BTCB", 18);
     const vBtcb = await (await ethers.getContractFactory("MockVTokenDebt")).deploy(btcb.address, comptroller.address);
     const amm = await (await ethers.getContractFactory("MockNativeRouter")).deploy();
+    await vBtcb.setBorrowBalance(borrower.address, REPAY.mul(2)); // keeps REPAY under the close-factor cap
     await btcb.mint(amm.address, OUT); // hop-2 router pays BTCB
     const hop1 = router.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, liq.address]);
     const hop2 = amm.interface.encodeFunctionData("swapAll", [usdt.address, btcb.address, liq.address]);
@@ -382,7 +433,7 @@ describe("bStock atomic liquidation script", () => {
     const hop1 = router.interface.encodeFunctionData("swapAll", [bStock.address, usdt.address, liq.address]);
     const hop2 = ammBnb.interface.encodeFunctionData("swapAll", [usdt.address, wbnb.address, liq.address]);
     setEnv({
-      VDEBT: VBNB, // sentinel vBNB: underlying() reverts -> script treats debt as native BNB
+      VDEBT: vBNB.address, // identified as native BNB by matching the liquidator's vBNB immutable
       WBNB_ADDR: wbnb.address,
       MOCK_NATIVE: `${router.address}:${hop1}`,
       MOCK_AMM: `${ammBnb.address}:${hop2}`,
@@ -413,6 +464,9 @@ describe("bStock atomic liquidation script", () => {
 
       psm = await (await ethers.getContractFactory("MockPSM")).deploy(usdt.address, vai.address);
       await liq.connect(owner).setRouter(psm.address, true);
+      // The VAI "borrow balance" the close-factor cap reads is getVAIRepayAmount, not borrowBalanceStored:
+      // the VAIController is not a vToken.
+      await vaiController.setVAIRepayAmount(borrower.address, REPAY.mul(2));
     });
 
     // Real hop-1 source path (fetch stubbed with a firm Native quote), so the script reaches the REAL

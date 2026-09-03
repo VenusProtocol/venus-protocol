@@ -78,6 +78,9 @@ contract MockComptrollerLite {
     /// @dev Two of the gate's VAI-guard escape hatches (see Liquidator._checkForceVAILiquidate): either
     ///      one permits liquidating a non-VAI market regardless of the borrower's VAI debt.
     mapping(address => bool) public isForcedLiquidationEnabled; // vToken -> forced liquidation on
+    /// @dev Core's PER-BORROWER forced flag, which the isolated hook has no analogue for.
+    ///      `liquidateBorrowAllowed` ORs it with the market-wide one above.
+    mapping(address => mapping(address => bool)) public isForcedLiquidationEnabledForUser; // borrower -> vToken -> on
     mapping(address => mapping(uint8 => bool)) private _actionPaused; // market -> Action -> paused
 
     function setVaiController(address v) external {
@@ -86,6 +89,10 @@ contract MockComptrollerLite {
 
     function setForcedLiquidation(address vToken, bool enabled) external {
         isForcedLiquidationEnabled[vToken] = enabled;
+    }
+
+    function setForcedLiquidationForUser(address borrower, address vToken, bool enabled) external {
+        isForcedLiquidationEnabledForUser[borrower][vToken] = enabled;
     }
 
     function setActionPaused(address market, uint8 action, bool paused) external {
@@ -233,6 +240,9 @@ contract MockVTokenDebt {
     uint256 public incentiveMantissa = 1.1e18;
     uint256 public liquidateError; // non-zero -> liquidateBorrow returns this code (exercises LiquidateBorrowFailed)
     bool public constant isFlashLoanEnabled = true;
+    /// @dev Outstanding debt the script's close-factor cap is sized against. Seeded by the fixture, since a
+    ///      zero balance would cap every repay at zero.
+    mapping(address => uint256) public borrowBalanceStored;
 
     constructor(address underlying_, address comptroller_) {
         underlying = underlying_;
@@ -241,6 +251,10 @@ contract MockVTokenDebt {
 
     function setLiquidateError(uint256 e) external {
         liquidateError = e;
+    }
+
+    function setBorrowBalance(address borrower, uint256 amount) external {
+        borrowBalanceStored[borrower] = amount;
     }
 
     function liquidateBorrow(
@@ -265,6 +279,17 @@ contract MockVTokenDebt {
         require(msg.sender == comptroller, "only comptroller");
         // `from` (the receiver) approved THIS vToken as spender, per the real flash interface.
         require(ERC20(underlying).transferFrom(from, address(this), amount), "flash pull failed");
+    }
+}
+
+/// @dev The native BNB market (vBNB). Deliberately has NO `underlying()`: BNB is native, so there is no
+///      ERC20 behind this market. That absence is the point — the script must identify vBNB by comparing
+///      against the liquidator's `vBNB` immutable, never by probing `underlying()` and reading the revert.
+contract MockVBNBLite {
+    mapping(address => uint256) public borrowBalanceStored;
+
+    function setBorrowBalance(address borrower, uint256 amount) external {
+        borrowBalanceStored[borrower] = amount;
     }
 }
 
