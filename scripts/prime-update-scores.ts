@@ -10,11 +10,32 @@
  *     Reads HOLDERS_FILE, skips users already done this round (isScoreUpdated),
  *     sends updateScores in batches. Re-runnable: a crashed run just resumes.
  *
- * Env: HOLDERS_FILE (default .prime-holders-<chainId>.json), FROM_BLOCK,
- *      BLOCK_RANGE (default 5000), BATCH_SIZE (default 14), DRY_RUN=1.
+ * Configuration (env var, or constant below) — one line each: meaning · stage · default
  */
 import * as fs from "fs";
 import { deployments, ethers } from "hardhat";
+
+/** Which stage to run: "index" (build holder list, no txs) or "update" (send updateScores). Required. */
+const STAGE = process.env.STAGE;
+/** hardhat-deploy name the Prime address + ABI are read from (deployments/<network>/PrimeV2.json). Both stages. */
+const PRIME_DEPLOYMENT = "PrimeV2";
+/** Where the holder list is written (index) and read from (update). Default .prime-holders-<chainId>.json in cwd. */
+const HOLDERS_FILE = process.env.HOLDERS_FILE; // resolved in main() once chainId is known
+/** First block of the Mint/Burn scan. index only. Default: PrimeV2 proxy creation on bscmainnet
+ *  (tx 0x41d505b974f7435664281ce32a39df8bcfee74e5a36548c2710f0deede74b0fe) — no Prime events exist before it; 0 elsewhere. */
+const FROM_BLOCK = process.env.FROM_BLOCK ? Number(process.env.FROM_BLOCK) : undefined;
+const PRIMEV2_DEPLOY_BLOCK_BSCMAINNET = 107_040_035;
+/** Blocks per eth_getLogs call. index only. Default 5000 (safe on public RPCs; NodeReal takes 50000). */
+const BLOCK_RANGE = Number(process.env.BLOCK_RANGE ?? 5000);
+/** Users per updateScores tx. update only. Default 14: BSC caps a tx at 16,777,216 gas and one user
+ *  costs ~0.93M, so 14 ≈ 13M. Must not exceed the contract's maxLoopsLimit (20). */
+const BATCH_SIZE = Number(process.env.BATCH_SIZE ?? 14);
+/** Gas limit sent with each updateScores tx (estimateGas is skipped). update only. */
+const TX_GAS_LIMIT = 15_000_000;
+/** isScoreUpdated reads kept in flight at once while filtering the holder list. update only. */
+const READ_CONCURRENCY = 20;
+/** "1" = do everything in the update stage except send the txs. Default off. index never sends. */
+const DRY_RUN = process.env.DRY_RUN === "1";
 
 export type HolderEvent = { kind: "Mint" | "Burn"; user: string; blockNumber: number; logIndex: number };
 
@@ -74,9 +95,9 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
   const maxLoops = Number(await prime.maxLoopsLimit());
   log(`pendingScoreUpdates ${pendingBefore}, round ${round}, maxLoopsLimit ${maxLoops}`);
 
-  // ponytail: 20 reads in flight at a time; fine for 500 holders, use a multicall if it ever isn't.
+  // ponytail: READ_CONCURRENCY reads in flight; fine for 500 holders, use a multicall if it ever isn't.
   const done: boolean[] = [];
-  for (const slice of chunk(holders, 20))
+  for (const slice of chunk(holders, READ_CONCURRENCY))
     done.push(...(await Promise.all(slice.map(h => prime.isScoreUpdated(round, h)))));
   const remaining = holders.filter((_, i) => !done[i]);
   log(`Pending this round: ${remaining.length}`);
@@ -93,8 +114,7 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
   for (const [i, batch] of batches.entries()) {
     log(`  [${i + 1}/${batches.length}] updateScores(${batch.length})`);
     if (opts.dryRun) continue;
-    // BSC caps a tx at 16,777,216 gas; ~0.93M per user, so 14 users ≈ 13M. Skip estimateGas.
-    const rcpt = await (await prime.updateScores(batch, { gasLimit: 15_000_000 })).wait();
+    const rcpt = await (await prime.updateScores(batch, { gasLimit: TX_GAS_LIMIT })).wait();
     log(`    ${rcpt.transactionHash} gasUsed=${rcpt.gasUsed}`);
   }
 
@@ -103,29 +123,19 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
   return { pendingBefore, pendingAfter, batchesSent: batches.length, usersUpdated: remaining.length };
 }
 
-// PrimeV2 proxy creation on bscmainnet, tx 0x41d505b974f7435664281ce32a39df8bcfee74e5a36548c2710f0deede74b0fe
-const PRIMEV2_DEPLOY_BLOCK_BSCMAINNET = 107_040_035;
-
 async function main() {
-  const stage = process.env.STAGE;
-  if (stage !== "index" && stage !== "update") throw new Error('STAGE must be "index" or "update"');
+  if (STAGE !== "index" && STAGE !== "update") throw new Error('STAGE must be "index" or "update"');
 
-  const dep = await deployments.get("PrimeV2");
+  const dep = await deployments.get(PRIME_DEPLOYMENT);
   const prime = await ethers.getContractAt(dep.abi, dep.address);
   const chainId = (await ethers.provider.getNetwork()).chainId;
-  const file = process.env.HOLDERS_FILE ?? `.prime-holders-${chainId}.json`;
-  console.log(`PrimeV2 ${dep.address} chainId ${chainId}, holders file ${file}`);
+  const file = HOLDERS_FILE ?? `.prime-holders-${chainId}.json`;
+  console.log(`${PRIME_DEPLOYMENT} ${dep.address} chainId ${chainId}, holders file ${file}`);
 
-  if (stage === "index") {
-    const fromBlock = Number(process.env.FROM_BLOCK ?? (chainId === 56 ? PRIMEV2_DEPLOY_BLOCK_BSCMAINNET : 0));
+  if (STAGE === "index") {
+    const fromBlock = FROM_BLOCK ?? (chainId === 56 ? PRIMEV2_DEPLOY_BLOCK_BSCMAINNET : 0);
     const toBlock = await ethers.provider.getBlockNumber();
-    const events = await fetchHolderEvents(
-      prime,
-      fromBlock,
-      Number(process.env.BLOCK_RANGE ?? 5000),
-      toBlock,
-      console.log,
-    );
+    const events = await fetchHolderEvents(prime, fromBlock, BLOCK_RANGE, toBlock, console.log);
     const holders = eventsToHolders(events);
     const onChain = Number(await prime.totalTokens());
     fs.writeFileSync(file, JSON.stringify({ address: dep.address, chainId, toBlock, holders }, null, 2));
@@ -143,10 +153,7 @@ async function main() {
   console.log(`${saved.holders.length} holders indexed at block ${saved.toBlock}; on-chain totalTokens now ${onChain}`);
   if (onChain !== saved.holders.length)
     console.warn("WARNING: holder set changed since indexing — burned users are skipped, new mints are missing.");
-  await runUpdate(prime, saved.holders, {
-    dryRun: process.env.DRY_RUN === "1",
-    batchSize: Number(process.env.BATCH_SIZE ?? 14),
-  });
+  await runUpdate(prime, saved.holders, { dryRun: DRY_RUN, batchSize: BATCH_SIZE });
 }
 
 if (require.main === module) {
