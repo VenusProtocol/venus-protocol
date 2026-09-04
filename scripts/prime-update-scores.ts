@@ -1,42 +1,40 @@
 /**
- * Drains the Prime pendingScoreUpdates queue after a parameter change.
+ * Drains PrimeV2's pendingScoreUpdates after addMarket / updateAlpha / updateMultipliers.
  *
- * Triggers (functions that queue a fresh round of score updates by calling
- * `_startScoreUpdateRound()` internally):
- *   - addMarket
- *   - updateAlpha
- *   - updateMultipliers
+ *   STAGE=index   replay Mint/Burn into the holder set, check it against totalTokens(), write HOLDERS_FILE
+ *   STAGE=update  read HOLDERS_FILE, send updateScores in batches; skips users already done, so re-runnable
  *
- * Prime exposes no on-chain holder enumeration, so this script reconstructs
- * the current holder set from `Mint` and `Burn` events, then calls
- * `updateScores` in batches sized to `maxLoopsLimit()` until the queue drains.
- *
- * Resumes correctly across runs: per-user, per-round dedup via
- * `isScoreUpdated[roundId][user]` is read on-chain.
- *
- * Usage:
- *   npx hardhat run scripts/prime-update-scores.ts --network <network>
- *
- * Optional env vars:
- *   FROM_BLOCK         First block to scan for Mint/Burn
- *                      (default: BSC mainnet Prime deploy block, 33_264_762)
- *   BLOCK_RANGE        Max blocks per getLogs call (default: 5000)
- *   DRY_RUN            "1" to skip sending txs
+ * The list cannot go stale during a round: every mint/burn entry point reverts ScoreUpdateInProgress
+ * while pendingScoreUpdates > 0. index records the round id and update refuses any other round.
+ * Drain promptly: an open round also blocks the monthly keeper burnBatch/issueBatch.
  */
+import type { Event } from "ethers";
 import * as fs from "fs";
 import { deployments, ethers } from "hardhat";
-import * as path from "path";
 
-export type HolderEvent = {
-  kind: "Mint" | "Burn";
-  user: string;
-  blockNumber: number;
-  logIndex: number;
-};
+/** Which stage to run: "index" (build holder list, no txs) or "update" (send updateScores). Required. */
+const STAGE = process.env.STAGE;
+/** hardhat-deploy name the Prime address + ABI are read from (deployments/<network>/PrimeV2.json). Both stages. */
+const PRIME_DEPLOYMENT = "PrimeV2";
+/** Where the holder list is written (index) and read from (update). Default .prime-holders-<chainId>.json in cwd. */
+const HOLDERS_FILE = process.env.HOLDERS_FILE;
+/** First block of the Mint/Burn scan. index only. Default: the proxy's deployment block from the
+ *  hardhat-deploy artifact (bscmainnet 107,040,035 / bsctestnet 112,385,727) — no events exist before it. */
+const FROM_BLOCK = process.env.FROM_BLOCK ? Number(process.env.FROM_BLOCK) : undefined;
+/** Blocks per eth_getLogs call. index only. Default 5000 (safe on public RPCs; NodeReal takes 50000). */
+const BLOCK_RANGE = Number(process.env.BLOCK_RANGE ?? 5000);
+/** Users per updateScores tx. update only. Default 14: BSC caps a tx at 16,777,216 gas and one user
+ *  costs ~0.93M, so 14 ≈ 13M. Must not exceed the contract's maxLoopsLimit (20). */
+const BATCH_SIZE = Number(process.env.BATCH_SIZE ?? 14);
+/** Gas limit sent with each updateScores tx (estimateGas is skipped). update only. */
+const TX_GAS_LIMIT = 15_000_000;
+/** isScoreUpdated reads kept in flight at once while filtering the holder list. update only. */
+const READ_CONCURRENCY = 20;
+/** "1" = do everything in the update stage except send the txs. Default off. index never sends. */
+const DRY_RUN = process.env.DRY_RUN === "1";
 
-/**
- * Pure function: split an array into chunks of at most `size` items.
- */
+export type HolderEvent = { kind: "Mint" | "Burn"; user: string; blockNumber: number; logIndex: number };
+
 export function chunk<T>(arr: T[], size: number): T[][] {
   if (size <= 0) throw new Error("chunk size must be > 0");
   const out: T[][] = [];
@@ -44,34 +42,19 @@ export function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-/**
- * Pure function: replay Mint/Burn events to compute the set of current holders.
- * Events must be applied in (blockNumber, logIndex) order. Mints set the
- * user as a holder; Burns unset. The final holder set is every address whose
- * last state was holder=true.
- */
+/** Replay Mint/Burn in (block, logIndex) order; a user's last event decides. */
 export function eventsToHolders(events: HolderEvent[]): string[] {
-  const ordered = [...events].sort((a, b) => {
-    if (a.blockNumber !== b.blockNumber) return a.blockNumber - b.blockNumber;
-    return a.logIndex - b.logIndex;
-  });
-
-  const holders = new Map<string, boolean>();
-  for (const ev of ordered) {
-    holders.set(ev.user, ev.kind === "Mint");
-  }
-
-  const current: string[] = [];
-  for (const [addr, isHolder] of holders) {
-    if (isHolder) current.push(addr);
-  }
-  return current;
+  const ordered = [...events].sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
+  const state = new Map<string, boolean>();
+  for (const e of ordered) state.set(e.user, e.kind === "Mint");
+  return [...state].filter(([, held]) => held).map(([user]) => user);
 }
 
-/**
- * Fetch all Mint and Burn events from a Prime contract, paginated.
- * Uses `prime.filters.Mint()` / `prime.filters.Burn()` and `queryFilter`.
- */
+/** Both Prime and PrimeV2 name the event arg `user`, so this works for either ABI. */
+const toEvent =
+  (kind: HolderEvent["kind"]) =>
+  (e: Event): HolderEvent => ({ kind, user: e.args?.user, blockNumber: e.blockNumber, logIndex: e.logIndex });
+
 export async function fetchHolderEvents(
   prime: any,
   fromBlock: number,
@@ -79,39 +62,21 @@ export async function fetchHolderEvents(
   latest?: number,
   log: (msg: string) => void = () => undefined,
 ): Promise<HolderEvent[]> {
-  const toLatest = latest ?? (await prime.provider.getBlockNumber());
-  const mintFilter = prime.filters.Mint();
-  const burnFilter = prime.filters.Burn();
-
+  const toBlock = latest ?? (await prime.provider.getBlockNumber());
   const events: HolderEvent[] = [];
-
-  for (let from = fromBlock; from <= toLatest; from += blockRange) {
-    const to = Math.min(from + blockRange - 1, toLatest);
+  for (let from = fromBlock; from <= toBlock; from += blockRange) {
+    const to = Math.min(from + blockRange - 1, toBlock);
     const [mints, burns] = await Promise.all([
-      prime.queryFilter(mintFilter, from, to),
-      prime.queryFilter(burnFilter, from, to),
+      prime.queryFilter(prime.filters.Mint(), from, to),
+      prime.queryFilter(prime.filters.Burn(), from, to),
     ]);
-
-    // Mint(address indexed user, bool isIrrevocable): we only need `user`.
-    for (const m of mints) {
-      events.push({ kind: "Mint", user: m.args!.user, blockNumber: m.blockNumber, logIndex: m.logIndex });
-    }
-    // Burn(address indexed user)
-    for (const b of burns) {
-      events.push({ kind: "Burn", user: b.args!.user, blockNumber: b.blockNumber, logIndex: b.logIndex });
-    }
-
-    log(`  scanned blocks ${from}-${to}: +${mints.length} mints, -${burns.length} burns`);
+    events.push(...mints.map(toEvent("Mint")), ...burns.map(toEvent("Burn")));
+    log(`  scanned ${from}-${to}: ${events.length} events so far`);
   }
-
   return events;
 }
 
-export type RunUpdateOptions = {
-  dryRun?: boolean;
-  log?: (msg: string) => void;
-};
-
+export type RunUpdateOptions = { dryRun?: boolean; batchSize?: number; log?: (msg: string) => void };
 export type RunUpdateResult = {
   pendingBefore: bigint;
   pendingAfter: bigint;
@@ -119,154 +84,81 @@ export type RunUpdateResult = {
   usersUpdated: number;
 };
 
-/**
- * Drains pendingScoreUpdates for the given holders.
- * Filters out users already processed in the current round via isScoreUpdated.
- * Batches by maxLoopsLimit() and calls updateScores() per batch.
- */
 export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOptions = {}): Promise<RunUpdateResult> {
-  const dryRun = opts.dryRun ?? false;
-  const log = opts.log ?? ((msg: string) => console.log(msg));
-
+  const log = opts.log ?? console.log;
   const pendingBefore: bigint = (await prime.pendingScoreUpdates()).toBigInt();
   if (pendingBefore === 0n) {
     log("pendingScoreUpdates = 0 — nothing to do");
-    return { pendingBefore: 0n, pendingAfter: 0n, batchesSent: 0, usersUpdated: 0 };
+    return { pendingBefore, pendingAfter: 0n, batchesSent: 0, usersUpdated: 0 };
   }
-  log(`pendingScoreUpdates: ${pendingBefore}`);
+  const round = await prime.nextScoreUpdateRoundId();
+  const maxLoops = Number(await prime.maxLoopsLimit());
+  log(`pendingScoreUpdates ${pendingBefore}, round ${round}, maxLoopsLimit ${maxLoops}`);
 
-  const roundId: bigint = (await prime.nextScoreUpdateRoundId()).toBigInt();
-  const maxLoops: bigint = (await prime.maxLoopsLimit()).toBigInt();
-  log(`round ${roundId}, maxLoopsLimit ${maxLoops}`);
-
-  // Parallelize isScoreUpdated reads in batches to avoid serial RPC latency
-  // when there are many holders. RPC providers tolerate ~20 in-flight reads
-  // comfortably without rate-limiting. Retry transient transport errors
-  // (ECONNRESET / TLS disconnect) up to 5 times with exponential backoff.
-  const ISSCOREUPDATED_BATCH = 20;
-  const retryRead = async (h: string): Promise<boolean> => {
-    let lastErr: any;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        return await prime.isScoreUpdated(roundId, h);
-      } catch (e: any) {
-        lastErr = e;
-        const msg = String(e?.message ?? e);
-        const transient = /ECONNRESET|socket disconnect|ETIMEDOUT|EAI_AGAIN|network|timeout|fetch failed/i.test(msg);
-        if (!transient) throw e;
-        await new Promise(r => setTimeout(r, 250 * 2 ** attempt));
-      }
-    }
-    throw lastErr;
-  };
-  const remaining: string[] = [];
-  for (let i = 0; i < holders.length; i += ISSCOREUPDATED_BATCH) {
-    const slice = holders.slice(i, i + ISSCOREUPDATED_BATCH);
-    const flags: boolean[] = await Promise.all(slice.map(retryRead));
-    for (let j = 0; j < slice.length; j++) {
-      if (!flags[j]) remaining.push(slice[j]);
-    }
-  }
+  // READ_CONCURRENCY reads in flight; fine for 500 holders, use a multicall if it ever isn't.
+  const done: boolean[] = [];
+  for (const slice of chunk(holders, READ_CONCURRENCY))
+    done.push(...(await Promise.all(slice.map(h => prime.isScoreUpdated(round, h)))));
+  const remaining = holders.filter((_, i) => !done[i]);
   log(`Pending this round: ${remaining.length}`);
-
   if (remaining.length === 0) {
     log(
-      "All current holders already updated for this round. Pending counter may include burned users — verify off-chain.",
+      "Every listed holder is already updated. If pendingScoreUpdates > 0 the list is missing someone — re-run STAGE=index.",
     );
     return { pendingBefore, pendingAfter: pendingBefore, batchesSent: 0, usersUpdated: 0 };
   }
 
-  // BSC RPC nodes cap per-tx gas at ~16.7M (2^24). The contract's maxLoopsLimit
-  // (20) implies ~20M gas per batch — over the cap. Allow operator override.
-  const batchSize = process.env.BATCH_SIZE ? Number(process.env.BATCH_SIZE) : Number(maxLoops);
+  const batchSize = opts.batchSize ?? maxLoops;
+  if (batchSize > maxLoops) throw new Error(`BATCH_SIZE ${batchSize} > maxLoopsLimit ${maxLoops}`);
   const batches = chunk(remaining, batchSize);
-  log(`Sending ${batches.length} batch(es) of up to ${batchSize} users`);
-
-  let usersUpdated = 0;
-  for (let i = 0; i < batches.length; i++) {
-    const batch = batches[i];
-    log(`  [${i + 1}/${batches.length}] updateScores(${batch.length} users)`);
-    if (dryRun) {
-      usersUpdated += batch.length;
-      continue;
-    }
-
-    // Bypass eth_estimateGas. BSC RPC nodes cap per-tx gas at 16,777,216 (2^24),
-    // so we must stay under that. 14 users * ~0.93M/user ≈ 13M; 15M leaves margin.
-    let rcpt: any;
-    let lastErr: any;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        // If a previous attempt broadcast a tx whose receipt fetch failed,
-        // wait for that specific hash before resending (avoids nonce conflict).
-        if (lastErr?.transactionHash) {
-          rcpt = await prime.provider.waitForTransaction(lastErr.transactionHash, 1, 60_000);
-        } else {
-          const tx = await prime.updateScores(batch, { gasLimit: 15_000_000 });
-          rcpt = await tx.wait();
-        }
-        break;
-      } catch (e: any) {
-        lastErr = e;
-        const msg = String(e?.message ?? e);
-        const transient =
-          /ECONNRESET|socket disconnect|ETIMEDOUT|EAI_AGAIN|network|timeout|fetch failed|server response/i.test(msg);
-        if (!transient || attempt === 4) throw e;
-        log(`    transient error (attempt ${attempt + 1}/5): ${msg.slice(0, 100)}`);
-        await new Promise(r => setTimeout(r, 500 * 2 ** attempt));
-      }
-    }
-    log(`    tx ${rcpt.transactionHash} gasUsed=${rcpt.gasUsed.toString()}`);
-    usersUpdated += batch.length;
+  for (const [i, batch] of batches.entries()) {
+    log(`  [${i + 1}/${batches.length}] updateScores(${batch.length})`);
+    if (opts.dryRun) continue;
+    const rcpt = await (await prime.updateScores(batch, { gasLimit: TX_GAS_LIMIT })).wait();
+    log(`    ${rcpt.transactionHash} gasUsed=${rcpt.gasUsed}`);
   }
 
   const pendingAfter: bigint = (await prime.pendingScoreUpdates()).toBigInt();
   log(`pendingScoreUpdates after: ${pendingAfter}`);
-
-  return { pendingBefore, pendingAfter, batchesSent: batches.length, usersUpdated };
+  return { pendingBefore, pendingAfter, batchesSent: batches.length, usersUpdated: remaining.length };
 }
-
-// BSC mainnet Prime deployment block (proxy creation tx
-// 0xfd09cf4011f863f65f1dc6a37cb325468f0ce6311849f77205e891bd36107433).
-// Used as the default lower bound for the Mint/Burn event scan so an
-// operator on bscmainnet doesn't have to look it up manually.
-const PRIME_BSCMAINNET_DEPLOY_BLOCK = 33_264_762;
 
 async function main() {
-  const fromBlock = Number(process.env.FROM_BLOCK ?? PRIME_BSCMAINNET_DEPLOY_BLOCK);
-  const blockRange = Number(process.env.BLOCK_RANGE ?? 5000);
-  const dryRun = process.env.DRY_RUN === "1";
+  if (STAGE !== "index" && STAGE !== "update") throw new Error('STAGE must be "index" or "update"');
 
-  const dep = await deployments.get("Prime");
-  console.log(`Prime: ${dep.address}`);
-
-  const prime = await ethers.getContractAt("Prime", dep.address);
-
-  // Holder list is expensive to reconstruct (full event-log scan from Prime
-  // deploy block). Cache it on disk so reruns after a crash / partial drain
-  // can skip the scan. Set HOLDERS_FILE=- to force a fresh scan.
+  const dep = await deployments.get(PRIME_DEPLOYMENT);
+  const prime = await ethers.getContractAt(dep.abi, dep.address);
   const chainId = (await ethers.provider.getNetwork()).chainId;
-  const cachePath = process.env.HOLDERS_FILE ?? path.join(__dirname, `..`, `.prime-holders-${chainId}.json`);
+  const file = HOLDERS_FILE ?? `.prime-holders-${chainId}.json`;
+  console.log(`${PRIME_DEPLOYMENT} ${dep.address} chainId ${chainId}, holders file ${file}`);
 
-  let holders: string[];
-  if (cachePath !== "-" && fs.existsSync(cachePath)) {
-    holders = JSON.parse(fs.readFileSync(cachePath, "utf8"));
-    console.log(`Loaded ${holders.length} holders from cache: ${cachePath}`);
-  } else {
-    console.log("Reconstructing holder set from Mint/Burn events...");
-    const events = await fetchHolderEvents(prime, fromBlock, blockRange, undefined, m => console.log(m));
-    holders = eventsToHolders(events);
-    console.log(`Total current holders: ${holders.length}`);
-    if (cachePath !== "-") {
-      fs.writeFileSync(cachePath, JSON.stringify(holders, null, 2));
-      console.log(`Wrote holder cache: ${cachePath}`);
-    }
+  if (STAGE === "index") {
+    const fromBlock = FROM_BLOCK ?? dep.receipt?.blockNumber ?? 0;
+    const toBlock = await ethers.provider.getBlockNumber();
+    const events = await fetchHolderEvents(prime, fromBlock, BLOCK_RANGE, toBlock, console.log);
+    const holders = eventsToHolders(events);
+    const onChain = Number(await prime.totalTokens());
+    const round = Number(await prime.nextScoreUpdateRoundId());
+    if (holders.length !== onChain)
+      throw new Error(`indexed ${holders.length} holders but totalTokens is ${onChain} — check FROM_BLOCK / RPC gaps`);
+    fs.writeFileSync(file, JSON.stringify({ address: dep.address, chainId, toBlock, round, holders }, null, 2));
+    console.log(`${events.length} events → ${holders.length} holders, round ${round}. Wrote ${file}`);
+    return;
   }
 
-  await runUpdate(prime, holders, { dryRun, log: m => console.log(m) });
+  const saved = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (saved.address.toLowerCase() !== dep.address.toLowerCase() || saved.chainId !== chainId) {
+    throw new Error(`${file} was indexed for ${saved.address} on chain ${saved.chainId}`);
+  }
+  // Same round id ⇒ same holder set (see header). A mid-round re-queue also bumps it; that just costs a re-index.
+  const round = Number(await prime.nextScoreUpdateRoundId());
+  if (saved.round !== round) {
+    throw new Error(`${file} was indexed during round ${saved.round}; current round is ${round} — re-run STAGE=index`);
+  }
+  console.log(`${saved.holders.length} holders indexed at block ${saved.toBlock}, round ${round}`);
+  await runUpdate(prime, saved.holders, { dryRun: DRY_RUN, batchSize: BATCH_SIZE });
 }
 
-// Only execute when invoked directly via `hardhat run`, not when imported by tests.
 if (require.main === module) {
   main().catch(err => {
     console.error(err);
