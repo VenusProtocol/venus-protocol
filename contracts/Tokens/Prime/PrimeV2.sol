@@ -167,7 +167,7 @@ contract PrimeV2 is
     /// @notice Error thrown when caller is not the PrimeLeaderboard contract
     error OnlyPrimeLeaderboard();
 
-    /// @notice Error thrown when underlying token decimals exceed 18
+    /// @notice Error thrown when underlying token decimals exceed 36
     error UnsupportedUnderlyingDecimals(uint256 decimals);
 
     /**
@@ -704,7 +704,7 @@ contract PrimeV2 is
      * @custom:error Throw InvalidVToken if market is not listed
      * @custom:error Throw AssetAlreadyExists if asset already has a market
      * @custom:error Throw MaxLoopsLimitExceeded if listing this market would exceed loopsLimit
-     * @custom:error Throw UnsupportedUnderlyingDecimals if underlying token has decimals > 18
+     * @custom:error Throw UnsupportedUnderlyingDecimals if underlying token has decimals > 36
      * @custom:access Controlled by ACM
      */
     function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
@@ -720,7 +720,8 @@ contract PrimeV2 is
         if (vTokenForAsset[underlying] != address(0)) revert AssetAlreadyExists();
 
         uint256 underlyingDecimals = IERC20MetadataUpgradeable(underlying).decimals();
-        if (underlyingDecimals > 18) revert UnsupportedUnderlyingDecimals(underlyingDecimals);
+        // The resilient oracle reports prices scaled to 36 - decimals, so a wider underlying has no usable price.
+        if (underlyingDecimals > 36) revert UnsupportedUnderlyingDecimals(underlyingDecimals);
 
         markets[market] = Market({
             supplyMultiplier: supplyMultiplier,
@@ -1275,7 +1276,8 @@ contract PrimeV2 is
         (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
 
         uint256 decimals = IERC20MetadataUpgradeable(_getUnderlying(market)).decimals();
-        capital = capital * (10 ** (18 - decimals));
+        // Normalize capital to 18 decimals. Underlyings with more than 18 decimals scale down.
+        capital = decimals <= 18 ? capital * (10 ** (18 - decimals)) : capital / (10 ** (decimals - 18));
 
         return Scores._calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
     }
