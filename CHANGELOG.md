@@ -1,3 +1,13 @@
+## 10.3.0-dev.6 (2026-09-04)
+
+* Merge pull request #704 from VenusProtocol/test/bstock-fork ([6dd156f](https://github.com/VenusProtocol/venus-protocol/commit/6dd156f)), closes [#704](https://github.com/VenusProtocol/venus-protocol/issues/704)
+* Merge pull request #709 from VenusProtocol/feat/prime-update-scores-staged ([9e14f08](https://github.com/VenusProtocol/venus-protocol/commit/9e14f08)), closes [#709](https://github.com/VenusProtocol/venus-protocol/issues/709)
+* prime-update-scores: hoist all configuration to the top of the file ([2010faa](https://github.com/VenusProtocol/venus-protocol/commit/2010faa))
+* prime-update-scores: pin the holder list to the round id instead of warning ([b2d2e1f](https://github.com/VenusProtocol/venus-protocol/commit/b2d2e1f))
+* prime-update-scores: warn against running STAGE=update with a stale holder list ([b589b3c](https://github.com/VenusProtocol/venus-protocol/commit/b589b3c))
+* refactor(prime-update-scores): target PrimeV2, split into index/update stages ([5be4b9b](https://github.com/VenusProtocol/venus-protocol/commit/5be4b9b))
+* test(bstock): drive the fork suite off the live deployment and wiring ([edf3b22](https://github.com/VenusProtocol/venus-protocol/commit/edf3b22))
+
 ## 10.3.0-dev.5 (2026-08-27)
 
 * Merge pull request #708 from VenusProtocol/feat/vhub-core-markets ([1a0892e](https://github.com/VenusProtocol/venus-protocol/commit/1a0892e)), closes [#708](https://github.com/VenusProtocol/venus-protocol/issues/708)
