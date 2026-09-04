@@ -69,49 +69,71 @@
  *   USDT_ADDR       override the hop-1 output / intermediate token (default BSC USDT)
  *   WBNB_ADDR       override WBNB for the native-BNB accounting (default canonical BSC WBNB)
  *
- * Native BNB debt (vBNB) is auto-detected — vBNB has no underlying() — and accounted in WBNB at its
- * canonical BSC address; the contract unwraps the repay, so pre-fund inventory in WBNB (MODE=inventory).
+ * Native BNB debt (vBNB) is detected by matching the debt market against the liquidator's own `vBNB`
+ * immutable — the same value `_settle` compares against — and accounted in WBNB at its canonical BSC
+ * address; the contract unwraps the repay, so pre-fund inventory in WBNB (MODE=inventory).
  */
 import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 
+import {
+  BSTOCK_LIQUIDATOR_ABI,
+  CORE_COMPTROLLER_ABI,
+  ERC20_ABI,
+  ISOLATED_COMPTROLLER_ABI,
+  ISOLATED_VTOKEN_SNAPSHOT_ABI,
+  ORACLE_ABI,
+  POOL_REGISTRY_ABI,
+  VAI_CONTROLLER_ABI,
+  VENUS_LIQUIDATOR_ABI,
+  VTOKEN_ABI,
+} from "./lib/abis";
 import { BSC_WBNB, getAmmSwap } from "./lib/amm";
 import { BSC_USDT } from "./lib/native";
 import { getPsmSwap } from "./lib/psm";
 import { QuoteArgs, selectedSources } from "./lib/sources";
 import { assertVaiGateClear } from "./lib/vai-gate";
 
-const PARAMS_TUPLE =
-  "(address borrower,address vDebt,address vBStock,uint256 repayAmount,address router,bytes swapCalldata,uint256 minOut,address router2,bytes swapCalldata2,address intermediateToken,uint256 deadline)";
-const LIQUIDATOR_ABI = [
-  `function liquidate(${PARAMS_TUPLE}) returns (uint256)`,
-  `function flashLiquidate(${PARAMS_TUPLE})`,
-  "function isRouter(address) view returns (bool)",
-];
-const VTOKEN_ABI = [
-  "function underlying() view returns (address)",
-  "function comptroller() view returns (address)",
-  "function exchangeRateStored() view returns (uint256)",
-];
-const ERC20_ABI = [
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
-  "function balanceOf(address) view returns (uint256)",
-];
-const COMPTROLLER_ABI = [
-  "function getAccountLiquidity(address) view returns (uint256,uint256,uint256)",
-  "function liquidateCalculateSeizeTokens(address,address,address,uint256) view returns (uint256,uint256)",
-  // VAI's seize math is a separate function: VAI is priced at $1 and the incentive is the
-  // borrower-agnostic getLiquidationIncentive (see ComptrollerLens.liquidateVAICalculateSeizeTokens).
-  "function liquidateVAICalculateSeizeTokens(address,uint256) view returns (uint256,uint256)",
-  "function treasuryPercent() view returns (uint256)",
-  "function liquidatorContract() view returns (address)",
-  "function vaiController() view returns (address)",
-  "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
-  "function getLiquidationIncentive(address) view returns (uint256)",
-];
-const VAI_CONTROLLER_ABI = ["function getVAIAddress() view returns (address)"];
-const VENUS_LIQUIDATOR_ABI = ["function treasuryPercentMantissa() view returns (uint256)"];
+// `Action` ordinals, identical in both repos' ComptrollerInterface.
+const ACTION_REDEEM = 1;
+const ACTION_SEIZE = 4;
+const ACTION_LIQUIDATE = 5;
+
+const ONE18 = BigNumber.from(10).pow(18);
+
+/**
+ * Reproduce an isolated comptroller's `snapshot.totalCollateral` for an account, in USD-scaled 1e18 units.
+ *
+ * `preLiquidateHook` compares `minLiquidatableCollateral` against this figure, and nothing exposes it:
+ * `getAccountLiquidity` returns only liquidity and shortfall. Mirrors `_accumulateMarket`, keeping the order
+ * of the two truncating divisions:
+ *
+ *   vTokenPrice     = exchangeRateMantissa * price / 1e18
+ *   totalCollateral += vTokenPrice * vTokenBalance / 1e18
+ *
+ * Reproducible off-chain because that weighting values both legs at plain spot, never the deviation-bounded
+ * oracle.
+ */
+async function isolatedTotalCollateral(
+  comptroller: Contract,
+  oracleAddr: string,
+  account: string,
+  signer: Signer,
+): Promise<BigNumber> {
+  const assets: string[] = await comptroller.getAssetsIn(account);
+  const oracle = new Contract(oracleAddr, ORACLE_ABI, signer);
+  let total = BigNumber.from(0);
+  for (const asset of assets) {
+    const market = new Contract(asset, ISOLATED_VTOKEN_SNAPSHOT_ABI, signer);
+    const [, vTokenBalance, , exchangeRateMantissa]: BigNumber[] = await market.getAccountSnapshot(account);
+    // A borrower is a member of every market it borrows from, including ones it holds no collateral in.
+    if (vTokenBalance.isZero()) continue;
+    const price: BigNumber = await oracle.getUnderlyingPrice(asset);
+    const vTokenPrice = exchangeRateMantissa.mul(price).div(ONE18);
+    total = total.add(vTokenPrice.mul(vTokenBalance).div(ONE18));
+  }
+  return total;
+}
 
 function env(name: string, required = true): string {
   const v = process.env[name];
@@ -220,34 +242,84 @@ export async function atomicLiquidate(signer: Signer) {
     );
   }
 
-  const liquidator = new Contract(env("LIQUIDATOR"), LIQUIDATOR_ABI, signer);
+  const liquidator = new Contract(env("LIQUIDATOR"), BSTOCK_LIQUIDATOR_ABI, signer);
   const borrower = ethers.utils.getAddress(env("BORROWER"));
   const vBStock = new Contract(env("VBSTOCK"), VTOKEN_ABI, signer);
   const vDebt = new Contract(env("VDEBT"), VTOKEN_ABI, signer);
 
-  const comptroller = new Contract(await vBStock.comptroller(), COMPTROLLER_ABI, signer);
+  // Which pool owns the position, derived exactly as `_resolvePool` does on-chain so the script and the
+  // contract cannot disagree about which branch will run.
+  const poolAddr: string = await vBStock.comptroller();
+  const coreAddr: string = await liquidator.comptroller();
+  const isCore = poolAddr.toLowerCase() === coreAddr.toLowerCase();
 
-  // vBNB has no underlying(): a native-BNB debt is accounted in WBNB (1:1 with BNB). The contract
-  // unwraps the repay internally, so off-chain the debt asset for the swap chain + minOut is WBNB.
-  // WBNB is immutable on BSC, so it is the canonical constant; WBNB_ADDR only overrides it so a
-  // non-fork test can point at a freshly-deployed mock (mirrors USDT_ADDR below).
-  // VAI is not a vToken: its "market" is the VAIController, which has no underlying() EITHER. It must
-  // therefore be detected BEFORE the vBNB fallback below — otherwise the catch would misread a VAI debt
-  // as native BNB and account it in WBNB. The VAI token itself is a plain ERC20 (decimals/symbol work).
-  const vaiControllerAddr: string = await comptroller.vaiController();
-  const isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+  // Do NOT cross-check with `vDebt.comptroller()`: a Core debt may be the vBNB sentinel or the VAIController,
+  // and neither is safe to probe. Isolated legs are proved against the POOL below instead.
 
+  const comptroller = new Contract(poolAddr, isCore ? CORE_COMPTROLLER_ABI : ISOLATED_COMPTROLLER_ABI, signer);
+  console.log(`pool: ${isCore ? "CORE" : "ISOLATED"} (${poolAddr})`);
+
+  if (!isCore) {
+    const registryAddr: string = await liquidator.poolRegistry();
+    if (registryAddr === ethers.constants.AddressZero) {
+      throw new Error(
+        "the liquidator has no PoolRegistry configured — the owner must call setPoolRegistry(<registry>) " +
+          "before any non-Core pool can be liquidated",
+      );
+    }
+    const registered: string = (
+      await new Contract(registryAddr, POOL_REGISTRY_ABI, signer).getPoolByComptroller(poolAddr)
+    ).comptroller;
+    if (registered.toLowerCase() !== poolAddr.toLowerCase()) {
+      throw new Error(
+        `pool ${poolAddr} is not registered in the liquidator's PoolRegistry ${registryAddr} — ` +
+          "register it there before this pool can be liquidated",
+      );
+    }
+    // Same two checks `_resolvePool` runs, asked of the POOL rather than of the markets themselves. Doing it
+    // here turns an on-chain MarketNotInPool into a named off-chain abort before any quote is fetched.
+    const [debtListed, collListed]: boolean[] = await Promise.all([
+      comptroller.isMarketListed(vDebt.address),
+      comptroller.isMarketListed(vBStock.address),
+    ]);
+    if (!collListed) throw new Error(`VBSTOCK ${vBStock.address} is not listed in pool ${poolAddr}`);
+    if (!debtListed) {
+      throw new Error(
+        `VDEBT ${vDebt.address} is not listed in pool ${poolAddr} — a single liquidation cannot span two pools`,
+      );
+    }
+  }
+
+  // Two Core "markets" are not ERC20-backed vTokens and have no `underlying()`: the vBNB sentinel and the
+  // VAIController. Both are identified by ADDRESS, against the very values the contract itself compares
+  // against — `liquidator.vBNB()` (an immutable, the same one `_settle` tests `params.vDebt` against) and
+  // `comptroller.vaiController()`. Never infer either from a failing `underlying()` call: that reads an RPC
+  // hiccup as native BNB and would silently denominate the whole quote chain and `minOut` in WBNB.
+  //
+  // A native-BNB debt is accounted in WBNB (1:1 with BNB); the contract unwraps the repay internally, so
+  // off-chain the debt asset for the swap chain + minOut is WBNB. WBNB is immutable on BSC, so it is the
+  // canonical constant; WBNB_ADDR only overrides it so a non-fork test can point at a freshly-deployed mock
+  // (mirrors USDT_ADDR below). The VAI token itself is a plain ERC20 (decimals/symbol work).
+  //
+  // Isolated pools have neither market — they are ERC20-only — so that branch reads `underlying()` flat.
+  let vaiControllerAddr = ethers.constants.AddressZero;
+  let isVai = false;
   let debtAddr: string;
   let isBnb = false;
-  if (isVai) {
-    debtAddr = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, signer).getVAIAddress();
-  } else {
-    try {
-      debtAddr = await vDebt.underlying();
-    } catch {
-      isBnb = true;
+  if (isCore) {
+    const [vBnbAddr, vaiAddr]: string[] = await Promise.all([liquidator.vBNB(), comptroller.vaiController()]);
+    vaiControllerAddr = vaiAddr;
+    isVai = vDebt.address.toLowerCase() === vaiControllerAddr.toLowerCase();
+    isBnb = vDebt.address.toLowerCase() === vBnbAddr.toLowerCase();
+    if (isVai) {
+      debtAddr = await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, signer).getVAIAddress();
+    } else if (isBnb) {
       debtAddr = ethers.utils.getAddress(process.env.WBNB_ADDR || BSC_WBNB);
+    } else {
+      debtAddr = await vDebt.underlying();
     }
+  } else {
+    debtAddr = await vDebt.underlying();
   }
   const debt = new Contract(debtAddr, ERC20_ABI, signer);
   const bStock = new Contract(await vBStock.underlying(), ERC20_ABI, signer);
@@ -262,6 +334,109 @@ export async function atomicLiquidate(signer: Signer) {
     throw new Error("MODE=flash is not supported for a VAI debt (no vVAI to flash from) — use MODE=inventory");
   }
 
+  // Isolated pools have no flash lender, so the contract draws from `coreFlashSource[debtToken]`. Unset
+  // means an on-chain FlashSourceNotSet: catch it before a firm RFQ quote is spent on a doomed call.
+  if (!isCore && mode === "flash") {
+    const flashSrc: string = await liquidator.coreFlashSource(debtAddr);
+    if (flashSrc === ethers.constants.AddressZero) {
+      throw new Error(
+        `MODE=flash needs a Core flash source for the debt token ${debtAddr}: the owner must call ` +
+          `setCoreFlashSource(${debtAddr}, <core vToken>) — or run with MODE=inventory`,
+      );
+    }
+    console.log(`isolated flash source: Core market ${flashSrc} lends ${debtSym}`);
+  }
+
+  // 0a. Pre-flight. Most of these mirror an ISOLATED hook the on-chain liquidation only reaches AFTER the
+  // repay is staged, so catching them here costs nothing while the same failure on-chain costs a firm RFQ
+  // quote and the gas of a doomed settle. Core has no analogue for those: they live in the pool, not the
+  // diamond. What IS common to both pools — forced liquidation and the close-factor cap — is read here and
+  // enforced once, below.
+  let forced = false;
+  if (!isCore) {
+    // Forced liquidation makes `preLiquidateHook` return BEFORE the collateral, shortfall and close-factor
+    // checks, bounded only by the outstanding balance. Running the full gauntlet in that case would produce
+    // FALSE aborts on liquidations that would have succeeded.
+    forced = await comptroller.isForcedLiquidationEnabled(vDebt.address);
+    if (forced) {
+      console.warn(`WARN: forced liquidation is ENABLED for ${vDebt.address} — shortfall/collateral gates bypassed`);
+    }
+
+    // The account that must be allowlisted is the LIQUIDATOR CONTRACT, not the operator EOA: `preSeizeHook`
+    // checks whoever RECEIVES the collateral, i.e. `msg.sender` of `vDebt.liquidateBorrow`.
+    if (
+      (await comptroller.isLiquidationAllowlistEnabled()) &&
+      !(await comptroller.isAllowedLiquidator(liquidator.address))
+    ) {
+      throw new Error(
+        `pool liquidation allowlist is ON and the liquidator CONTRACT ${liquidator.address} is not on it. ` +
+          `Needs a governance setAllowedLiquidator(${liquidator.address}, true) — allowlisting the operator EOA does nothing.`,
+      );
+    }
+
+    // Three pauses, across TWO markets, gate one liquidation. REDEEM is the easy miss: it is not part of the
+    // liquidation hook chain at all. It fires on the liquidator's OWN redeem, after the repay has succeeded.
+    const [liqPaused, seizePaused, redeemPaused]: boolean[] = await Promise.all([
+      comptroller.actionPaused(vDebt.address, ACTION_LIQUIDATE),
+      comptroller.actionPaused(vBStock.address, ACTION_SEIZE),
+      comptroller.actionPaused(vBStock.address, ACTION_REDEEM),
+    ]);
+    if (liqPaused) throw new Error(`LIQUIDATE is paused on the debt market ${vDebt.address}`);
+    if (seizePaused) throw new Error(`SEIZE is paused on the collateral market ${vBStock.address}`);
+    if (redeemPaused) {
+      throw new Error(
+        `REDEEM is paused on the collateral market ${vBStock.address} — the repay and seize would succeed and ` +
+          `the redeem would then revert, taking the whole tx with it`,
+      );
+    }
+
+    // The BORROWER must have entered the collateral market. Supplying alone does not enter it: membership is
+    // only ever written by enterMarkets or preBorrowHook. (The liquidator is deliberately never a member,
+    // which is what keeps its own redeem off the liquidity check and off the deviation-bounded oracle.)
+    if (!(await comptroller.checkMembership(borrower, vBStock.address))) {
+      throw new Error(
+        `${borrower} has not entered ${vBStock.address} as collateral — preSeizeHook reverts MarketNotCollateral`,
+      );
+    }
+
+    // At or below `minLiquidatableCollateral` the single-market path is refused outright and only
+    // liquidateAccount / healAccount can serve the position. Neither is reachable from this contract: both
+    // are comptroller-level, multi-market, all-borrows-at-once entry points and this is a one-market tool.
+    if (!forced) {
+      const [minColl, oracleAddr]: [BigNumber, string] = await Promise.all([
+        comptroller.minLiquidatableCollateral(),
+        comptroller.oracle(),
+      ]);
+      const totalCollateral = await isolatedTotalCollateral(comptroller, oracleAddr, borrower, signer);
+      if (totalCollateral.lte(minColl)) {
+        throw new Error(
+          `${borrower} total collateral ${ethers.utils.formatEther(totalCollateral)} <= ` +
+            `minLiquidatableCollateral ${ethers.utils.formatEther(minColl)} (USD-scaled) — MinimalCollateralViolated. ` +
+            `This position can only be cleared by the pool's liquidateAccount/healAccount, which this tool cannot drive.`,
+        );
+      }
+      console.log(
+        `isolated collateral ${ethers.utils.formatEther(totalCollateral)} > min ${ethers.utils.formatEther(minColl)}`,
+      );
+    }
+  } else {
+    // Core has TWO forced-liquidation flags and `liquidateBorrowAllowed` ORs them — a per-market one and a
+    // per-BORROWER one (SetterFacet._setForcedLiquidationForUser). The isolated hook has only the former, so
+    // this pair is Core-specific. Either being set makes the account liquidatable with no shortfall and
+    // caps the repay at the full outstanding balance instead of the close factor.
+    const [forcedMarket, forcedUser]: boolean[] = await Promise.all([
+      comptroller.isForcedLiquidationEnabled(vDebt.address),
+      comptroller.isForcedLiquidationEnabledForUser(borrower, vDebt.address),
+    ]);
+    forced = forcedMarket || forcedUser;
+    if (forced) {
+      console.warn(
+        `WARN: forced liquidation is ENABLED for ${vDebt.address} ` +
+          `(${forcedMarket ? "market-wide" : `borrower ${borrower}`}) — shortfall/closeFactor gates bypassed`,
+      );
+    }
+  }
+
   // 0. liquidatable? getAccountLiquidity returns (errorCode, liquidity, shortfall). A non-zero error
   // code means the reading itself failed (e.g. an oracle PRICE_ERROR), so the shortfall is unreliable —
   // surface THAT distinctly rather than mislabel it "no shortfall". A zero shortfall means the account
@@ -269,11 +444,28 @@ export async function atomicLiquidate(signer: Signer) {
   // ALLOW_NO_SHORTFALL=1 through: the contract deliberately does NOT pre-check liquidatability
   // (BStockLiquidator._validateRouters comment) because Core's FORCED liquidations liquidate healthy
   // accounts, and this script must be able to serve that path.
-  const [liqErr, , shortfall]: BigNumber[] = await comptroller.getAccountLiquidity(borrower);
+  let liqErr: BigNumber;
+  let shortfall: BigNumber;
+  try {
+    [liqErr, , shortfall] = await comptroller.getAccountLiquidity(borrower);
+  } catch (e) {
+    // An isolated comptroller never reports a price problem as a code: the error slot is hard-wired to zero
+    // and the whole call reverts instead (`PriceError` from _safeGetUnderlyingPrice, `SnapshotError` from
+    // _safeGetAccountSnapshot). Name that, rather than letting it surface as a bare CALL_EXCEPTION.
+    if (!isCore) {
+      throw new Error(
+        `getAccountLiquidity reverted for ${borrower} on pool ${poolAddr} — most likely a stale or zero oracle ` +
+          `price (PriceError) or a market snapshot failure (SnapshotError). Underlying: ${(e as Error).message}`,
+      );
+    }
+    throw e;
+  }
   if (!liqErr.eq(0)) {
     throw new Error(`getAccountLiquidity returned error code ${liqErr} for ${borrower} — cannot assess shortfall`);
   }
-  if (shortfall.eq(0)) {
+  // A forced liquidation is liquidatable with no shortfall by design, in EITHER pool, so do not demand one
+  // there. ALLOW_NO_SHORTFALL stays the escape hatch for anything the flags do not explain.
+  if (shortfall.eq(0) && !forced) {
     if (process.env.ALLOW_NO_SHORTFALL !== "1") {
       throw new Error(
         `${borrower} has no shortfall — not liquidatable. Set ALLOW_NO_SHORTFALL=1 for a forced liquidation of a healthy account.`,
@@ -283,6 +475,25 @@ export async function atomicLiquidate(signer: Signer) {
   }
   console.log(`borrower ${borrower} shortfall=${ethers.utils.formatEther(shortfall)} (USD-scaled)`);
 
+  // 0b. TooMuchRepay — enforced by BOTH pools, and in both it is the LAST gate (after shortfall), so it is
+  // checked here rather than in the pool-specific block above. The cap is the same shape either side:
+  // forced -> the full outstanding balance, otherwise closeFactor * balance. Only the way the balance is
+  // read differs: a VAI debt has no `borrowBalanceStored` because the VAIController is not a vToken, so
+  // `liquidateBorrowAllowed` reads `getVAIRepayAmount` instead (accrued interest included) and so do we.
+  const borrowBalance: BigNumber = isVai
+    ? await new Contract(vaiControllerAddr, VAI_CONTROLLER_ABI, signer).getVAIRepayAmount(borrower)
+    : await vDebt.borrowBalanceStored(borrower);
+  const closeFactor: BigNumber = await comptroller.closeFactorMantissa();
+  const maxRepay = forced ? borrowBalance : borrowBalance.mul(closeFactor).div(ONE18);
+  if (repay.gt(maxRepay)) {
+    throw new Error(
+      `REPAY_AMOUNT ${ethers.utils.formatUnits(repay, debtDec)} ${debtSym} exceeds the maximum ` +
+        `${ethers.utils.formatUnits(maxRepay, debtDec)} ${debtSym} ` +
+        `(borrowBalance ${ethers.utils.formatUnits(borrowBalance, debtDec)}` +
+        `${forced ? "" : `, closeFactor ${ethers.utils.formatEther(closeFactor)}`}) — TooMuchRepay`,
+    );
+  }
+
   // 1 + 2. precompute the exact seize so the quote amount matches what redeem() yields. Mirror the
   // function the on-chain path actually calls for this debt:
   //   - VAI  -> VAIController.liquidateVAIFresh calls liquidateVAICalculateSeizeTokens(vCollateral,
@@ -291,10 +502,34 @@ export async function atomicLiquidate(signer: Signer) {
   //   - else -> vToken.liquidateBorrowFresh calls the borrower-aware 4-arg overload (reads the pool the
   //             borrower is actually in). The 3-arg overload always reads Core Pool params and diverges
   //             if the borrower has switched pools.
+  //   - ISOLATED -> only a 3-arg (vBorrowed, vCollateral, repay) overload exists, and it is exactly what
+  //             `VToken._liquidateBorrowFresh` calls. There is no borrower argument because there are no
+  //             per-borrower pools here; the incentive is keyed on the COLLATERAL market. Calling Core's
+  //             4-arg shape against an isolated comptroller reverts — it has no such function and no fallback.
   const seizeFn = isVai ? "liquidateVAICalculateSeizeTokens" : "liquidateCalculateSeizeTokens";
-  const [seizeErr, seizeTokens]: BigNumber[] = isVai
-    ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
-    : await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay);
+  let seizeErr: BigNumber;
+  let seizeTokens: BigNumber;
+  try {
+    [seizeErr, seizeTokens] = isVai
+      ? await comptroller.liquidateVAICalculateSeizeTokens(vBStock.address, repay)
+      : isCore
+        ? await comptroller.liquidateCalculateSeizeTokens(borrower, vDebt.address, vBStock.address, repay)
+        : await comptroller.liquidateCalculateSeizeTokens(vDebt.address, vBStock.address, repay);
+  } catch (e) {
+    // Same split as getAccountLiquidity above. The isolated overload hard-wires its error slot to NO_ERROR
+    // ("Always NO_ERROR for compatibility with Venus core tooling"), so the `seizeErr` check below is dead
+    // there and EVERY failure arrives as a revert instead: `PriceError` from _safeGetUnderlyingPrice on
+    // either leg, or `exchangeRateStored` on the collateral market. Name it rather than letting a bare
+    // CALL_EXCEPTION surface.
+    if (!isCore) {
+      throw new Error(
+        `${seizeFn} reverted for ${borrower} on pool ${poolAddr} — most likely a stale or zero oracle price ` +
+          `(PriceError) on ${vDebt.address} or ${vBStock.address}, or an exchangeRateStored failure on the ` +
+          `collateral market. Underlying: ${(e as Error).message}`,
+      );
+    }
+    throw e;
+  }
   if (!seizeErr.eq(0)) throw new Error(`${seizeFn} error ${seizeErr}`);
   // A zero seize means the incentive resolved to 0 (e.g. bStock unlisted in the borrower's pool):
   // surface it here rather than building a degenerate quote that reverts on-chain.
@@ -302,61 +537,100 @@ export async function atomicLiquidate(signer: Signer) {
   const exchangeRate: BigNumber = await vBStock.exchangeRateStored();
   const ONE = BigNumber.from(10).pow(18);
 
-  // The contract routes EVERY repay through the pool-wide Venus Liquidator gate and reverts
-  // (ensureNonzeroAddress) when it is unset, so abort here rather than build a call that would revert.
-  const gate: string = await comptroller.liquidatorContract();
-  if (gate === ethers.constants.AddressZero) {
-    throw new Error(
-      "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the contract routes every repay through it and reverts when unset",
-    );
-  }
+  // How much bStock we will actually hold once the seize and redeem have settled. The two pools withhold
+  // different things on the way, so this is the one number that MUST be computed per mode: the RFQ blob
+  // bakes in a fixed amountIn, and the contract only approves what it really seized, so an overstatement
+  // makes the router pull more than the approval and revert `SwapFailed` after the quote has been spent.
+  let seizedRaw: BigNumber;
 
-  // The gate refuses to liquidate an unrelated market while the borrower's VAI debt is above the
-  // threshold (Liquidator._checkForceVAILiquidate). Surface that here — naming the VAI-first remedy —
-  // rather than burning a settle tx on an on-chain VAIDebtTooHigh revert.
-  await assertVaiGateClear({
-    provider: ethers.provider,
-    gate,
-    comptroller: comptroller.address,
-    vaiController: vaiControllerAddr,
-    vDebt: vDebt.address,
-    borrower,
-  });
-
-  // The gate keeps a treasury cut of the liquidation BONUS (see Liquidator._splitLiquidationIncentive),
-  // so this contract receives fewer vTokens than `seizeTokens`. Deduct that cut, else the precomputed
-  // amount overstates our holdings and the fixed-amountIn router pull reverts. On BSC mainnet today this
-  // cut is 50% of the bonus (treasuryPercentMantissa = 0.5e18) — not 0 — and is governance-settable.
-  let vReceived = seizeTokens;
-  const venusLiquidator = new Contract(gate, VENUS_LIQUIDATOR_ABI, signer);
-  const liqTreasuryPct: BigNumber = await venusLiquidator.treasuryPercentMantissa();
-  if (!liqTreasuryPct.eq(0)) {
-    // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
-    // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included — so
-    // use it here regardless of `isVai`. The borrower-agnostic getLiquidationIncentive is only correct
-    // for VAI's SEIZE math above (what liquidateVAICalculateSeizeTokens reads); the CUT is always the
-    // effective, pool-resolved incentive.
-    //   - Non-VAI: the borrower can be in a non-core pool whose vBStock incentive differs from core, so
-    //     effective != core is REACHABLE — core here would missize the cut and the fixed router pull.
-    //   - VAI: effective == core ALWAYS (a VAI borrower is core-pool-locked — VAIController.mintVAI
-    //     requires the core pool and hasValidPoolBorrows bars leaving it while mintedVAIs>0 — so
-    //     userPoolId==0). Calling effective is a safe no-op there, keeping one path and staying correct
-    //     if that invariant is ever relaxed.
-    const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
-    const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
-    const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
-    vReceived = seizeTokens.sub(treasuryCut);
+  if (!isCore) {
+    // No pool-wide gate and no redeem-time treasury cut in an isolated pool. What DOES reduce the credit is
+    // the collateral market's own protocol seize share: `VToken._seize` withholds
+    //     protocolSeizeTokens = floor(floor(seizeTokens * pss / 1e18) * 1e18 / incentive)
+    // sends that share of the underlying to the ProtocolShareReserve, and credits us the remainder. Both
+    // floors, in that order, mirror ExponentialNoError's mul_ then div_. At the 5e16 default over a 1.1e18
+    // incentive that is ~4.55% of the seize — far more than SEIZE_BUFFER's 0.1% default absorbs.
+    //
+    // The incentive is read with `effectiveLiquidationIncentive(vBStock)`, the MARKET-keyed getter. Never
+    // `liquidationIncentiveMantissa()`: that one answers for msg.sender, and an eth_call carries no
+    // from-address, so it silently returns the pool-wide default and hides any per-market override — a
+    // plausible-looking number that would scale this whole precompute wrong.
+    const [incentive, pss]: BigNumber[] = await Promise.all([
+      comptroller.effectiveLiquidationIncentive(vBStock.address),
+      vBStock.protocolSeizeShareMantissa(),
+    ]);
+    if (incentive.isZero()) {
+      throw new Error(
+        `effectiveLiquidationIncentive(${vBStock.address}) is 0 — VToken._seize divides by it, so every ` +
+          `liquidation in this pool would revert. The pool needs a liquidation incentive of at least 1e18.`,
+      );
+    }
+    const protocolSeizeTokens = seizeTokens.mul(pss).div(ONE).mul(ONE).div(incentive);
+    const vReceived = seizeTokens.sub(protocolSeizeTokens);
+    seizedRaw = vReceived.mul(exchangeRate).div(ONE);
     console.log(
-      `Venus Liquidator treasury cut ${ethers.utils.formatEther(liqTreasuryPct)} of bonus -> ` +
-        `-${ethers.utils.formatUnits(treasuryCut, 8)} v${bStockSym} (credited ${ethers.utils.formatUnits(vReceived, 8)})`,
+      `protocol seize share ${ethers.utils.formatEther(pss)} over incentive ${ethers.utils.formatEther(incentive)} -> ` +
+        `-${ethers.utils.formatUnits(protocolSeizeTokens, 8)} v${bStockSym} to the PSR ` +
+        `(credited ${ethers.utils.formatUnits(vReceived, 8)})`,
     );
+  } else {
+    // The contract routes EVERY repay through the pool-wide Venus Liquidator gate and reverts
+    // (ensureNonzeroAddress) when it is unset, so abort here rather than build a call that would revert.
+    const gate: string = await comptroller.liquidatorContract();
+    if (gate === ethers.constants.AddressZero) {
+      throw new Error(
+        "Venus Liquidator gate (comptroller.liquidatorContract) is unset — the contract routes every repay through it and reverts when unset",
+      );
+    }
+
+    // The gate refuses to liquidate an unrelated market while the borrower's VAI debt is above the
+    // threshold (Liquidator._checkForceVAILiquidate). Surface that here — naming the VAI-first remedy —
+    // rather than burning a settle tx on an on-chain VAIDebtTooHigh revert.
+    await assertVaiGateClear({
+      provider: ethers.provider,
+      gate,
+      comptroller: comptroller.address,
+      vaiController: vaiControllerAddr,
+      vDebt: vDebt.address,
+      borrower,
+    });
+
+    // The gate keeps a treasury cut of the liquidation BONUS (see Liquidator._splitLiquidationIncentive),
+    // so this contract receives fewer vTokens than `seizeTokens`. Deduct that cut, else the precomputed
+    // amount overstates our holdings and the fixed-amountIn router pull reverts. On BSC mainnet today this
+    // cut is 50% of the bonus (treasuryPercentMantissa = 0.5e18) — not 0 — and is governance-settable.
+    let vReceived = seizeTokens;
+    const venusLiquidator = new Contract(gate, VENUS_LIQUIDATOR_ABI, signer);
+    const liqTreasuryPct: BigNumber = await venusLiquidator.treasuryPercentMantissa();
+    if (!liqTreasuryPct.eq(0)) {
+      // Mirror the gate EXACTLY: `_splitLiquidationIncentive` sizes the bonus with
+      // `getEffectiveLiquidationIncentive(borrower, vCollateral)` for EVERY debt type, VAI included — so
+      // use it here regardless of `isVai`. The borrower-agnostic getLiquidationIncentive is only correct
+      // for VAI's SEIZE math above (what liquidateVAICalculateSeizeTokens reads); the CUT is always the
+      // effective, pool-resolved incentive.
+      //   - Non-VAI: the borrower can be in a non-core pool whose vBStock incentive differs from core, so
+      //     effective != core is REACHABLE — core here would missize the cut and the fixed router pull.
+      //   - VAI: effective == core ALWAYS (a VAI borrower is core-pool-locked — VAIController.mintVAI
+      //     requires the core pool and hasValidPoolBorrows bars leaving it while mintedVAIs>0 — so
+      //     userPoolId==0). Calling effective is a safe no-op there, keeping one path and staying correct
+      //     if that invariant is ever relaxed.
+      const totalIncentive: BigNumber = await comptroller.getEffectiveLiquidationIncentive(borrower, vBStock.address);
+      const bonusAmount = seizeTokens.mul(totalIncentive.sub(ONE)).div(totalIncentive);
+      const treasuryCut = bonusAmount.mul(liqTreasuryPct).div(ONE);
+      vReceived = seizeTokens.sub(treasuryCut);
+      console.log(
+        `Venus Liquidator treasury cut ${ethers.utils.formatEther(liqTreasuryPct)} of bonus -> ` +
+          `-${ethers.utils.formatUnits(treasuryCut, 8)} v${bStockSym} (credited ${ethers.utils.formatUnits(vReceived, 8)})`,
+      );
+    }
+
+    // Core redeem then routes `treasuryPercent` of the redeemed underlying to the treasury, so we hold
+    // LESS still. The quote must match what we actually hold, else the Native router pull (fixed
+    // amountIn) reverts. 0 today, but governance-settable.
+    const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
+    seizedRaw = vReceived.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   }
 
-  // Core redeem then routes `treasuryPercent` of the redeemed underlying to the treasury, so we hold
-  // LESS still. The quote must match what we actually hold, else the Native router pull (fixed
-  // amountIn) reverts. 0 today, but governance-settable.
-  const treasuryPercent: BigNumber = await comptroller.treasuryPercent();
-  const seizedRaw = vReceived.mul(exchangeRate).div(ONE).mul(ONE.sub(treasuryPercent)).div(ONE);
   const seizedHuman = ethers.utils.formatUnits(seizedRaw, bStockDec);
   console.log(`seize ${ethers.utils.formatUnits(seizeTokens, 8)} v${bStockSym} -> ~${seizedHuman} ${bStockSym}`);
 
