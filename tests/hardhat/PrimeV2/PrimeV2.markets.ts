@@ -60,8 +60,8 @@ describe("PrimeV2 - Market Management", () => {
       ).to.be.revertedWithCustomError(f.primeV2, "InvalidVToken");
     });
 
-    it("should revert UnsupportedUnderlyingDecimals when underlying token decimals > 18", async () => {
-      f.underlyingToken.decimals.returns(19);
+    it("should revert UnsupportedUnderlyingDecimals when underlying token decimals > 36", async () => {
+      f.underlyingToken.decimals.returns(37);
 
       try {
         await expect(
