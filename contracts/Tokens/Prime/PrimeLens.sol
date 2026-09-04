@@ -146,7 +146,10 @@ contract PrimeLens {
         aprInfo.borrowCapUSD = capital.borrowCapUSD;
 
         uint256 decimals = IERC20MetadataUpgradeable(_getUnderlying(market)).decimals();
-        uint256 scaledCapital = aprInfo.capital * (10 ** (18 - decimals));
+        // Normalize capital to 18 decimals. Underlyings with more than 18 decimals scale down.
+        uint256 scaledCapital = decimals <= 18
+            ? aprInfo.capital * (10 ** (18 - decimals))
+            : aprInfo.capital / (10 ** (decimals - 18));
 
         aprInfo.userScore = Scores._calculateScore(
             xvsStaked,
