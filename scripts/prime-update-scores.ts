@@ -1,25 +1,14 @@
 /**
- * Drains PrimeV2's pendingScoreUpdates queue after addMarket / updateAlpha /
- * updateMultipliers. Two stages, so the holder list is reviewed before any tx:
+ * Drains PrimeV2's pendingScoreUpdates after addMarket / updateAlpha / updateMultipliers.
  *
- *   STAGE=index  npx hardhat run scripts/prime-update-scores.ts --network bscmainnet
- *     Replays Mint/Burn events since the PrimeV2 deploy block into the current
- *     holder set, checks the count against totalTokens(), writes HOLDERS_FILE.
+ *   STAGE=index   replay Mint/Burn into the holder set, check it against totalTokens(), write HOLDERS_FILE
+ *   STAGE=update  read HOLDERS_FILE, send updateScores in batches; skips users already done, so re-runnable
  *
- *   STAGE=update npx hardhat run scripts/prime-update-scores.ts --network bscmainnet
- *     Reads HOLDERS_FILE, skips users already done this round (isScoreUpdated),
- *     sends updateScores in batches. Re-runnable: a crashed run just resumes.
- *
- * WARNING — the holder list must match the contract at the moment STAGE=update runs.
- * The monthly Prime cycle (keeper burnBatch + issueBatch, 1st of the month ~00:00 UTC)
- * swaps holders, and a permissionless claimPrime can add one at any time. With a stale
- * list, updateScores never sees the new holders, pendingScoreUpdates never reaches 0, and
- * claimPrime/issue/burn keep reverting. Equal-count churn (13 out, 13 in) is invisible to
- * the totalTokens() check below. So: never run STAGE=update across the monthly cycle, and
- * re-run STAGE=index right before STAGE=update whenever time has passed since indexing.
- *
- * Configuration (env var, or constant below) — one line each: meaning · stage · default
+ * The list cannot go stale during a round: every mint/burn entry point reverts ScoreUpdateInProgress
+ * while pendingScoreUpdates > 0. index records the round id and update refuses any other round.
+ * Drain promptly: an open round also blocks the monthly keeper burnBatch/issueBatch.
  */
+import type { Event } from "ethers";
 import * as fs from "fs";
 import { deployments, ethers } from "hardhat";
 
@@ -28,11 +17,10 @@ const STAGE = process.env.STAGE;
 /** hardhat-deploy name the Prime address + ABI are read from (deployments/<network>/PrimeV2.json). Both stages. */
 const PRIME_DEPLOYMENT = "PrimeV2";
 /** Where the holder list is written (index) and read from (update). Default .prime-holders-<chainId>.json in cwd. */
-const HOLDERS_FILE = process.env.HOLDERS_FILE; // resolved in main() once chainId is known
-/** First block of the Mint/Burn scan. index only. Default: PrimeV2 proxy creation on bscmainnet
- *  (tx 0x41d505b974f7435664281ce32a39df8bcfee74e5a36548c2710f0deede74b0fe) — no Prime events exist before it; 0 elsewhere. */
+const HOLDERS_FILE = process.env.HOLDERS_FILE;
+/** First block of the Mint/Burn scan. index only. Default: the proxy's deployment block from the
+ *  hardhat-deploy artifact (bscmainnet 107,040,035 / bsctestnet 112,385,727) — no events exist before it. */
 const FROM_BLOCK = process.env.FROM_BLOCK ? Number(process.env.FROM_BLOCK) : undefined;
-const PRIMEV2_DEPLOY_BLOCK_BSCMAINNET = 107_040_035;
 /** Blocks per eth_getLogs call. index only. Default 5000 (safe on public RPCs; NodeReal takes 50000). */
 const BLOCK_RANGE = Number(process.env.BLOCK_RANGE ?? 5000);
 /** Users per updateScores tx. update only. Default 14: BSC caps a tx at 16,777,216 gas and one user
@@ -63,6 +51,10 @@ export function eventsToHolders(events: HolderEvent[]): string[] {
 }
 
 /** Both Prime and PrimeV2 name the event arg `user`, so this works for either ABI. */
+const toEvent =
+  (kind: HolderEvent["kind"]) =>
+  (e: Event): HolderEvent => ({ kind, user: e.args?.user, blockNumber: e.blockNumber, logIndex: e.logIndex });
+
 export async function fetchHolderEvents(
   prime: any,
   fromBlock: number,
@@ -74,11 +66,11 @@ export async function fetchHolderEvents(
   const events: HolderEvent[] = [];
   for (let from = fromBlock; from <= toBlock; from += blockRange) {
     const to = Math.min(from + blockRange - 1, toBlock);
-    for (const kind of ["Mint", "Burn"] as const) {
-      for (const e of await prime.queryFilter(prime.filters[kind](), from, to)) {
-        events.push({ kind, user: e.args.user, blockNumber: e.blockNumber, logIndex: e.logIndex });
-      }
-    }
+    const [mints, burns] = await Promise.all([
+      prime.queryFilter(prime.filters.Mint(), from, to),
+      prime.queryFilter(prime.filters.Burn(), from, to),
+    ]);
+    events.push(...mints.map(toEvent("Mint")), ...burns.map(toEvent("Burn")));
     log(`  scanned ${from}-${to}: ${events.length} events so far`);
   }
   return events;
@@ -103,7 +95,7 @@ export async function runUpdate(prime: any, holders: string[], opts: RunUpdateOp
   const maxLoops = Number(await prime.maxLoopsLimit());
   log(`pendingScoreUpdates ${pendingBefore}, round ${round}, maxLoopsLimit ${maxLoops}`);
 
-  // ponytail: READ_CONCURRENCY reads in flight; fine for 500 holders, use a multicall if it ever isn't.
+  // READ_CONCURRENCY reads in flight; fine for 500 holders, use a multicall if it ever isn't.
   const done: boolean[] = [];
   for (const slice of chunk(holders, READ_CONCURRENCY))
     done.push(...(await Promise.all(slice.map(h => prime.isScoreUpdated(round, h)))));
@@ -141,15 +133,16 @@ async function main() {
   console.log(`${PRIME_DEPLOYMENT} ${dep.address} chainId ${chainId}, holders file ${file}`);
 
   if (STAGE === "index") {
-    const fromBlock = FROM_BLOCK ?? (chainId === 56 ? PRIMEV2_DEPLOY_BLOCK_BSCMAINNET : 0);
+    const fromBlock = FROM_BLOCK ?? dep.receipt?.blockNumber ?? 0;
     const toBlock = await ethers.provider.getBlockNumber();
     const events = await fetchHolderEvents(prime, fromBlock, BLOCK_RANGE, toBlock, console.log);
     const holders = eventsToHolders(events);
     const onChain = Number(await prime.totalTokens());
-    fs.writeFileSync(file, JSON.stringify({ address: dep.address, chainId, toBlock, holders }, null, 2));
-    console.log(`${events.length} events → ${holders.length} holders (on-chain totalTokens ${onChain}). Wrote ${file}`);
+    const round = Number(await prime.nextScoreUpdateRoundId());
     if (holders.length !== onChain)
-      throw new Error("indexed holder count != totalTokens — check FROM_BLOCK / RPC gaps");
+      throw new Error(`indexed ${holders.length} holders but totalTokens is ${onChain} — check FROM_BLOCK / RPC gaps`);
+    fs.writeFileSync(file, JSON.stringify({ address: dep.address, chainId, toBlock, round, holders }, null, 2));
+    console.log(`${events.length} events → ${holders.length} holders, round ${round}. Wrote ${file}`);
     return;
   }
 
@@ -157,12 +150,12 @@ async function main() {
   if (saved.address.toLowerCase() !== dep.address.toLowerCase() || saved.chainId !== chainId) {
     throw new Error(`${file} was indexed for ${saved.address} on chain ${saved.chainId}`);
   }
-  // Count-only check: catches a net change, not equal-count churn (see WARNING in the header).
-  // If the monthly cycle or any claimPrime happened since indexing, re-run STAGE=index first.
-  const onChain = Number(await prime.totalTokens());
-  console.log(`${saved.holders.length} holders indexed at block ${saved.toBlock}; on-chain totalTokens now ${onChain}`);
-  if (onChain !== saved.holders.length)
-    console.warn("WARNING: holder set changed since indexing — burned users are skipped, new mints are missing.");
+  // Same round id ⇒ same holder set (see header). A mid-round re-queue also bumps it; that just costs a re-index.
+  const round = Number(await prime.nextScoreUpdateRoundId());
+  if (saved.round !== round) {
+    throw new Error(`${file} was indexed during round ${saved.round}; current round is ${round} — re-run STAGE=index`);
+  }
+  console.log(`${saved.holders.length} holders indexed at block ${saved.toBlock}, round ${round}`);
   await runUpdate(prime, saved.holders, { dryRun: DRY_RUN, batchSize: BATCH_SIZE });
 }
 
