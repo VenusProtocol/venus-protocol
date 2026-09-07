@@ -218,6 +218,58 @@ describe("BStock safe-fallback batch generator", () => {
     });
   });
 
+  // The same build-time certainties the atomic script checks, shared through lib/preflight.ts so the two
+  // scripts cannot drift. They BLOCK rather than warn for the same reason TooMuchRepay does: the batch would
+  // fail for every signer, costing a whole signing round, and unlike the shortfall none of them moves with
+  // the market.
+  describe("market gates", () => {
+    const ACTION = { REDEEM: 1, SEIZE: 4, LIQUIDATE: 5 };
+
+    it("refuses when LIQUIDATE is paused on the debt market", async () => {
+      setEnv();
+      await comptroller.setActionPaused(vDebt.address, ACTION.LIQUIDATE, true);
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/LIQUIDATE is paused/);
+    });
+
+    it("refuses when SEIZE is paused on the collateral market", async () => {
+      setEnv();
+      await comptroller.setActionPaused(vBStock.address, ACTION.SEIZE, true);
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/SEIZE is paused/);
+    });
+
+    // REDEEM gates the Safe's OWN tx 3, not the liquidation hooks: the repay and seize would land and the
+    // redeem would then revert, taking the whole atomic batch with it.
+    it("refuses when REDEEM is paused on the collateral market", async () => {
+      setEnv();
+      await comptroller.setActionPaused(vBStock.address, ACTION.REDEEM, true);
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/REDEEM is paused/);
+    });
+
+    it("refuses when the borrower has not entered the collateral market", async () => {
+      setEnv();
+      await comptroller.setMembership(borrower.address, vBStock.address, false);
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/MarketNotCollateral/);
+    });
+
+    it("refuses when the Core protocol is paused", async () => {
+      setEnv();
+      await comptroller.setProtocolPaused(true);
+      await expect(buildSafeFallbackBatch(ethers.provider)).to.be.rejectedWith(/protocol is PAUSED/);
+    });
+
+    // LIQUIDATE is keyed on the DEBT market, SEIZE and REDEEM on the COLLATERAL. Swapping a pair would
+    // refuse batches that execute perfectly well.
+    it("does not confuse the two markets' pause keys", async () => {
+      setEnv();
+      await comptroller.setActionPaused(vBStock.address, ACTION.LIQUIDATE, true); // collateral, not debt
+      await comptroller.setActionPaused(vDebt.address, ACTION.SEIZE, true); // debt, not collateral
+      await comptroller.setActionPaused(vDebt.address, ACTION.REDEEM, true);
+
+      const { txs } = await buildSafeFallbackBatch(ethers.provider);
+      expect(txs).to.have.length(4);
+    });
+  });
+
   it("throws when the gate is unset, aligning with the on-chain liquidator", async () => {
     await comptroller.setLiquidatorContract(ethers.constants.AddressZero);
     setEnv();

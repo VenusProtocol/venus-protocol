@@ -24,6 +24,14 @@
  *   Action 2 — hand off:
  *     4. bStock.transfer(TARGET, seizedRaw)                         // raw bStock -> Binance top-up
  *
+ * ISOLATED (spoke) pool: always 4 txs, and two things change shape. There is no pool-wide gate, so the
+ * approval goes to the DEBT MARKET itself and the call is that market's own 3-arg
+ * `liquidateBorrow(borrower, repay, vBStock)` — note both the different signature and the different argument
+ * order from the gate's 4-arg form. The native-BNB 3-tx variant and the VAI branch cannot occur there (no
+ * native market, no VAIController). Which pool this is gets settled by an ADDRESS COMPARISON against
+ * CORE_COMPTROLLER, never by probing for a Core-only function and reading a revert as "isolated": a revert is
+ * not proof of anything, and an RPC hiccup would build the whole batch on the wrong branch.
+ *
  * VAI debt (VAIController): supported. VAI is not a vToken, so the market is recognised by matching
  * `comptroller.vaiController()`, and the debt token is resolved via `getVAIAddress()`. The batch is the
  * normal ERC20 shape (approve VAI to the gate, then a zero-value liquidateBorrow), which the gate settles
@@ -71,6 +79,7 @@ import {
   VENUS_LIQUIDATOR_ABI,
   VTOKEN_ABI,
 } from "./lib/abis";
+import { assertMarketGates, checkMinLiquidatableCollateral } from "./lib/preflight";
 import { buildBatch, call } from "./lib/safe";
 import { assertVaiGateClear } from "./lib/vai-gate";
 
@@ -173,6 +182,27 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
     : await comptroller.isForcedLiquidationEnabled(vDebt.address);
   if (forced) console.warn(`WARN: forced liquidation is ENABLED for ${vDebt.address} — shortfall gate bypassed`);
 
+  // Pauses, membership and the isolated allowlist — the same build-time certainties the atomic script checks,
+  // shared from lib/preflight.ts so the two cannot drift. They block for the same reason TooMuchRepay does:
+  // the batch would fail for every signer. Here the SAFE is the liquidator, so the SAFE is the address
+  // `preSeizeHook` allowlists — not the BStockLiquidator contract and not a bot key.
+  await assertMarketGates({
+    comptroller,
+    isCore,
+    vDebt: vDebt.address,
+    vBStock: vBStock.address,
+    borrower,
+    liquidator: safe,
+    liquidatorLabel: "executing Safe",
+  });
+
+  // Isolated only, and a WARNING rather than an abort: the figure it compares is oracle-priced, so like the
+  // shortfall below it can move between this snapshot and signer quorum. Blocking on it would refuse batches
+  // that will be valid by the time they execute.
+  if (!isCore) {
+    await checkMinLiquidatableCollateral({ comptroller, borrower, runner: provider, forced, severity: "warn" });
+  }
+
   // --- read-only sanity checks (warn, do not block) ---
   const [, , shortfall]: BigNumber[] = await comptroller.getAccountLiquidity(borrower);
   if (shortfall.eq(0) && !forced) {
@@ -234,15 +264,6 @@ export async function buildSafeFallbackBatch(provider: providers.Provider) {
   } else {
     repaySpender = utils.getAddress(vDebt.address);
     console.log(`no pool-wide gate in this pool — repaying directly to the debt market ${repaySpender}`);
-
-    // Here the SAFE is the liquidator, so the SAFE is the address `preSeizeHook` checks — not the
-    // BStockLiquidator contract and not a bot key.
-    if ((await comptroller.isLiquidationAllowlistEnabled()) && !(await comptroller.isAllowedLiquidator(safe))) {
-      throw new Error(
-        `pool liquidation allowlist is ON and the executing Safe ${safe} is not on it — needs a governance ` +
-          `setAllowedLiquidator(${safe}, true) before this batch can execute`,
-      );
-    }
   }
 
   const safeDebtBal: BigNumber = isBnb ? await provider.getBalance(safe) : await debt!.balanceOf(safe);

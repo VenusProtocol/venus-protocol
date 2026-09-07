@@ -56,6 +56,15 @@ export const CORE_COMPTROLLER_ABI = [
   "function isForcedLiquidationEnabledForUser(address,address) view returns (bool)",
   "function treasuryPercent() view returns (uint256)",
   "function liquidatorContract() view returns (address)",
+  // Pool-agnostic, and identical in name AND meaning on both sides (see the header rule): the `Action` enum
+  // is byte-identical in the two repos and `seizeAllowed` refuses a non-member borrower here exactly as the
+  // isolated `preSeizeHook` does. Note the uint8 — the enum encodes as uint8, and the uint256 overload is a
+  // different selector that exists on neither pool.
+  "function actionPaused(address,uint8) view returns (bool)",
+  "function checkMembership(address,address) view returns (bool)",
+  // Core-only: a protocol-wide kill switch above the per-action pauses, checked at the top of every
+  // liquidation hook. The isolated pools express everything through per-action pauses instead.
+  "function protocolPaused() view returns (bool)",
   "function vaiController() view returns (address)",
   "function getEffectiveLiquidationIncentive(address,address) view returns (uint256)",
   "function getLiquidationIncentive(address) view returns (uint256)",

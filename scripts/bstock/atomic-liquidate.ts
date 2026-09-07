@@ -49,8 +49,13 @@
  *   MIN_OUT_BUFFER  extra haircut on minOut beyond slippage, default 0.5 (%) (validated to [0,100))
  *   SETTLE_TTL_MARGIN  min seconds of Native/LM quote TTL required immediately before submit, else
  *                   abort + refetch instead of burning gas on an on-chain DeadlineExpired (default 10)
- *   ALLOW_NO_SHORTFALL  "1" -> proceed even when the borrower has no shortfall (FORCED liquidation of a
- *                   healthy account); default aborts as a fat-finger guard
+ *   ALLOW_NO_SHORTFALL  "1" -> proceed even when getAccountLiquidity reports no shortfall; the default
+ *                   aborts as a fat-finger guard. NOT needed for a forced liquidation: both pools' forced
+ *                   flags are read below and already skip the shortfall gate on their own. This override is
+ *                   for a BORDERLINE account the off-chain read understates, chiefly unaccrued interest (the
+ *                   read is a view over STORED balances, while the on-chain path accrues both markets before
+ *                   checking). With neither a shortfall nor a forced flag, the settle reverts
+ *                   InsufficientShortfall.
  *   SEIZE_BUFFER    haircut on the QUOTED seize so a small oracle uptick can't make the router pull more
  *                   bStock than was seized (which reverts). Default 0.1 (%); unsold remainder is sweepable.
  *                   Keep it small: in MODE=flash the quoted proceeds must still cover principal + premium,
@@ -81,8 +86,6 @@ import {
   CORE_COMPTROLLER_ABI,
   ERC20_ABI,
   ISOLATED_COMPTROLLER_ABI,
-  ISOLATED_VTOKEN_SNAPSHOT_ABI,
-  ORACLE_ABI,
   POOL_REGISTRY_ABI,
   VAI_CONTROLLER_ABI,
   VENUS_LIQUIDATOR_ABI,
@@ -90,50 +93,12 @@ import {
 } from "./lib/abis";
 import { BSC_WBNB, getAmmSwap } from "./lib/amm";
 import { BSC_USDT } from "./lib/native";
+import { assertMarketGates, checkMinLiquidatableCollateral } from "./lib/preflight";
 import { getPsmSwap } from "./lib/psm";
 import { QuoteArgs, selectedSources } from "./lib/sources";
 import { assertVaiGateClear } from "./lib/vai-gate";
 
-// `Action` ordinals, identical in both repos' ComptrollerInterface.
-const ACTION_REDEEM = 1;
-const ACTION_SEIZE = 4;
-const ACTION_LIQUIDATE = 5;
-
 const ONE18 = BigNumber.from(10).pow(18);
-
-/**
- * Reproduce an isolated comptroller's `snapshot.totalCollateral` for an account, in USD-scaled 1e18 units.
- *
- * `preLiquidateHook` compares `minLiquidatableCollateral` against this figure, and nothing exposes it:
- * `getAccountLiquidity` returns only liquidity and shortfall. Mirrors `_accumulateMarket`, keeping the order
- * of the two truncating divisions:
- *
- *   vTokenPrice     = exchangeRateMantissa * price / 1e18
- *   totalCollateral += vTokenPrice * vTokenBalance / 1e18
- *
- * Reproducible off-chain because that weighting values both legs at plain spot, never the deviation-bounded
- * oracle.
- */
-async function isolatedTotalCollateral(
-  comptroller: Contract,
-  oracleAddr: string,
-  account: string,
-  signer: Signer,
-): Promise<BigNumber> {
-  const assets: string[] = await comptroller.getAssetsIn(account);
-  const oracle = new Contract(oracleAddr, ORACLE_ABI, signer);
-  let total = BigNumber.from(0);
-  for (const asset of assets) {
-    const market = new Contract(asset, ISOLATED_VTOKEN_SNAPSHOT_ABI, signer);
-    const [, vTokenBalance, , exchangeRateMantissa]: BigNumber[] = await market.getAccountSnapshot(account);
-    // A borrower is a member of every market it borrows from, including ones it holds no collateral in.
-    if (vTokenBalance.isZero()) continue;
-    const price: BigNumber = await oracle.getUnderlyingPrice(asset);
-    const vTokenPrice = exchangeRateMantissa.mul(price).div(ONE18);
-    total = total.add(vTokenPrice.mul(vTokenBalance).div(ONE18));
-  }
-  return total;
-}
 
 function env(name: string, required = true): string {
   const v = process.env[name];
@@ -347,79 +312,11 @@ export async function atomicLiquidate(signer: Signer) {
     console.log(`isolated flash source: Core market ${flashSrc} lends ${debtSym}`);
   }
 
-  // 0a. Pre-flight. Most of these mirror an ISOLATED hook the on-chain liquidation only reaches AFTER the
-  // repay is staged, so catching them here costs nothing while the same failure on-chain costs a firm RFQ
-  // quote and the gas of a doomed settle. Core has no analogue for those: they live in the pool, not the
-  // diamond. What IS common to both pools — forced liquidation and the close-factor cap — is read here and
-  // enforced once, below.
-  let forced = false;
-  if (!isCore) {
-    // Forced liquidation makes `preLiquidateHook` return BEFORE the collateral, shortfall and close-factor
-    // checks, bounded only by the outstanding balance. Running the full gauntlet in that case would produce
-    // FALSE aborts on liquidations that would have succeeded.
-    forced = await comptroller.isForcedLiquidationEnabled(vDebt.address);
-    if (forced) {
-      console.warn(`WARN: forced liquidation is ENABLED for ${vDebt.address} — shortfall/collateral gates bypassed`);
-    }
-
-    // The account that must be allowlisted is the LIQUIDATOR CONTRACT, not the operator EOA: `preSeizeHook`
-    // checks whoever RECEIVES the collateral, i.e. `msg.sender` of `vDebt.liquidateBorrow`.
-    if (
-      (await comptroller.isLiquidationAllowlistEnabled()) &&
-      !(await comptroller.isAllowedLiquidator(liquidator.address))
-    ) {
-      throw new Error(
-        `pool liquidation allowlist is ON and the liquidator CONTRACT ${liquidator.address} is not on it. ` +
-          `Needs a governance setAllowedLiquidator(${liquidator.address}, true) — allowlisting the operator EOA does nothing.`,
-      );
-    }
-
-    // Three pauses, across TWO markets, gate one liquidation. REDEEM is the easy miss: it is not part of the
-    // liquidation hook chain at all. It fires on the liquidator's OWN redeem, after the repay has succeeded.
-    const [liqPaused, seizePaused, redeemPaused]: boolean[] = await Promise.all([
-      comptroller.actionPaused(vDebt.address, ACTION_LIQUIDATE),
-      comptroller.actionPaused(vBStock.address, ACTION_SEIZE),
-      comptroller.actionPaused(vBStock.address, ACTION_REDEEM),
-    ]);
-    if (liqPaused) throw new Error(`LIQUIDATE is paused on the debt market ${vDebt.address}`);
-    if (seizePaused) throw new Error(`SEIZE is paused on the collateral market ${vBStock.address}`);
-    if (redeemPaused) {
-      throw new Error(
-        `REDEEM is paused on the collateral market ${vBStock.address} — the repay and seize would succeed and ` +
-          `the redeem would then revert, taking the whole tx with it`,
-      );
-    }
-
-    // The BORROWER must have entered the collateral market. Supplying alone does not enter it: membership is
-    // only ever written by enterMarkets or preBorrowHook. (The liquidator is deliberately never a member,
-    // which is what keeps its own redeem off the liquidity check and off the deviation-bounded oracle.)
-    if (!(await comptroller.checkMembership(borrower, vBStock.address))) {
-      throw new Error(
-        `${borrower} has not entered ${vBStock.address} as collateral — preSeizeHook reverts MarketNotCollateral`,
-      );
-    }
-
-    // At or below `minLiquidatableCollateral` the single-market path is refused outright and only
-    // liquidateAccount / healAccount can serve the position. Neither is reachable from this contract: both
-    // are comptroller-level, multi-market, all-borrows-at-once entry points and this is a one-market tool.
-    if (!forced) {
-      const [minColl, oracleAddr]: [BigNumber, string] = await Promise.all([
-        comptroller.minLiquidatableCollateral(),
-        comptroller.oracle(),
-      ]);
-      const totalCollateral = await isolatedTotalCollateral(comptroller, oracleAddr, borrower, signer);
-      if (totalCollateral.lte(minColl)) {
-        throw new Error(
-          `${borrower} total collateral ${ethers.utils.formatEther(totalCollateral)} <= ` +
-            `minLiquidatableCollateral ${ethers.utils.formatEther(minColl)} (USD-scaled) — MinimalCollateralViolated. ` +
-            `This position can only be cleared by the pool's liquidateAccount/healAccount, which this tool cannot drive.`,
-        );
-      }
-      console.log(
-        `isolated collateral ${ethers.utils.formatEther(totalCollateral)} > min ${ethers.utils.formatEther(minColl)}`,
-      );
-    }
-  } else {
+  // 0a. Pre-flight. These mirror comptroller hooks the on-chain liquidation only reaches AFTER the repay is
+  // staged, so reading them here costs a few eth_calls while the same failure on-chain costs a firm RFQ quote
+  // and the gas of a doomed settle. Forced liquidation comes first because it lifts the gates that follow.
+  let forced: boolean;
+  if (isCore) {
     // Core has TWO forced-liquidation flags and `liquidateBorrowAllowed` ORs them — a per-market one and a
     // per-BORROWER one (SetterFacet._setForcedLiquidationForUser). The isolated hook has only the former, so
     // this pair is Core-specific. Either being set makes the account liquidatable with no shortfall and
@@ -435,15 +332,41 @@ export async function atomicLiquidate(signer: Signer) {
           `(${forcedMarket ? "market-wide" : `borrower ${borrower}`}) — shortfall/closeFactor gates bypassed`,
       );
     }
+  } else {
+    // Forced liquidation makes `preLiquidateHook` return BEFORE the collateral, shortfall and close-factor
+    // checks, bounded only by the outstanding balance. Running the full gauntlet in that case would produce
+    // FALSE aborts on liquidations that would have succeeded.
+    forced = await comptroller.isForcedLiquidationEnabled(vDebt.address);
+    if (forced) {
+      console.warn(`WARN: forced liquidation is ENABLED for ${vDebt.address} — shortfall/collateral gates bypassed`);
+    }
   }
 
-  // 0. liquidatable? getAccountLiquidity returns (errorCode, liquidity, shortfall). A non-zero error
-  // code means the reading itself failed (e.g. an oracle PRICE_ERROR), so the shortfall is unreliable —
-  // surface THAT distinctly rather than mislabel it "no shortfall". A zero shortfall means the account
-  // is healthy by the normal metric; abort by default (guards against a fat-fingered borrower), but let
-  // ALLOW_NO_SHORTFALL=1 through: the contract deliberately does NOT pre-check liquidatability
-  // (BStockLiquidator._validateRouters comment) because Core's FORCED liquidations liquidate healthy
-  // accounts, and this script must be able to serve that path.
+  // Pauses, membership and the isolated allowlist, all build-time certainties and all shared with the Safe
+  // fallback (lib/preflight.ts). The allowlisted account is the LIQUIDATOR CONTRACT, not the operator EOA:
+  // `preSeizeHook` checks whoever RECEIVES the collateral, i.e. `msg.sender` of `vDebt.liquidateBorrow`.
+  await assertMarketGates({
+    comptroller,
+    isCore,
+    vDebt: vDebt.address,
+    vBStock: vBStock.address,
+    borrower,
+    liquidator: liquidator.address,
+    liquidatorLabel: "liquidator CONTRACT",
+  });
+
+  // Isolated only, and an abort here rather than a warning: this script sends within seconds of the read, so
+  // the oracle-priced total it compares is effectively the one the hook will see.
+  if (!isCore) {
+    await checkMinLiquidatableCollateral({ comptroller, borrower, runner: signer, forced, severity: "abort" });
+  }
+
+  // 0. liquidatable? getAccountLiquidity returns (errorCode, liquidity, shortfall), weighted by the
+  // LIQUIDATION THRESHOLD in BOTH pools — the same weighting the liquidation gate itself uses, so this is the
+  // number to compare against (getBorrowingPower, the collateral-factor view, would be the wrong one). A
+  // non-zero error code means the reading itself failed (e.g. an oracle PRICE_ERROR), so the shortfall is
+  // unreliable — surface THAT distinctly rather than mislabel it "no shortfall". A zero shortfall means the
+  // account is healthy by that metric; abort by default as a fat-fingered-borrower guard.
   let liqErr: BigNumber;
   let shortfall: BigNumber;
   try {
@@ -464,14 +387,28 @@ export async function atomicLiquidate(signer: Signer) {
     throw new Error(`getAccountLiquidity returned error code ${liqErr} for ${borrower} — cannot assess shortfall`);
   }
   // A forced liquidation is liquidatable with no shortfall by design, in EITHER pool, so do not demand one
-  // there. ALLOW_NO_SHORTFALL stays the escape hatch for anything the flags do not explain.
+  // there — and since `forced` is read from the flags above, a forced liquidation never needs the override.
+  //
+  // What ALLOW_NO_SHORTFALL IS for: a BORDERLINE account this read understates. It is a view over STORED
+  // borrow balances, while `liquidateBorrowInternal` accrues interest on BOTH markets (and `accrueVAIInterest`
+  // on the VAI path) before `liquidateBorrowAllowed` runs, so an account at the boundary can read zero here
+  // and carry real shortfall one accrual later; a price move before the settle lands does the same. Outside
+  // those two cases the override buys nothing: with no shortfall and no forced flag the settle is a certain
+  // InsufficientShortfall.
   if (shortfall.eq(0) && !forced) {
     if (process.env.ALLOW_NO_SHORTFALL !== "1") {
       throw new Error(
-        `${borrower} has no shortfall — not liquidatable. Set ALLOW_NO_SHORTFALL=1 for a forced liquidation of a healthy account.`,
+        `${borrower} has no shortfall — not liquidatable, and no forced-liquidation flag is set for ` +
+          `${vDebt.address} (a forced liquidation would have been detected above and needs no override). ` +
+          `Set ALLOW_NO_SHORTFALL=1 only for a BORDERLINE account this read understates — unaccrued interest, ` +
+          `or a price move before the settle lands. Otherwise the liquidation reverts InsufficientShortfall.`,
       );
     }
-    console.warn(`WARN: ${borrower} has no shortfall — proceeding under ALLOW_NO_SHORTFALL (forced liquidation).`);
+    console.warn(
+      `WARN: ${borrower} has no shortfall and no forced flag — proceeding under ALLOW_NO_SHORTFALL. This ` +
+        `reverts InsufficientShortfall unless accrual or a price move puts the account underwater by the ` +
+        `time the settle tx lands.`,
+    );
   }
   console.log(`borrower ${borrower} shortfall=${ethers.utils.formatEther(shortfall)} (USD-scaled)`);
 

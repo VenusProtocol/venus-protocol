@@ -673,8 +673,9 @@ const test = () => {
 
         const { txs, isCore, repaySpender, vReceived, seizedRaw } = await buildSafeFallbackBatch(ethers.provider);
 
-        // The script probes for a pool-wide gate and takes the revert as the signal. Against the REAL
-        // SpokeComptroller that probe has to come back "no gate", or the whole batch is built Core-shaped.
+        // The script classifies by ADDRESS: the collateral market's comptroller against the Core one. Against
+        // the REAL SpokeComptroller that comparison has to come back false, or the whole batch is built
+        // Core-shaped.
         expect(isCore).to.equal(false);
         expect(ethers.utils.getAddress(repaySpender)).to.equal(svUSDT.address);
         expect(txs).to.have.length(4);

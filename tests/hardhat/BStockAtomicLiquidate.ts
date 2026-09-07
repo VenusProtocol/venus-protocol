@@ -262,6 +262,74 @@ describe("bStock atomic liquidation script", () => {
     });
   });
 
+  // Pauses, membership and the protocol kill switch, all shared with the Safe fallback via
+  // lib/preflight.ts. These used to be read on the ISOLATED branch only, on the belief that Core had no
+  // analogue. It does: `actionPaused(address,uint8)` and `checkMembership` are live on the Unitroller with
+  // the same Action ordinals, `seizeAllowed` refuses a non-member borrower exactly as `preSeizeHook` does,
+  // and `protocolPaused` sits above all of it. Each aborts before a firm quote is spent.
+  describe("market gates (Core)", () => {
+    const ACTION = { REDEEM: 1, SEIZE: 4, LIQUIDATE: 5 };
+
+    it("aborts when LIQUIDATE is paused on the debt market", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setActionPaused(vDebt.address, ACTION.LIQUIDATE, true);
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/LIQUIDATE is paused/);
+      expect(await usdt.balanceOf(liq.address)).to.equal(REPAY); // untouched
+    });
+
+    it("aborts when SEIZE is paused on the collateral market", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setActionPaused(vBStock.address, ACTION.SEIZE, true);
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/SEIZE is paused/);
+    });
+
+    // REDEEM is the easy miss: it is not in the liquidation hook chain at all. It gates the liquidator's
+    // OWN redeem, so the repay and seize would succeed and the redeem would then take the whole tx with it.
+    it("aborts when REDEEM is paused on the collateral market", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setActionPaused(vBStock.address, ACTION.REDEEM, true);
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/REDEEM is paused/);
+    });
+
+    // Supplying alone does not enter a market; only enterMarkets or the borrow hook write membership.
+    it("aborts when the borrower has not entered the collateral market", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setMembership(borrower.address, vBStock.address, false);
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/MarketNotCollateral/);
+    });
+
+    // Core-only: no isolated analogue, since that pool expresses everything through per-action pauses.
+    it("aborts when the Core protocol is paused", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setProtocolPaused(true);
+      setEnv();
+
+      await expect(atomicLiquidate(owner)).to.be.rejectedWith(/protocol is PAUSED/);
+    });
+
+    // The three pauses are keyed on DIFFERENT markets: LIQUIDATE on the debt, SEIZE and REDEEM on the
+    // collateral. Swapping a pair would refuse liquidations that are perfectly legal on-chain.
+    it("does not confuse the two markets' pause keys", async () => {
+      await usdt.mint(liq.address, REPAY);
+      await comptroller.setActionPaused(vBStock.address, ACTION.LIQUIDATE, true); // collateral, not debt
+      await comptroller.setActionPaused(vDebt.address, ACTION.SEIZE, true); // debt, not collateral
+      await comptroller.setActionPaused(vDebt.address, ACTION.REDEEM, true);
+      setEnv();
+
+      await atomicLiquidate(owner);
+
+      expect(await usdt.balanceOf(liq.address)).to.equal(OUT);
+    });
+  });
+
   it("aborts before submit when the Native quote TTL is below the safety margin", async () => {
     await usdt.mint(liq.address, REPAY); // inventory so the guard, not a funding error, is what trips
     // Real Native quote path (no MOCK_NATIVE): stub fetch to return a quote that expires in ~2s, below

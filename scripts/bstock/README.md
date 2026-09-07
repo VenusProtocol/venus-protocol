@@ -227,7 +227,7 @@ call `liquidate`/`flashLiquidate`.
 | `LM_MIN_TTL`          |     | `15`        | Min seconds left on the LM order at build time, else abort (LM RFQ orders are short-lived; the on-chain deadline still enforces the real expiry)                                                             |
 | `SOURCE_TIMEOUT_MS`   |     | `8000`      | Per-request timeout (ms) on each hop-1 source API call, so a hung source aborts and drops out of the `auto` race instead of blocking the live one                                                            |
 | `SETTLE_TTL_MARGIN`   |     | `10`        | Min seconds of quote TTL required immediately before submit; below it the script aborts + refetches instead of burning gas on an on-chain `DeadlineExpired`                                                  |
-| `ALLOW_NO_SHORTFALL`  |     |             | `1` → proceed even when the borrower has no shortfall (FORCED liquidation of a healthy account); default aborts as a fat-finger guard                                                                        |
+| `ALLOW_NO_SHORTFALL`  |     |             | `1` → proceed even when the read reports no shortfall; default aborts as a fat-finger guard. Not for a forced liquidation (those flags are read directly) but for a BORDERLINE account: unaccrued interest   |
 | `DRY_RUN`             |     |             | `1` → callStatic only, sends nothing                                                                                                                                                                         |
 | `SLIPPAGE`            |     | `0.5`       | Native/LM slippage % (validated to `[0,100)`)                                                                                                                                                                |
 | `MIN_OUT_BUFFER`      |     | `0.5`       | Extra haircut on `minOut` beyond slippage (%) (validated to `[0,100)`). For a single-hop indicative (Liquid Mesh) quote, `minOut` is derived from the built order's guaranteed floor, not the indicative out |
@@ -269,20 +269,24 @@ native BNB debt, so 3): the Safe repays from its own funds, seizes the bStock, a
 approval goes to the debt market itself and the call is the market's own 3-arg
 `liquidateBorrow(borrower, repay, vBStock)` — note both the different signature and the different argument
 order from the gate's 4-arg `liquidateBorrow(vDebt, borrower, repay, vBStock)`. The native-BNB 3-tx variant
-and the VAI branch cannot occur there (no native market, no VAIController). The script decides this by
-probing the pool for a `liquidatorContract()` gate rather than by address, so it needs no extra env.
+and the VAI branch cannot occur there (no native market, no VAIController). The script settles which pool it
+is by comparing the collateral market's comptroller against the Core one, **not** by probing for a
+`liquidatorContract()` gate: a revert is not proof of anything, so an RPC hiccup would read as "isolated
+pool" and build the whole batch on the wrong branch.
 
-| Var            | Req | Default                         | Notes                                                                                                                             |
-| -------------- | --- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `BORROWER`     | ✓   |                                 | Account to liquidate                                                                                                              |
-| `VBSTOCK`      | ✓   |                                 | bStock collateral market                                                                                                          |
-| `VDEBT`        | ✓   |                                 | Borrowed market to repay                                                                                                          |
-| `REPAY_AMOUNT` | ✓   |                                 | Repay in debt underlying, human units                                                                                             |
-| `TARGET`       | ✓   |                                 | Binance top-up / custody address for the bStock (or `ALLOW_PLACEHOLDER=1` for a draft)                                            |
-| `SAFE`         |     | `0xdc6E…2029`                   | Executing Safe                                                                                                                    |
-| `RPC_URL`      |     | public dataseed                 | BSC RPC                                                                                                                           |
-| `SEIZE_BUFFER` |     | `0.1`                           | Haircut % on the redeem/transfer amounts, absorbing oracle price drift before the Safe executes; the unredeemed dust is sweepable |
-| `OUT`          |     | `out/bstock-safe-fallback.json` | Output path                                                                                                                       |
+| Var                | Req | Default                         | Notes                                                                                                                             |
+| ------------------ | --- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `BORROWER`         | ✓   |                                 | Account to liquidate                                                                                                              |
+| `VBSTOCK`          | ✓   |                                 | bStock collateral market                                                                                                          |
+| `VDEBT`            | ✓   |                                 | Borrowed market to repay                                                                                                          |
+| `REPAY_AMOUNT`     | ✓   |                                 | Repay in debt underlying, human units                                                                                             |
+| `TARGET`           | ✓   |                                 | Binance top-up / custody address for the bStock (or `ALLOW_PLACEHOLDER=1` for a draft)                                            |
+| `SAFE`             |     | `0xdc6E…2029`                   | Executing Safe                                                                                                                    |
+| `CORE_COMPTROLLER` |     | canonical BSC Unitroller        | Core comptroller the pool is matched against to classify Core vs isolated; only set it against freshly-deployed mocks             |
+| `VBNB_ADDR`        |     | canonical BSC vBNB              | Native BNB market, matched by address for the same reason; only set it against freshly-deployed mocks                             |
+| `RPC_URL`          |     | public dataseed                 | BSC RPC                                                                                                                           |
+| `SEIZE_BUFFER`     |     | `0.1`                           | Haircut % on the redeem/transfer amounts, absorbing oracle price drift before the Safe executes; the unredeemed dust is sweepable |
+| `OUT`              |     | `out/bstock-safe-fallback.json` | Output path                                                                                                                       |
 
 > The batch is a **snapshot** at the current block. `SEIZE_BUFFER` absorbs small oracle price drift, but
 > **price drift alone** (not just a position change) can still invalidate the exact amounts — a stale

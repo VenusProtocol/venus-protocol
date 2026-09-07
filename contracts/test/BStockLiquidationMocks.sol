@@ -82,6 +82,13 @@ contract MockComptrollerLite {
     ///      `liquidateBorrowAllowed` ORs it with the market-wide one above.
     mapping(address => mapping(address => bool)) public isForcedLiquidationEnabledForUser; // borrower -> vToken -> on
     mapping(address => mapping(uint8 => bool)) private _actionPaused; // market -> Action -> paused
+    /// @dev Core's protocol-wide kill switch, checked at the top of every liquidation hook. No isolated
+    ///      analogue: that pool expresses everything through per-action pauses.
+    bool public protocolPaused;
+    /// @dev Inverted so the DEFAULT is "is a member". Every fixture here models a borrower who has entered
+    ///      the collateral market (the only shape a real liquidation can have), so tests opt OUT of
+    ///      membership rather than into it. `seizeAllowed` returns MARKET_NOT_COLLATERAL when it is false.
+    mapping(address => mapping(address => bool)) private _notMember; // account -> vToken -> membership revoked
 
     function setVaiController(address v) external {
         vaiController = v;
@@ -101,6 +108,18 @@ contract MockComptrollerLite {
 
     function actionPaused(address market, uint8 action) external view returns (bool) {
         return _actionPaused[market][action];
+    }
+
+    function setProtocolPaused(bool p) external {
+        protocolPaused = p;
+    }
+
+    function setMembership(address account, address vToken, bool joined) external {
+        _notMember[account][vToken] = !joined;
+    }
+
+    function checkMembership(address account, address vToken) external view returns (bool) {
+        return !_notMember[account][vToken];
     }
 
     function setShortfall(uint256 s) external {
