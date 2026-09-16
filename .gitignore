@@ -35,6 +35,7 @@ contracts/generated
 
 # Claude-generated summaries
 .claude-docs/
+claude-knowledge/
 
 # yarn
 .yarn/*

@@ -52,6 +52,7 @@ async function fetchContractName(address: string, chainId: number, apiKey: strin
   throw new Error(`failed to get contract name for ${address}: ${lastError?.message}`);
 }
 
+// eslint-disable-next-line complexity, sonarjs/cognitive-complexity -- predates the complexity gates, tracked for refactor
 async function generateCutParams() {
   const comptrollerDeployment = await deployments.get("Unitroller");
   const diamondAddress = comptrollerDeployment.address;
