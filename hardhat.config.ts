@@ -349,6 +349,9 @@ const config: HardhatUserConfig = {
       "hardhat-deploy/solc_0.8/proxy/OptimizedTransparentUpgradeableProxy.sol",
       "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol",
     ],
+    // Slither resolves every source path recorded in build-info, so the generated
+    // dependency sources have to survive the compile. Off by default for normal builds.
+    keep: process.env.SLITHER === "true",
   },
 };
 

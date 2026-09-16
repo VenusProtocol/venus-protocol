@@ -30,6 +30,7 @@
     "prettier": "prettier --write \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
     "prettier:check": "prettier --check \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
     "prettier:cached": "prettier --write --cache \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
+    "slither": "slither . --ignore-compile --fail-none",
     "docgen": "hardhat docgen",
     "prepare": "husky install",
     "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts",
