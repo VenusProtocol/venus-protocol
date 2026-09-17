@@ -1,7 +1,0 @@
-{
-  "filter_paths": "contracts/(.+/)?test/|contracts/external|contracts/lib|contracts/hardhat-dependency-compiler|contracts/Comptroller/legacy|contracts/Tokens/VTokens/legacy|contracts/Liquidator/BUSDLiquidator.sol|contracts/Tokens/Prime/libs/FixedMath0x.sol",
-  "exclude_informational": true,
-  "exclude_optimization": true,
-  "exclude_dependencies": true,
-  "detectors_to_exclude": "calls-loop,reentrancy-events,reentrancy-benign,timestamp,reentrancy-balance,incorrect-equality"
-}
