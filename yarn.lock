@@ -2151,7 +2151,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openzeppelin/upgrades-core@npm:1.41.0, @openzeppelin/upgrades-core@npm:^1.27.0":
+"@openzeppelin/upgrades-core@npm:^1.27.0":
   version: 1.41.0
   resolution: "@openzeppelin/upgrades-core@npm:1.41.0"
   dependencies:
@@ -3374,7 +3374,6 @@ __metadata:
     "@openzeppelin/contracts": 4.9.3
     "@openzeppelin/contracts-upgradeable": ^4.8.0
     "@openzeppelin/hardhat-upgrades": ^1.21.0
-    "@openzeppelin/upgrades-core": 1.41.0
     "@semantic-release/changelog": ^6.0.3
     "@semantic-release/git": ^10.0.1
     "@trivago/prettier-plugin-sort-imports": ^4.3.0
