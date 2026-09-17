@@ -102,6 +102,7 @@ function env(name: string, required = true): string {
   return v || "";
 }
 
+// eslint-disable-next-line complexity, sonarjs/cognitive-complexity -- predates the complexity gates, tracked for refactor
 export async function buildSafeFallbackBatch(provider: providers.Provider) {
   const safe = utils.getAddress(process.env.SAFE || DEFAULT_SAFE);
   const borrower = utils.getAddress(env("BORROWER"));

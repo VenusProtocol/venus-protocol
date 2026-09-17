@@ -187,6 +187,7 @@ async function pickHop1Source(args: QuoteArgs): Promise<Hop1> {
   };
 }
 
+// eslint-disable-next-line complexity, sonarjs/cognitive-complexity -- predates the complexity gates, tracked for refactor
 export async function atomicLiquidate(signer: Signer) {
   const dryRun = process.env.DRY_RUN === "1";
   const mode = (process.env.MODE || "inventory").toLowerCase();
