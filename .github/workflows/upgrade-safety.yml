@@ -1,0 +1,44 @@
+name: Upgrade safety
+
+# Pull requests only. The storage layout check compares against the base branch, and GitHub sets
+# GITHUB_BASE_REF on pull_request events alone; on a push there is nothing to diff against.
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  upgrade-safety:
+    name: Storage layout and upgrade safety
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          # The layout check reads the reference implementation artifacts from the base branch, so
+          # the full history has to be present rather than just the PR head.
+          fetch-depth: 0
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "yarn"
+
+      - name: Install dependencies
+        # Hack to get around failing "ethereumjs-abi The remote archive doesn't match the expected checksum" error
+        run: YARN_CHECKSUM_BEHAVIOR=update yarn
+
+      - name: Compile contracts
+        # Both checks read artifacts/build-info, which only a compile produces.
+        run: yarn hardhat compile
+
+      - name: Check upgrade safety
+        # Constructors, delegatecall, selfdestruct, immutables, initializers.
+        run: yarn check:upgrade-safety
+
+      - name: Check storage layout against deployed implementations
+        # Fails if a contract can no longer be upgraded over what is live on a mainnet.
+        run: yarn check:storage-layout
