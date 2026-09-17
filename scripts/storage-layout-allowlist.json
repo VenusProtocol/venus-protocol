@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Deployed implementations excluded from yarn check:storage-layout, keyed <network>/<DeploymentName>.",
+    "Every entry needs a reason. An entry that starts passing is reported as stale and fails the check,",
+    "so this file cannot outlive the problem it documents. Prefer fixing or annotating over adding here.",
+    "A deployment that is simply new does not belong here: it is absent from the base ref and passes on its own."
+  ],
+  "skip": {
+    "bscmainnet/VAIVaultProxy": "Artifact is a stub recording only abi, address and numDeployments, so there is no reference layout to compare against. Source is contracts/VAIVault/VAIVault.sol at 0xa52f2a56abb7cbdd378bc36c6088fafeaf9ac423; verifying that against on-chain bytecode would let us snapshot a baseline and drop this entry.",
+    "bscmainnet/VRTConverterProxy": "Artifact is a stub recording only abi, address and numDeployments, so there is no reference layout to compare against. Source is contracts/Tokens/VRT/VRTConverter.sol at 0x3192d0fb11c15629c403a6416abfcd7587b180b7.",
+    "bscmainnet/VRTVaultProxy": "Artifact is a stub recording only abi, address and numDeployments, so there is no reference layout to compare against. Source is contracts/VRTVault/VRTVault.sol at 0xea98e94d35120b23f9f9f20a7314804d4ab491f1.",
+    "bscmainnet/XVSVestingProxy": "Artifact is a stub recording only abi, address and numDeployments, so there is no reference layout to compare against. Source is contracts/Tokens/XVS/XVSVesting.sol at 0xa9dd0536ab0699d60c28ce369ff366a1e621bff1."
+  }
+}
