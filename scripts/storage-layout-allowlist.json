@@ -1,6 +1,8 @@
 {
   "_comment": [
     "Deployed implementations excluded from yarn check:storage-layout, keyed <network>/<DeploymentName>.",
+    "An entry only excuses a deployment whose artifact records no layout to compare against. It cannot",
+    "suppress a real incompatibility: a target that compares badly fails whether or not it is listed here.",
     "Every entry needs a reason. An entry that starts passing is reported as stale and fails the check,",
     "so this file cannot outlive the problem it documents. Prefer fixing or annotating over adding here.",
     "A deployment that is simply new does not belong here: it is absent from the base ref and passes on its own."

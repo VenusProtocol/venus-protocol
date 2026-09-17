@@ -14,19 +14,20 @@
  * an upgrade is shipping. Reading the base ref keeps the live layout as the reference. A
  * deployment absent from the base branch is new and has nothing to stay compatible with.
  *
- * Appending a variable is a legal upgrade and passes. Inserting, deleting, reordering, resizing,
- * retyping or renaming one shifts every slot after it and fails. That distinction is
- * OpenZeppelin's: getStorageUpgradeReport applies the same rules the upgrades plugin applies at
+ * Appending a variable is a legal upgrade and passes. Inserting, deleting, reordering or resizing
+ * one shifts every slot after it and fails. Renaming or retyping one keeps the slot where it is and
+ * still fails, because the layout alone cannot show whether the value already in that slot means
+ * what the new name says; `@custom:oz-renamed-from` is how the source declares that it does. Those
+ * rules are OpenZeppelin's: getStorageUpgradeReport applies what the upgrades plugin applies at
  * deploy time.
  *
  * The targets come from deployment files rather than from source. `openzeppelin-upgrades-core
  * validate` only reaches contracts inheriting Initializable, which is what leaves Diamond,
  * VAIController and XVSVault outside its scope; they are covered here because they have a
- * deployment artifact. Contracts behind Venus's own delegation have an artifact but no proxy
- * marker, so they are listed by hand in CUSTOM_DELEGATION.
+ * deployment artifact. CUSTOM_DELEGATION adds the ones an artifact alone cannot find.
  *
- *   yarn check:storage-layout                       compares against the working tree (local)
- *   STORAGE_LAYOUT_BASE_REF=origin/develop yarn ...  compares against a git ref
+ *   yarn check:storage-layout                                        against the working tree
+ *   STORAGE_LAYOUT_BASE_REF=origin/develop yarn check:storage-layout  against a git ref
  */
 import {
   getContractVersion,
@@ -59,11 +60,12 @@ const SUFFIX = "_Implementation.json";
  * Implementations behind Venus's own delegation, keyed by network and named by deployment file.
  *
  * The suffix scan above only finds hardhat-deploy's proxies, which it marks with a matching
- * `_Proxy.json`. Venus predates that plugin in two places and neither leaves a marker, so nothing
- * in the artifacts distinguishes these from an ordinary standalone deployment -- they have to be
- * listed. Getting that wrong is silent in one direction: a contract left off this list is simply
- * never compared, which is how a storage insertion in VTokenInterfaces reached every vToken market
- * with the check still green.
+ * `_Proxy.json`. The VBep20Delegator pattern and the Comptroller Diamond both predate that plugin
+ * and write no marker, so nothing in the artifacts tells their implementations apart from an
+ * ordinary standalone deployment. They have to be listed by name.
+ *
+ * An omission here is silent: a contract left off the list is never compared at all. That is how a
+ * storage insertion in VTokenInterfaces reached all 24 vToken markets with the check still green.
  *
  * Do not add a contract that is merely stateful. A standalone deployment is replaced by deploying a
  * fresh one, so its layout is free to change and listing it would report legal work as a failure.
@@ -249,12 +251,10 @@ function toTarget(key: string, artifact?: Record<string, unknown>): Target {
  * never resolves -- a deployment whose source has since been renamed or removed -- defeats the
  * early exit and parses all of them, which is what CI's 4GB heap is sized for.
  *
- * Files are read newest first so a stale build-info from an earlier compile cannot shadow the
- * current one. Going through validate() rather than raw solc output is what makes
- * `@custom:oz-renamed-from` and `@custom:oz-retyped-from` count.
- *
- * Newest-first only orders the build-info files against each other. Whether the newest of them is
- * current at all is `hardhat run`'s job: it compiles before this script is loaded.
+ * Files are read newest first so a build-info left by an earlier compile cannot shadow the current
+ * one. That only orders them against each other; whether the newest is current at all is `hardhat
+ * run`'s job, which compiles before this script loads. Going through validate() rather than raw
+ * solc output is what makes `@custom:oz-renamed-from` and `@custom:oz-retyped-from` count.
  */
 function resolveCurrentLayouts(wanted: Set<string>): Map<string, Layout> {
   const found = new Map<string, Layout>();
@@ -303,7 +303,6 @@ function check(target: Target, current: Map<string, Layout>): string | undefined
 }
 
 interface Results {
-  /** Rendered failure blocks, ready to print. */
   failures: string[];
   /** Allowlisted targets that now pass, so their entry has outlived its reason and should go. */
   stale: string[];
@@ -317,13 +316,24 @@ type Verdict =
   | { kind: "stale" }
   | { kind: "failed"; detail: string };
 
-/** An allowlist entry only suppresses a failure; it never creates one. A target that is simply new
- *  is passed before the allowlist is consulted, which is why new deployments must not be listed. */
+/**
+ * An allowlist entry excuses a target that cannot be compared. It never excuses one that compares
+ * badly.
+ *
+ * Both arrive as a string of prose and mean opposite things. `blocked` says no reference layout
+ * exists, so nothing was checked. A string from check() says the layout was checked and the upgrade
+ * would shift storage under a live proxy. Excusing both would put a real break one line of JSON
+ * away from green, on a file every PR can edit.
+ *
+ * A target that is simply new is passed before the allowlist is consulted, which is why new
+ * deployments must not be listed here either.
+ */
 function verdictFor(target: Target, current: Map<string, Layout>, allowlist: Record<string, string>): Verdict {
   if (target.isNew) return { kind: "new" };
-  const detail = target.blocked ?? check(target, current);
   const allowed = target.key in allowlist;
-  if (detail) return allowed ? { kind: "skipped" } : { kind: "failed", detail };
+  if (target.blocked) return allowed ? { kind: "skipped" } : { kind: "failed", detail: target.blocked };
+  const detail = check(target, current);
+  if (detail) return { kind: "failed", detail };
   return allowed ? { kind: "stale" } : { kind: "ok" };
 }
 
