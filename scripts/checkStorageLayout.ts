@@ -87,6 +87,22 @@ const CUSTOM_DELEGATION: Record<string, string[]> = {
   ],
 };
 
+/**
+ * The Comptroller diamond, by source name: Unitroller's implementation first, then its facets.
+ * They all run against Unitroller's storage, so their layouts must be identical. Per-target
+ * comparison misses that: a variable declared in one facet is an append to that facet and passes.
+ * A facet left off this list is never compared, as with CUSTOM_DELEGATION.
+ */
+const DIAMOND_GROUP = [
+  // The reference: Unitroller delegates to Diamond, so its layout is the shared storage.
+  "contracts/Comptroller/Diamond/Diamond.sol:Diamond",
+  "contracts/Comptroller/Diamond/facets/FlashLoanFacet.sol:FlashLoanFacet",
+  "contracts/Comptroller/Diamond/facets/MarketFacet.sol:MarketFacet",
+  "contracts/Comptroller/Diamond/facets/PolicyFacet.sol:PolicyFacet",
+  "contracts/Comptroller/Diamond/facets/RewardFacet.sol:RewardFacet",
+  "contracts/Comptroller/Diamond/facets/SetterFacet.sol:SetterFacet",
+];
+
 const ROOT = path.join(__dirname, "..");
 const BUILD_INFO_DIR = path.join(ROOT, "artifacts", "build-info");
 const ALLOWLIST_PATH = path.join(__dirname, "storage-layout-allowlist.json");
@@ -339,6 +355,42 @@ function verdictFor(target: Target, current: Map<string, Layout>, allowlist: Rec
 
 const indent = (text: string): string => text.replace(/^/gm, "      ");
 
+/** Requires every facet's layout to match the Diamond's, both read from today's source rather than
+ *  from a deployment. Each pair is reported both ways round because in one direction a variable
+ *  only the facet declares is an append, which OZ passes. */
+function checkDiamondGroup(current: Map<string, Layout>): string[] {
+  const [reference, ...facets] = DIAMOND_GROUP;
+  const base = current.get(reference);
+  // Fails rather than skips, as in check(): renaming Diamond.sol would silently drop the group.
+  if (!base) return [`  FAILED    diamond group  (${reference})\n${indent("not found in artifacts/build-info")}`];
+
+  const failures: string[] = [];
+  for (const fqName of facets) {
+    const layout = current.get(fqName);
+    if (!layout) {
+      failures.push(`  FAILED    diamond group  (${fqName})\n${indent("not found in artifacts/build-info")}`);
+      continue;
+    }
+    const diff = [
+      { from: reference, to: fqName, report: getStorageUpgradeReport(base, layout, withValidationDefaults({})) },
+      { from: fqName, to: reference, report: getStorageUpgradeReport(layout, base, withValidationDefaults({})) },
+    ].find(d => !d.report.ok);
+    if (diff) {
+      failures.push(
+        `  FAILED    diamond group  (${fqName})\n` +
+          indent(
+            `layout differs from ${reference}, the storage every facet shares. State added for one ` +
+              `facet belongs in ComptrollerStorage.\n` +
+              // OZ only explains upgrades, so name the direction: a one-sided variable reads
+              // as deleted from whichever side was treated as the old one.
+              `Read as an upgrade from ${diff.from} to ${diff.to}:\n${diff.report.explain(false)}`,
+          ),
+      );
+    }
+  }
+  return failures;
+}
+
 /** Classifies every target, printing the ones that need no attention as it goes and collecting the
  *  ones that do, so failures print together at the end rather than scattered through the log. */
 function classify(targets: Target[], current: Map<string, Layout>, allowlist: Record<string, string>): Results {
@@ -366,10 +418,11 @@ function main(): void {
     : {};
 
   const targets = collectTargets();
-  const current = resolveCurrentLayouts(new Set(targets.flatMap(t => t.fqName ?? [])));
+  const current = resolveCurrentLayouts(new Set([...targets.flatMap(t => t.fqName ?? []), ...DIAMOND_GROUP]));
 
   console.log(`Reference: ${BASE_REF || "working tree"} | ${targets.length} deployed implementations\n`);
   const { failures, stale } = classify(targets, current, allowlist);
+  failures.push(...checkDiamondGroup(current));
 
   failures.forEach(f => console.log(`\n${f}`));
   // A stale entry counts towards the verdict like a real failure: the allowlist is only trustworthy
