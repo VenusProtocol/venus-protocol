@@ -208,24 +208,74 @@ if (FORK_MAINNET) {
         }
       });
 
+      function isVhPair(borrowed: MarketInputs, collateral: MarketInputs) {
+        return VH_MARKETS.includes(borrowed.address) || VH_MARKETS.includes(collateral.address);
+      }
+
+      function isPriced(market: MarketInputs) {
+        return market.price !== undefined && market.price !== 0n;
+      }
+
+      // Compares both lenses on one pair at $1, $100 and $1M of debt, and returns how many of them could be
+      // priced. Debt without a price cannot be sized in dollars, so any repay checks that both lenses fail alike.
+      async function comparePairAtRepaySizes(borrowed: MarketInputs, collateral: MarketInputs) {
+        if (!isPriced(borrowed)) {
+          await compareLenses(borrowed, collateral, 10n ** 24n);
+          return 0;
+        }
+
+        let priced = 0;
+        for (const usd of [1n, 100n, 1_000_000n]) {
+          if (await compareLenses(borrowed, collateral, repayWorth(borrowed, usd))) {
+            priced++;
+          }
+        }
+        return priced;
+      }
+
+      async function countPairsWithExactSeizeAmount() {
+        let pairs = 0;
+
+        for (const borrowed of markets) {
+          for (const collateral of markets) {
+            if (borrowed.address === collateral.address || !isVhPair(borrowed, collateral)) {
+              continue;
+            }
+
+            pairs += await comparePairAtRepaySizes(borrowed, collateral);
+          }
+        }
+
+        return pairs;
+      }
+
+      async function countOtherLivePairs() {
+        let pairs = 0;
+
+        for (const borrowed of markets) {
+          for (const collateral of markets) {
+            if (borrowed.address === collateral.address || isVhPair(borrowed, collateral)) {
+              continue;
+            }
+
+            const repay = isPriced(borrowed) ? repayWorth(borrowed, 1_000n) : 10n ** 18n;
+
+            const result = await compareLenses(borrowed, collateral, repay);
+            if (!result) {
+              continue;
+            }
+
+            expect(result[0]).to.be.gte(result[1]);
+            pairs++;
+          }
+        }
+
+        return pairs;
+      }
+
       describe("view functions", () => {
         it("returns the exact amount for every pair with a 24-decimal market, where the deployed lens truncates", async () => {
-          let pairs = 0;
-          for (const borrowed of markets) {
-            for (const collateral of markets) {
-              if (borrowed.address === collateral.address) continue;
-              if (!VH_MARKETS.includes(borrowed.address) && !VH_MARKETS.includes(collateral.address)) continue;
-              if (borrowed.price === undefined || borrowed.price === 0n) {
-                await compareLenses(borrowed, collateral, 10n ** 24n);
-                continue;
-              }
-              for (const usd of [1n, 100n, 1_000_000n]) {
-                const result = await compareLenses(borrowed, collateral, repayWorth(borrowed, usd));
-                if (result) pairs++;
-              }
-            }
-          }
-          expect(pairs).to.be.greaterThan(250);
+          expect(await countPairsWithExactSeizeAmount()).to.be.greaterThan(250);
         });
 
         it("seizes nothing on vvhUSDT debt against vBTC collateral with the deployed lens, and the exact amount with the new one", async () => {
@@ -242,20 +292,7 @@ if (FORK_MAINNET) {
         });
 
         it("returns the exact amount for every other live pair and never less than the deployed lens", async () => {
-          let pairs = 0;
-          for (const borrowed of markets) {
-            for (const collateral of markets) {
-              if (borrowed.address === collateral.address) continue;
-              if (VH_MARKETS.includes(borrowed.address) || VH_MARKETS.includes(collateral.address)) continue;
-              const repay =
-                borrowed.price === undefined || borrowed.price === 0n ? 10n ** 18n : repayWorth(borrowed, 1_000n);
-              const result = await compareLenses(borrowed, collateral, repay);
-              if (!result) continue;
-              expect(result[0]).to.be.gte(result[1]);
-              pairs++;
-            }
-          }
-          expect(pairs).to.be.greaterThan(1_000);
+          expect(await countOtherLivePairs()).to.be.greaterThan(1_000);
         });
 
         it("returns the exact amount from the VAI entry point for every collateral", async () => {
