@@ -1,3 +1,14 @@
+## 10.3.0-dev.7 (2026-09-22)
+
+* Merge pull request #711 from VenusProtocol/feat/code-complexity-gates ([33f3933](https://github.com/VenusProtocol/venus-protocol/commit/33f3933)), closes [#711](https://github.com/VenusProtocol/venus-protocol/issues/711)
+* revert: move storage layout checks to their own branch ([72d5f09](https://github.com/VenusProtocol/venus-protocol/commit/72d5f09))
+* revert: remove slither static analysis from ci ([e242e08](https://github.com/VenusProtocol/venus-protocol/commit/e242e08))
+* fix: stop the allowlist from suppressing a real storage incompatibility ([dd56ca7](https://github.com/VenusProtocol/venus-protocol/commit/dd56ca7))
+* feat: check storage layout against deployed implementations in ci ([bfd2acc](https://github.com/VenusProtocol/venus-protocol/commit/bfd2acc))
+* chore: add slither static analysis to ci ([a964902](https://github.com/VenusProtocol/venus-protocol/commit/a964902))
+* chore: enforce function complexity limits in eslint and sonarjs ([a20a286](https://github.com/VenusProtocol/venus-protocol/commit/a20a286))
+* refactor: split generateCutParams into named pipeline stages ([d08bdbb](https://github.com/VenusProtocol/venus-protocol/commit/d08bdbb))
+
 ## 10.3.0-dev.6 (2026-09-04)
 
 * Merge pull request #704 from VenusProtocol/test/bstock-fork ([6dd156f](https://github.com/VenusProtocol/venus-protocol/commit/6dd156f)), closes [#704](https://github.com/VenusProtocol/venus-protocol/issues/704)
