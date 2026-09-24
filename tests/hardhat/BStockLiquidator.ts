@@ -576,15 +576,23 @@ describe("BStockLiquidator (atomic)", () => {
       ).to.be.revertedWithCustomError(liq, "OnlyComptroller");
     });
 
+    // These two build a liquidator whose immutable comptroller is the malicious mock. The pool is resolved
+    // from the COLLATERAL market's own comptroller, so the collateral has to be built against that same mock
+    // or the call is (correctly) rejected as an unknown pool before the callback is ever reached. On chain
+    // the two always agree: the immutable is the Core Unitroller and a Core market answers with it.
+    async function evilCollateralFor(evilAddr: string) {
+      return (await ethers.getContractFactory("MockVTokenCollateral")).deploy(bStock.address, evilAddr);
+    }
+
     it("rejects a flash callback that reports a foreign initiator", async () => {
       const evil = await (await ethers.getContractFactory("MockMaliciousFlashComptroller")).deploy();
       await evil.setMode(0); // BadInitiator
       const evilLiq = await deployLiquidator(evil.address);
       await evilLiq.connect(owner).setRouter(router.address, true);
-      await expect(evilLiq.connect(owner).flashLiquidate(params())).to.be.revertedWithCustomError(
-        evilLiq,
-        "BadInitiator",
-      );
+      const evilVBStock = await evilCollateralFor(evil.address);
+      await expect(
+        evilLiq.connect(owner).flashLiquidate(params({ vBStock: evilVBStock.address })),
+      ).to.be.revertedWithCustomError(evilLiq, "BadInitiator");
     });
 
     it("rejects a flash callback whose flashed asset != params.vDebt", async () => {
@@ -592,10 +600,10 @@ describe("BStockLiquidator (atomic)", () => {
       await evil.setMode(1); // WrongAsset
       const evilLiq = await deployLiquidator(evil.address);
       await evilLiq.connect(owner).setRouter(router.address, true);
-      await expect(evilLiq.connect(owner).flashLiquidate(params())).to.be.revertedWithCustomError(
-        evilLiq,
-        "WrongFlashAsset",
-      );
+      const evilVBStock = await evilCollateralFor(evil.address);
+      await expect(
+        evilLiq.connect(owner).flashLiquidate(params({ vBStock: evilVBStock.address })),
+      ).to.be.revertedWithCustomError(evilLiq, "WrongFlashAsset");
     });
   });
 

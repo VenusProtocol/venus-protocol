@@ -41,6 +41,12 @@ interface IBStockLiquidator {
     /// @notice Emitted when a router's token-approval target (spender) is set or cleared.
     event RouterSpenderSet(address indexed router, address indexed spender);
 
+    /// @notice Emitted when the `PoolRegistry` that decides non-Core pools is set or cleared.
+    event PoolRegistrySet(address indexed oldPoolRegistry, address indexed newPoolRegistry);
+
+    /// @notice Emitted when the Core market that flash-funds a non-Core debt token is set or cleared.
+    event CoreFlashSourceSet(address indexed debtToken, address indexed vToken);
+
     /// @notice Emitted on a successful liquidation.
     /// @param borrower The liquidated account.
     /// @param vBStock The seized bStock collateral market.
@@ -112,6 +118,29 @@ interface IBStockLiquidator {
     ///         with pre-funded VAI instead.
     error FlashNotSupportedForVai();
 
+    /// @notice Thrown when the position is in a non-Core pool and no `PoolRegistry` is configured.
+    error PoolRegistryNotSet();
+
+    /// @notice Thrown when the pool that owns the position has no entry in the configured `PoolRegistry`.
+    /// @dev The pool is resolved from `vBStock.comptroller()`, the collateral leg.
+    error PoolNotRegistered(address comptroller);
+
+    /// @notice Thrown when the address being set as the `PoolRegistry` has no code.
+    error PoolRegistryNotContract(address poolRegistry);
+
+    /// @notice Thrown when a market is not listed in the registered pool it claims to belong to.
+    /// @dev Both legs are checked against the POOL's own storage, never against what the market reports
+    ///      about itself: in isolated mode the repay approves `vDebt`, so an unvalidated one would be an
+    ///      approval to a caller-chosen address.
+    error MarketNotInPool(address comptroller, address market);
+
+    /// @notice Thrown when `flashLiquidate` is called for a non-Core pool whose debt token has no Core market
+    ///         configured to flash-borrow from. Set one with `setCoreFlashSource`, or use `liquidate`.
+    error FlashSourceNotSet(address debtToken);
+
+    /// @notice Thrown when the configured Core flash source's underlying is not the debt token being repaid.
+    error FlashSourceMismatch(address flashSource, address debtToken);
+
     /// @notice Thrown when the call is submitted after `params.deadline`.
     error DeadlineExpired(uint256 deadline, uint256 nowTs);
 
@@ -140,6 +169,24 @@ interface IBStockLiquidator {
     /// @param spender The contract that pulls the input token via `transferFrom` during settlement.
     function setRouterSpender(address router, address spender) external;
 
+    /// @notice Set the `PoolRegistry` that decides which non-Core pools may be liquidated in. A pool is
+    ///         accepted only while that registry holds an entry for it, so enabling one is done by
+    ///         registering it there rather than by a call here.
+    /// @dev Gates the whole isolated branch: until a registry is set, no call can resolve to a non-Core
+    ///      pool. A non-zero address is checked on the way in, reverting {PoolRegistryNotContract} when it
+    ///      has no code and without a reason when it cannot answer `getPoolByComptroller`.
+    /// @param poolRegistry_ The registry to trust; `address(0)` clears it and closes the isolated branch.
+    function setPoolRegistry(address poolRegistry_) external;
+
+    /// @notice Set the Core market whose underlying flash-funds the repay of a non-Core pool's debt token.
+    /// @dev Isolated pools have no flash lender, but a Core flash is not tied to the liquidation target: it
+    ///      lends a market's underlying and wants it back in the same transaction, so a spoke USDT debt is
+    ///      funded from the CORE USDT market. Core mode ignores this and derives its source from `vDebt`.
+    ///      `vToken = address(0)` clears the entry, making `flashLiquidate` revert {FlashSourceNotSet}.
+    /// @param debtToken The non-Core pool's debt underlying (e.g. USDT).
+    /// @param vToken The Core market to flash-borrow from; its `underlying()` must equal `debtToken`.
+    function setCoreFlashSource(address debtToken, IVBep20 vToken) external;
+
     /// @notice Withdraw any token (profit, leftover inventory, stuck dust) to `to`.
     /// @param token Token to withdraw.
     /// @param to Recipient.
@@ -160,7 +207,8 @@ interface IBStockLiquidator {
     function liquidate(LiquidationParams calldata params) external returns (uint256 debtOut);
 
     /// @notice Liquidate by flash-borrowing the repay amount from Venus, repaid (+ premium) in the same tx.
-    /// @dev Requires this contract to be `authorizedFlashLoan` in the Comptroller and `vDebt` flash-enabled.
+    /// @dev Requires this contract to be `authorizedFlashLoan` in the Core Comptroller. The flash-enabled
+    ///      market is `vDebt` itself in Core mode (vWBNB for a vBNB debt), or `coreFlashSource` in isolated.
     ///      Profit (proceeds - repay - premium) stays in the contract; withdraw it with `sweep`.
     /// @param params Liquidation parameters (borrower, markets, repay, hop-1 router + calldata, final
     ///        minOut, `deadline`, and the optional hop-2 router/calldata/intermediate for non-USDT debt).

@@ -4,6 +4,8 @@
 **/.coverage_cache
 **/.coverage_contracts
 **/artifacts
+# vendored build artifacts, kept byte-identical to their source
+tests/hardhat/Fork/vendor
 **/artifacts-zk
 **/build
 **/cache
