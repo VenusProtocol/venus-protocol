@@ -1,3 +1,9 @@
+## 10.3.0-dev.8 (2026-09-24)
+
+* Merge pull request #712 from VenusProtocol/feat/storage-layout-check ([76b414d](https://github.com/VenusProtocol/venus-protocol/commit/76b414d)), closes [#712](https://github.com/VenusProtocol/venus-protocol/issues/712)
+* feat: check storage layout against deployed implementations in ci ([c0b9ce0](https://github.com/VenusProtocol/venus-protocol/commit/c0b9ce0))
+* feat: require every comptroller facet to share the diamond's storage layout ([90b5c7d](https://github.com/VenusProtocol/venus-protocol/commit/90b5c7d))
+
 ## 10.3.0-dev.7 (2026-09-22)
 
 * Merge pull request #711 from VenusProtocol/feat/code-complexity-gates ([33f3933](https://github.com/VenusProtocol/venus-protocol/commit/33f3933)), closes [#711](https://github.com/VenusProtocol/venus-protocol/issues/711)
