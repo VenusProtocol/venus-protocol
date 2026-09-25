@@ -68,3 +68,7 @@ docgen-docs
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
+
+# foundry
+/out
+/cache-foundry

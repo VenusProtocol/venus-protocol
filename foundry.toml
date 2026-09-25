@@ -1,0 +1,18 @@
+[profile.default]
+test = 'tests/foundry'
+# Not the default here: with Hardhat's artifacts/ present, Foundry would write into it.
+out = 'out'
+cache_path = 'cache-foundry'
+
+# Same as hardhat.config.ts.
+evm_version = 'cancun'
+optimizer = true
+
+[profile.default.invariant]
+runs = 64
+depth = 32
+
+# Everything not set here is inherited from the default profile.
+[profile.ci]
+fuzz = { runs = 2000 }
+invariant = { runs = 1000, depth = 100 }

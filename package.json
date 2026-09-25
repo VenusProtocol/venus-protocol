@@ -21,7 +21,7 @@
   "scripts": {
     "compile": "hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
     "coverage": "hardhat coverage",
-    "test": "hardhat test",
+    "test": "hardhat test && forge test",
     "build": "rm -rf dist && tsc --declaration && hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
     "lint": "yarn lint:ts && yarn lint:sol && yarn prettier:check",
     "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
@@ -35,7 +35,7 @@
     "check:upgrades": "yarn check:upgrade-safety && yarn check:storage-layout",
     "docgen": "hardhat docgen",
     "prepare": "husky install",
-    "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts",
+    "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts && forge clean",
     "postinstall": "yarn patch-package"
   },
   "dependencies": {
