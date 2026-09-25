@@ -202,6 +202,22 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Add an asset to be included in an account's liquidity calculation, on that account's behalf
+     * @dev Entering a market makes the account's balance in it count as collateral, which also makes it
+     *  seizable in a liquidation
+     * @param account The address of the account entering the market
+     * @param vToken The address of the vToken market to enable for the account
+     * @return uint256 0=success, otherwise a failure (See enum Error for details)
+     * @custom:access Controlled by ACM
+     */
+    function enterMarketForAccount(address account, address vToken) external returns (uint256) {
+        ensureAllowed("enterMarketForAccount(address,address)");
+        ensureNonzeroAddress(account);
+
+        return uint256(addToMarketInternal(VToken(vToken), account));
+    }
+
+    /**
      * @notice Unlists the given vToken market from the Core Pool (`poolId = 0`) by setting `isListed` to false
      * @dev Checks if market actions are paused and borrowCap/supplyCap/CF are set to 0
      * @param market The address of the market (vToken) to unlist

@@ -794,6 +794,88 @@ describe("Comptroller", () => {
     });
   });
 
+  describe("enterMarketForAccount", async () => {
+    let comptroller: ComptrollerMock;
+    let vToken: FakeContract<VToken>;
+    let accessControl: FakeContract<IAccessControlManagerV5>;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      await contracts.comptroller._supportMarket(vToken.address);
+      await configureVToken(vToken, contracts.comptroller);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, vToken, accessControl } = await loadFixture(deploy));
+
+      // loadFixture restores chain state but not smock's JS-side call config, so a
+      // whenCalledWith override set in one test would otherwise leak into the next.
+      accessControl.isAllowedToCall.reset();
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("should enter the market for another account without any delegate approval", async () => {
+      const account = accounts[1].address;
+
+      const result = await comptroller.callStatic.enterMarketForAccount(account, vToken.address);
+      expect(result).to.equal(0); // NO_ERROR
+
+      await expect(comptroller.enterMarketForAccount(account, vToken.address))
+        .to.emit(comptroller, "MarketEntered")
+        .withArgs(vToken.address, account);
+
+      expect(await comptroller.checkMembership(account, vToken.address)).to.be.true;
+    });
+
+    it("should revert when the caller lacks the ACM permission", async () => {
+      accessControl.isAllowedToCall
+        .whenCalledWith(root.address, "enterMarketForAccount(address,address)")
+        .returns(false);
+
+      await expect(comptroller.enterMarketForAccount(accounts[1].address, vToken.address)).to.be.revertedWith(
+        "access denied",
+      );
+    });
+
+    it("should revert on a zero account", async () => {
+      await expect(comptroller.enterMarketForAccount(ethers.constants.AddressZero, vToken.address)).to.be.revertedWith(
+        "can't be zero address",
+      );
+    });
+
+    it("should revert when the market is not listed", async () => {
+      const unlisted = await smock.fake<VToken>("VToken");
+
+      await expect(comptroller.enterMarketForAccount(accounts[1].address, unlisted.address)).to.be.revertedWith(
+        "market not listed",
+      );
+    });
+
+    it("should be a no-op when the account is already in the market", async () => {
+      const account = accounts[1].address;
+      await comptroller.enterMarketForAccount(account, vToken.address);
+
+      const result = await comptroller.callStatic.enterMarketForAccount(account, vToken.address);
+      expect(result).to.equal(0); // NO_ERROR
+
+      await expect(comptroller.enterMarketForAccount(account, vToken.address)).to.not.emit(
+        comptroller,
+        "MarketEntered",
+      );
+      expect(await comptroller.getAssetsIn(account)).to.deep.equal([vToken.address]);
+    });
+
+    it("should leave the delegate-gated entry point untouched", async () => {
+      await expect(
+        comptroller.connect(accounts[1]).enterMarketBehalf(root.address, vToken.address),
+      ).to.be.revertedWithCustomError(comptroller, "NotAnApprovedDelegate");
+    });
+  });
+
   describe("Hooks", () => {
     let unitroller: Unitroller;
     let comptroller: ComptrollerMock;
