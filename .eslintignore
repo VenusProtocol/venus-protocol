@@ -9,9 +9,6 @@
 **/coverage
 **/dist
 **/node_modules
-/lib
-/out
-/cache-foundry
 **/types
 typechain
 

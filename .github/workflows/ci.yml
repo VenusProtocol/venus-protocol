@@ -79,7 +79,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: v1.3.5
+          version: v1.5.1
 
       - name: Run forge tests
         run: forge test -vvv
