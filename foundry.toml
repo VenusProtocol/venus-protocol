@@ -32,13 +32,10 @@ fs_permissions = [{ access = 'read', path = './out' }]
 
 [profile.default.fuzz]
 runs = 256
-# Default is cache/fuzz, which is Hardhat's cache directory.
-failure_persist_dir = 'cache-foundry/fuzz'
 
 [profile.default.invariant]
 runs = 64
 depth = 32
-failure_persist_dir = 'cache-foundry/invariant'
 
 # Thorough, only in CI. Everything not set here is inherited from the default profile.
 [profile.ci]

@@ -92,7 +92,7 @@ revert.
 spends the prank on `balanceOf` and runs `redeem` as the test contract. Read values into locals
 first.
 
-A third, milder one: a failing invariant is **persisted** under `cache-foundry/invariant/failures`
+A third, milder one: a failing invariant is **persisted** under `cache/invariant/failures`
 and replayed ahead of new runs. After relaxing or rewriting an assertion, delete that directory,
 or the old counterexample keeps failing against the new code.
 
