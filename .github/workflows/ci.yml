@@ -53,6 +53,39 @@ jobs:
           recreate: true
           path: code-coverage-results.md
 
+  forge-test:
+    name: Forge tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          # forge-std lives in lib/ as a submodule.
+          submodules: recursive
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "yarn"
+
+      # Foundry resolves @openzeppelin/ and @venusprotocol/ out of node_modules, so the yarn
+      # install has to happen before forge runs.
+      - name: Install dependencies
+        run: yarn
+
+      # Pinned: unpinned installs the latest stable, which moves under the job without a change here.
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.5
+
+      - name: Run forge tests
+        run: forge test -vvv
+        env:
+          FOUNDRY_PROFILE: ci
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
