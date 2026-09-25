@@ -3,9 +3,9 @@
 Foundry runs alongside Hardhat here, it does not replace it. `contracts/` is shared; the
 TypeScript suite in `tests/hardhat` is untouched.
 
-`yarn test`, `yarn compile` and `yarn clean` each run Hardhat first and then Foundry, so the
-normal commands cover both toolchains. `yarn build` is Hardhat-only: it produces the published
-package, and the Foundry output is not part of it.
+`yarn test` and `yarn clean` each run Hardhat first and then Foundry, so the normal commands cover
+both toolchains. `yarn compile` and `yarn build` are Hardhat-only: `forge test` compiles what it
+needs, and the Foundry output is not part of the published package.
 
 Call `forge` directly to work on one suite:
 
@@ -47,8 +47,7 @@ broken by a fixture change made for the other. A directory that grows its own sh
 
 `ProtocolBase` reads each facet's selectors from its interface artifact in `out/`, the same way
 `tests/hardhat/Comptroller/Diamond/scripts/deploy.ts` reads them from the ABI, so the two fixtures
-cannot drift apart and a function added to a facet interface needs no change here. This is why
-`fs_permissions` grants read access to `./out`.
+cannot drift apart and a function added to a facet interface needs no change here.
 
 ## What belongs where
 
@@ -71,7 +70,7 @@ Everything else already has a home. A plain unit test that Hardhat handles fine 
 
 ## The 0.5.16 boundary
 
-`contracts/` spans two compiler eras, which is why `auto_detect_solc` is on. `forge build` covers
+`contracts/` spans two compiler eras. `forge build` picks the compiler per file and covers
 both, but a `^0.8` test file cannot import a `0.5.16` contract, so the Solidity-side reach of
 Foundry stops at the 0.8.25 surface: Prime, the Comptroller diamond and its facets, PegStability,
 VAI, VTokens (non-legacy), Swap, Liquidator, Lens, BStock, DelegateBorrowers.
@@ -115,7 +114,7 @@ files. Clone with `--recurse-submodules`, or run `git submodule update --init --
 existing checkout.
 
 `remappings.txt` holds a single line for `forge-std`. Foundry does not need it — it finds
-forge-std through `libs` — but Solidity language servers do not read `foundry.toml`, and without
+forge-std in `lib/` on its own — but Solidity language servers do not read `foundry.toml`, and without
 it they flag every `forge-std/` import as unresolved. Declaring one remapping does not switch
 auto-detection off: the node_modules remappings are still merged on top, so nothing else belongs
 in that file.

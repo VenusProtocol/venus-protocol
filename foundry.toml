@@ -1,43 +1,18 @@
-# Foundry runs alongside Hardhat, it does not replace it. Hardhat stays the owner of the
-# TypeScript test suite (tests/hardhat), of deployments (deploy/, deployments/, consumed as a
-# published API by the other Venus repos) and of the zkSync build. Foundry is confined to the
-# tests/foundry subtree and is here for what Hardhat cannot do: stateful invariants, in-EVM fuzzing,
-# cheatcode-driven fork tests and gas snapshots.
-#
-#   forge build            compile contracts/ (~25s, all pragmas)
-#   forge test             run tests/foundry, with the fuzz budget the edit loop wants
-#   FOUNDRY_PROFILE=ci     the thorough budget CI uses
-
 [profile.default]
-src = 'contracts'
 test = 'tests/foundry'
+# Not the default here: with Hardhat's artifacts/ present, Foundry would write into it.
 out = 'out'
 cache_path = 'cache-foundry'
-# node_modules first so Foundry derives @openzeppelin/, @venusprotocol/ and the rest of the
-# Solidity dependencies from the yarn install. They need no remappings as a result, and the
-# versions Foundry compiles against are the ones package.json pins.
-libs = ['node_modules', 'lib']
 
-# contracts/ spans 0.5.16 and 0.8.25, so a single solc_version cannot build the tree.
-auto_detect_solc = true
-
-# Kept identical to hardhat.config.ts so sizes and gas numbers mean the same thing in both.
+# Same as hardhat.config.ts.
 evm_version = 'cancun'
 optimizer = true
-optimizer_runs = 200
-
-# ProtocolBase reads each facet's selectors from its interface artifact, as the Hardhat fixture
-# does from the ABI.
-fs_permissions = [{ access = 'read', path = './out' }]
-
-[profile.default.fuzz]
-runs = 256
 
 [profile.default.invariant]
 runs = 64
 depth = 32
 
-# Thorough, only in CI. Everything not set here is inherited from the default profile.
+# Everything not set here is inherited from the default profile.
 [profile.ci]
 fuzz = { runs = 2000 }
 invariant = { runs = 1000, depth = 100 }

@@ -61,7 +61,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          # forge-std lives in lib/ as a submodule.
           submodules: recursive
 
       - name: Setup Node.js environment
@@ -70,12 +69,10 @@ jobs:
           node-version: 18
           cache: "yarn"
 
-      # Foundry resolves @openzeppelin/ and @venusprotocol/ out of node_modules, so the yarn
-      # install has to happen before forge runs.
+      # Foundry resolves the Solidity dependencies out of node_modules.
       - name: Install dependencies
         run: yarn
 
-      # Pinned: unpinned installs the latest stable, which moves under the job without a change here.
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:

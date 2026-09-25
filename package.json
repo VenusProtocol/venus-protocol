@@ -19,7 +19,7 @@
     "deployments"
   ],
   "scripts": {
-    "compile": "hardhat compile && hardhat compile --config hardhat.config.zksync.ts && forge build",
+    "compile": "hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
     "coverage": "hardhat coverage",
     "test": "hardhat test && forge test",
     "build": "rm -rf dist && tsc --declaration && hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
