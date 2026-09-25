@@ -11,7 +11,7 @@ Call `forge` directly to work on one suite:
 
 ```
 forge test                      run the Foundry suite alone, 256 fuzz runs
-FOUNDRY_PROFILE=ci   forge test the thorough budget CI uses, 5000 fuzz runs
+FOUNDRY_PROFILE=ci   forge test the thorough budget CI uses, 2000 fuzz runs
 forge build --sizes             contract sizes
 forge inspect <C> storageLayout ad-hoc layout dump
 ```

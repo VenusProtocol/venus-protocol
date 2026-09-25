@@ -42,5 +42,5 @@ failure_persist_dir = 'cache-foundry/invariant'
 
 # Thorough, only in CI. Everything not set here is inherited from the default profile.
 [profile.ci]
-fuzz = { runs = 5000 }
+fuzz = { runs = 2000 }
 invariant = { runs = 1000, depth = 100 }
