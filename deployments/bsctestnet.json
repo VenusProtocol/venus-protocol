@@ -20967,7 +20967,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x3372D6aeb32aa6AB0933127ac9194E8915172752",
+      "address": "0x52f4c550a310340284e07B4A8A2722c20C71D39B",
       "abi": [
         {
           "inputs": [],
@@ -21723,6 +21723,30 @@
             }
           ],
           "name": "enterMarketBehalf",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "enterMarketForAccount",
           "outputs": [
             {
               "internalType": "uint256",
