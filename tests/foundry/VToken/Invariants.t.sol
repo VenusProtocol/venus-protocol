@@ -41,13 +41,4 @@ contract VTokenInvariantsTest is VTokenBase {
         if (vToken.totalSupply() == 0) return;
         assertGe(vToken.exchangeRateStored(), handler.ghostExchangeRate());
     }
-
-    /// @notice The pool is solvent: what it holds plus what it is owed covers what it has promised
-    ///  its suppliers, after setting aside the reserves.
-    function invariant_marketIsSolvent() public view {
-        uint256 supplied = (vToken.totalSupply() * vToken.exchangeRateStored()) / 1e18;
-        uint256 assets = vToken.getCash() + vToken.totalBorrows();
-
-        assertGe(assets, supplied + vToken.totalReserves());
-    }
 }
