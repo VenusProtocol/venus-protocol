@@ -32,7 +32,7 @@ contract VTokenHandler is CommonBase, StdCheats, StdUtils {
 
     address[] public actors;
 
-    /// @dev Ghost state: the rate as of the last call, which the vToken does not keep.
+    /// @dev Ghost state: the rate going into the last call, which the vToken does not keep.
     uint256 public ghostExchangeRate;
 
     uint256 internal constant MAX_ACTION = 1e24;
@@ -44,9 +44,11 @@ contract VTokenHandler is CommonBase, StdCheats, StdUtils {
         ghostExchangeRate = vToken_.exchangeRateStored();
     }
 
+    /// @dev Records before the action, so the invariant compares the rate the call left behind
+    ///  against the rate it started from.
     modifier recordsExchangeRate() {
-        _;
         ghostExchangeRate = vToken.exchangeRateStored();
+        _;
     }
 
     function _actor(uint256 seed) internal view returns (address) {

@@ -64,11 +64,14 @@ We detail a few of the core contracts in the Venus protocol.
 
 ## Installation
 
-To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed.
+To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed, and [Foundry](https://getfoundry.sh) v1.5.1, since `yarn test` and `yarn clean` run Forge after Hardhat.
 
-    git clone https://github.com/VenusProtocol/venus-protocol
+    git clone --recurse-submodules https://github.com/VenusProtocol/venus-protocol
     cd venus-protocol
     yarn install --lock-file # or `npm install`
+    foundryup --install v1.5.1
+
+In an existing checkout, fetch the `forge-std` submodule with `git submodule update --init --recursive`.
 
 ## Testing
 

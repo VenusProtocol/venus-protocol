@@ -35,8 +35,10 @@ contract VTokenInvariantsTest is VTokenBase {
     }
 
     /// @notice The exchange rate is a ratchet. Interest and rounding push it up; no user action
-    ///  may push it down, because that would take value from the suppliers already in.
+    ///  may push it down, because that would take value from the suppliers already in. An emptied
+    ///  market falls back to the initial rate, which takes nothing since no supplier is left.
     function invariant_exchangeRateNeverFalls() public view {
+        if (vToken.totalSupply() == 0) return;
         assertGe(vToken.exchangeRateStored(), handler.ghostExchangeRate());
     }
 
