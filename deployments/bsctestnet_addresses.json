@@ -135,6 +135,7 @@
     "PrimeLiquidityProvider_Implementation": "0xbc85D7c9F7BdB348bd31d726ADa716d7efAEaBfB",
     "PrimeLiquidityProvider_Proxy": "0xAdeddc73eAFCbed174e6C400165b111b0cb80B7E",
     "PrimeV2": "0xeC22366d2572e52BCB29B50C905b945BA421B9b2",
+    "PrimeV2_Impl": "0x0191Bb3CD28A96691F5EC5066ad42A0373ae11C6",
     "PrimeV2_Implementation": "0x9Ab9dA79df616a4b55B1f9c9994d582D6865aB08",
     "PrimeV2_Proxy": "0xeC22366d2572e52BCB29B50C905b945BA421B9b2",
     "Prime_Implementation": "0x3C439A567C0f66b3D2Ca682327fC303Ec3Fb82D9",
