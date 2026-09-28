@@ -64,7 +64,7 @@ We detail a few of the core contracts in the Venus protocol.
 
 ## Installation
 
-To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed, and [Foundry](https://getfoundry.sh) v1.5.1, since `yarn test` and `yarn clean` run Forge after Hardhat.
+To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed. [Foundry](https://getfoundry.sh) v1.5.1 is optional: only `yarn test:foundry` needs it.
 
     git clone --recurse-submodules https://github.com/VenusProtocol/venus-protocol
     cd venus-protocol
@@ -83,7 +83,9 @@ Contract tests are defined under the [tests directory](https://github.com/VenusP
 
 ```
 
-- To run fork tests set the`FORKED_NETWORK` var in the `.env` file. An env variable with the name `ARCHIVE_NODE_<FORKED_NETWORK>` is also required.
+The Foundry tests under `tests/foundry` run separately, with `yarn test:foundry` (or `forge test`).
+
+- To run fork tests set the`FORKED_NETWORK` var in the `.env` file. An env variable with the name `ARCHIVE_NODE_<FORKED_NETWORK>` is also required. Foundry fork tests use the same `ARCHIVE_NODE_*` variables, through the `[rpc_endpoints]` in `foundry.toml`.
 
 ## Code Coverage
 

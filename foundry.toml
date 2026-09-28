@@ -3,11 +3,16 @@ test = 'tests/foundry'
 # Not the default here: with Hardhat's artifacts/ present, Foundry would write into it.
 out = 'out'
 cache_path = 'cache-foundry'
+# ProtocolBase reads the facet ABIs out of the forge artifacts. Without this, reads from out/
+# are only allowed when out/ already exists at startup, so a fresh clone fails its first run.
+fs_permissions = [{ access = "read", path = "out" }]
 
 # Same as hardhat.config.ts.
 evm_version = 'cancun'
 optimizer = true
+optimizer_runs = 200
 
+# The edit-loop budget for future invariant suites; CI overrides it below.
 [profile.default.invariant]
 runs = 64
 depth = 32
@@ -16,3 +21,31 @@ depth = 32
 [profile.ci]
 fuzz = { runs = 2000 }
 invariant = { runs = 1000, depth = 100 }
+
+[profile.lite]
+fuzz = { runs = 50 }
+invariant = { runs = 10 }
+
+# The linter cannot parse the 0.5.x contracts, so building would print an error per file.
+# Run it on demand instead: forge lint
+[lint]
+lint_on_build = false
+
+# Fork tests pick an endpoint by name: forge test --fork-url bscmainnet, or
+# vm.createSelectFork("bscmainnet"). The URLs come from the same ARCHIVE_NODE_* variables in
+# .env that the Hardhat fork tests use, and are only resolved when a fork is requested.
+[rpc_endpoints]
+bsctestnet = "${ARCHIVE_NODE_bsctestnet}"
+bscmainnet = "${ARCHIVE_NODE_bscmainnet}"
+sepolia = "${ARCHIVE_NODE_sepolia}"
+ethereum = "${ARCHIVE_NODE_ethereum}"
+opbnbtestnet = "${ARCHIVE_NODE_opbnbtestnet}"
+opbnbmainnet = "${ARCHIVE_NODE_opbnbmainnet}"
+arbitrumsepolia = "${ARCHIVE_NODE_arbitrumsepolia}"
+arbitrumone = "${ARCHIVE_NODE_arbitrumone}"
+opsepolia = "${ARCHIVE_NODE_opsepolia}"
+opmainnet = "${ARCHIVE_NODE_opmainnet}"
+basesepolia = "${ARCHIVE_NODE_basesepolia}"
+basemainnet = "${ARCHIVE_NODE_basemainnet}"
+unichainsepolia = "${ARCHIVE_NODE_unichainsepolia}"
+unichainmainnet = "${ARCHIVE_NODE_unichainmainnet}"

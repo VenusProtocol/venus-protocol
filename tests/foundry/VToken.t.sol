@@ -1,15 +1,29 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { VTokenBase } from "./VTokenBase.t.sol";
+import { ProtocolBase } from "./ProtocolBase.t.sol";
 
 /// @notice Supplying and withdrawing, and the rounding at the edges of both.
-contract MintRedeemTest is VTokenBase {
+contract VTokenTest is ProtocolBase {
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");
 
     function setUp() public {
         _deployMarket();
+    }
+
+    /// @dev Funds `who`, enters the market on their behalf and mints `amount` of underlying.
+    function _mintAs(address who, uint256 amount) internal {
+        deal(address(underlying), who, amount);
+
+        address[] memory markets = new address[](1);
+        markets[0] = address(vToken);
+
+        vm.startPrank(who);
+        comptroller.enterMarkets(markets);
+        underlying.approve(address(vToken), amount);
+        vToken.mint(amount);
+        vm.stopPrank();
     }
 
     function test_mintCreditsVTokensAtTheExchangeRate() public {
