@@ -70,6 +70,49 @@ const FORK_BLOCK = Number(process.env.FORK_BSTOCK_BLOCK || "111264600");
 // Live BStockLiquidator proxy on bscmainnet (deployments/bscmainnet/BStockLiquidator.json).
 const DEPLOYED_LIQ = "0x5974Badab6911a78Ba15229045514C2C1bD42343";
 
+// EIP-1967 slots, read at runtime so the proxy admin is never a stale literal either.
+const IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
+const PROXY_ADMIN_ABI = ["function upgrade(address,address)", "function owner() view returns (address)"];
+
+// Distinct codeless probe address for the state-survival check; used nowhere else in the suite.
+const OPERATOR_PROBE = ethers.utils.getAddress("0x00000000000000000000000000000000000b0b0e");
+
+/**
+ * Re-pin the forked chain's clock to `ts + 1`.
+ *
+ * Hardhat drives block.timestamp off wall time, and evm_revert restores state but not that offset, so a
+ * long run walks the chain clock past the fork block until price feeds read stale and revert. Pinning
+ * after every revert gives every test the same on-chain time, so a test cannot pass alone and fail in
+ * the full run because of where it sits in the file.
+ */
+async function pinClock(ts: number): Promise<void> {
+  await ethers.provider.send("evm_setNextBlockTimestamp", [ts + 1]);
+}
+
+async function readSlotAddress(target: string, slot: string): Promise<string> {
+  return ethers.utils.getAddress("0x" + (await ethers.provider.getStorageAt(target, slot)).slice(26));
+}
+
+/**
+ * Upgrade the LIVE proxy to the freshly compiled implementation the way governance would: through the
+ * proxy's own admin, driven by the admin's owner. The implementation is deployed with the immutables the
+ * live one carries, so nothing but the code changes.
+ */
+async function upgradeLiveProxy(live: Contract): Promise<string> {
+  const adminAddr = await readSlotAddress(DEPLOYED_LIQ, ADMIN_SLOT);
+  const admin = new ethers.Contract(adminAddr, PROXY_ADMIN_ABI, ethers.provider);
+  const adminOwner = await initMainnetUser(await admin.owner(), parseEther("10"));
+
+  // Immutables are read off the LIVE proxy, so the replacement carries exactly what it already has.
+  const Factory = await ethers.getContractFactory("BStockLiquidator");
+  const impl = await Factory.deploy(await live.comptroller(), await live.vBNB(), await live.vWBNB(), await live.wbnb());
+  await impl.deployed();
+
+  await admin.connect(adminOwner).upgrade(DEPLOYED_LIQ, impl.address);
+  return impl.address;
+}
+
 const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
 const VCAKE = "0x86aC3974e2BD0d60825230fa6F355fF11409df5c";
 
@@ -159,6 +202,14 @@ const test = () => {
     let mock: Contract; // Native RFQ stand-in for hop-1 (bStock -> USDT)
     let usdtSlot: number;
     let baseSnap: string;
+    let baseSnapTs: number;
+    let newImpl: string;
+    let oldImplHadNewGetter: boolean;
+    let oldImplHadSpender: boolean;
+    let newImplHasNewGetter: boolean;
+    let newImplHasSpender: boolean;
+    let preUpgrade: Record<string, any>;
+    let postUpgrade: Record<string, any>;
 
     const slotCache: Record<string, BalanceSlot> = {};
 
@@ -206,18 +257,131 @@ const test = () => {
       // own allowlist entry. See verify-lm-fork.ts for the live, at-head proof of the real hop-1 path.
       await liq.connect(owner).setRouter(mock.address, true);
 
+      // ---------------------------------------------------------------------------------------
+      // UPGRADE THE LIVE PROXY. Everything below then runs against the upgraded instance, so every
+      // Core scenario in this file doubles as a post-upgrade regression: if dual-pool support
+      // changed Core behaviour in any way, those tests fail.
+      // ---------------------------------------------------------------------------------------
+      // Write state through the live implementation, to read it back through the new one. The probe
+      // below records which getters each side answers rather than assuming, so the upgrade assertions
+      // stay honest if the live implementation moves.
+      await liq.connect(owner).setOperator(OPERATOR_PROBE, true);
+
+      const capture = async () => ({
+        impl: await readSlotAddress(DEPLOYED_LIQ, IMPL_SLOT),
+        owner: await liq.owner(),
+        comptroller: await liq.comptroller(),
+        vBNB: await liq.vBNB(),
+        vWBNB: await liq.vWBNB(),
+        wbnb: await liq.wbnb(),
+        operatorProbe: await liq.isOperator(OPERATOR_PROBE),
+        routerMock: await liq.isRouter(mock.address),
+        routerPcs: await liq.isRouter(A.PCS_ROUTER),
+      });
+
+      const has = (p: Promise<unknown>) => p.then(() => true).catch(() => false);
+
+      preUpgrade = await capture();
+      // Neither getter exists on the old implementation; this is what proves the upgrade is real.
+      oldImplHadNewGetter = await has(liq.poolRegistry());
+      oldImplHadSpender = await has(liq.routerSpender(mock.address));
+
+      newImpl = await upgradeLiveProxy(liq);
+      postUpgrade = await capture();
+
+      newImplHasNewGetter = await has(liq.poolRegistry());
+      newImplHasSpender = await has(liq.routerSpender(mock.address));
+
+      // Clear the probe state so the scenarios below start from the configuration they expect.
+      await liq.connect(owner).setOperator(OPERATOR_PROBE, false);
+
       baseSnap = await ethers.provider.send("evm_snapshot", []);
+      baseSnapTs = (await ethers.provider.getBlock("latest")).timestamp;
     });
 
     afterEach(async () => {
       // evm_revert consumes the snapshot id, so re-take it for the next test.
       await ethers.provider.send("evm_revert", [baseSnap]);
       baseSnap = await ethers.provider.send("evm_snapshot", []);
+      await pinClock(baseSnapTs);
       await mock.setRate(P_HEALTHY); // reset the quote the mock models
     });
 
     /* ---------------------------------------------------------------- */
-    /*                       curated scenarios                          */
+    /*                    upgrade of the LIVE proxy                     */
+    /* ---------------------------------------------------------------- */
+
+    describe("upgrade", () => {
+      it("actually swapped the implementation", () => {
+        expect(preUpgrade.impl).to.not.equal(newImpl);
+        expect(postUpgrade.impl).to.equal(newImpl);
+      });
+
+      it("adds the dual-pool surface that the old implementation did not have", () => {
+        expect(oldImplHadNewGetter).to.equal(false);
+        expect(newImplHasNewGetter).to.equal(true);
+        // `routerSpender` already ships in the live implementation, so it is the control: a getter that
+        // answers on both sides, proving the pair above measures the upgrade and not a broken probe.
+        expect(oldImplHadSpender).to.equal(true);
+        expect(newImplHasSpender).to.equal(true);
+      });
+
+      it("preserves every immutable", () => {
+        expect(postUpgrade.comptroller).to.equal(preUpgrade.comptroller);
+        expect(postUpgrade.vBNB).to.equal(preUpgrade.vBNB);
+        expect(postUpgrade.vWBNB).to.equal(preUpgrade.vWBNB);
+        expect(postUpgrade.wbnb).to.equal(preUpgrade.wbnb);
+        // ...and the comptroller is genuinely the Core Unitroller, so `_resolvePool` anchors on Core.
+        expect(postUpgrade.comptroller).to.equal(A.COMPTROLLER);
+        expect(postUpgrade.vBNB).to.equal(A.VBNB);
+        expect(postUpgrade.vWBNB).to.equal(A.VWBNB);
+        expect(postUpgrade.wbnb).to.equal(TOK.WBNB);
+      });
+
+      it("preserves every storage slot written through the OLD implementation", () => {
+        expect(postUpgrade.owner).to.equal(preUpgrade.owner);
+        expect(preUpgrade.operatorProbe).to.equal(true);
+        expect(postUpgrade.operatorProbe).to.equal(true);
+        expect(preUpgrade.routerMock).to.equal(true);
+        expect(postUpgrade.routerMock).to.equal(true);
+        expect(preUpgrade.routerPcs).to.equal(true);
+        expect(postUpgrade.routerPcs).to.equal(true);
+      });
+
+      it("leaves the appended state empty — inert until a registry is deliberately configured", async () => {
+        expect(await liq.poolRegistry()).to.equal(ZERO);
+        expect(await liq.coreFlashSource(TOK.USDT)).to.equal(ZERO);
+        expect(await liq.coreFlashSource(TOK.WBNB)).to.equal(ZERO);
+      });
+
+      it("resolves a live Core position to the Core pool, so no isolated code is reachable", async () => {
+        const vb = new ethers.Contract(
+          mkt.vBStock.address,
+          ["function comptroller() view returns (address)"],
+          ethers.provider,
+        );
+        expect(await vb.comptroller()).to.equal(await liq.comptroller());
+      });
+
+      it("refuses a PoolRegistry address with no code", async () => {
+        // A fresh address, not a signer: hardhat's own accounts can carry an EIP-7702 delegation on a
+        // mainnet fork, and that counts as code here.
+        const codeless = ethers.Wallet.createRandom().address;
+        expect(await ethers.provider.getCode(codeless)).to.equal("0x");
+        await expect(liq.connect(owner).setPoolRegistry(codeless))
+          .to.be.revertedWithCustomError(liq, "PoolRegistryNotContract")
+          .withArgs(codeless);
+      });
+
+      it("a Core liquidation reverts if someone tries to flash it from an unconfigured isolated source", async () => {
+        // Sanity: `coreFlashSource` is never consulted for a Core position, so leaving it unset
+        // cannot break the Core flash path. Proven by the flash scenario below still passing.
+        expect(await liq.coreFlashSource(TOK.USDT)).to.equal(ZERO);
+      });
+    });
+
+    /* ---------------------------------------------------------------- */
+    /*        curated scenarios (all POST-UPGRADE regressions)          */
     /* ---------------------------------------------------------------- */
 
     describe("curated scenarios", () => {
@@ -964,7 +1128,8 @@ const test = () => {
           cTl,
         )._setForcedLiquidation(VUSDT, true);
 
-        // The live gate no longer fails on VAI grounds (it still fails later — no borrow to repay).
+        // With forced liquidation on, the gate stops failing on VAI grounds (it still fails later, on the
+        // absent borrow).
         const err = await probeGate().then(
           () => null,
           (e: Error) => e,
@@ -1367,6 +1532,9 @@ const test = () => {
           owner,
         );
         const markets: string[] = await c.getAllMarkets();
+        // Every market is attempted from the same on-chain time; without this the sweep's own runtime
+        // would walk the clock past feed freshness and later markets would report dead oracles.
+        const loopTs = (await ethers.provider.getBlock("latest")).timestamp;
         let liquidated = 0;
         const rows: { sym: string; addr: string; status: string; reason: string }[] = [];
         const tally: Record<string, number> = {}; // reason bucket -> count
@@ -1401,6 +1569,7 @@ const test = () => {
             throw e;
           }
           await ethers.provider.send("evm_revert", [snap]);
+          await pinClock(loopTs);
         }
 
         // Render an aligned table: MARKET | ADDRESS | STATUS | REASON.
@@ -1434,6 +1603,7 @@ const test = () => {
         const rnd = mulberry32(seed);
         console.log(`      seed=${seed}`);
         const ITER = Number(process.env.FUZZ_ITERS || "8");
+        const loopTs = (await ethers.provider.getBlock("latest")).timestamp;
 
         for (let i = 0; i < ITER; i++) {
           const snap = await ethers.provider.send("evm_snapshot", []);
@@ -1479,6 +1649,7 @@ const test = () => {
             await assertRolledBack(liq, mkt, VUSDT, B.FUZZ(i), borrowBefore, TOK.USDT, repay);
           }
           await ethers.provider.send("evm_revert", [snap]);
+          await pinClock(loopTs);
         }
       });
     });
@@ -1489,6 +1660,7 @@ const test = () => {
 
     describe("fuzz — fast-check property", () => {
       it("generated (repayFraction, minOutBps): invariants hold or clean revert", async () => {
+        const loopTs = (await ethers.provider.getBlock("latest")).timestamp;
         await fc.assert(
           fc.asyncProperty(
             fc.record({
@@ -1539,6 +1711,7 @@ const test = () => {
                 }
               } finally {
                 await ethers.provider.send("evm_revert", [snap]);
+                await pinClock(loopTs);
               }
             },
           ),
