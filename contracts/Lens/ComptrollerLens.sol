@@ -329,12 +329,15 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
     /**
      * @notice Calculate the number of tokens to seize during liquidation
+     * @dev All factors are multiplied before the single division, so the result is truncated only once.
+     *      Dividing first would round the ratio to 18 decimals, which drops part or all of the seize amount when
+     *      the borrowed asset has a small price mantissa, e.g. a 24-decimal token priced at 1e12.
      * @param actualRepayAmount The amount of debt being repaid in the liquidation
      * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
-     * @param priceBorrowedMantissa The price of the borrowed asset, scaled by 1e18
-     * @param priceCollateralMantissa The price of the collateral asset, scaled by 1e18
+     * @param priceBorrowedMantissa The price of the borrowed asset, scaled by 10^(36 - underlying decimals)
+     * @param priceCollateralMantissa The price of the collateral asset, scaled by 10^(36 - underlying decimals)
      * @param exchangeRateMantissa The exchange rate of the collateral asset, scaled by 1e18
-     * @return seizeTokens The number of tokens to seize during liquidation, scaled by 1e18
+     * @return seizeTokens The number of collateral vTokens to seize, rounded down
      */
     function _calculateSeizeTokens(
         uint actualRepayAmount,
@@ -343,15 +346,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint priceCollateralMantissa,
         uint exchangeRateMantissa
     ) internal pure returns (uint seizeTokens) {
-        Exp memory numerator = mul_(
-            Exp({ mantissa: liquidationIncentiveMantissa }),
-            Exp({ mantissa: priceBorrowedMantissa })
-        );
-        Exp memory denominator = mul_(
-            Exp({ mantissa: priceCollateralMantissa }),
-            Exp({ mantissa: exchangeRateMantissa })
-        );
+        uint numerator = mul_(mul_(actualRepayAmount, liquidationIncentiveMantissa), priceBorrowedMantissa);
+        uint denominator = mul_(priceCollateralMantissa, exchangeRateMantissa);
 
-        seizeTokens = mul_ScalarTruncate(div_(numerator, denominator), actualRepayAmount);
+        seizeTokens = div_(numerator, denominator);
     }
 }
