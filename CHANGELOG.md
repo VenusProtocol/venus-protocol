@@ -1,3 +1,23 @@
+## 10.3.0-dev.9 (2026-09-29)
+
+* Merge pull request #715 from VenusProtocol/feat/foundry-tests ([c1a2bf9](https://github.com/VenusProtocol/venus-protocol/commit/c1a2bf9)), closes [#715](https://github.com/VenusProtocol/venus-protocol/issues/715)
+* test: add a price-settable resilient oracle mock for foundry ([93b1200](https://github.com/VenusProtocol/venus-protocol/commit/93b1200))
+* test: add foundry base deploying the comptroller diamond and a market ([9721dad](https://github.com/VenusProtocol/venus-protocol/commit/9721dad))
+* test: add vtoken cash, exchange rate and solvency invariants ([09af195](https://github.com/VenusProtocol/venus-protocol/commit/09af195))
+* test: add vtoken foundry helpers and invariant handler ([c752671](https://github.com/VenusProtocol/venus-protocol/commit/c752671))
+* test: check comptroller diamond routing in foundry ([042d9a3](https://github.com/VenusProtocol/venus-protocol/commit/042d9a3))
+* test: cover market listing and risk parameter bounds in foundry ([3ccca2e](https://github.com/VenusProtocol/venus-protocol/commit/3ccca2e))
+* test: drop the vtoken solvency invariant, which holds by definition ([d34aa32](https://github.com/VenusProtocol/venus-protocol/commit/d34aa32))
+* test: fix the exchange rate invariant and add foundry setup steps ([9f364eb](https://github.com/VenusProtocol/venus-protocol/commit/9f364eb))
+* test: fuzz vtoken mint and redeem rounding in foundry ([7093a9b](https://github.com/VenusProtocol/venus-protocol/commit/7093a9b))
+* test: trim foundry to one vtoken suite, decouple forge from yarn ([e16fe9b](https://github.com/VenusProtocol/venus-protocol/commit/e16fe9b))
+* chore: drop redundant foundry config, forge build and extra comments ([694d0e7](https://github.com/VenusProtocol/venus-protocol/commit/694d0e7))
+* chore: drop the foundry failure dirs and unused invariant config ([b8ff24d](https://github.com/VenusProtocol/venus-protocol/commit/b8ff24d))
+* chore: lower the ci fuzz budget to 2000 runs ([621d175](https://github.com/VenusProtocol/venus-protocol/commit/621d175))
+* chore: pin foundry v1.5.1 and drop unused ignore entries ([14f86d0](https://github.com/VenusProtocol/venus-protocol/commit/14f86d0))
+* docs: document the foundry setup and what belongs in it ([b235c95](https://github.com/VenusProtocol/venus-protocol/commit/b235c95))
+* feat: add foundry alongside hardhat with forge-std and a ci job ([448cd6d](https://github.com/VenusProtocol/venus-protocol/commit/448cd6d))
+
 ## 10.3.0-dev.8 (2026-09-24)
 
 * Merge pull request #712 from VenusProtocol/feat/storage-layout-check ([76b414d](https://github.com/VenusProtocol/venus-protocol/commit/76b414d)), closes [#712](https://github.com/VenusProtocol/venus-protocol/issues/712)
