@@ -22,10 +22,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Two distinct authorities:
   //   - proxy admin (UPGRADE rights) -> Venus governance timelock, changed via a VIP.
   //   - Ownable owner (OPERATIONAL admin) -> the bStock owner Safe, set directly in `initialize`.
-  // On hardhat both collapse to the deployer so tests can drive them.
+  // On hardhat both collapse to the deployer so tests can drive them. The Safe exists on bscmainnet
+  // only, so the deployer also owns the bsctestnet instance.
   const timelockAddress = (await deployments.get("NormalTimelock")).address;
   const proxyAdmin = network.name === "hardhat" ? deployer : timelockAddress;
-  const contractOwner = network.name === "hardhat" ? deployer : BSTOCK_LIQUIDATOR_OWNER;
+  const contractOwner = network.name === "bscmainnet" ? BSTOCK_LIQUIDATOR_OWNER : deployer;
 
   await catchUnknownSigner(
     deploy("BStockLiquidator", {
@@ -78,6 +79,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "bstock_liquidator_deploy"; // id required to prevent re-execution
 func.tags = ["bstock-liquidator", "BStockLiquidator"];
-func.skip = async (hre: HardhatRuntimeEnvironment) => hre.network.name !== "bscmainnet";
+func.skip = async (hre: HardhatRuntimeEnvironment) => !["bscmainnet", "bsctestnet"].includes(hre.network.name);
 
 export default func;

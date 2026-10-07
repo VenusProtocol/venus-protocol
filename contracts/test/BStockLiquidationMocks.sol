@@ -78,7 +78,17 @@ contract MockComptrollerLite {
     /// @dev Two of the gate's VAI-guard escape hatches (see Liquidator._checkForceVAILiquidate): either
     ///      one permits liquidating a non-VAI market regardless of the borrower's VAI debt.
     mapping(address => bool) public isForcedLiquidationEnabled; // vToken -> forced liquidation on
+    /// @dev Core's PER-BORROWER forced flag, which the isolated hook has no analogue for.
+    ///      `liquidateBorrowAllowed` ORs it with the market-wide one above.
+    mapping(address => mapping(address => bool)) public isForcedLiquidationEnabledForUser; // borrower -> vToken -> on
     mapping(address => mapping(uint8 => bool)) private _actionPaused; // market -> Action -> paused
+    /// @dev Core's protocol-wide kill switch, checked at the top of every liquidation hook. No isolated
+    ///      analogue: that pool expresses everything through per-action pauses.
+    bool public protocolPaused;
+    /// @dev Inverted so the DEFAULT is "is a member". Every fixture here models a borrower who has entered
+    ///      the collateral market (the only shape a real liquidation can have), so tests opt OUT of
+    ///      membership rather than into it. `seizeAllowed` returns MARKET_NOT_COLLATERAL when it is false.
+    mapping(address => mapping(address => bool)) private _notMember; // account -> vToken -> membership revoked
 
     function setVaiController(address v) external {
         vaiController = v;
@@ -88,12 +98,28 @@ contract MockComptrollerLite {
         isForcedLiquidationEnabled[vToken] = enabled;
     }
 
+    function setForcedLiquidationForUser(address borrower, address vToken, bool enabled) external {
+        isForcedLiquidationEnabledForUser[borrower][vToken] = enabled;
+    }
+
     function setActionPaused(address market, uint8 action, bool paused) external {
         _actionPaused[market][action] = paused;
     }
 
     function actionPaused(address market, uint8 action) external view returns (bool) {
         return _actionPaused[market][action];
+    }
+
+    function setProtocolPaused(bool p) external {
+        protocolPaused = p;
+    }
+
+    function setMembership(address account, address vToken, bool joined) external {
+        _notMember[account][vToken] = !joined;
+    }
+
+    function checkMembership(address account, address vToken) external view returns (bool) {
+        return !_notMember[account][vToken];
     }
 
     function setShortfall(uint256 s) external {
@@ -233,6 +259,9 @@ contract MockVTokenDebt {
     uint256 public incentiveMantissa = 1.1e18;
     uint256 public liquidateError; // non-zero -> liquidateBorrow returns this code (exercises LiquidateBorrowFailed)
     bool public constant isFlashLoanEnabled = true;
+    /// @dev Outstanding debt the script's close-factor cap is sized against. Seeded by the fixture, since a
+    ///      zero balance would cap every repay at zero.
+    mapping(address => uint256) public borrowBalanceStored;
 
     constructor(address underlying_, address comptroller_) {
         underlying = underlying_;
@@ -241,6 +270,10 @@ contract MockVTokenDebt {
 
     function setLiquidateError(uint256 e) external {
         liquidateError = e;
+    }
+
+    function setBorrowBalance(address borrower, uint256 amount) external {
+        borrowBalanceStored[borrower] = amount;
     }
 
     function liquidateBorrow(
@@ -265,6 +298,17 @@ contract MockVTokenDebt {
         require(msg.sender == comptroller, "only comptroller");
         // `from` (the receiver) approved THIS vToken as spender, per the real flash interface.
         require(ERC20(underlying).transferFrom(from, address(this), amount), "flash pull failed");
+    }
+}
+
+/// @dev The native BNB market (vBNB). Deliberately has NO `underlying()`: BNB is native, so there is no
+///      ERC20 behind this market. That absence is the point — the script must identify vBNB by comparing
+///      against the liquidator's `vBNB` immutable, never by probing `underlying()` and reading the revert.
+contract MockVBNBLite {
+    mapping(address => uint256) public borrowBalanceStored;
+
+    function setBorrowBalance(address borrower, uint256 amount) external {
+        borrowBalanceStored[borrower] = amount;
     }
 }
 
