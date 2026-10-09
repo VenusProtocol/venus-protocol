@@ -94,6 +94,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         uint256 newPrimePoolId
     );
 
+    /// @notice Event emitted when part of an account's XVS stake is locked
+    event StakeLocked(address indexed account, uint256 amount);
+
+    /// @notice Event emitted when part of an account's locked XVS stake is unlocked
+    event StakeUnlocked(address indexed account, uint256 amount);
+
+    /// @notice Event emitted when locked XVS stake is taken out of the vault
+    event LockedStakeSeized(address indexed account, address indexed to, uint256 amount);
+
     /**
      * @notice XVSVault constructor
      */
@@ -477,6 +486,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
     /**
      * @notice Request withdrawal to XVSVault for XVS allocation
+     * @dev In the XVS pool, stake locked through `lock` cannot be requested
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to withdraw from the vault
@@ -485,9 +495,11 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         _ensureValidPool(_rewardToken, _pid);
         require(_amount > 0, "requested amount cannot be zero");
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
-        require(user.amount >= user.pendingWithdrawals.add(_amount), "requested amount is invalid");
-
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        bool isXvsPool = address(pool.token) == xvsAddress;
+        uint256 locked = isXvsPool ? lockedStakes[msg.sender] : 0;
+        require(user.amount >= user.pendingWithdrawals.add(_amount).add(locked), "requested amount is invalid");
+
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
 
         uint beforeUpgradeWithdrawalAmount;
@@ -506,7 +518,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         user.rewardDebt = _cumulativeReward(user, pool);
 
         // Update Delegate Amount
-        if (address(pool.token) == xvsAddress) {
+        if (isXvsPool) {
             _moveDelegates(
                 delegates[msg.sender],
                 address(0),
@@ -520,6 +532,68 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
         emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
+    }
+
+    /**
+     * @notice Locks part of an account's stake in the XVS pool so it cannot be requested for withdrawal. Locked stake
+     *   keeps earning rewards and keeps its voting power
+     * @dev An account has one locked amount, shared by every holder of the lock roles, so only the SpokePoolManager
+     *   should hold them
+     * @param _account The account whose stake is locked
+     * @param _amount The amount of staked XVS to lock
+     */
+    function lock(address _account, uint256 _amount) external {
+        _checkAccessAllowed("lock(address,uint256)");
+        (uint256 pid, UserInfo storage user) = _xvsStake(_account);
+        require(pendingWithdrawalsBeforeUpgrade(xvsAddress, pid, _account) == 0, "execute pending withdrawal");
+
+        uint256 newLocked = lockedStakes[_account].add(_amount);
+        require(_amount > 0 && user.amount >= user.pendingWithdrawals.add(newLocked), "requested amount is invalid");
+        lockedStakes[_account] = newLocked;
+
+        emit StakeLocked(_account, _amount);
+    }
+
+    /**
+     * @notice Unlocks part of an account's locked stake, making it requestable for withdrawal again
+     * @param _account The account whose stake is unlocked
+     * @param _amount The amount of locked XVS to unlock
+     */
+    function unlock(address _account, uint256 _amount) external {
+        _checkAccessAllowed("unlock(address,uint256)");
+        lockedStakes[_account] = lockedStakes[_account].sub(_amount);
+
+        emit StakeUnlocked(_account, _amount);
+    }
+
+    /**
+     * @notice Takes locked stake out of the vault. The account's pending reward is paid out first, then its stake,
+     *   locked stake and voting power fall by the amount, which is sent to `_to`
+     * @param _account The account whose locked stake is taken
+     * @param _amount The amount of locked XVS to take
+     * @param _to The receiver of the XVS
+     */
+    function seizeLocked(address _account, uint256 _amount, address _to) external nonReentrant isActive {
+        _checkAccessAllowed("seizeLocked(address,uint256,address)");
+        lockedStakes[_account] = lockedStakes[_account].sub(_amount);
+
+        (uint256 pid, UserInfo storage user) = _xvsStake(_account);
+        PoolInfo storage pool = poolInfos[xvsAddress][pid];
+        _updatePool(xvsAddress, pid);
+        uint256 pending = _computeReward(user, pool);
+
+        user.amount = user.amount.sub(_amount);
+        user.rewardDebt = _cumulativeReward(user, pool);
+        _moveDelegates(delegates[_account], address(0), safe96(_amount, "XVSVault::seizeLocked: votes overflow"));
+
+        _transferReward(xvsAddress, _account, pending);
+        if (primeRewardToken == xvsAddress && pid == primePoolId) {
+            primeToken.xvsUpdated(_account);
+        }
+        pool.token.safeTransfer(_to, _amount);
+
+        emit Claim(_account, xvsAddress, pid, pending);
+        emit LockedStakeSeized(_account, _to, _amount);
     }
 
     /**
@@ -680,6 +754,22 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
         (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(requests);
         return beforeUpgradeWithdrawalAmount;
+    }
+
+    /**
+     * @dev Finds an account's position in the pool that stakes XVS for XVS rewards
+     * @param account The account to look up
+     * @return pid The id of the XVS pool
+     * @return user The account's position in the XVS pool
+     */
+    function _xvsStake(address account) internal view returns (uint256 pid, UserInfo storage user) {
+        PoolInfo[] storage poolInfo = poolInfos[xvsAddress];
+        uint256 length = poolInfo.length;
+        while (pid < length && address(poolInfo[pid].token) != xvsAddress) {
+            ++pid;
+        }
+        _ensureValidPool(xvsAddress, pid);
+        user = userInfos[xvsAddress][pid][account];
     }
 
     /**
