@@ -548,7 +548,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         require(pendingWithdrawalsBeforeUpgrade(xvsAddress, pid, _account) == 0, "execute pending withdrawal");
 
         uint256 newLocked = lockedStakes[_account].add(_amount);
-        require(user.amount >= user.pendingWithdrawals.add(newLocked), "requested amount is invalid");
+        require(_amount > 0 && user.amount >= user.pendingWithdrawals.add(newLocked), "requested amount is invalid");
         lockedStakes[_account] = newLocked;
 
         emit StakeLocked(_account, _amount);
@@ -584,7 +584,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = _cumulativeReward(user, pool);
-        _moveDelegates(delegates[_account], address(0), uint96(_amount));
+        _moveDelegates(delegates[_account], address(0), safe96(_amount, "XVSVault::seizeLocked: votes overflow"));
 
         _transferReward(xvsAddress, _account, pending);
         if (primeRewardToken == xvsAddress && pid == primePoolId) {
@@ -768,7 +768,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         while (pid < length && address(poolInfo[pid].token) != xvsAddress) {
             ++pid;
         }
-        require(pid < length);
+        _ensureValidPool(xvsAddress, pid);
         user = userInfos[xvsAddress][pid][account];
     }
 
