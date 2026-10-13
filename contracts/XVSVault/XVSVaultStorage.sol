@@ -133,10 +133,13 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     /// @notice Pool ID for which prime token is issued for staking
     uint256 public primePoolId;
 
+    /// @notice XVS staked in the XVS pool that the account cannot request to withdraw, per account
+    mapping(address => uint256) public lockedStakes;
+
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 }
