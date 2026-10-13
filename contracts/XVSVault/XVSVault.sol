@@ -561,21 +561,21 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
      */
     function unlock(address _account, uint256 _amount) external {
         _checkAccessAllowed("unlock(address,uint256)");
-        lockedStakes[_account] = lockedStakes[_account].sub(_amount);
+        _reduceLockedStake(_account, _amount);
 
         emit StakeUnlocked(_account, _amount);
     }
 
     /**
-     * @notice Takes locked stake out of the vault. The account's pending reward is paid out first, then its stake,
-     *   locked stake and voting power fall by the amount, which is sent to `_to`
+     * @notice Takes locked stake out of the vault and sends it to `_to`. The account's stake, locked stake and voting
+     *   power fall by the amount. Its pending reward is paid, or recorded as owed if the reward funds are short
      * @param _account The account whose locked stake is taken
      * @param _amount The amount of locked XVS to take
      * @param _to The receiver of the XVS
      */
     function seizeLocked(address _account, uint256 _amount, address _to) external nonReentrant isActive {
         _checkAccessAllowed("seizeLocked(address,uint256,address)");
-        lockedStakes[_account] = lockedStakes[_account].sub(_amount);
+        _reduceLockedStake(_account, _amount);
 
         (uint256 pid, UserInfo storage user) = _xvsStake(_account);
         PoolInfo storage pool = poolInfos[xvsAddress][pid];
@@ -754,6 +754,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
         (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(requests);
         return beforeUpgradeWithdrawalAmount;
+    }
+
+    /**
+     * @dev Reduces an account's locked stake
+     * @param _account The account whose locked stake is reduced
+     * @param _amount The amount to reduce it by
+     */
+    function _reduceLockedStake(address _account, uint256 _amount) internal {
+        lockedStakes[_account] = lockedStakes[_account].sub(_amount, "insufficient locked stake");
     }
 
     /**
