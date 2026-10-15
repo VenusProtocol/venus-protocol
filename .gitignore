@@ -35,6 +35,7 @@ contracts/generated
 
 # Claude-generated summaries
 .claude-docs/
+claude-knowledge/
 
 # yarn
 .yarn/*
@@ -67,3 +68,7 @@ docgen-docs
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
+
+# foundry
+/out
+/cache-foundry

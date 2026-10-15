@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "10.3.0-dev.5",
+  "version": "10.3.0-dev.9",
   "description": "The Venus Money Market",
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
     "compile": "hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
     "coverage": "hardhat coverage",
     "test": "hardhat test",
+    "test:foundry": "forge test",
     "build": "rm -rf dist && tsc --declaration && hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
     "lint": "yarn lint:ts && yarn lint:sol && yarn prettier:check",
     "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
@@ -29,9 +30,13 @@
     "lint:sol:fix": "prettier --write \"contracts/**/*.sol\"",
     "prettier": "prettier --write \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
     "prettier:check": "prettier --check \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
+    "prettier:cached": "prettier --write --cache \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
+    "check:upgrade-safety": "openzeppelin-upgrades-core validate artifacts/build-info --exclude \"hardhat-deploy/**/*.sol\" --exclude \"contracts/test/**/*.sol\" --unsafeAllow internal-function-storage",
+    "check:storage-layout": "hardhat run scripts/checkStorageLayout.ts",
+    "check:upgrades": "yarn check:upgrade-safety && yarn check:storage-layout",
     "docgen": "hardhat docgen",
     "prepare": "husky install",
-    "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts",
+    "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts && rm -rf out cache-foundry",
     "postinstall": "yarn patch-package"
   },
   "dependencies": {
@@ -64,6 +69,7 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
     "@nomicfoundation/hardhat-verify": "^2.0.14",
     "@openzeppelin/hardhat-upgrades": "^1.21.0",
+    "@openzeppelin/upgrades-core": "1.41.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
@@ -80,6 +86,7 @@
     "chai": "^4.3.6",
     "eslint": "^8.25.0",
     "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-sonarjs": "^1.0.4",
     "ethers": "^5.7.0",
     "fast-check": "^4.8.0",
     "hardhat": "2.22.18",

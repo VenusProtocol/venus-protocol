@@ -1,3 +1,50 @@
+## 10.3.0-dev.9 (2026-09-29)
+
+* Merge pull request #715 from VenusProtocol/feat/foundry-tests ([c1a2bf9](https://github.com/VenusProtocol/venus-protocol/commit/c1a2bf9)), closes [#715](https://github.com/VenusProtocol/venus-protocol/issues/715)
+* test: add a price-settable resilient oracle mock for foundry ([93b1200](https://github.com/VenusProtocol/venus-protocol/commit/93b1200))
+* test: add foundry base deploying the comptroller diamond and a market ([9721dad](https://github.com/VenusProtocol/venus-protocol/commit/9721dad))
+* test: add vtoken cash, exchange rate and solvency invariants ([09af195](https://github.com/VenusProtocol/venus-protocol/commit/09af195))
+* test: add vtoken foundry helpers and invariant handler ([c752671](https://github.com/VenusProtocol/venus-protocol/commit/c752671))
+* test: check comptroller diamond routing in foundry ([042d9a3](https://github.com/VenusProtocol/venus-protocol/commit/042d9a3))
+* test: cover market listing and risk parameter bounds in foundry ([3ccca2e](https://github.com/VenusProtocol/venus-protocol/commit/3ccca2e))
+* test: drop the vtoken solvency invariant, which holds by definition ([d34aa32](https://github.com/VenusProtocol/venus-protocol/commit/d34aa32))
+* test: fix the exchange rate invariant and add foundry setup steps ([9f364eb](https://github.com/VenusProtocol/venus-protocol/commit/9f364eb))
+* test: fuzz vtoken mint and redeem rounding in foundry ([7093a9b](https://github.com/VenusProtocol/venus-protocol/commit/7093a9b))
+* test: trim foundry to one vtoken suite, decouple forge from yarn ([e16fe9b](https://github.com/VenusProtocol/venus-protocol/commit/e16fe9b))
+* chore: drop redundant foundry config, forge build and extra comments ([694d0e7](https://github.com/VenusProtocol/venus-protocol/commit/694d0e7))
+* chore: drop the foundry failure dirs and unused invariant config ([b8ff24d](https://github.com/VenusProtocol/venus-protocol/commit/b8ff24d))
+* chore: lower the ci fuzz budget to 2000 runs ([621d175](https://github.com/VenusProtocol/venus-protocol/commit/621d175))
+* chore: pin foundry v1.5.1 and drop unused ignore entries ([14f86d0](https://github.com/VenusProtocol/venus-protocol/commit/14f86d0))
+* docs: document the foundry setup and what belongs in it ([b235c95](https://github.com/VenusProtocol/venus-protocol/commit/b235c95))
+* feat: add foundry alongside hardhat with forge-std and a ci job ([448cd6d](https://github.com/VenusProtocol/venus-protocol/commit/448cd6d))
+
+## 10.3.0-dev.8 (2026-09-24)
+
+* Merge pull request #712 from VenusProtocol/feat/storage-layout-check ([76b414d](https://github.com/VenusProtocol/venus-protocol/commit/76b414d)), closes [#712](https://github.com/VenusProtocol/venus-protocol/issues/712)
+* feat: check storage layout against deployed implementations in ci ([c0b9ce0](https://github.com/VenusProtocol/venus-protocol/commit/c0b9ce0))
+* feat: require every comptroller facet to share the diamond's storage layout ([90b5c7d](https://github.com/VenusProtocol/venus-protocol/commit/90b5c7d))
+
+## 10.3.0-dev.7 (2026-09-22)
+
+* Merge pull request #711 from VenusProtocol/feat/code-complexity-gates ([33f3933](https://github.com/VenusProtocol/venus-protocol/commit/33f3933)), closes [#711](https://github.com/VenusProtocol/venus-protocol/issues/711)
+* revert: move storage layout checks to their own branch ([72d5f09](https://github.com/VenusProtocol/venus-protocol/commit/72d5f09))
+* revert: remove slither static analysis from ci ([e242e08](https://github.com/VenusProtocol/venus-protocol/commit/e242e08))
+* fix: stop the allowlist from suppressing a real storage incompatibility ([dd56ca7](https://github.com/VenusProtocol/venus-protocol/commit/dd56ca7))
+* feat: check storage layout against deployed implementations in ci ([bfd2acc](https://github.com/VenusProtocol/venus-protocol/commit/bfd2acc))
+* chore: add slither static analysis to ci ([a964902](https://github.com/VenusProtocol/venus-protocol/commit/a964902))
+* chore: enforce function complexity limits in eslint and sonarjs ([a20a286](https://github.com/VenusProtocol/venus-protocol/commit/a20a286))
+* refactor: split generateCutParams into named pipeline stages ([d08bdbb](https://github.com/VenusProtocol/venus-protocol/commit/d08bdbb))
+
+## 10.3.0-dev.6 (2026-09-04)
+
+* Merge pull request #704 from VenusProtocol/test/bstock-fork ([6dd156f](https://github.com/VenusProtocol/venus-protocol/commit/6dd156f)), closes [#704](https://github.com/VenusProtocol/venus-protocol/issues/704)
+* Merge pull request #709 from VenusProtocol/feat/prime-update-scores-staged ([9e14f08](https://github.com/VenusProtocol/venus-protocol/commit/9e14f08)), closes [#709](https://github.com/VenusProtocol/venus-protocol/issues/709)
+* prime-update-scores: hoist all configuration to the top of the file ([2010faa](https://github.com/VenusProtocol/venus-protocol/commit/2010faa))
+* prime-update-scores: pin the holder list to the round id instead of warning ([b2d2e1f](https://github.com/VenusProtocol/venus-protocol/commit/b2d2e1f))
+* prime-update-scores: warn against running STAGE=update with a stale holder list ([b589b3c](https://github.com/VenusProtocol/venus-protocol/commit/b589b3c))
+* refactor(prime-update-scores): target PrimeV2, split into index/update stages ([5be4b9b](https://github.com/VenusProtocol/venus-protocol/commit/5be4b9b))
+* test(bstock): drive the fork suite off the live deployment and wiring ([edf3b22](https://github.com/VenusProtocol/venus-protocol/commit/edf3b22))
+
 ## 10.3.0-dev.5 (2026-08-27)
 
 * Merge pull request #708 from VenusProtocol/feat/vhub-core-markets ([1a0892e](https://github.com/VenusProtocol/venus-protocol/commit/1a0892e)), closes [#708](https://github.com/VenusProtocol/venus-protocol/issues/708)

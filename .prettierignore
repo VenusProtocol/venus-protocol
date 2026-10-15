@@ -13,6 +13,9 @@ tests/hardhat/Fork/vendor
 **/coverage
 **/dist
 **/node_modules
+/lib
+/out
+/cache-foundry
 **/types
 typechain
 docgen-docs

@@ -1761,6 +1761,7 @@ async function marketSymbol(vToken: string): Promise<string> {
 }
 
 // Try to liquidate one debt market against the seized bStock. Returns "OK" or a skip reason.
+// eslint-disable-next-line complexity, sonarjs/cognitive-complexity -- predates the complexity gates, tracked for refactor
 async function sweepOne(
   owner: any,
   c: Contract,
