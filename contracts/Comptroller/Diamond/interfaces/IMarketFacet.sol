@@ -30,6 +30,8 @@ interface IMarketFacet {
 
     function enterMarketBehalf(address onBehalf, address vToken) external returns (uint256);
 
+    function enterMarketForAccount(address account, address vToken) external returns (uint256);
+
     function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory);
 
     function exitMarket(address vToken) external returns (uint256);
