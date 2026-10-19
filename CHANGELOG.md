@@ -1,3 +1,19 @@
+## 10.3.0-dev.10 (2026-10-19)
+
+* Merge pull request #710 from VenusProtocol/feat/VPD-1982 ([5558682](https://github.com/VenusProtocol/venus-protocol/commit/5558682)), closes [#710](https://github.com/VenusProtocol/venus-protocol/issues/710)
+* Merge pull request #714 from VenusProtocol/fix/seize-tokens-precision ([f867e5d](https://github.com/VenusProtocol/venus-protocol/commit/f867e5d)), closes [#714](https://github.com/VenusProtocol/venus-protocol/issues/714)
+* feat: add ACM-gated enterMarketForAccount to MarketFacet ([7aaa3b9](https://github.com/VenusProtocol/venus-protocol/commit/7aaa3b9))
+* feat: updating deployment files ([dfe9258](https://github.com/VenusProtocol/venus-protocol/commit/dfe9258))
+* feat: updating deployment files ([a899472](https://github.com/VenusProtocol/venus-protocol/commit/a899472))
+* feat: updating deployment files ([e82819b](https://github.com/VenusProtocol/venus-protocol/commit/e82819b))
+* chore: deploy MarketFacet on bsctestnet ([74d7f25](https://github.com/VenusProtocol/venus-protocol/commit/74d7f25))
+* chore: deploy PrimeLens on bsctestnet ([b78501a](https://github.com/VenusProtocol/venus-protocol/commit/b78501a))
+* chore: deploy PrimeV2 implementation on bsctestnet ([0d69d21](https://github.com/VenusProtocol/venus-protocol/commit/0d69d21))
+* test: add mainnet fork tests for 24-decimal Prime markets ([6676e89](https://github.com/VenusProtocol/venus-protocol/commit/6676e89))
+* test(lens): split fork sweeps to meet the complexity limit ([e48f44d](https://github.com/VenusProtocol/venus-protocol/commit/e48f44d))
+* fix: support Prime markets with more than 18 underlying decimals ([f9c81b0](https://github.com/VenusProtocol/venus-protocol/commit/f9c81b0))
+* fix(lens): compute seize tokens with a single division ([2d23a1d](https://github.com/VenusProtocol/venus-protocol/commit/2d23a1d))
+
 ## 10.3.0-dev.9 (2026-09-29)
 
 * Merge pull request #715 from VenusProtocol/feat/foundry-tests ([c1a2bf9](https://github.com/VenusProtocol/venus-protocol/commit/c1a2bf9)), closes [#715](https://github.com/VenusProtocol/venus-protocol/issues/715)
