@@ -3078,7 +3078,7 @@
       ]
     },
     "BStockLiquidator_Implementation": {
-      "address": "0xde9734DD7AEad610Dd41FFE9Abc25C5cCf142487",
+      "address": "0x122E8f16a6cab6549075fa0b102c01E1b2dD63B6",
       "abi": [
         {
           "inputs": [
@@ -3141,6 +3141,33 @@
         {
           "inputs": [
             {
+              "internalType": "address",
+              "name": "flashSource",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "debtToken",
+              "type": "address"
+            }
+          ],
+          "name": "FlashSourceMismatch",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "debtToken",
+              "type": "address"
+            }
+          ],
+          "name": "FlashSourceNotSet",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
               "internalType": "uint256",
               "name": "got",
               "type": "uint256"
@@ -3160,6 +3187,22 @@
           "type": "error"
         },
         {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "comptroller",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            }
+          ],
+          "name": "MarketNotInPool",
+          "type": "error"
+        },
+        {
           "inputs": [],
           "name": "NativeTransferFailed",
           "type": "error"
@@ -3172,6 +3215,33 @@
         {
           "inputs": [],
           "name": "OnlyComptroller",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "comptroller",
+              "type": "address"
+            }
+          ],
+          "name": "PoolNotRegistered",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "poolRegistry",
+              "type": "address"
+            }
+          ],
+          "name": "PoolRegistryNotContract",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "PoolRegistryNotSet",
           "type": "error"
         },
         {
@@ -3226,6 +3296,25 @@
           "inputs": [],
           "name": "ZeroMinOut",
           "type": "error"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "debtToken",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "CoreFlashSourceSet",
+          "type": "event"
         },
         {
           "anonymous": false,
@@ -3371,6 +3460,25 @@
             {
               "indexed": true,
               "internalType": "address",
+              "name": "oldPoolRegistry",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newPoolRegistry",
+              "type": "address"
+            }
+          ],
+          "name": "PoolRegistrySet",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
               "name": "router",
               "type": "address"
             },
@@ -3460,6 +3568,25 @@
           "outputs": [
             {
               "internalType": "contract IComptroller",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "coreFlashSource",
+          "outputs": [
+            {
+              "internalType": "contract IVBep20",
               "name": "",
               "type": "address"
             }
@@ -3741,6 +3868,19 @@
         },
         {
           "inputs": [],
+          "name": "poolRegistry",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "renounceOwnership",
           "outputs": [],
           "stateMutability": "nonpayable",
@@ -3769,6 +3909,24 @@
           "inputs": [
             {
               "internalType": "address",
+              "name": "debtToken",
+              "type": "address"
+            },
+            {
+              "internalType": "contract IVBep20",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "setCoreFlashSource",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
               "name": "operator",
               "type": "address"
             },
@@ -3779,6 +3937,19 @@
             }
           ],
           "name": "setOperator",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "poolRegistry_",
+              "type": "address"
+            }
+          ],
+          "name": "setPoolRegistry",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"

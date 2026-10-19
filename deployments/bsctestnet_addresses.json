@@ -3,6 +3,9 @@
   "chainId": "97",
   "addresses": {
     "AccessControlManagerMockTest": "0x4eA05Cb383a258212C46D19299d6e7F14D79fDEC",
+    "BStockLiquidator": "0x62B5EE2074dF7F5B027d829adF5EC7B69eead569",
+    "BStockLiquidator_Implementation": "0xCE0cBAfcf39B6eCF83f3A60c0ae212D3714B8F16",
+    "BStockLiquidator_Proxy": "0x62B5EE2074dF7F5B027d829adF5EC7B69eead569",
     "BTCB": "0xA808e341e8e723DC6BA0Bb5204Bafc2330d7B8e4",
     "BUSD": "0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47",
     "CheckpointView_From_JumpRateModel_base0bps_slope1000bps_jump10900bps_kink8000bps_bpy21024000_To_bpy42048000_At_1748243100": "0x137352dC1d46746Bdea02b29911bfE4144A7391F",
