@@ -1,3 +1,12 @@
+## 10.3.0-dev.12 (2026-10-22)
+
+* Merge pull request #720 from VenusProtocol/feat/VPD-1982-bscmainnet-deployments ([ce09168](https://github.com/VenusProtocol/venus-protocol/commit/ce09168)), closes [#720](https://github.com/VenusProtocol/venus-protocol/issues/720)
+* feat: updating deployment files ([0836b8c](https://github.com/VenusProtocol/venus-protocol/commit/0836b8c))
+* feat: updating deployment files ([7dd5ee0](https://github.com/VenusProtocol/venus-protocol/commit/7dd5ee0))
+* chore: deploy ComptrollerLens on bscmainnet and bsctestnet ([ab0f141](https://github.com/VenusProtocol/venus-protocol/commit/ab0f141))
+* chore: deploy PrimeLens on bscmainnet ([c283056](https://github.com/VenusProtocol/venus-protocol/commit/c283056))
+* chore: deploy PrimeV2 implementation and MarketFacet on bscmainnet ([856b255](https://github.com/VenusProtocol/venus-protocol/commit/856b255))
+
 ## 10.3.0-dev.11 (2026-10-19)
 
 * Merge branch 'develop' into feat/bstock-spoke-liquidation ([9f60197](https://github.com/VenusProtocol/venus-protocol/commit/9f60197))
