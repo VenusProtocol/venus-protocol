@@ -11018,7 +11018,7 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0xd5DEb631cB6c6a667e926a482aadc95a471b120c",
+      "address": "0x989DaAa33b9557EacB2AF9885d7f3cd28eD52749",
       "abi": [
         {
           "inputs": [],
@@ -48696,7 +48696,7 @@
       ]
     },
     "PrimeLens": {
-      "address": "0x2f8c5e4562E22DB7908C56Bf99961C053436473c",
+      "address": "0x645B99bDBD9e9125740907B17F19a3ca8544Bc83",
       "abi": [
         {
           "inputs": [
