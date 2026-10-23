@@ -71,9 +71,19 @@ interface IComptroller {
 
     function _setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external;
 
+    function executeFlashLoan(
+        address payable onBehalf,
+        address payable receiver,
+        IVToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
+        bytes calldata param
+    ) external;
+
     function vaiController() external view returns (IVAIController);
 
     function liquidatorContract() external view returns (address);
+
+    function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256);
 
     function oracle() external view returns (ResilientOracleInterface);
 

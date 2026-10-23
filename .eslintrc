@@ -10,10 +10,13 @@
     "project": ".eslinttsconfigrc"
   },
   "plugins": [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "sonarjs"
   ],
   "root": true,
   "rules": {
+    "complexity": ["error", 15],
+    "sonarjs/cognitive-complexity": ["error", 15],
     "@typescript-eslint/no-floating-promises": [
       "warn",
       {

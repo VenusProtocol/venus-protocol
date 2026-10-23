@@ -958,4 +958,92 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus SK Hynix",
+    symbol: "vSKHYB",
+    asset: "SKHYB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.0667",
+      kink: "0.75",
+      jumpMultiplierPerYear: "6.27",
+    },
+    riskParameters: {
+      collateralFactor: "0.5",
+      reserveFactor: "0.1",
+      supplyCap: "140",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "0.51",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus vhUSDT",
+    symbol: "vvhUSDT",
+    asset: "vhUSDT",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0.8",
+      reserveFactor: "0.1",
+      supplyCap: "10000000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "10",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus vhUSDC",
+    symbol: "vvhUSDC",
+    asset: "vhUSDC",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0.825",
+      reserveFactor: "0.1",
+      supplyCap: "10000000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "10",
+      vTokenReceiver: "VTreasury",
+    },
+  },
+  {
+    name: "Venus vhU",
+    symbol: "vvhU",
+    asset: "vhU",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0.75",
+      reserveFactor: "0.1",
+      supplyCap: "10000000",
+      borrowCap: "0",
+    },
+    initialSupply: {
+      amount: "10",
+      vTokenReceiver: "VTreasury",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bscmainnet">>[];

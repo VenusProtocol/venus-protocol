@@ -2151,7 +2151,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openzeppelin/upgrades-core@npm:^1.27.0":
+"@openzeppelin/upgrades-core@npm:1.41.0, @openzeppelin/upgrades-core@npm:^1.27.0":
   version: 1.41.0
   resolution: "@openzeppelin/upgrades-core@npm:1.41.0"
   dependencies:
@@ -3374,6 +3374,7 @@ __metadata:
     "@openzeppelin/contracts": 4.9.3
     "@openzeppelin/contracts-upgradeable": ^4.8.0
     "@openzeppelin/hardhat-upgrades": ^1.21.0
+    "@openzeppelin/upgrades-core": 1.41.0
     "@semantic-release/changelog": ^6.0.3
     "@semantic-release/git": ^10.0.1
     "@trivago/prettier-plugin-sort-imports": ^4.3.0
@@ -3395,7 +3396,9 @@ __metadata:
     dotenv: ^16.0.1
     eslint: ^8.25.0
     eslint-config-prettier: ^8.5.0
+    eslint-plugin-sonarjs: ^1.0.4
     ethers: ^5.7.0
+    fast-check: ^4.8.0
     hardhat: 2.22.18
     hardhat-contract-sizer: ^2.8.0
     hardhat-dependency-compiler: ^1.2.1
@@ -5519,6 +5522,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eslint-plugin-sonarjs@npm:^1.0.4":
+  version: 1.0.4
+  resolution: "eslint-plugin-sonarjs@npm:1.0.4"
+  peerDependencies:
+    eslint: ^8.0.0 || ^9.0.0
+  checksum: d9572b3342e434bd2f09015bd3f429056e3b81261c7ff6e541d9a567f0279c27e334793ceb76866c845314076bdc9550be469c075e12915a1498d5fb06e265a0
+  languageName: node
+  linkType: hard
+
 "eslint-scope@npm:^5.1.1":
   version: 5.1.1
   resolution: "eslint-scope@npm:5.1.1"
@@ -5925,6 +5937,15 @@ __metadata:
   version: 1.0.0
   resolution: "fast-base64-decode@npm:1.0.0"
   checksum: 4c59eb1775a7f132333f296c5082476fdcc8f58d023c42ed6d378d2e2da4c328c7a71562f271181a725dd17cdaa8f2805346cc330cdbad3b8e4b9751508bd0a3
+  languageName: node
+  linkType: hard
+
+"fast-check@npm:^4.8.0":
+  version: 4.8.0
+  resolution: "fast-check@npm:4.8.0"
+  dependencies:
+    pure-rand: ^8.0.0
+  checksum: f3fd5e07753ba0248eb77359ac8c5fb66c84ed460c086e8673cd87d7ee174cb1fc4aec60acbda7762bbf2127750b5ed0a1041a10b24de5e4ee691bcee2ef70f4
   languageName: node
   linkType: hard
 
@@ -10080,6 +10101,13 @@ __metadata:
   version: 2.3.1
   resolution: "punycode@npm:2.3.1"
   checksum: bb0a0ceedca4c3c57a9b981b90601579058903c62be23c5e8e843d2c2d4148a3ecf029d5133486fb0e1822b098ba8bba09e89d6b21742d02fa26bda6441a6fb2
+  languageName: node
+  linkType: hard
+
+"pure-rand@npm:^8.0.0":
+  version: 8.4.1
+  resolution: "pure-rand@npm:8.4.1"
+  checksum: 6f424714a95ad990159ded14c8a5618f0c97a9ea8df9f209e88fba4c902f7fe93e9f960a7ad38411231720b6dee0b9f6502358c34b5b7db3c2b0838a1811c4b8
   languageName: node
   linkType: hard
 
