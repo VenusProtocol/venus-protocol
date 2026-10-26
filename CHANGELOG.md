@@ -1,3 +1,9 @@
+## <small>10.4.1-dev.1 (2026-10-26)</small>
+
+* Merge pull request #723 from VenusProtocol/main ([5abc3a7](https://github.com/VenusProtocol/venus-protocol/commit/5abc3a7)), closes [#723](https://github.com/VenusProtocol/venus-protocol/issues/723)
+* Merge pull request #724 from VenusProtocol/docs/hashdit-collateral-gateway-report ([b8a6f6b](https://github.com/VenusProtocol/venus-protocol/commit/b8a6f6b)), closes [#724](https://github.com/VenusProtocol/venus-protocol/issues/724)
+* docs(audits): add HashDit Hub precision report ([4e32336](https://github.com/VenusProtocol/venus-protocol/commit/4e32336))
+
 ## 10.4.0 (2026-10-23)
 
 * fix(bstock):: enforce Venus Liquidator gate checks in atomicLiquidate and safe-fallback scripts ([28ba594](https://github.com/VenusProtocol/venus-protocol/commit/28ba594))
