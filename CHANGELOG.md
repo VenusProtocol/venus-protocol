@@ -1,3 +1,8 @@
+## <small>10.4.1-dev.2 (2026-10-28)</small>
+
+* Merge pull request #725 from VenusProtocol/fix/storage-layout-deployed-renames ([9f125e1](https://github.com/VenusProtocol/venus-protocol/commit/9f125e1)), closes [#725](https://github.com/VenusProtocol/venus-protocol/issues/725)
+* fix: ignore already-deployed oz-renamed-from in storage layout check ([e895c8c](https://github.com/VenusProtocol/venus-protocol/commit/e895c8c))
+
 ## <small>10.4.1-dev.1 (2026-10-26)</small>
 
 * Merge pull request #723 from VenusProtocol/main ([5abc3a7](https://github.com/VenusProtocol/venus-protocol/commit/5abc3a7)), closes [#723](https://github.com/VenusProtocol/venus-protocol/issues/723)
