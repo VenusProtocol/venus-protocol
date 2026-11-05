@@ -117,6 +117,12 @@
   },
   "resolutions": {
     "hardhat": "2.22.18",
-    "@defi-wonderland/smock": "2.4.0"
+    "@defi-wonderland/smock": "2.4.0",
+    "elliptic": "6.6.1",
+    "ws": "7.5.13",
+    "cookie": "0.7.2",
+    "axios@^0.21.1": "0.34.0",
+    "axios@^0.21.2": "0.34.0",
+    "tar-fs@~2.0.1": "2.1.5"
   }
 }
