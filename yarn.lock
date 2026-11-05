@@ -6759,10 +6759,10 @@ __metadata:
   linkType: hard
 
 "handlebars@npm:^4.0.1, handlebars@npm:^4.7.7":
-  version: 4.7.8
-  resolution: "handlebars@npm:4.7.8"
+  version: 4.7.10
+  resolution: "handlebars@npm:4.7.10"
   dependencies:
-    minimist: ^1.2.5
+    minimist: ^1.2.8
     neo-async: ^2.6.2
     source-map: ^0.6.1
     uglify-js: ^3.1.4
@@ -6772,7 +6772,7 @@ __metadata:
       optional: true
   bin:
     handlebars: bin/handlebars
-  checksum: 00e68bb5c183fd7b8b63322e6234b5ac8fbb960d712cb3f25587d559c2951d9642df83c04a1172c918c41bcfc81bfbd7a7718bbce93b893e0135fc99edea93ff
+  checksum: 4f5a03912fbc7f1d42d4a5ee8ec32440b0a519fc6d9a3251c9b6f0369d8e1e900484b4009f7d36befca0c191b424f999feccc1125613f9ad5e4926742c8b5172
   languageName: node
   linkType: hard
 
@@ -8706,7 +8706,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimist@npm:^1.2.0, minimist@npm:^1.2.5, minimist@npm:^1.2.6, minimist@npm:^1.2.7":
+"minimist@npm:^1.2.0, minimist@npm:^1.2.6, minimist@npm:^1.2.7, minimist@npm:^1.2.8":
   version: 1.2.8
   resolution: "minimist@npm:1.2.8"
   checksum: 75a6d645fb122dad29c06a7597bddea977258957ed88d7a6df59b5cd3fe4a527e253e9bbf2e783e4b73657f9098b96a5fe96ab8a113655d4109108577ecf85b0
@@ -11734,30 +11734,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tar@npm:^7.4.3":
-  version: 7.4.3
-  resolution: "tar@npm:7.4.3"
-  dependencies:
-    "@isaacs/fs-minipass": ^4.0.0
-    chownr: ^3.0.0
-    minipass: ^7.1.2
-    minizlib: ^3.0.1
-    mkdirp: ^3.0.1
-    yallist: ^5.0.0
-  checksum: 8485350c0688331c94493031f417df069b778aadb25598abdad51862e007c39d1dd5310702c7be4a6784731a174799d8885d2fde0484269aea205b724d7b2ffa
-  languageName: node
-  linkType: hard
-
-"tar@npm:^7.5.1, tar@npm:^7.5.2":
-  version: 7.5.2
-  resolution: "tar@npm:7.5.2"
+"tar@npm:^7.4.3, tar@npm:^7.5.1, tar@npm:^7.5.2":
+  version: 7.5.22
+  resolution: "tar@npm:7.5.22"
   dependencies:
     "@isaacs/fs-minipass": ^4.0.0
     chownr: ^3.0.0
     minipass: ^7.1.2
     minizlib: ^3.1.0
     yallist: ^5.0.0
-  checksum: 192559b0e7af17d57c7747592ef22c14d5eba2d9c35996320ccd20c3e2038160fe8d928fc5c08b2aa1b170c4d0a18c119441e81eae8f227ca2028d5bcaa6bf23
+  checksum: e1434f40954410d191ab6d89017bfd40c24869cfd319d19dd74f84db13cbea15370a22bc9b8ecd699d05c2777ec6297f35dac318ed4829b6e776a7cb4f1f7c68
   languageName: node
   linkType: hard
 
