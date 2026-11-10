@@ -12,6 +12,8 @@ permissions:
 
 jobs:
   release:
+    # VENUS_TOOLS_TOKEN is an environment secret of "release", which only the release branches may use.
+    environment: release
     runs-on: ubuntu-latest
     permissions:
       id-token: write
