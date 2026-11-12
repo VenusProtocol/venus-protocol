@@ -1,17 +1,38 @@
-## <small>10.4.1-dev.4 (2026-11-12)</small>
+## <small>10.4.2 (2026-11-12)</small>
 
 * Merge branch 'develop' into ci/release-environment ([879418c](https://github.com/VenusProtocol/venus-protocol/commit/879418c))
+* Merge branch 'develop' into sync/develop-to-main-20261112 ([caea614](https://github.com/VenusProtocol/venus-protocol/commit/caea614))
 * Merge pull request #727 from VenusProtocol/fix/dependabot-alerts ([41c6345](https://github.com/VenusProtocol/venus-protocol/commit/41c6345)), closes [#727](https://github.com/VenusProtocol/venus-protocol/issues/727)
-* Merge pull request #728 from VenusProtocol/fix/ci-export-token-hardening ([5c547fc](https://github.com/VenusProtocol/venus-protocol/commit/5c547fc)), closes [#728](https://github.com/VenusProtocol/venus-protocol/issues/728)
 * Merge pull request #729 from VenusProtocol/ci/release-environment ([b4864a2](https://github.com/VenusProtocol/venus-protocol/commit/b4864a2)), closes [#729](https://github.com/VenusProtocol/venus-protocol/issues/729)
 * Merge pull request #732 from VenusProtocol/fix/apex-audit ([72c0f28](https://github.com/VenusProtocol/venus-protocol/commit/72c0f28)), closes [#732](https://github.com/VenusProtocol/venus-protocol/issues/732)
-* docs(swap): mark Core SwapRouter as deprecated ([0e63d5a](https://github.com/VenusProtocol/venus-protocol/commit/0e63d5a))
-* ci: keep VENUS_TOOLS_TOKEN out of the export-deployments job ([43a2689](https://github.com/VenusProtocol/venus-protocol/commit/43a2689))
-* ci: read VENUS_TOOLS_TOKEN from the release environment ([036ad57](https://github.com/VenusProtocol/venus-protocol/commit/036ad57))
+* Merge pull request #734 from VenusProtocol/sync/develop-to-main-20261112 ([5c67ec8](https://github.com/VenusProtocol/venus-protocol/commit/5c67ec8)), closes [#734](https://github.com/VenusProtocol/venus-protocol/issues/734)
+* chore: sync develop into main ([334791d](https://github.com/VenusProtocol/venus-protocol/commit/334791d))
 * chore(deps): bump handlebars and tar past critical advisories ([64976e7](https://github.com/VenusProtocol/venus-protocol/commit/64976e7))
 * chore(deps): patch dependabot alerts in js toolchain ([38d7bfb](https://github.com/VenusProtocol/venus-protocol/commit/38d7bfb))
 * chore(deps): scope resolutions, fix unraised advisories ([4c07a92](https://github.com/VenusProtocol/venus-protocol/commit/4c07a92))
 * chore(deps): sweep lockfile against the full advisory db ([167b422](https://github.com/VenusProtocol/venus-protocol/commit/167b422))
+* chore(release): 10.4.1-dev.4 [skip ci] ([eac233c](https://github.com/VenusProtocol/venus-protocol/commit/eac233c))
+* ci: read VENUS_TOOLS_TOKEN from the release environment ([036ad57](https://github.com/VenusProtocol/venus-protocol/commit/036ad57))
+* ci: skip the slim publish when the version is already on npm ([b8c7e83](https://github.com/VenusProtocol/venus-protocol/commit/b8c7e83))
+* docs(swap): mark Core SwapRouter as deprecated ([0e63d5a](https://github.com/VenusProtocol/venus-protocol/commit/0e63d5a))
+
+## <small>10.4.1 (2026-11-10)</small>
+
+* Merge pull request #723 from VenusProtocol/main ([5abc3a7](https://github.com/VenusProtocol/venus-protocol/commit/5abc3a7)), closes [#723](https://github.com/VenusProtocol/venus-protocol/issues/723)
+* Merge pull request #724 from VenusProtocol/docs/hashdit-collateral-gateway-report ([b8a6f6b](https://github.com/VenusProtocol/venus-protocol/commit/b8a6f6b)), closes [#724](https://github.com/VenusProtocol/venus-protocol/issues/724)
+* Merge pull request #725 from VenusProtocol/fix/storage-layout-deployed-renames ([9f125e1](https://github.com/VenusProtocol/venus-protocol/commit/9f125e1)), closes [#725](https://github.com/VenusProtocol/venus-protocol/issues/725)
+* Merge pull request #726 from VenusProtocol/doc/cantina-final-report ([c4ce83f](https://github.com/VenusProtocol/venus-protocol/commit/c4ce83f)), closes [#726](https://github.com/VenusProtocol/venus-protocol/issues/726)
+* Merge pull request #728 from VenusProtocol/fix/ci-export-token-hardening ([5c547fc](https://github.com/VenusProtocol/venus-protocol/commit/5c547fc)), closes [#728](https://github.com/VenusProtocol/venus-protocol/issues/728)
+* Merge pull request #730 from VenusProtocol/develop ([465f73f](https://github.com/VenusProtocol/venus-protocol/commit/465f73f)), closes [#730](https://github.com/VenusProtocol/venus-protocol/issues/730)
+* Merge pull request #731 from VenusProtocol/fix/release-environment-main-final-20261110 ([25b9b73](https://github.com/VenusProtocol/venus-protocol/commit/25b9b73)), closes [#731](https://github.com/VenusProtocol/venus-protocol/issues/731)
+* ci: keep VENUS_TOOLS_TOKEN out of the export-deployments job ([43a2689](https://github.com/VenusProtocol/venus-protocol/commit/43a2689))
+* ci: scope release credentials to release environment ([b37be37](https://github.com/VenusProtocol/venus-protocol/commit/b37be37))
+* chore(release): 10.4.1-dev.1 [skip ci] ([4c761f5](https://github.com/VenusProtocol/venus-protocol/commit/4c761f5))
+* chore(release): 10.4.1-dev.2 [skip ci] ([6f3c14f](https://github.com/VenusProtocol/venus-protocol/commit/6f3c14f))
+* chore(release): 10.4.1-dev.3 [skip ci] ([ef82003](https://github.com/VenusProtocol/venus-protocol/commit/ef82003))
+* docs(audits): add Cantina final report ([2924892](https://github.com/VenusProtocol/venus-protocol/commit/2924892))
+* docs(audits): add HashDit Hub precision report ([4e32336](https://github.com/VenusProtocol/venus-protocol/commit/4e32336))
+* fix: ignore already-deployed oz-renamed-from in storage layout check ([e895c8c](https://github.com/VenusProtocol/venus-protocol/commit/e895c8c))
 
 ## <small>10.4.1-dev.3 (2026-11-04)</small>
 
