@@ -16,6 +16,7 @@ import "./interfaces/InterfaceComptroller.sol";
  * @notice This contracts allows users to swap a token for another one and supply/repay with the latter.
  * @dev For all functions that do not swap native BNB, user must approve this contract with the amount, prior the calling the swap function.
  * @author 0xlucian
+ * @custom:deprecated Use the `SwapRouter` in venus-periphery instead.
  */
 
 contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
