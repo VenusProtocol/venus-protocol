@@ -1,3 +1,18 @@
+## <small>10.4.1-dev.4 (2026-11-12)</small>
+
+* Merge branch 'develop' into ci/release-environment ([879418c](https://github.com/VenusProtocol/venus-protocol/commit/879418c))
+* Merge pull request #727 from VenusProtocol/fix/dependabot-alerts ([41c6345](https://github.com/VenusProtocol/venus-protocol/commit/41c6345)), closes [#727](https://github.com/VenusProtocol/venus-protocol/issues/727)
+* Merge pull request #728 from VenusProtocol/fix/ci-export-token-hardening ([5c547fc](https://github.com/VenusProtocol/venus-protocol/commit/5c547fc)), closes [#728](https://github.com/VenusProtocol/venus-protocol/issues/728)
+* Merge pull request #729 from VenusProtocol/ci/release-environment ([b4864a2](https://github.com/VenusProtocol/venus-protocol/commit/b4864a2)), closes [#729](https://github.com/VenusProtocol/venus-protocol/issues/729)
+* Merge pull request #732 from VenusProtocol/fix/apex-audit ([72c0f28](https://github.com/VenusProtocol/venus-protocol/commit/72c0f28)), closes [#732](https://github.com/VenusProtocol/venus-protocol/issues/732)
+* docs(swap): mark Core SwapRouter as deprecated ([0e63d5a](https://github.com/VenusProtocol/venus-protocol/commit/0e63d5a))
+* ci: keep VENUS_TOOLS_TOKEN out of the export-deployments job ([43a2689](https://github.com/VenusProtocol/venus-protocol/commit/43a2689))
+* ci: read VENUS_TOOLS_TOKEN from the release environment ([036ad57](https://github.com/VenusProtocol/venus-protocol/commit/036ad57))
+* chore(deps): bump handlebars and tar past critical advisories ([64976e7](https://github.com/VenusProtocol/venus-protocol/commit/64976e7))
+* chore(deps): patch dependabot alerts in js toolchain ([38d7bfb](https://github.com/VenusProtocol/venus-protocol/commit/38d7bfb))
+* chore(deps): scope resolutions, fix unraised advisories ([4c07a92](https://github.com/VenusProtocol/venus-protocol/commit/4c07a92))
+* chore(deps): sweep lockfile against the full advisory db ([167b422](https://github.com/VenusProtocol/venus-protocol/commit/167b422))
+
 ## <small>10.4.1-dev.3 (2026-11-04)</small>
 
 * Merge pull request #726 from VenusProtocol/doc/cantina-final-report ([c4ce83f](https://github.com/VenusProtocol/venus-protocol/commit/c4ce83f)), closes [#726](https://github.com/VenusProtocol/venus-protocol/issues/726)
