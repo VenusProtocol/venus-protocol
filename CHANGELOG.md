@@ -1,3 +1,21 @@
+## <small>10.4.1 (2026-11-10)</small>
+
+* Merge pull request #723 from VenusProtocol/main ([5abc3a7](https://github.com/VenusProtocol/venus-protocol/commit/5abc3a7)), closes [#723](https://github.com/VenusProtocol/venus-protocol/issues/723)
+* Merge pull request #724 from VenusProtocol/docs/hashdit-collateral-gateway-report ([b8a6f6b](https://github.com/VenusProtocol/venus-protocol/commit/b8a6f6b)), closes [#724](https://github.com/VenusProtocol/venus-protocol/issues/724)
+* Merge pull request #725 from VenusProtocol/fix/storage-layout-deployed-renames ([9f125e1](https://github.com/VenusProtocol/venus-protocol/commit/9f125e1)), closes [#725](https://github.com/VenusProtocol/venus-protocol/issues/725)
+* Merge pull request #726 from VenusProtocol/doc/cantina-final-report ([c4ce83f](https://github.com/VenusProtocol/venus-protocol/commit/c4ce83f)), closes [#726](https://github.com/VenusProtocol/venus-protocol/issues/726)
+* Merge pull request #728 from VenusProtocol/fix/ci-export-token-hardening ([5c547fc](https://github.com/VenusProtocol/venus-protocol/commit/5c547fc)), closes [#728](https://github.com/VenusProtocol/venus-protocol/issues/728)
+* Merge pull request #730 from VenusProtocol/develop ([465f73f](https://github.com/VenusProtocol/venus-protocol/commit/465f73f)), closes [#730](https://github.com/VenusProtocol/venus-protocol/issues/730)
+* Merge pull request #731 from VenusProtocol/fix/release-environment-main-final-20261110 ([25b9b73](https://github.com/VenusProtocol/venus-protocol/commit/25b9b73)), closes [#731](https://github.com/VenusProtocol/venus-protocol/issues/731)
+* ci: keep VENUS_TOOLS_TOKEN out of the export-deployments job ([43a2689](https://github.com/VenusProtocol/venus-protocol/commit/43a2689))
+* ci: scope release credentials to release environment ([b37be37](https://github.com/VenusProtocol/venus-protocol/commit/b37be37))
+* chore(release): 10.4.1-dev.1 [skip ci] ([4c761f5](https://github.com/VenusProtocol/venus-protocol/commit/4c761f5))
+* chore(release): 10.4.1-dev.2 [skip ci] ([6f3c14f](https://github.com/VenusProtocol/venus-protocol/commit/6f3c14f))
+* chore(release): 10.4.1-dev.3 [skip ci] ([ef82003](https://github.com/VenusProtocol/venus-protocol/commit/ef82003))
+* docs(audits): add Cantina final report ([2924892](https://github.com/VenusProtocol/venus-protocol/commit/2924892))
+* docs(audits): add HashDit Hub precision report ([4e32336](https://github.com/VenusProtocol/venus-protocol/commit/4e32336))
+* fix: ignore already-deployed oz-renamed-from in storage layout check ([e895c8c](https://github.com/VenusProtocol/venus-protocol/commit/e895c8c))
+
 ## <small>10.4.1-dev.3 (2026-11-04)</small>
 
 * Merge pull request #726 from VenusProtocol/doc/cantina-final-report ([c4ce83f](https://github.com/VenusProtocol/venus-protocol/commit/c4ce83f)), closes [#726](https://github.com/VenusProtocol/venus-protocol/issues/726)
