@@ -1,3 +1,21 @@
+## <small>10.4.2 (2026-11-12)</small>
+
+* Merge branch 'develop' into ci/release-environment ([879418c](https://github.com/VenusProtocol/venus-protocol/commit/879418c))
+* Merge branch 'develop' into sync/develop-to-main-20261112 ([caea614](https://github.com/VenusProtocol/venus-protocol/commit/caea614))
+* Merge pull request #727 from VenusProtocol/fix/dependabot-alerts ([41c6345](https://github.com/VenusProtocol/venus-protocol/commit/41c6345)), closes [#727](https://github.com/VenusProtocol/venus-protocol/issues/727)
+* Merge pull request #729 from VenusProtocol/ci/release-environment ([b4864a2](https://github.com/VenusProtocol/venus-protocol/commit/b4864a2)), closes [#729](https://github.com/VenusProtocol/venus-protocol/issues/729)
+* Merge pull request #732 from VenusProtocol/fix/apex-audit ([72c0f28](https://github.com/VenusProtocol/venus-protocol/commit/72c0f28)), closes [#732](https://github.com/VenusProtocol/venus-protocol/issues/732)
+* Merge pull request #734 from VenusProtocol/sync/develop-to-main-20261112 ([5c67ec8](https://github.com/VenusProtocol/venus-protocol/commit/5c67ec8)), closes [#734](https://github.com/VenusProtocol/venus-protocol/issues/734)
+* chore: sync develop into main ([334791d](https://github.com/VenusProtocol/venus-protocol/commit/334791d))
+* chore(deps): bump handlebars and tar past critical advisories ([64976e7](https://github.com/VenusProtocol/venus-protocol/commit/64976e7))
+* chore(deps): patch dependabot alerts in js toolchain ([38d7bfb](https://github.com/VenusProtocol/venus-protocol/commit/38d7bfb))
+* chore(deps): scope resolutions, fix unraised advisories ([4c07a92](https://github.com/VenusProtocol/venus-protocol/commit/4c07a92))
+* chore(deps): sweep lockfile against the full advisory db ([167b422](https://github.com/VenusProtocol/venus-protocol/commit/167b422))
+* chore(release): 10.4.1-dev.4 [skip ci] ([eac233c](https://github.com/VenusProtocol/venus-protocol/commit/eac233c))
+* ci: read VENUS_TOOLS_TOKEN from the release environment ([036ad57](https://github.com/VenusProtocol/venus-protocol/commit/036ad57))
+* ci: skip the slim publish when the version is already on npm ([b8c7e83](https://github.com/VenusProtocol/venus-protocol/commit/b8c7e83))
+* docs(swap): mark Core SwapRouter as deprecated ([0e63d5a](https://github.com/VenusProtocol/venus-protocol/commit/0e63d5a))
+
 ## <small>10.4.1 (2026-11-10)</small>
 
 * Merge pull request #723 from VenusProtocol/main ([5abc3a7](https://github.com/VenusProtocol/venus-protocol/commit/5abc3a7)), closes [#723](https://github.com/VenusProtocol/venus-protocol/issues/723)
