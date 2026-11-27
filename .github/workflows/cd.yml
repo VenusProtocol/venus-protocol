@@ -47,10 +47,18 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           yarn semantic-release
-          # package.json keeps the placeholder version unless semantic-release published a release.
-          if [ "$(jq -r .version package.json)" != "0.0.0-semantically-released" ]; then
-            echo "released=true" >> "$GITHUB_OUTPUT"
+          # Publish slim for the release tag on this exact commit: either semantic-release just
+          # released it, or this is a rerun after the slim publish failed. On a rerun package.json
+          # is back to the placeholder, so restore the version from the tag once the main package
+          # is confirmed on npm.
+          if [ "$(jq -r .version package.json)" = "0.0.0-semantically-released" ]; then
+            TAG=$(git tag --list 'v[0-9]*' --points-at HEAD --sort=-v:refname | head -n 1)
+            if [ -z "$TAG" ] || [ -z "$(npm view "$(jq -r .name package.json)@${TAG#v}" version 2>/dev/null)" ]; then
+              exit 0
+            fi
+            jq --arg v "${TAG#v}" '.version = $v' package.json > package.tmp.json && mv package.tmp.json package.json
           fi
+          echo "released=true" >> "$GITHUB_OUTPUT"
 
       - name: Prepare slim package
         if: steps.release.outputs.released == 'true'
