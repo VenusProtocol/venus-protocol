@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "10.4.2",
+  "version": "0.0.0-semantically-released",
   "description": "The Venus Money Market",
   "repository": {
     "type": "git",
@@ -70,8 +70,6 @@
     "@nomicfoundation/hardhat-verify": "^2.0.14",
     "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "@openzeppelin/upgrades-core": "1.41.0",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
